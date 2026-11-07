@@ -6,7 +6,11 @@ import dayjs from "dayjs";
 import { useEquipmentTypesQuery } from "@/hooks/equipment-types/useEquipmentTypes";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { EQUIPMENT_STATUS_LABEL, type Equipment, type EquipmentBody } from "@/types/maintenance";
+
+import { equipmentStatusLabel } from "./maintenance-format";
 
 type FormValues = {
   equipmentCode: string;
@@ -38,24 +42,26 @@ const fmt = (d?: dayjs.Dayjs | null) => (d ? d.format("YYYY-MM-DD") : null);
 
 /** ฟอร์มข้อมูลเครื่องจักร: รหัส/ชื่อ/หมวด/ตำแหน่ง/Serial/ประกัน/ชั่วโมงเดินเครื่อง */
 export default function EquipmentFormModal({ equipment, loading, onCancel, onSubmit }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const typesQuery = useEquipmentTypesQuery({ isActive: true });
   const unitsQuery = useUnitsQuery({ isActive: true });
 
   // ประเภท/หน่วยที่เครื่องนี้ใช้อยู่แต่ถูกปิดภายหลัง ต้องยังเห็นในตัวเลือก (ไม่ให้ค่าเดิมหาย)
-  const typeOptions = (typesQuery.data ?? []).map((t) => ({ value: t.id, label: `${t.code} — ${t.nameTh}` }));
+  const typeOptions = (typesQuery.data ?? []).map((ty) => ({ value: ty.id, label: `${ty.code} — ${ty.nameTh}` }));
   if (equipment?.equipmentTypeId && !typeOptions.some((o) => o.value === equipment.equipmentTypeId)) {
     typeOptions.push({
       value: equipment.equipmentTypeId,
-      label: `${equipment.equipmentTypeName ?? "ประเภทเดิม"} (ปิดใช้งาน)`,
+      label: `${equipment.equipmentTypeName ?? t("ประเภทเดิม")} ${t("(ปิดใช้งาน)")}`,
     });
   }
   const unitOptions = (unitsQuery.data?.data ?? []).map((u) => ({ value: u.id, label: `${u.code} — ${u.nameTh}` }));
   if (equipment?.capacityUnitId && !unitOptions.some((o) => o.value === equipment.capacityUnitId)) {
     unitOptions.push({
       value: equipment.capacityUnitId,
-      label: `${equipment.capacityUnitLabel ?? "หน่วยเดิม"} (ปิดใช้งาน)`,
+      label: `${equipment.capacityUnitLabel ?? t("หน่วยเดิม")} ${t("(ปิดใช้งาน)")}`,
     });
   }
   const editing = Boolean(equipment);
@@ -64,9 +70,9 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
     <Modal
       open
       width={720}
-      title={editing ? `แก้ไขเครื่องจักร ${equipment?.equipmentCode}` : "เพิ่มเครื่องจักร"}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={editing ? t("แก้ไขเครื่องจักร {code}", { code: equipment?.equipmentCode ?? "" }) : t("เพิ่มเครื่องจักร")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       onCancel={onCancel}
       onOk={() =>
@@ -115,26 +121,26 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
       >
         <Row gutter={12}>
           <Col xs={24} md={8}>
-            <Form.Item name="equipmentCode" label="รหัสเครื่อง (Machine Code)" rules={[{ required: true, whitespace: true, message: "ใส่รหัสเครื่อง" }]}>
-              <Input disabled={editing} maxLength={50} placeholder="เช่น EQ-001" />
+            <Form.Item name="equipmentCode" label={t("รหัสเครื่อง (Machine Code)")} rules={[{ required: true, whitespace: true, message: t("ใส่รหัสเครื่อง") }]}>
+              <Input disabled={editing} maxLength={50} placeholder={t("เช่น EQ-001")} />
             </Form.Item>
           </Col>
           <Col xs={24} md={16}>
-            <Form.Item name="name" label="ชื่อเครื่องจักร" rules={[{ required: true, whitespace: true, message: "ใส่ชื่อ" }]}>
+            <Form.Item name="name" label={t("ชื่อเครื่องจักร")} rules={[{ required: true, whitespace: true, message: t("ใส่ชื่อ") }]}>
               <Input maxLength={255} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
             <Form.Item
               name="equipmentTypeId"
-              label="ประเภทเครื่องจักร"
-              extra="จัดการรายการที่ ข้อมูลหลัก > ประเภทเครื่องจักร · MO สลับเครื่องได้เฉพาะประเภทเดียวกัน"
+              label={t("ประเภทเครื่องจักร")}
+              extra={t("จัดการรายการที่ ข้อมูลหลัก > ประเภทเครื่องจักร · MO สลับเครื่องได้เฉพาะประเภทเดียวกัน")}
             >
               <Select
                 allowClear
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกประเภท"
+                placeholder={t("เลือกประเภท")}
                 loading={typesQuery.isLoading}
                 options={typeOptions}
               />
@@ -143,18 +149,18 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
           <Col xs={24} md={8}>
             <Form.Item
               name="capacity"
-              label="กำลังผลิต (Capacity)"
-              extra="ต่อชั่วโมง — ใช้คาดการณ์/วิเคราะห์เท่านั้น"
+              label={t("กำลังผลิต (Capacity)")}
+              extra={t("ต่อชั่วโมง — ใช้คาดการณ์/วิเคราะห์เท่านั้น")}
               rules={[
                 {
                   validator: (_, value?: number | null) =>
                     value == null || value > 0
                       ? Promise.resolve()
-                      : Promise.reject(new Error("ต้องมากกว่า 0")),
+                      : Promise.reject(new Error(t("ต้องมากกว่า 0"))),
                 },
               ]}
             >
-              <InputNumber min={0.001} precision={3} style={{ width: "100%" }} placeholder="เช่น 1200" />
+              <InputNumber min={0.001} precision={3} style={{ width: "100%" }} placeholder={t("เช่น 1200")} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
@@ -165,11 +171,11 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
               {({ getFieldValue }) => (
                 <Form.Item
                   name="capacityUnitId"
-                  label="หน่วยกำลังผลิต (ต่อชั่วโมง)"
+                  label={t("หน่วยกำลังผลิต (ต่อชั่วโมง)")}
                   rules={[
                     {
                       required: getFieldValue("capacity") != null,
-                      message: "เลือกหน่วยกำลังผลิต",
+                      message: t("เลือกหน่วยกำลังผลิต"),
                     },
                   ]}
                 >
@@ -177,7 +183,7 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
                     allowClear
                     showSearch
                     optionFilterProp="label"
-                    placeholder="เช่น กก."
+                    placeholder={t("เช่น กก.")}
                     loading={unitsQuery.isLoading}
                     options={unitOptions}
                     disabled={getFieldValue("capacity") == null}
@@ -187,7 +193,7 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="locationId" label="ตำแหน่งที่ตั้ง / ตำแหน่งจัดเก็บอะไหล่" extra="ใช้เป็นที่ตัดสต๊อกอะไหล่ตอนปิดงานซ่อม">
+            <Form.Item name="locationId" label={t("ตำแหน่งที่ตั้ง / ตำแหน่งจัดเก็บอะไหล่")} extra={t("ใช้เป็นที่ตัดสต๊อกอะไหล่ตอนปิดงานซ่อม")}>
               <Select
                 allowClear
                 showSearch
@@ -202,8 +208,8 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
           </Col>
           {editing ? (
             <Col xs={24} md={8}>
-              <Form.Item name="status" label="สถานะ">
-                <Select options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value, label]) => ({ value, label }))} />
+              <Form.Item name="status" label={t("สถานะ")}>
+                <Select options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value]) => ({ value, label: equipmentStatusLabel(value, lang) }))} />
               </Form.Item>
             </Col>
           ) : null}
@@ -213,37 +219,37 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="manufacturer" label="ผู้ผลิต">
+            <Form.Item name="manufacturer" label={t("ผู้ผลิต")}>
               <Input maxLength={150} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="model" label="รุ่น (Model)">
+            <Form.Item name="model" label={t("รุ่น (Model)")}>
               <Input maxLength={100} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="installedDate" label="วันที่ติดตั้ง">
+            <Form.Item name="installedDate" label={t("วันที่ติดตั้ง")}>
               <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="warrantyExpiryDate" label="ประกันหมดอายุ">
+            <Form.Item name="warrantyExpiryDate" label={t("ประกันหมดอายุ")}>
               <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="runningHours" label="ชั่วโมงเดินเครื่องสะสม" extra="กรอกภายหลังได้เมื่อเครื่องจักรถึง/อ่านค่าได้">
+            <Form.Item name="runningHours" label={t("ชั่วโมงเดินเครื่องสะสม")} extra={t("กรอกภายหลังได้เมื่อเครื่องจักรถึง/อ่านค่าได้")}>
               <InputNumber min={0} precision={1} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item name="warrantyNote" label="เงื่อนไข/ผู้ให้การรับประกัน">
+            <Form.Item name="warrantyNote" label={t("เงื่อนไข/ผู้ให้การรับประกัน")}>
               <Input maxLength={2000} />
             </Form.Item>
           </Col>
           <Col span={24}>
-            <Form.Item name="remark" label="หมายเหตุ">
+            <Form.Item name="remark" label={t("หมายเหตุ")}>
               <Input.TextArea rows={2} maxLength={2000} />
             </Form.Item>
           </Col>

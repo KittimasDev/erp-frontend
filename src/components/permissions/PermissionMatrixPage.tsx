@@ -30,6 +30,7 @@ import { usePermissionScreensQuery } from "@/hooks/permissions/usePermissionScre
 import { useRolePermissionsQuery } from "@/hooks/permissions/useRolePermissionsQuery";
 import { useUpdateRolePermissionsMutation } from "@/hooks/permissions/useUpdateRolePermissionsMutation";
 import { isAdministrator } from "@/lib/auth/session";
+import { useT } from "@/lib/i18n/useT";
 import type {
   RolePermissionAssignment,
   ScreenCatalog,
@@ -192,6 +193,7 @@ const MatrixRow = memo(function MatrixRow({
   onToggle,
   onToggleRow,
 }: MatrixRowProps) {
+  const t = useT();
   return (
     <tr>
       <td className={styles.screenCell}>
@@ -200,7 +202,7 @@ const MatrixRow = memo(function MatrixRow({
             checked={rowState.checked}
             indeterminate={rowState.indeterminate}
             disabled={disabled}
-            title="ติ๊ก/ถอดสิทธิ์ทั้งแถวนี้"
+            title={t("ติ๊ก/ถอดสิทธิ์ทั้งแถวนี้")}
             onChange={(event) => onToggleRow(screen, event.target.checked)}
           />
           <div className={styles.screenMeta}>
@@ -242,6 +244,7 @@ export default function PermissionMatrixPage({
   embedded = false,
   fromRoles = false,
 }: PermissionMatrixPageProps) {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -350,7 +353,7 @@ export default function PermissionMatrixPage({
     if (
       isDirty &&
       !window.confirm(
-        "ยังมีสิทธิ์ที่ติ๊กไว้แต่ไม่ได้บันทึก — เปลี่ยนบทบาทแล้วจะหายไป ต้องการเปลี่ยนหรือไม่?",
+        t("ยังมีสิทธิ์ที่ติ๊กไว้แต่ไม่ได้บันทึก — เปลี่ยนบทบาทแล้วจะหายไป ต้องการเปลี่ยนหรือไม่?"),
       )
     ) {
       return;
@@ -408,7 +411,7 @@ export default function PermissionMatrixPage({
       ...MODULE_SECTIONS.filter((item) => present.has(item.code)).map(
         (item) => ({
           value: item.code,
-          label: item.label,
+          label: t(item.label),
         }),
       ),
       ...[...present]
@@ -416,7 +419,7 @@ export default function PermissionMatrixPage({
         .sort((a, b) => a.localeCompare(b))
         .map((code) => ({ value: code, label: code })),
     ];
-  }, [screens]);
+  }, [screens, t]);
 
   const visibleScreens = useMemo(
     () => moduleGroups.flatMap((group) => group.screens),
@@ -660,7 +663,7 @@ export default function PermissionMatrixPage({
     <div className={styles.headerActions}>
       {fromRoles ? (
         <Button size="large" icon={<ArrowLeftOutlined />} onClick={goBackToRoles}>
-          กลับไปบทบาท
+          {t("กลับไปบทบาท")}
         </Button>
       ) : null}
       <Button
@@ -668,7 +671,7 @@ export default function PermissionMatrixPage({
         icon={<PlusOutlined />}
         onClick={() => setRoleModalOpen(true)}
       >
-        สร้างบทบาทใหม่
+        {t("สร้างบทบาทใหม่")}
       </Button>
       <Button
         size="large"
@@ -676,7 +679,7 @@ export default function PermissionMatrixPage({
         disabled={!isDirty || isBusy}
         onClick={resetChanges}
       >
-        ยกเลิกการแก้ไข
+        {t("ยกเลิกการแก้ไข")}
       </Button>
       <Button
         type="primary"
@@ -700,7 +703,7 @@ export default function PermissionMatrixPage({
         }
         onClick={handleSave}
       >
-        {isDirty ? "บันทึกสิทธิ์ *" : "บันทึกสิทธิ์"}
+        {isDirty ? t("บันทึกสิทธิ์ *") : t("บันทึกสิทธิ์")}
       </Button>
     </div>
   );
@@ -713,7 +716,7 @@ export default function PermissionMatrixPage({
             eyebrow="SECURITY"
             icon={<SafetyCertificateOutlined />}
             title="Permission Matrix"
-            subtitle="กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE ใช้จำกัดเฉพาะ role ที่อนุมัติได้"
+            subtitle={t("กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE ใช้จำกัดเฉพาะ role ที่อนุมัติได้")}
             actions={
               <>
 {headerActions}
@@ -726,13 +729,13 @@ export default function PermissionMatrixPage({
           <div className={masterStyles.filterHeader}>
             <div>
               <div className={masterStyles.filterEyebrow}>FILTER</div>
-              <h3>เลือกบทบาทและโมดูล</h3>
+              <h3>{t("เลือกบทบาทและโมดูล")}</h3>
               <p>
                 {fromRoles
-                  ? "กำลังตั้งสิทธิ์สำหรับบทบาทใน URL — เปลี่ยนบทบาทได้จากช่องด้านล่าง หรือกลับไปแท็บ บทบาท"
-                  : "เลือกบทบาทเพื่อแก้สิทธิ์ แล้วเลือกโมดูลได้หลายอันเพื่อกรองตาราง"}
+                  ? t("กำลังตั้งสิทธิ์สำหรับบทบาทใน URL — เปลี่ยนบทบาทได้จากช่องด้านล่าง หรือกลับไปแท็บ บทบาท")
+                  : t("เลือกบทบาทเพื่อแก้สิทธิ์ แล้วเลือกโมดูลได้หลายอันเพื่อกรองตาราง")}
                 {moduleFilter.length > 0
-                  ? " — กำลังกรองโมดูล: ติ๊กสิทธิ์ในโมดูลอื่นด้วยก่อนบันทึก ถ้าต้องการให้ขึ้นเมนูครบ"
+                  ? t(" — กำลังกรองโมดูล: ติ๊กสิทธิ์ในโมดูลอื่นด้วยก่อนบันทึก ถ้าต้องการให้ขึ้นเมนูครบ")
                   : ""}
               </p>
             </div>
@@ -740,14 +743,14 @@ export default function PermissionMatrixPage({
           </div>
           <div className={styles.filterFields}>
             <label className={styles.filterField}>
-              <span className={styles.filterLabel}>บทบาท</span>
+              <span className={styles.filterLabel}>{t("บทบาท")}</span>
               <div className={styles.roleSelectRow}>
                 <Select
                   className={styles.roleSelect}
                   value={selectedRoleId}
                   showSearch
                   optionFilterProp="label"
-                  placeholder="เลือกบทบาท"
+                  placeholder={t("เลือกบทบาท")}
                   options={roles.map((role) => ({
                     value: role.id,
                     label: `${role.roleCode} — ${role.roleName}`,
@@ -759,14 +762,14 @@ export default function PermissionMatrixPage({
                   }}
                 />
                 <Popconfirm
-                  title="ลบบทบาท"
+                  title={t("ลบบทบาท")}
                   description={
                     selectedRole
-                      ? `ต้องการลบ "${selectedRole.roleName}" หรือไม่?`
+                      ? t('ต้องการลบ "{name}" หรือไม่?', { name: selectedRole.roleName })
                       : undefined
                   }
-                  okText="ลบ"
-                  cancelText="ยกเลิก"
+                  okText={t("ลบ")}
+                  cancelText={t("ยกเลิก")}
                   okButtonProps={{ danger: true }}
                   disabled={!selectedRole}
                   onConfirm={handleDeleteRole}
@@ -778,17 +781,17 @@ export default function PermissionMatrixPage({
                     disabled={!selectedRole}
                     title={
                       selectedRole
-                        ? "ลบได้ถ้ายังไม่มีผู้ใช้ผูกบทบาทนี้"
+                        ? t("ลบได้ถ้ายังไม่มีผู้ใช้ผูกบทบาทนี้")
                         : undefined
                     }
                   >
-                    ลบ
+                    {t("ลบ")}
                   </Button>
                 </Popconfirm>
               </div>
             </label>
             <label className={styles.filterField}>
-              <span className={styles.filterLabel}>โมดูล</span>
+              <span className={styles.filterLabel}>{t("โมดูล")}</span>
               <Select
                 className={styles.moduleSelect}
                 mode="multiple"
@@ -798,7 +801,7 @@ export default function PermissionMatrixPage({
                 onChange={(value) => setModuleFilter(value)}
                 showSearch
                 optionFilterProp="label"
-                placeholder="ทุกโมดูล (เลือกได้หลายอัน)"
+                placeholder={t("ทุกโมดูล (เลือกได้หลายอัน)")}
                 options={moduleFilterOptions}
               />
             </label>
@@ -809,18 +812,18 @@ export default function PermissionMatrixPage({
           <div className={masterStyles.tableHeader}>
             <div>
               <div className={masterStyles.tableEyebrow}>MATRIX</div>
-              <h3>สิทธิ์ตามหน้าจอ</h3>
+              <h3>{t("สิทธิ์ตามหน้าจอ")}</h3>
               <p>
                 {isAdminRole
-                  ? "ADMINISTRATOR มีสิทธิ์ทุกหน้าจอโดยระบบ ไม่ต้องตั้งค่า — ตารางนี้ดูได้อย่างเดียว"
-                  : "ติ๊กทั้งแถว / ทั้งกลุ่ม / ทั้งคอลัมน์ได้ — หรือใช้ปุ่มเปิด/ปิดทั้งหมดที่กำลังแสดง แล้วกดบันทึกสิทธิ์ · ติ๊ก แก้ไข/ลบ/อนุมัติ จะเปิด ดู ให้อัตโนมัติ เพราะเข้าหน้านั้นไม่ได้ถ้าไม่มีสิทธิ์ดู"}
-                {isDirty ? " — มีการแก้ที่ยังไม่บันทึก" : ""}
+                  ? t("ADMINISTRATOR มีสิทธิ์ทุกหน้าจอโดยระบบ ไม่ต้องตั้งค่า — ตารางนี้ดูได้อย่างเดียว")
+                  : t("ติ๊กทั้งแถว / ทั้งกลุ่ม / ทั้งคอลัมน์ได้ — หรือใช้ปุ่มเปิด/ปิดทั้งหมดที่กำลังแสดง แล้วกดบันทึกสิทธิ์ · ติ๊ก แก้ไข/ลบ/อนุมัติ จะเปิด ดู ให้อัตโนมัติ เพราะเข้าหน้านั้นไม่ได้ถ้าไม่มีสิทธิ์ดู")}
+                {isDirty ? t(" — มีการแก้ที่ยังไม่บันทึก") : ""}
               </p>
             </div>
             <div className={styles.matrixToolbar}>
               <div className={masterStyles.tableCount}>
                 {visibleScreenCount}
-                {moduleFilter.length > 0 ? ` / ${screens.length}` : ""} หน้าจอ
+                {moduleFilter.length > 0 ? ` / ${screens.length}` : ""} {t("หน้าจอ")}
               </div>
               <Button
                 size="small"
@@ -832,7 +835,7 @@ export default function PermissionMatrixPage({
                   )
                 }
               >
-                เปิดทั้งหมดที่เห็น
+                {t("เปิดทั้งหมดที่เห็น")}
               </Button>
               <Button
                 size="small"
@@ -844,7 +847,7 @@ export default function PermissionMatrixPage({
                   )
                 }
               >
-                ปิดทั้งหมดที่เห็น
+                {t("ปิดทั้งหมดที่เห็น")}
               </Button>
             </div>
           </div>
@@ -852,9 +855,9 @@ export default function PermissionMatrixPage({
           {roleNotFound ? (
             <Empty
               className={styles.emptyBox}
-              description={`ไม่พบบทบาทรหัส ${selectedRoleId} — อาจถูกลบไปแล้ว`}
+              description={t("ไม่พบบทบาทรหัส {id} — อาจถูกลบไปแล้ว", { id: selectedRoleId ?? "" })}
             >
-              <Button onClick={goBackToRoles}>กลับไปแท็บบทบาท</Button>
+              <Button onClick={goBackToRoles}>{t("กลับไปแท็บบทบาท")}</Button>
             </Empty>
           ) : rolePermissionsQuery.isLoading ? (
             <div className={styles.loadingBox}>
@@ -863,7 +866,7 @@ export default function PermissionMatrixPage({
           ) : rolePermissionsQuery.isError ? (
             <Empty
               className={styles.emptyBox}
-              description="โหลดสิทธิ์ของบทบาทนี้ไม่สำเร็จ — ยังไม่ต้องกดบันทึก เพราะจะเขียนทับสิทธิ์เดิมทั้งชุด"
+              description={t("โหลดสิทธิ์ของบทบาทนี้ไม่สำเร็จ — ยังไม่ต้องกดบันทึก เพราะจะเขียนทับสิทธิ์เดิมทั้งชุด")}
             >
               <Button
                 onClick={() => {
@@ -871,38 +874,38 @@ export default function PermissionMatrixPage({
                 }}
                 loading={rolePermissionsQuery.isFetching}
               >
-                ลองโหลดอีกครั้ง
+                {t("ลองโหลดอีกครั้ง")}
               </Button>
             </Empty>
           ) : screens.length === 0 ? (
             <Empty
               className={styles.emptyBox}
-              description="ยังไม่มีข้อมูล Screen"
+              description={t("ยังไม่มีข้อมูล Screen")}
             />
           ) : visibleScreenCount === 0 ? (
             <Empty
               className={styles.emptyBox}
-              description="ไม่พบหน้าจอในโมดูลที่เลือก"
+              description={t("ไม่พบหน้าจอในโมดูลที่เลือก")}
             />
           ) : (
             <div className={styles.matrixScroll}>
               <table className={styles.matrixTable}>
                 <thead>
                   <tr>
-                    <th className={styles.screenHeaderCell}>หน้าจอ</th>
+                    <th className={styles.screenHeaderCell}>{t("หน้าจอ")}</th>
                     {functionCodes.map((code) => {
                       const colState = colStateByFunctionCode.get(code);
                       return (
                         <th key={code} className={styles.functionHeaderCell}>
                           <div className={styles.columnHeader}>
                             <span title={code}>
-                              {FUNCTION_LABELS[code] ?? code}
+                              {t(FUNCTION_LABELS[code] ?? code)}
                             </span>
                             <Checkbox
                               checked={Boolean(colState?.checked)}
                               indeterminate={Boolean(colState?.indeterminate)}
                               disabled={isReadOnly || colState?.disabled}
-                              title={`ติ๊ก/ถอด ${FUNCTION_LABELS[code] ?? code} ทั้งตารางที่เห็น`}
+                              title={t("ติ๊ก/ถอด {name} ทั้งตารางที่เห็น", { name: t(FUNCTION_LABELS[code] ?? code) })}
                               onChange={(event) =>
                                 setPermissionsAllowed(
                                   permissionIdsForFunction(
@@ -928,16 +931,14 @@ export default function PermissionMatrixPage({
                           colSpan={functionCodes.length + 1}
                         >
                           <span className={styles.sectionLabel}>
-                            {group.label}
+                            {t(group.label)}
                           </span>
                           <span className={styles.sectionMeta}>
-                            {group.code} · {group.screens.length} หน้าจอ
+                            {group.code} · {group.screens.length} {t("หน้าจอ")}
                           </span>
                           {group.code === "WAREHOUSE" ? (
                             <span className={styles.sectionHint}>
-                              ติ๊กดู ของตรวจสต๊อกขาย / จ่ายของ / บรรจุ / ส่งของ
-                              เปิดหน้ารายละเอียดใบสั่งขายได้
-                              โดยไม่ต้องติ๊กหน้าใบสั่งขาย
+                              {t("ติ๊กดู ของตรวจสต๊อกขาย / จ่ายของ / บรรจุ / ส่งของ เปิดหน้ารายละเอียดใบสั่งขายได้ โดยไม่ต้องติ๊กหน้าใบสั่งขาย")}
                             </span>
                           ) : null}
                           <span className={styles.sectionActions}>
@@ -955,7 +956,7 @@ export default function PermissionMatrixPage({
                                 )
                               }
                             >
-                              VIEW ทั้งกลุ่ม
+                              {t("VIEW ทั้งกลุ่ม")}
                             </Button>
                             <Button
                               type="link"
@@ -971,7 +972,7 @@ export default function PermissionMatrixPage({
                                 )
                               }
                             >
-                              ถอด VIEW ทั้งกลุ่ม
+                              {t("ถอด VIEW ทั้งกลุ่ม")}
                             </Button>
                             <Button
                               type="link"
@@ -984,7 +985,7 @@ export default function PermissionMatrixPage({
                                 )
                               }
                             >
-                              เปิดทั้งหมด
+                              {t("เปิดทั้งหมด")}
                             </Button>
                             <Button
                               type="link"
@@ -997,7 +998,7 @@ export default function PermissionMatrixPage({
                                 )
                               }
                             >
-                              ปิดทั้งหมด
+                              {t("ปิดทั้งหมด")}
                             </Button>
                           </span>
                         </td>

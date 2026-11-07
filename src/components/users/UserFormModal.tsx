@@ -2,6 +2,8 @@
 
 import { isValidThaiNationalId } from "@/utils/thaiNationalId";
 import { useEffect } from "react";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import { DatePicker, Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
 
@@ -29,8 +31,8 @@ import styles from "@/components/masters/shared/master-page.module.css";
 const DEFAULT_DAYS_PER_MONTH = 30;
 const DEFAULT_HOURS_PER_DAY = 8;
 
-const money = (value: number) =>
-  value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = (value: number, lang: string) =>
+  value.toLocaleString(lang === "en" ? "en-US" : "th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type UserFormValues = {
   username: string;
@@ -78,6 +80,8 @@ export default function UserFormModal({
   onCancel,
   onSubmit,
 }: UserFormModalProps) {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<UserFormValues>();
   const canLogin = Form.useWatch("canLogin", form) ?? true;
   const departmentsQuery = useDepartmentsQuery({ isActive: true });
@@ -95,7 +99,7 @@ export default function UserFormModal({
   const payrollSettingsQuery = usePayrollSettingsQuery(open);
   const fundOptions = (
     payrollSettingsQuery.data?.data?.providentFundOptions ?? [0, 3, 5, 7, 10, 15]
-  ).map((n) => ({ value: n, label: n === 0 ? "ไม่เข้ากองทุน" : `${n}%` }));
+  ).map((n) => ({ value: n, label: n === 0 ? t("ไม่เข้ากองทุน") : `${n}%` }));
   const employmentType = Form.useWatch("employmentType", form);
   const basePay = Form.useWatch("basePay", form);
   const isDaily = employmentType === "DAILY";
@@ -248,8 +252,8 @@ export default function UserFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={680}
       centered
@@ -260,44 +264,43 @@ export default function UserFormModal({
           <div className={styles.eyebrow}>
             {isCreateMode ? "CREATE PERSON" : "EDIT PERSON"}
           </div>
-          <h2>{isCreateMode ? "เพิ่มบุคคล / ผู้ใช้งาน" : "แก้ไขบุคคล / ผู้ใช้งาน"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มบุคคล / ผู้ใช้งาน") : t("แก้ไขบุคคล / ผู้ใช้งาน")}</h2>
           <p>
-            ข้อมูล HR และบัญชี login อยู่ที่เดียวกัน — ปิด &quot;เปิด login ERP&quot;
-            สำหรับพนักงานที่ไม่ใช้ระบบ
+            {t("ข้อมูล HR และบัญชี login อยู่ที่เดียวกัน — ปิด \"เปิด login ERP\" สำหรับพนักงานที่ไม่ใช้ระบบ")}
           </p>
         </div>
       </div>
 
       <Form form={form} layout="vertical" requiredMark={false} className={styles.form}>
         <Form.Item
-          label="รหัสพนักงาน"
+          label={t("รหัสพนักงาน")}
           name="employeeCode"
           rules={[{ max: 50 }]}
         >
-          <Input placeholder="เช่น EMP-001" />
+          <Input placeholder={t("เช่น EMP-001")} />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อ"
+          label={lang === "en" ? "First name" : "ชื่อ"}
           name="firstName"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อ" },
+            { required: true, message: t("กรุณากรอกชื่อ") },
             { max: 100 },
           ]}
         >
-          <Input placeholder="เช่น สมชาย" />
+          <Input placeholder={t("เช่น สมชาย")} />
         </Form.Item>
 
-        <Form.Item label="นามสกุล" name="lastName" rules={[{ max: 100 }]}>
-          <Input placeholder="เช่น ใจดี" />
+        <Form.Item label={t("นามสกุล")} name="lastName" rules={[{ max: 100 }]}>
+          <Input placeholder={t("เช่น ใจดี")} />
         </Form.Item>
 
-        <Form.Item label="แผนก" name="departmentId">
+        <Form.Item label={lang === "en" ? "Department" : "แผนก"} name="departmentId">
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกแผนก"
+            placeholder={t("เลือกแผนก")}
             loading={departmentsQuery.isLoading}
             options={departments.map((dept) => ({
               value: dept.id,
@@ -307,12 +310,12 @@ export default function UserFormModal({
           />
         </Form.Item>
 
-        <Form.Item label="แผนกย่อย" name="sectionId">
+        <Form.Item label={t("แผนกย่อย")} name="sectionId">
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder={departmentId ? "เลือกแผนกย่อย" : "เลือกแผนกก่อน"}
+            placeholder={departmentId ? t("เลือกแผนกย่อย") : t("เลือกแผนกก่อน")}
             disabled={!departmentId}
             loading={sectionsQuery.isLoading}
             options={sections
@@ -323,17 +326,17 @@ export default function UserFormModal({
               )
               .map((item) => ({
                 value: item.id,
-                label: item.isActive ? item.nameTh : `${item.nameTh} (ปิดใช้งาน)`,
+                label: item.isActive ? item.nameTh : `${item.nameTh} (${t("ปิดใช้งาน")})`,
               }))}
           />
         </Form.Item>
 
-        <Form.Item label="หัวหน้างาน" name="supervisorId">
+        <Form.Item label={t("หัวหน้างาน")} name="supervisorId">
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกหัวหน้างานโดยตรง"
+            placeholder={t("เลือกหัวหน้างานโดยตรง")}
             loading={supervisorsQuery.isLoading}
             options={supervisorUsers
               .filter((item) => item.id !== initialUser?.id)
@@ -346,120 +349,120 @@ export default function UserFormModal({
           />
         </Form.Item>
 
-        <Form.Item label="ตำแหน่ง" name="positionId">
+        <Form.Item label={lang === "en" ? "Position" : "ตำแหน่ง"} name="positionId">
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกตำแหน่ง (จัดการได้ที่แท็บ ตำแหน่ง)"
+            placeholder={t("เลือกตำแหน่ง (จัดการได้ที่แท็บ ตำแหน่ง)")}
             loading={positionsQuery.isLoading}
             options={positions
               .filter((item) => item.isActive || item.id === initialUser?.positionId)
               .map((item) => ({
                 value: item.id,
-                label: item.isActive ? item.nameTh : `${item.nameTh} (ปิดใช้งาน)`,
+                label: item.isActive ? item.nameTh : `${item.nameTh} (${t("ปิดใช้งาน")})`,
               }))}
           />
         </Form.Item>
 
-        <Form.Item label="ประเภทการจ้าง" name="employmentType">
+        <Form.Item label={t("ประเภทการจ้าง")} name="employmentType">
           <Select
             allowClear
-            placeholder="เลือกประเภทการจ้าง"
-            options={EMPLOYMENT_TYPE_OPTIONS}
+            placeholder={t("เลือกประเภทการจ้าง")}
+            options={EMPLOYMENT_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
           />
         </Form.Item>
 
-        <Form.Item label="วันที่เริ่มงาน" name="hireDate">
+        <Form.Item label={t("วันที่เริ่มงาน")} name="hireDate">
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
         <Form.Item
-          label={isDaily ? "ค่าแรงรายวัน (บาท)" : "เงินเดือน (บาท)"}
+          label={isDaily ? t("ค่าแรงรายวัน (บาท)") : t("เงินเดือน (บาท)")}
           name="basePay"
           rules={[
-            { type: "number", min: 0, message: "ต้องไม่ติดลบ" },
-            { type: "number", max: 99999999, message: "จำนวนเงินมากเกินไป" },
+            { type: "number", min: 0, message: t("ต้องไม่ติดลบ") },
+            { type: "number", max: 99999999, message: t("จำนวนเงินมากเกินไป") },
           ]}
-          extra="ใช้คำนวณเงิน OT และเงินเดือน · คำขอ OT ที่อนุมัติไปแล้วไม่ถูกคำนวณใหม่"
+          extra={t("ใช้คำนวณเงิน OT และเงินเดือน · คำขอ OT ที่อนุมัติไปแล้วไม่ถูกคำนวณใหม่")}
         >
           <InputNumber
             style={{ width: "100%" }}
             precision={2}
-            placeholder={isDaily ? "กรอกค่าแรงรายวัน" : "กรอกเงินเดือน"}
+            placeholder={isDaily ? t("กรอกค่าแรงรายวัน") : t("กรอกเงินเดือน")}
           />
         </Form.Item>
 
         <Form.Item
-          label="ค่าแรง/ชม. (บาท)"
+          label={t("ค่าแรง/ชม. (บาท)")}
           extra={
             isDaily
-              ? `ค่าแรงรายวัน ÷ ${hoursPerDay} ชม.`
-              : `เงินเดือน ÷ ${daysPerMonth} วัน ÷ ${hoursPerDay} ชม.`
+              ? t("ค่าแรงรายวัน ÷ {hours} ชม.", { hours: hoursPerDay })
+              : t("เงินเดือน ÷ {days} วัน ÷ {hours} ชม.", { days: daysPerMonth, hours: hoursPerDay })
           }
         >
-          <Input value={hourlyRate === null ? "—" : money(hourlyRate)} disabled />
+          <Input value={hourlyRate === null ? "—" : money(hourlyRate, lang)} disabled />
         </Form.Item>
 
         <Form.Item
-          label="ประกันสังคม"
+          label={t("ประกันสังคม")}
           name="socialSecurityEnabled"
           valuePropName="checked"
         >
-          <Switch checkedChildren="มี" unCheckedChildren="ไม่มี" />
+          <Switch checkedChildren={lang === "en" ? "Yes" : "มี"} unCheckedChildren={lang === "en" ? "No" : "ไม่มี"} />
         </Form.Item>
 
         <Form.Item
-          label="กองทุน (หัก % ของเงินเดือน)"
+          label={t("กองทุน (หัก % ของเงินเดือน)")}
           name="providentFundRatePercent"
-          extra="กองทุนสำรองเลี้ยงชีพ — หักจากเงินเดือนพนักงาน นายจ้างสมทบตามตั้งค่าในหน้าเงินเดือน และนำไปลดหย่อนภาษีได้"
+          extra={t("กองทุนสำรองเลี้ยงชีพ — หักจากเงินเดือนพนักงาน นายจ้างสมทบตามตั้งค่าในหน้าเงินเดือน และนำไปลดหย่อนภาษีได้")}
         >
           <Select options={fundOptions} />
         </Form.Item>
 
         <Form.Item
-          label="หักภาษี ณ ที่จ่าย"
+          label={t("หักภาษี ณ ที่จ่าย")}
           name="taxEnabled"
           valuePropName="checked"
         >
-          <Switch checkedChildren="หัก" unCheckedChildren="ไม่หัก" />
+          <Switch checkedChildren={t("หัก")} unCheckedChildren={t("ไม่หัก")} />
         </Form.Item>
 
         <Form.Item
-          label="เลขประจำตัวประชาชน (13 หลัก)"
+          label={t("เลขประจำตัวประชาชน (13 หลัก)")}
           name="nationalId"
           rules={[
-            { pattern: /^\d{13}$/, message: "ต้องเป็นตัวเลข 13 หลักพอดี" },
+            { pattern: /^\d{13}$/, message: t("ต้องเป็นตัวเลข 13 หลักพอดี") },
             {
               validator: (_rule, value?: string) =>
                 !value || !/^\d{13}$/.test(value) || isValidThaiNationalId(value)
                   ? Promise.resolve()
-                  : Promise.reject(new Error("เลขประจำตัวประชาชนไม่ถูกต้อง (ตรวจหลักสุดท้ายไม่ผ่าน)")),
+                  : Promise.reject(new Error(t("เลขประจำตัวประชาชนไม่ถูกต้อง (ตรวจหลักสุดท้ายไม่ผ่าน)"))),
             },
           ]}
-          extra="ใช้ออกหนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ)"
+          extra={t("ใช้ออกหนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ)")}
         >
-          <Input inputMode="numeric" placeholder="เช่น 1234567890123" />
+          <Input inputMode="numeric" placeholder={t("เช่น 1234567890123")} />
         </Form.Item>
 
-        <Form.Item label="ที่อยู่ (สำหรับ 50 ทวิ)" name="address">
+        <Form.Item label={t("ที่อยู่ (สำหรับ 50 ทวิ)")} name="address">
           <Input.TextArea rows={2} maxLength={500} />
         </Form.Item>
 
         <Form.Item
-          label="ลดหย่อนภาษีเพิ่มเติม/ปี (บาท)"
+          label={t("ลดหย่อนภาษีเพิ่มเติม/ปี (บาท)")}
           name="taxExtraAllowance"
-          extra="เช่น คู่สมรส บุตร เบี้ยประกันชีวิต — รวมกันเป็นยอดต่อปี (ลดหย่อนส่วนตัว 60,000 ระบบใส่ให้แล้ว)"
+          extra={t("เช่น คู่สมรส บุตร เบี้ยประกันชีวิต — รวมกันเป็นยอดต่อปี (ลดหย่อนส่วนตัว 60,000 ระบบใส่ให้แล้ว)")}
         >
           <InputNumber style={{ width: "100%" }} min={0} max={99999999} precision={2} />
         </Form.Item>
 
-        <Form.Item label="หมายเหตุ HR" name="employmentRemark">
+        <Form.Item label={t("หมายเหตุ HR")} name="employmentRemark">
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
 
         <Form.Item
-          label="เปิด login ERP"
+          label={t("เปิด login ERP")}
           name="canLogin"
           valuePropName="checked"
         >
@@ -472,37 +475,37 @@ export default function UserFormModal({
               label="Username"
               name="username"
               rules={[
-                { required: true, message: "กรุณากรอก username" },
+                { required: true, message: t("กรุณากรอก username") },
                 { max: 100 },
               ]}
             >
-              <Input placeholder="เช่น weigh.officer" />
+              <Input placeholder={t("เช่น weigh.officer")} />
             </Form.Item>
 
             {isCreateMode ? (
               <Form.Item
-                label="รหัสผ่าน"
+                label={t("รหัสผ่าน")}
                 name="password"
                 rules={[
-                  { required: true, message: "กรุณากรอกรหัสผ่าน" },
-                  { min: PASSWORD_MIN_LENGTH, message: PASSWORD_MIN_MESSAGE },
+                  { required: true, message: t("กรุณากรอกรหัสผ่าน") },
+                  { min: PASSWORD_MIN_LENGTH, message: t(PASSWORD_MIN_MESSAGE) },
                 ]}
               >
-                <Input.Password placeholder={PASSWORD_PLACEHOLDER} />
+                <Input.Password placeholder={t(PASSWORD_PLACEHOLDER)} />
               </Form.Item>
             ) : null}
 
             <Form.Item
-              label="บทบาท"
+              label={t("บทบาท")}
               name="roleIds"
-              rules={[{ required: true, message: "เลือกอย่างน้อย 1 บทบาท" }]}
+              rules={[{ required: true, message: t("เลือกอย่างน้อย 1 บทบาท") }]}
             >
               <Select
                 mode="multiple"
                 allowClear
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือก Role"
+                placeholder={t("เลือก Role")}
                 listHeight={360}
                 options={roles.map((role) => ({
                   value: role.id,
@@ -513,20 +516,20 @@ export default function UserFormModal({
           </>
         ) : null}
 
-        <Form.Item label="อีเมล" name="email" rules={[{ type: "email" }]}>
+        <Form.Item label={t("อีเมล")} name="email" rules={[{ type: "email" }]}>
           <Input placeholder="email@example.com" />
         </Form.Item>
 
-        <Form.Item label="เบอร์โทร" name="phone">
+        <Form.Item label={t("เบอร์โทร")} name="phone">
           <Input placeholder="08xxxxxxxx" />
         </Form.Item>
 
         <Form.Item
-          label="สถานะการจ้าง/ใช้งาน"
+          label={t("สถานะการจ้าง/ใช้งาน")}
           name="isActive"
           valuePropName="checked"
         >
-          <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
+          <Switch checkedChildren={t("ใช้งาน")} unCheckedChildren={lang === "en" ? "Off" : "ปิด"} />
         </Form.Item>
       </Form>
     </Modal>

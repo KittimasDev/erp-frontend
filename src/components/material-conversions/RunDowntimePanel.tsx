@@ -16,12 +16,13 @@ import {
   type RunDowntime,
 } from "@/types/material-conversion";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./MaterialConversionPage.module.css";
 
-const fmtMinutes = (m: number) => {
+const fmtMinutes = (m: number, t: (s: string) => string) => {
   const h = Math.floor(m / 60);
   const min = m % 60;
-  return h > 0 ? `${h} ชม. ${min} นาที` : `${min} นาที`;
+  return h > 0 ? `${h} ${t("ชม.")} ${min} ${t("นาที")}` : `${min} ${t("นาที")}`;
 };
 
 type Props = { run: MaterialConversionRun; canEdit: boolean };
@@ -32,6 +33,7 @@ type Props = { run: MaterialConversionRun; canEdit: boolean };
  * บันทึกได้เฉพาะใบที่กำลังทำงาน (เริ่มงานแล้ว ยังไม่ปิด)
  */
 export default function RunDowntimePanel({ run, canEdit }: Props) {
+  const t = useT();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const query = useRunDowntimesQuery(run.id, run.status !== "DRAFT");
@@ -53,17 +55,17 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
       refresh();
       setOpen(false);
       form.resetFields();
-      message.success("บันทึกเครื่องหยุดแล้ว");
+      message.success(t("บันทึกเครื่องหยุดแล้ว"));
     },
-    onError: (e) => fail(e, "บันทึกเครื่องหยุดไม่สำเร็จ"),
+    onError: (e) => fail(e, t("บันทึกเครื่องหยุดไม่สำเร็จ")),
   });
   const end = useMutation({
     mutationFn: (downtimeId: string) => endRunDowntime(getAccessToken(), run.id, downtimeId, {}),
     onSuccess: () => {
       refresh();
-      message.success("บันทึกว่าเครื่องกลับมาเดินแล้ว");
+      message.success(t("บันทึกว่าเครื่องกลับมาเดินแล้ว"));
     },
-    onError: (e) => fail(e, "ปิดรายการเครื่องหยุดไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ปิดรายการเครื่องหยุดไม่สำเร็จ")),
   });
 
   const data = query.data?.data;
@@ -72,14 +74,14 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
 
   const columns: ColumnsType<RunDowntime> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เครื่อง",
+      title: t("เครื่อง"),
       key: "eq",
       render: (_v, r) => (
         <div className={styles.cellStack}>
@@ -88,21 +90,21 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
         </div>
       ),
     },
-    { title: "เริ่มหยุด", dataIndex: "startAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },
+    { title: t("เริ่มหยุด"), dataIndex: "startAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },
     {
-      title: "กลับมาเดิน",
+      title: t("กลับมาเดิน"),
       dataIndex: "endAt",
       width: 150,
-      render: (v: string | undefined, r) => (r.isOpen ? <Tag color="orange">ยังหยุดอยู่</Tag> : dayjs(v).format("DD/MM/YYYY HH:mm")),
+      render: (v: string | undefined, r) => (r.isOpen ? <Tag color="orange">{t("ยังหยุดอยู่")}</Tag> : dayjs(v).format("DD/MM/YYYY HH:mm")),
     },
-    { title: "ระยะเวลา", dataIndex: "durationMinutes", width: 110, align: "right", render: fmtMinutes },
+    { title: t("ระยะเวลา"), dataIndex: "durationMinutes", width: 110, align: "right", render: (m: number) => fmtMinutes(m, t) },
     {
-      title: "สาเหตุ",
+      title: t("สาเหตุ"),
       key: "reason",
       render: (_v, r) => (
         <div className={styles.cellStack}>
           <span>{r.reason}</span>
-          {r.rootCauseCategory ? <span className={styles.cellMuted}>{DOWNTIME_ROOT_CAUSE_LABEL[r.rootCauseCategory] ?? r.rootCauseCategory}</span> : null}
+          {r.rootCauseCategory ? <span className={styles.cellMuted}>{t(DOWNTIME_ROOT_CAUSE_LABEL[r.rootCauseCategory] ?? r.rootCauseCategory)}</span> : null}
         </div>
       ),
     },
@@ -115,7 +117,7 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
       render: (_v, r) =>
         r.isOpen ? (
           <Button size="small" type="primary" loading={end.isPending && end.variables === r.id} onClick={() => end.mutate(r.id)}>
-            กลับมาเดินแล้ว
+            {t("กลับมาเดินแล้ว")}
           </Button>
         ) : null,
     });
@@ -124,8 +126,8 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
   return (
     <div className={styles.detailSection}>
       <h3>
-        เครื่องหยุดระหว่างทำงาน
-        {data && data.items.length > 0 ? ` — รวม ${fmtMinutes(data.totalMinutes)}` : ""}
+        {t("เครื่องหยุดระหว่างทำงาน")}
+        {data && data.items.length > 0 ? ` — ${t("รวม")} ${fmtMinutes(data.totalMinutes, t)}` : ""}
       </h3>
       <Table
         className={masterStyles.dataTable}
@@ -134,7 +136,7 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
         columns={columns}
         dataSource={data?.items ?? []}
         pagination={false}
-        locale={{ emptyText: "ยังไม่มีการหยุดเครื่องในใบนี้" }}
+        locale={{ emptyText: t("ยังไม่มีการหยุดเครื่องในใบนี้") }}
       />
       {canRecord ? (
         <Button
@@ -144,15 +146,15 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
             setOpen(true);
           }}
         >
-          บันทึกเครื่องหยุด
+          {t("บันทึกเครื่องหยุด")}
         </Button>
       ) : null}
 
       <Modal
         open={open}
-        title="บันทึกเครื่องหยุด"
-        okText="บันทึก"
-        cancelText="ยกเลิก"
+        title={t("บันทึกเครื่องหยุด")}
+        okText={t("บันทึก")}
+        cancelText={t("ยกเลิก")}
         confirmLoading={start.isPending}
         onCancel={() => setOpen(false)}
         onOk={() =>
@@ -169,9 +171,9 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
         <Form form={form} layout="vertical">
           <Form.Item
             name="equipmentId"
-            label="เครื่องที่หยุด"
-            rules={[{ required: !run.equipment, message: "เลือกเครื่อง" }]}
-            extra={run.equipment ? `ไม่เลือก = ใช้เครื่องของใบ (${run.equipment.name})` : "ใบนี้ไม่ได้ระบุเครื่อง — เลือกเครื่องที่หยุด"}
+            label={t("เครื่องที่หยุด")}
+            rules={[{ required: !run.equipment, message: t("เลือกเครื่อง") }]}
+            extra={run.equipment ? t("ไม่เลือก = ใช้เครื่องของใบ ({name})", { name: run.equipment.name }) : t("ใบนี้ไม่ได้ระบุเครื่อง — เลือกเครื่องที่หยุด")}
           >
             <Select
               allowClear
@@ -181,16 +183,16 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
               options={(lookups.data?.data.equipment ?? []).map((e) => ({ value: e.id, label: `${e.equipmentCode} — ${e.name}` }))}
             />
           </Form.Item>
-          <Form.Item name="startAt" label="เวลาที่เริ่มหยุด" rules={[{ required: true }]}>
+          <Form.Item name="startAt" label={t("เวลาที่เริ่มหยุด")} rules={[{ required: true }]}>
             <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" />
           </Form.Item>
-          <Form.Item name="reason" label="สาเหตุที่หยุด" rules={[{ required: true, message: "ใส่สาเหตุ" }]}>
-            <Input.TextArea rows={2} maxLength={2000} placeholder="เช่น ใบมีดทื่อ หยุดเปลี่ยนใบมีด" />
+          <Form.Item name="reason" label={t("สาเหตุที่หยุด")} rules={[{ required: true, message: t("ใส่สาเหตุ") }]}>
+            <Input.TextArea rows={2} maxLength={2000} placeholder={t("เช่น ใบมีดทื่อ หยุดเปลี่ยนใบมีด")} />
           </Form.Item>
-          <Form.Item name="rootCauseCategory" label="กลุ่มสาเหตุ (ไม่บังคับ)">
+          <Form.Item name="rootCauseCategory" label={t("กลุ่มสาเหตุ (ไม่บังคับ)")}>
             <Select
               allowClear
-              options={Object.entries(DOWNTIME_ROOT_CAUSE_LABEL).map(([value, label]) => ({ value, label }))}
+              options={Object.entries(DOWNTIME_ROOT_CAUSE_LABEL).map(([value, label]) => ({ value, label: t(label) }))}
             />
           </Form.Item>
         </Form>

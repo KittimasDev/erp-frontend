@@ -12,6 +12,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
 import { usePurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
@@ -63,6 +65,7 @@ export default function PurchasePaymentsListPage({
   secondaryLabel = "ใบสำคัญจ่าย",
 }: Props) {
   const router = useRouter();
+  const t = useT();
   const [voucherNo, setVoucherNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [voucherDate, setVoucherDate] = useState<dayjs.Dayjs | null>(null);
@@ -126,13 +129,13 @@ export default function PurchasePaymentsListPage({
   const columns: ColumnsType<SupplierPaymentVoucher> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบสำคัญ",
+        title: t("เลขที่ใบสำคัญ"),
         dataIndex: "voucherNo",
         render: (value: string, row) => (
           <DocNoWithFlowBadge
@@ -142,7 +145,7 @@ export default function PurchasePaymentsListPage({
         ),
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "voucherDate",
         width: 110,
         render: (value: string) => (
@@ -150,7 +153,7 @@ export default function PurchasePaymentsListPage({
         ),
       },
       {
-        title: "อ้างอิง PO",
+        title: t("อ้างอิง PO"),
         key: "po",
         render: (_v, row) => (
           <span className={styles.poRef}>
@@ -159,7 +162,7 @@ export default function PurchasePaymentsListPage({
         ),
       },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         key: "creditor",
         render: (_v, row) =>
           row.creditor ? (
@@ -174,17 +177,17 @@ export default function PurchasePaymentsListPage({
           ),
       },
       {
-        title: "วิธีจ่าย",
+        title: t("วิธีจ่าย"),
         dataIndex: "paymentMethod",
         width: 110,
         render: (value: string) => (
           <span className={styles.methodCell}>
-            {SUPPLIER_PAYMENT_METHOD_LABEL[value] ?? value}
+            {t(SUPPLIER_PAYMENT_METHOD_LABEL[value] ?? value)}
           </span>
         ),
       },
       {
-        title: "ยอดจ่าย",
+        title: t("ยอดจ่าย"),
         dataIndex: "totalAmount",
         align: "right",
         render: (value: string) => (
@@ -192,13 +195,13 @@ export default function PurchasePaymentsListPage({
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (value: string) => (
           <span className={`${styles.statusPill} ${statusClass(value)}`}>
             <span className={styles.statusDot} aria-hidden />
-            {SUPPLIER_PAYMENT_STATUS_LABEL[value] ?? value}
+            {tStatus(SUPPLIER_PAYMENT_STATUS_LABEL[value] ?? value)}
           </span>
         ),
       },
@@ -210,7 +213,7 @@ export default function PurchasePaymentsListPage({
           <button
             type="button"
             className={styles.actionBtn}
-            title="ดูรายละเอียด"
+            title={t("ดูรายละเอียด")}
             onClick={(e) => {
               e.stopPropagation();
               router.push(`${basePath}/${row.id}`);
@@ -221,7 +224,7 @@ export default function PurchasePaymentsListPage({
         ),
       },
     ],
-    [basePath, limit, page, router],
+    [basePath, limit, page, router, t],
   );
 
   return (
@@ -229,13 +232,15 @@ export default function PurchasePaymentsListPage({
       <PageHeader
         eyebrow="Accounting · Payment History"
         icon={<DollarOutlined />}
-        title="ประวัติการจ่ายเงิน"
-        subtitle="ใบสำคัญจ่าย Supplier จากใบสั่งซื้อ — ค้นหา ติดตามสถานะ และเปิดดูรายละเอียดการจ่ายได้จากที่นี่"
+        title={t("ประวัติการจ่ายเงิน")}
+        subtitle={t(
+          "ใบสำคัญจ่าย Supplier จากใบสั่งซื้อ — ค้นหา ติดตามสถานะ และเปิดดูรายละเอียดการจ่ายได้จากที่นี่",
+        )}
         actions={
           <>
 <Link href={secondaryHref}>
             <Button className={styles.primaryBtn} type="primary" icon={<DollarOutlined />}>
-              {secondaryLabel}
+              {t(secondaryLabel)}
             </Button>
           </Link>
           </>
@@ -244,74 +249,74 @@ export default function PurchasePaymentsListPage({
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>{total}</span>
-          <span className={styles.statHint}>ใบสำคัญตามเงื่อนไขค้นหา</span>
+          <span className={styles.statHint}>{t("ใบสำคัญตามเงื่อนไขค้นหา")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดในหน้านี้</span>
+          <span className={styles.statLabel}>{t("ยอดในหน้านี้")}</span>
           <span className={`${styles.statValue} ${styles.statValuePaid}`}>
             {formatMoney(pageAmount)}
           </span>
           <span className={styles.statHint}>
-            บาท · จ่ายแล้ว {paidOnPage} · ร่าง {draftOnPage}
+            {t("บาท · จ่ายแล้ว {paid} · ร่าง {draft}", { paid: paidOnPage, draft: draftOnPage })}
           </span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>สถานะในหน้านี้</span>
+          <span className={styles.statLabel}>{t("สถานะในหน้านี้")}</span>
           <span className={`${styles.statValue} ${styles.statValueDraft}`}>
             {paidOnPage}/{rows.length || 0}
           </span>
-          <span className={styles.statHint}>จ่ายแล้ว / รายการที่แสดง</span>
+          <span className={styles.statHint}>{t("จ่ายแล้ว / รายการที่แสดง")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบสำคัญ</label>
+            <label>{t("เลขที่ใบสำคัญ")}</label>
             <Input
               allowClear
-              placeholder="เช่น PV-20260718-001"
+              placeholder={t("เช่น PV-20260718-001")}
               value={voucherNo}
               onChange={(e) => setVoucherNo(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               style={{ width: "100%" }}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "PAID", label: "จ่ายแล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
+                { value: "DRAFT", label: tStatus("แบบร่างเอกสาร") },
+                { value: "PAID", label: tStatus("จ่ายแล้ว") },
+                { value: "CANCELLED", label: tStatus("ยกเลิก") },
               ]}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่จ่าย</label>
+            <label>{t("วันที่จ่าย")}</label>
             <DatePicker
               value={voucherDate}
               onChange={setVoucherDate}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
               style={{ width: "100%" }}
             />
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button
               type="primary"
               className={styles.primaryBtn}
               icon={<SearchOutlined />}
               onClick={applySearch}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -320,16 +325,16 @@ export default function PurchasePaymentsListPage({
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
             {hasActiveFilters ? (
               <>
                 {" "}
-                · แสดงในหน้านี้ <strong>{rows.length}</strong>
+                · {t("แสดงในหน้านี้")} <strong>{rows.length}</strong>
               </>
             ) : null}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -344,7 +349,7 @@ export default function PurchasePaymentsListPage({
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -361,8 +366,8 @@ export default function PurchasePaymentsListPage({
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบสำคัญจ่าย</strong>
-                เมื่อบันทึกจ่ายเงินแล้ว ประวัติจะแสดงที่นี่
+                <strong>{t("ยังไม่มีใบสำคัญจ่าย")}</strong>
+                {t("เมื่อบันทึกจ่ายเงินแล้ว ประวัติจะแสดงที่นี่")}
               </div>
             ),
           }}
@@ -370,8 +375,8 @@ export default function PurchasePaymentsListPage({
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง")} {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} {t("จาก")} {total}
           </div>
           <Pagination
             size="small"

@@ -23,6 +23,8 @@ import {
 } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import {
   useShiftAutoPlanPositionsQuery,
   useShiftAutoPlanRolesQuery,
@@ -91,6 +93,9 @@ export default function ShiftAutoPlanModal({
   month,
   onClose,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
+  const positionWord = lang === "en" ? "Position" : "แผนก";
   // โมดัลถูก mount ใหม่ทุกครั้งที่เปิด (หน้าปฏิทิน render แบบมีเงื่อนไข)
   // จึงตั้งค่าเริ่มต้นตอนสร้าง state ได้เลย ไม่ต้องมี effect รีเซ็ต
   const [targetMonth, setTargetMonth] = useState<Dayjs>(month);
@@ -172,13 +177,13 @@ export default function ShiftAutoPlanModal({
       month: targetMonth.format("YYYY-MM"),
       productionPhase,
     },
-    label: `${PHASE_LABEL[productionPhase]} ${targetMonth.format("MM/YYYY")}`,
+    label: `${t(PHASE_LABEL[productionPhase])} ${targetMonth.format("MM/YYYY")}`,
   };
   const shutdownPhase = productionPhase === "SHUTDOWN";
 
   const shiftOptions = shifts.map((shift) => ({
     value: shift.id,
-    label: `${shift.name} · ${shift.startTime}-${shift.endTime}${shift.isOvernight ? " (ข้ามคืน)" : ""}`,
+    label: `${shift.name} · ${shift.startTime}-${shift.endTime}${shift.isOvernight ? ` ${t("(ข้ามคืน)")}` : ""}`,
   }));
 
   const updatePosition = (key: number, patch: Partial<PositionDraft>) => {
@@ -230,13 +235,13 @@ export default function ShiftAutoPlanModal({
   const canPreview =
     requestPositions.length > 0 && calendarReady && matchingDays.length > 0;
   const previewBlockedReason = calendarQuery.isError
-    ? "โหลดปฏิทินของเดือนที่เลือกไม่สำเร็จ"
+    ? t("โหลดปฏิทินของเดือนที่เลือกไม่สำเร็จ")
     : !calendarReady
-    ? "กำลังโหลดปฏิทินของเดือนที่เลือก"
+    ? t("กำลังโหลดปฏิทินของเดือนที่เลือก")
     : matchingDays.length === 0
-      ? NO_DAYS_MESSAGE
+      ? t(NO_DAYS_MESSAGE)
       : requestPositions.length === 0
-        ? "เลือกแผนกและจำนวนคนต่อกะก่อน"
+        ? t("เลือกแผนกและจำนวนคนต่อกะก่อน")
         : undefined;
 
   /**
@@ -305,7 +310,7 @@ export default function ShiftAutoPlanModal({
   return (
     <Modal
       open={open}
-      title="จัดตารางกะอัตโนมัติ"
+      title={t("จัดตารางกะอัตโนมัติ")}
       width={plan ? 1120 : 720}
       onCancel={onClose}
       destroyOnHidden
@@ -313,65 +318,66 @@ export default function ShiftAutoPlanModal({
       footer={
         <div className={styles.footer}>
           <Button onClick={onClose}>
-            {plan?.applied && !nothingWritten ? "เสร็จสิ้น" : "ปิด"}
+            {plan?.applied && !nothingWritten ? t("เสร็จสิ้น") : t("ปิด")}
           </Button>
           {canSave && plan ? (
             <>
-              <Button onClick={() => setPlan(null)}>กลับไปแก้ค่า</Button>
+              <Button onClick={() => setPlan(null)}>{t("กลับไปแก้ค่า")}</Button>
               {plan.coverage.pass ? (
                 <Popconfirm
-                  title={`บันทึกตารางกะ ${period.label}`}
+                  title={`${t("บันทึกตารางกะ")} ${period.label}`}
                   description={
                     <div className={styles.ruleList}>
                       <p>
-                        รอบกะที่จะเขียน <strong>{plan.plannedRoundCount}</strong> รอบ ·
-                        ลงคน <strong>{plan.filledSlots}</strong> ช่อง
+                        {t("รอบกะที่จะเขียน")} <strong>{plan.plannedRoundCount}</strong> {lang === "en" ? "rounds" : "รอบ"} ·{" "}
+                        {t("ลงคน")} <strong>{plan.filledSlots}</strong> {lang === "en" ? "slots" : "ช่อง"}
                       </p>
                       {plan.existingRoundCount > 0 ? (
                         <p>
-                          มีรอบกะเดิมทับอยู่ <strong>{plan.existingRoundCount}</strong> รอบ —{" "}
+                          {t("มีรอบกะเดิมทับอยู่")} <strong>{plan.existingRoundCount}</strong> {lang === "en" ? "rounds" : "รอบ"} —{" "}
                           {overwriteExisting ? (
-                            <strong>จะเขียนทับรายชื่อเดิมทั้งหมด</strong>
+                            <strong>{t("จะเขียนทับรายชื่อเดิมทั้งหมด")}</strong>
                           ) : (
-                            <strong>จะถูกข้ามไป ไม่มีคนถูกลงกะในรอบเหล่านั้น</strong>
+                            <strong>{t("จะถูกข้ามไป ไม่มีคนถูกลงกะในรอบเหล่านั้น")}</strong>
                           )}
                         </p>
                       ) : null}
                       {!plan.workload.pass ? (
                         <p>
-                          จำนวนวันทำงานยังต่างกันสูงสุด {plan.workload.maxSpread} วัน —
-                          บันทึกได้แต่ควรตรวจในตัวอย่างก่อน
+                          {t("จำนวนวันทำงานยังต่างกันสูงสุด {n} วัน — บันทึกได้แต่ควรตรวจในตัวอย่างก่อน", {
+                            n: plan.workload.maxSpread,
+                          })}
                         </p>
                       ) : null}
                     </div>
                   }
-                  okText="บันทึก"
-                  cancelText="ยกเลิก"
+                  okText={t("บันทึก")}
+                  cancelText={t("ยกเลิก")}
                   onConfirm={() => void handleApply()}
                 >
                   <Button type="primary" loading={applyMutation.isPending}>
-                    บันทึกตารางกะ
+                    {t("บันทึกตารางกะ")}
                   </Button>
                 </Popconfirm>
               ) : (
                 <Popconfirm
-                  title="บังคับบันทึกทั้งที่ยังขาดกำลังคน?"
+                  title={t("บังคับบันทึกทั้งที่ยังขาดกำลังคน?")}
                   description={
                     <div className={styles.ruleList}>
                       <p>
-                        Coverage ยังไม่ผ่าน — ขาด{" "}
-                        <strong>{plan.coverage.shortageSlots}</strong> ช่อง จากที่ต้องใช้{" "}
-                        <strong>{plan.coverage.requiredSlots}</strong> ช่อง
+                        {t("Coverage ยังไม่ผ่าน — ขาด")}{" "}
+                        <strong>{plan.coverage.shortageSlots}</strong> {t("ช่อง จากที่ต้องใช้")}{" "}
+                        <strong>{plan.coverage.requiredSlots}</strong> {lang === "en" ? "slots" : "ช่อง"}
                       </p>
-                      <p>ตารางจะถูกบันทึกตามที่จัดได้ และช่องที่ขาดคนจะว่างไว้</p>
+                      <p>{t("ตารางจะถูกบันทึกตามที่จัดได้ และช่องที่ขาดคนจะว่างไว้")}</p>
                     </div>
                   }
-                  okText="บังคับบันทึก"
-                  cancelText="ยกเลิก"
+                  okText={t("บังคับบันทึก")}
+                  cancelText={t("ยกเลิก")}
                   onConfirm={() => void handleApply(true)}
                 >
                   <Button danger loading={applyMutation.isPending}>
-                    บังคับบันทึกทั้งที่ขาดคน
+                    {t("บังคับบันทึกทั้งที่ขาดคน")}
                   </Button>
                 </Popconfirm>
               )}
@@ -385,15 +391,15 @@ export default function ShiftAutoPlanModal({
                   setStep("setup");
                 }}
               >
-                ข้ามขั้นนี้ (ใช้พนักงานทุกคน)
+                {t("ข้ามขั้นนี้ (ใช้พนักงานทุกคน)")}
               </Button>
               <Button type="primary" onClick={() => setStep("setup")}>
-                ถัดไป
+                {t("ถัดไป")}
               </Button>
             </>
           ) : (
             <>
-              <Button onClick={() => setStep("roles")}>กลับไปเลือกบทบาท</Button>
+              <Button onClick={() => setStep("roles")}>{t("กลับไปเลือกบทบาท")}</Button>
               <Tooltip title={previewBlockedReason}>
                 <Button
                   type="primary"
@@ -402,7 +408,7 @@ export default function ShiftAutoPlanModal({
                   loading={previewMutation.isPending}
                   onClick={() => void handlePreview()}
                 >
-                  ดูตัวอย่าง
+                  {t("ดูตัวอย่าง")}
                 </Button>
               </Tooltip>
             </>
@@ -427,16 +433,23 @@ export default function ShiftAutoPlanModal({
                 plan.writeResult.createdRounds === 0 &&
                 plan.writeResult.updatedRounds === 0 &&
                 plan.writeResult.addedMembers === 0
-                  ? `ยังไม่ได้บันทึกอะไร — รอบกะ ${plan.writeResult.skippedRounds.length} รอบมีอยู่แล้ว`
-                  : `บันทึกแล้ว — สร้าง ${plan.writeResult.createdRounds} รอบ · ทับ ${plan.writeResult.updatedRounds} รอบ · ลงคน ${plan.writeResult.addedMembers} ช่อง`
+                  ? t("ยังไม่ได้บันทึกอะไร — รอบกะ {n} รอบมีอยู่แล้ว", {
+                      n: plan.writeResult.skippedRounds.length,
+                    })
+                  : t("บันทึกแล้ว — สร้าง {c} รอบ · ทับ {u} รอบ · ลงคน {m} ช่อง", {
+                      c: plan.writeResult.createdRounds,
+                      u: plan.writeResult.updatedRounds,
+                      m: plan.writeResult.addedMembers,
+                    })
               }
               description={
                 <div className={styles.ruleList}>
                   {plan.writeResult.skippedRounds.length > 0 ? (
                     <p>
-                      ข้ามไป {plan.writeResult.skippedRounds.length} รอบ
-                      เพราะมีรอบกะอยู่แล้ว — ติ๊ก
-                      &quot;ทับรอบกะที่มีอยู่แล้ว&quot; แล้วบันทึกใหม่ถ้าต้องการเขียนทับ
+                      {t(
+                        "ข้ามไป {n} รอบ เพราะมีรอบกะอยู่แล้ว — ติ๊ก \"ทับรอบกะที่มีอยู่แล้ว\" แล้วบันทึกใหม่ถ้าต้องการเขียนทับ",
+                        { n: plan.writeResult.skippedRounds.length },
+                      )}
                       {": "}
                       {plan.writeResult.skippedRounds
                         .slice(0, 12)
@@ -450,10 +463,12 @@ export default function ShiftAutoPlanModal({
                   ) : null}
                   {plan.writeResult.removedMembers > 0 ? (
                     <p>
-                      เขียนทับรายชื่อเดิมไป {plan.writeResult.removedMembers} รายการ
+                      {t("เขียนทับรายชื่อเดิมไป {n} รายการ", {
+                        n: plan.writeResult.removedMembers,
+                      })}
                     </p>
                   ) : null}
-                  <p>เปิดปฏิทินหรือหน้า &quot;รายการเข้ากะ&quot; เพื่อตรวจผลได้เลย</p>
+                  <p>{t("เปิดปฏิทินหรือหน้า \"รายการเข้ากะ\" เพื่อตรวจผลได้เลย")}</p>
                 </div>
               }
             />
@@ -464,10 +479,12 @@ export default function ShiftAutoPlanModal({
               checked={overwriteExisting}
               onChange={(event) => setOverwriteExisting(event.target.checked)}
             >
-              ทับรายชื่อในรอบกะที่มีอยู่แล้ว {plan.existingRoundCount} รอบ
+              {t("ทับรายชื่อในรอบกะที่มีอยู่แล้ว {n} รอบ", {
+                n: plan.existingRoundCount,
+              })}
               {overwriteExisting
                 ? ""
-                : " — ไม่ติ๊ก = ข้ามรอบเหล่านั้น จะไม่มีคนถูกลงกะ"}
+                : ` ${t("— ไม่ติ๊ก = ข้ามรอบเหล่านั้น จะไม่มีคนถูกลงกะ")}`}
             </Checkbox>
           ) : null}
           <ShiftAutoPlanPreview plan={plan} shifts={shifts} />
@@ -475,7 +492,7 @@ export default function ShiftAutoPlanModal({
       ) : step === "roles" ? (
         <div className={styles.body}>
           <div className={styles.field}>
-            <span className={styles.label}>บทบาทที่จะเอามาจัด</span>
+            <span className={styles.label}>{t("บทบาทที่จะเอามาจัด")}</span>
             <Select
               className={styles.roleSelect}
               mode="multiple"
@@ -483,7 +500,7 @@ export default function ShiftAutoPlanModal({
               showSearch
               optionFilterProp="label"
               maxTagCount="responsive"
-              placeholder="ไม่เลือก = เอาพนักงานทุกคน"
+              placeholder={t("ไม่เลือก = เอาพนักงานทุกคน")}
               loading={rolesQuery.isLoading}
               value={roleIds}
               onChange={(value) => {
@@ -492,9 +509,9 @@ export default function ShiftAutoPlanModal({
               }}
               options={(roleOptions?.roles ?? []).map((role) => ({
                 value: role.roleId,
-                label: `${role.roleName} (${role.roleCode}) · ${role.employeeCount} คน`,
+                label: `${role.roleName} (${role.roleCode}) · ${t("{n} คน", { n: role.employeeCount })}`,
               }))}
-              notFoundContent="ยังไม่มีบทบาทในระบบ"
+              notFoundContent={t("ยังไม่มีบทบาทในระบบ")}
             />
           </div>
 
@@ -506,8 +523,9 @@ export default function ShiftAutoPlanModal({
                 invalidatePlan();
               }}
             >
-              รวมพนักงานที่ยังไม่มีบทบาทเลย ({roleOptions.employeesWithoutRoleCount}{" "}
-              คน)
+              {t("รวมพนักงานที่ยังไม่มีบทบาทเลย ({n} คน)", {
+                n: roleOptions.employeesWithoutRoleCount,
+              })}
             </Checkbox>
           ) : null}
 
@@ -518,32 +536,35 @@ export default function ShiftAutoPlanModal({
             <Alert
               type="warning"
               showIcon
-              title={`มีพนักงาน ${roleOptions.employeesWithoutRoleCount} คนที่ไม่มีบทบาทในระบบ — จะไม่ถูกจัดกะ`}
-              description="พนักงานที่ไม่ได้เปิด login ให้ใช้ระบบ จะไม่มีบทบาทติดตัวเลย ซึ่งมักเป็นคนหน้างานที่ต้องเข้ากะ — ติ๊กช่องด้านบนถ้าต้องการดึงกลับมาด้วย"
+              title={t("มีพนักงาน {n} คนที่ไม่มีบทบาทในระบบ — จะไม่ถูกจัดกะ", {
+                n: roleOptions.employeesWithoutRoleCount,
+              })}
+              description={t("พนักงานที่ไม่ได้เปิด login ให้ใช้ระบบ จะไม่มีบทบาทติดตัวเลย ซึ่งมักเป็นคนหน้างานที่ต้องเข้ากะ — ติ๊กช่องด้านบนถ้าต้องการดึงกลับมาด้วย")}
             />
           ) : null}
 
           <Alert
             type="info"
             showIcon
-            title="บทบาทใช้เป็นตัวกรองคน ไม่ใช่ตัวแบ่งกลุ่ม"
+            title={t("บทบาทใช้เป็นตัวกรองคน ไม่ใช่ตัวแบ่งกลุ่ม")}
             description={
               <ul className={styles.ruleList}>
                 <li>
-                  เลือกบทบาท = เอาเฉพาะคนกลุ่มนั้นมาจัด · ไม่เลือก = เอาพนักงานทุกคน
+                  {t("เลือกบทบาท = เอาเฉพาะคนกลุ่มนั้นมาจัด · ไม่เลือก = เอาพนักงานทุกคน")}
                 </li>
                 <li>
-                  การแบ่งกลุ่มและการนับจำนวนคนต่อกะ ยังใช้ <strong>แผนก</strong>{" "}
-                  (ตำแหน่งของพนักงาน) ในขั้นถัดไป
+                  {t("การแบ่งกลุ่มและการนับจำนวนคนต่อกะ ยังใช้")}{" "}
+                  <strong>{positionWord}</strong>{" "}
+                  {t("(ตำแหน่งของพนักงาน) ในขั้นถัดไป")}
                 </li>
                 <li>
-                  คนหนึ่งมีได้หลายบทบาท — เลือกหลายบทบาทที่มีคนซ้อนกัน
-                  ระบบนับให้ครั้งเดียว
+                  {t("คนหนึ่งมีได้หลายบทบาท — เลือกหลายบทบาทที่มีคนซ้อนกัน ระบบนับให้ครั้งเดียว")}
                 </li>
                 {roleOptions ? (
                   <li>
-                    พนักงาน active ทั้งหมด {roleOptions.activeEmployeeCount} คน
-                    (ผลรวมของทุกบทบาทจะมากกว่านี้ เพราะคนหนึ่งมีได้หลายบทบาท)
+                    {t("พนักงาน active ทั้งหมด {n} คน (ผลรวมของทุกบทบาทจะมากกว่านี้ เพราะคนหนึ่งมีได้หลายบทบาท)", {
+                      n: roleOptions.activeEmployeeCount,
+                    })}
                   </li>
                 ) : null}
               </ul>
@@ -553,7 +574,7 @@ export default function ShiftAutoPlanModal({
       ) : (
         <div className={styles.body}>
           {shifts.length === 0 ? (
-            <Empty description="ยังไม่มีกะในระบบ — กด จัดการกะ เพื่อสร้างกะเช้า/บ่าย/ดึกก่อน" />
+            <Empty description={t("ยังไม่มีกะในระบบ — กด จัดการกะ เพื่อสร้างกะเช้า/บ่าย/ดึกก่อน")} />
           ) : null}
 
           <Alert
@@ -561,20 +582,23 @@ export default function ShiftAutoPlanModal({
             showIcon
             title={
               roleIds.length > 0
-                ? `กรองบทบาทไว้ ${roleIds.length} บทบาท${includeEmployeesWithoutRole ? " + คนที่ไม่มีบทบาท" : ""} — จำนวนคนด้านล่างนับหลังกรองแล้ว`
+                ? t("กรองบทบาทไว้ {n} บทบาท{extra} — จำนวนคนด้านล่างนับหลังกรองแล้ว", {
+                    n: roleIds.length,
+                    extra: includeEmployeesWithoutRole ? ` ${t("+ คนที่ไม่มีบทบาท")}` : "",
+                  })
                 : includeEmployeesWithoutRole
-                  ? "เอาเฉพาะพนักงานที่ไม่มีบทบาท"
-                  : "ไม่กรองบทบาท — ใช้พนักงานทุกคน"
+                  ? t("เอาเฉพาะพนักงานที่ไม่มีบทบาท")
+                  : t("ไม่กรองบทบาท — ใช้พนักงานทุกคน")
             }
             action={
               <Button size="small" onClick={() => setStep("roles")}>
-                แก้ไขบทบาท
+                {t("แก้ไขบทบาท")}
               </Button>
             }
           />
 
           <div className={styles.field}>
-            <span className={styles.label}>เดือนที่จะจัด</span>
+            <span className={styles.label}>{t("เดือนที่จะจัด")}</span>
             <DatePicker
               picker="month"
               allowClear={false}
@@ -590,38 +614,38 @@ export default function ShiftAutoPlanModal({
           </div>
 
           <div className={styles.field}>
-            <span className={styles.label}>ประเภทการปฏิบัติงาน</span>
+            <span className={styles.label}>{t("ประเภทการปฏิบัติงาน")}</span>
             <Segmented<ShiftAutoPlanProductionPhase>
-              aria-label="ประเภทการปฏิบัติงาน"
+              aria-label={t("ประเภทการปฏิบัติงาน")}
               value={productionPhase}
               onChange={(value) => {
                 setProductionPhase(value);
                 invalidatePlan();
               }}
               options={[
-                { label: PHASE_LABEL.RUN, value: "RUN" },
-                { label: PHASE_LABEL.SHUTDOWN, value: "SHUTDOWN" },
+                { label: t(PHASE_LABEL.RUN), value: "RUN" },
+                { label: t(PHASE_LABEL.SHUTDOWN), value: "SHUTDOWN" },
               ]}
             />
             {calendarReady && matchingDays.length > 0 ? (
               <span className={styles.hint}>
-                จะจัด <strong>{matchingDays.length}</strong> วัน ในเดือน{" "}
-                {targetMonth.format("MM/YYYY")} — ตามรอบการผลิตที่ยืนยันแล้ว
+                {t("จะจัด")} <strong>{matchingDays.length}</strong> {t("วัน ในเดือน")}{" "}
+                {targetMonth.format("MM/YYYY")} {t("— ตามรอบการผลิตที่ยืนยันแล้ว")}
               </span>
             ) : null}
           </div>
 
           {noMatchingDays ? (
-            <Alert type="warning" showIcon title={NO_DAYS_MESSAGE} />
+            <Alert type="warning" showIcon title={t(NO_DAYS_MESSAGE)} />
           ) : null}
           {calendarQuery.isError ? (
             <Alert
               type="error"
               showIcon
-              title="โหลดปฏิทินของเดือนที่เลือกไม่สำเร็จ"
+              title={t("โหลดปฏิทินของเดือนที่เลือกไม่สำเร็จ")}
               action={
                 <Button size="small" onClick={() => void calendarQuery.refetch()}>
-                  ลองใหม่
+                  {t("ลองใหม่")}
                 </Button>
               }
             />
@@ -646,22 +670,22 @@ export default function ShiftAutoPlanModal({
             return (
               <div key={item.key} className={styles.positionCard}>
                 <div className={styles.positionHead}>
-                  <span className={styles.columnLabel}>แผนก</span>
+                  <span className={styles.columnLabel}>{positionWord}</span>
                   <Select
                     className={styles.positionSelect}
-                    aria-label="แผนก"
+                    aria-label={positionWord}
                     showSearch
                     optionFilterProp="label"
-                    placeholder="เลือกแผนก"
+                    placeholder={t("เลือกแผนก")}
                     loading={positionsQuery.isLoading}
                     value={item.position}
                     onChange={(value) =>
                       updatePosition(item.key, { position: value })
                     }
-                    notFoundContent="ยังไม่มีพนักงานที่ระบุแผนกไว้"
+                    notFoundContent={t("ยังไม่มีพนักงานที่ระบุแผนกไว้")}
                     options={positionOptions.map((option) => ({
                       value: option.position,
-                      label: `${option.position} (${option.employeeCount} คน)`,
+                      label: `${option.position} (${t("{n} คน", { n: option.employeeCount })})`,
                       disabled:
                         option.position !== item.position &&
                         usedPositions.has(option.position),
@@ -677,16 +701,16 @@ export default function ShiftAutoPlanModal({
                         invalidatePlan();
                       }}
                     >
-                      ลบ
+                      {t("ลบ")}
                     </Button>
                   ) : null}
                 </div>
 
                 <div className={styles.demandList}>
                   <div className={styles.demandHeader} aria-hidden>
-                    <span className={styles.shiftSelect}>เวลาทำงาน</span>
+                    <span className={styles.shiftSelect}>{t("เวลาทำงาน")}</span>
                     <span className={styles.headcountInput}>
-                      จำนวนที่ต้องการต่อกะ
+                      {t("จำนวนที่ต้องการต่อกะ")}
                     </span>
                     {item.demands.length > 1 ? (
                       <span className={styles.demandActionSpacer} />
@@ -696,10 +720,10 @@ export default function ShiftAutoPlanModal({
                     <div key={demand.key} className={styles.demandRow}>
                       <Select
                         className={styles.shiftSelect}
-                        aria-label="เวลาทำงาน"
+                        aria-label={t("เวลาทำงาน")}
                         showSearch
                         optionFilterProp="label"
-                        placeholder="เลือกกะ"
+                        placeholder={t("เลือกกะ")}
                         value={demand.shiftId}
                         options={shiftOptions}
                         onChange={(value) =>
@@ -710,7 +734,7 @@ export default function ShiftAutoPlanModal({
                       />
                       <Space.Compact className={styles.headcountInput}>
                         <InputNumber
-                          aria-label="จำนวนที่ต้องการต่อกะ"
+                          aria-label={t("จำนวนที่ต้องการต่อกะ")}
                           min={0}
                           max={100}
                           value={demand.headcount}
@@ -720,7 +744,7 @@ export default function ShiftAutoPlanModal({
                             })
                           }
                         />
-                        <Button disabled>คน</Button>
+                        <Button disabled>{t("คน")}</Button>
                       </Space.Compact>
                       {item.demands.length > 1 ? (
                         <Button
@@ -750,27 +774,27 @@ export default function ShiftAutoPlanModal({
                       })
                     }
                   >
-                    เพิ่มกะ
+                    {t("เพิ่มกะ")}
                   </Button>
                 </div>
 
                 <p className={styles.positionSummary}>
-                  ต้องใช้ <strong>{dailyHeadcount}</strong> คน/วัน · ขั้นต่ำ{" "}
-                  <strong>{minimumEmployees}</strong> คน (
+                  {t("ต้องใช้")} <strong>{dailyHeadcount}</strong> {t("คน/วัน")} · {t("ขั้นต่ำ")}{" "}
+                  <strong>{minimumEmployees}</strong> {t("คน")} (
                   {shutdownPhase
-                    ? "ไม่มีวันหยุดประจำสัปดาห์"
-                    : `ปัดขึ้นจาก ${dailyHeadcount} × 7 ÷ 6`}
+                    ? t("ไม่มีวันหยุดประจำสัปดาห์")
+                    : t("ปัดขึ้นจาก {n} × 7 ÷ 6", { n: dailyHeadcount })}
                   ) ·{" "}
                   {item.position ? (
                     <>
-                      มีพนักงาน{" "}
+                      {t("มีพนักงาน")}{" "}
                       <strong className={short ? styles.shortValue : undefined}>
                         {available}
                       </strong>{" "}
-                      คน
+                      {t("คน")}
                     </>
                   ) : (
-                    "ยังไม่เลือกแผนก"
+                    t("ยังไม่เลือกแผนก")
                   )}
                 </p>
 
@@ -778,8 +802,11 @@ export default function ShiftAutoPlanModal({
                   <Alert
                     type="warning"
                     showIcon
-                    title="คนน้อยกว่าขั้นต่ำ"
-                    description={`แผนกนี้มี ${available} คน แต่ควรมี ${minimumEmployees} คน — จัดได้แต่จะมีช่องขาดคน`}
+                    title={t("คนน้อยกว่าขั้นต่ำ")}
+                    description={t("แผนกนี้มี {a} คน แต่ควรมี {m} คน — จัดได้แต่จะมีช่องขาดคน", {
+                      a: available,
+                      m: minimumEmployees,
+                    })}
                   />
                 ) : null}
               </div>
@@ -797,15 +824,15 @@ export default function ShiftAutoPlanModal({
               invalidatePlan();
             }}
           >
-            เพิ่มแผนก
+            {t("เพิ่มแผนก")}
           </Button>
 
           <div className={styles.field}>
-            <span className={styles.label}>หมายเหตุ</span>
+            <span className={styles.label}>{t("หมายเหตุ")}</span>
             <Input.TextArea
               rows={2}
               value={note}
-              placeholder="เช่น จัดอัตโนมัติรอบเดือนกันยายน"
+              placeholder={t("เช่น จัดอัตโนมัติรอบเดือนกันยายน")}
               onChange={(event) => {
                 setNote(event.target.value);
                 invalidatePlan();
@@ -816,28 +843,27 @@ export default function ShiftAutoPlanModal({
           <Alert
             type="info"
             showIcon
-            title="ระบบจัดให้แบบนี้"
+            title={t("ระบบจัดให้แบบนี้")}
             description={
               <ul className={styles.ruleList}>
                 <li>
-                  จัดเฉพาะวันที่เป็น <strong>{PHASE_LABEL[productionPhase]}</strong>{" "}
-                  ในเดือนที่เลือก ตามรอบการผลิตที่ยืนยันแล้ว — วันประเภทอื่นและเดือนอื่นไม่ถูกแตะ
-                  (วันหยุดในปฏิทินที่ตรงกับวันประเภทนี้ก็ถูกจัดด้วย)
+                  {t("จัดเฉพาะวันที่เป็น")} <strong>{t(PHASE_LABEL[productionPhase])}</strong>{" "}
+                  {t("ในเดือนที่เลือก ตามรอบการผลิตที่ยืนยันแล้ว — วันประเภทอื่นและเดือนอื่นไม่ถูกแตะ (วันหยุดในปฏิทินที่ตรงกับวันประเภทนี้ก็ถูกจัดด้วย)")}
                 </li>
                 <li>
-                  กำหนดจำนวนคนที่ต้องใช้ต่อ <strong>แผนก + กะ</strong> แล้วแบ่งพนักงานไปคนละกะ
+                  {t("กำหนดจำนวนคนที่ต้องใช้ต่อ")} <strong>{t("แผนก + กะ")}</strong>{" "}
+                  {t("แล้วแบ่งพนักงานไปคนละกะ")}
                 </li>
                 <li>
                   {shutdownPhase
-                    ? "ช่วงสิ้นสุดรอบผลิตไม่มีวันหยุดประจำสัปดาห์ — ขั้นต่ำต่อกะเท่ากับจำนวนคนที่ต้องใช้"
-                    : "วันหยุดประจำสัปดาห์เวียนด้วย % 7 ในกลุ่มแผนก + กะนั้น (คนที่ 1 ของกะหยุดจันทร์)"}
+                    ? t("ช่วงสิ้นสุดรอบผลิตไม่มีวันหยุดประจำสัปดาห์ — ขั้นต่ำต่อกะเท่ากับจำนวนคนที่ต้องใช้")
+                    : t("วันหยุดประจำสัปดาห์เวียนด้วย % 7 ในกลุ่มแผนก + กะนั้น (คนที่ 1 ของกะหยุดจันทร์)")}
                 </li>
                 <li>
-                  คนที่ลาอนุมัติแล้วหรือติดกะอื่นวันนั้นจะไม่ถูกเลือก — เลือกคนที่ทำงานน้อยสุดก่อน
+                  {t("คนที่ลาอนุมัติแล้วหรือติดกะอื่นวันนั้นจะไม่ถูกเลือก — เลือกคนที่ทำงานน้อยสุดก่อน")}
                 </li>
                 <li>
-                  ตรวจ Coverage (จัดครบหรือขาดคน) และ Workload (วันทำงานใกล้เคียงกัน)
-                  ในหน้าตัวอย่างก่อนบันทึก
+                  {t("ตรวจ Coverage (จัดครบหรือขาดคน) และ Workload (วันทำงานใกล้เคียงกัน) ในหน้าตัวอย่างก่อนบันทึก")}
                 </li>
               </ul>
             }

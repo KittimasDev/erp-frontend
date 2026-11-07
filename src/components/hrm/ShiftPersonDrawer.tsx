@@ -4,9 +4,11 @@ import { Drawer, Empty, Spin, Tag } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useShiftAssignmentsQuery } from "@/hooks/shifts/useShiftQueries";
 import {
-  LEAVE_STATUS_LABEL,
+  leaveStatusLabel,
   LEAVE_TYPE_COLOR,
   LEAVE_TYPE_LABEL,
 } from "@/types/leave";
@@ -24,6 +26,7 @@ type Props = {
 };
 
 const THAI_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const EN_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /**
  * คนคนเดียวเข้ากะวันไหน เวลาไหนบ้าง
@@ -38,6 +41,9 @@ export default function ShiftPersonDrawer({
   dateTo,
   onClose,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
+  const weekdays = lang === "en" ? EN_WEEKDAYS : THAI_WEEKDAYS;
   const query = useShiftAssignmentsQuery(
     { dateFrom, dateTo, userId: user.userId },
     open,
@@ -61,7 +67,7 @@ export default function ShiftPersonDrawer({
     >
       <div className={styles.personHead}>
         <div className={styles.personMeta}>
-          <span>{user.employeeCode ?? "ไม่มีรหัสพนักงาน"}</span>
+          <span>{user.employeeCode ?? t("ไม่มีรหัสพนักงาน")}</span>
           {user.position ? <span>{user.position}</span> : null}
           {user.departmentName ? <span>{user.departmentName}</span> : null}
         </div>
@@ -70,38 +76,38 @@ export default function ShiftPersonDrawer({
         </p>
         <div className={styles.personStats}>
           <div className={styles.personStat}>
-            <span>เข้ากะ</span>
-            <strong>{summary?.totalDays ?? 0} วัน</strong>
+            <span>{t("เข้ากะ")}</span>
+            <strong>{t("{n} วัน", { n: summary?.totalDays ?? 0 })}</strong>
           </div>
           <div className={styles.personStat}>
-            <span>ชั่วโมงรวม</span>
+            <span>{t("ชั่วโมงรวม")}</span>
             <strong>{formatWorkMinutes(summary?.workMinutes)}</strong>
           </div>
           {summary?.overnightDays ? (
             <div className={styles.personStat}>
-              <span>กะข้ามคืน</span>
-              <strong>{summary.overnightDays} วัน</strong>
+              <span>{t("กะข้ามคืน")}</span>
+              <strong>{t("{n} วัน", { n: summary.overnightDays })}</strong>
             </div>
           ) : null}
           {summary?.leaveDays ? (
             <div className={styles.personStat}>
-              <span>ลา (กะขาดคน)</span>
+              <span>{t("ลา (กะขาดคน)")}</span>
               <strong className={styles.leaveValue}>
-                {summary.leaveDays} วัน
+                {t("{n} วัน", { n: summary.leaveDays })}
               </strong>
             </div>
           ) : null}
           {summary?.overtimeHours ? (
             <div className={styles.personStat}>
               <span>OT</span>
-              <strong>{summary.overtimeHours} ชม.</strong>
+              <strong>{t("{n} ชม.", { n: summary.overtimeHours })}</strong>
             </div>
           ) : null}
           {summary?.holidayDays ? (
             <div className={styles.personStat}>
-              <span>ตรงวันหยุด</span>
+              <span>{t("ตรงวันหยุด")}</span>
               <strong className={styles.holidayValue}>
-                {summary.holidayDays} วัน
+                {t("{n} วัน", { n: summary.holidayDays })}
               </strong>
             </div>
           ) : null}
@@ -109,7 +115,7 @@ export default function ShiftPersonDrawer({
         <div className={styles.personShiftTags}>
           {(summary?.shifts ?? []).map((shift) => (
             <Tag key={shift.shiftId} color={shift.color || "#8ab933"}>
-              {shift.shiftName} {shift.days} วัน
+              {shift.shiftName} {t("{n} วัน", { n: shift.days })}
             </Tag>
           ))}
         </div>
@@ -122,7 +128,7 @@ export default function ShiftPersonDrawer({
       ) : rows.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="ไม่มีการเข้ากะในช่วงนี้"
+          description={t("ไม่มีการเข้ากะในช่วงนี้")}
         />
       ) : (
         <ul className={styles.dayList}>
@@ -138,7 +144,7 @@ export default function ShiftPersonDrawer({
               >
                 <div className={styles.dayDate}>
                   <strong>{date.format("D/M")}</strong>
-                  <span>{THAI_WEEKDAYS[row.weekday]}</span>
+                  <span>{weekdays[row.weekday]}</span>
                 </div>
                 <div className={styles.dayBody}>
                   <strong>
@@ -150,16 +156,16 @@ export default function ShiftPersonDrawer({
                     {row.shiftName}
                   </strong>
                   <span>
-                    {row.startTime} - {row.endTime} น. ·{" "}
+                    {row.startTime} - {row.endTime} {t("น.")} ·{" "}
                     {formatWorkMinutes(row.workMinutes)}
-                    {row.isOvernight ? " (ข้ามคืน)" : ""}
+                    {row.isOvernight ? ` ${t("(ข้ามคืน)")}` : ""}
                   </span>
                   {cutoff ? (
-                    <span className={styles.dayNote}>สายได้ถึง {cutoff} น.</span>
+                    <span className={styles.dayNote}>{t("สายได้ถึง {time} น.", { time: cutoff })}</span>
                   ) : null}
                   {row.isHoliday ? (
                     <Tag color="warning" className={styles.dayTag}>
-                      {row.holidayName ?? "วันหยุด"}
+                      {row.holidayName ?? t("วันหยุด")}
                     </Tag>
                   ) : null}
                   {row.leave || row.overtime ? (
@@ -173,11 +179,12 @@ export default function ShiftPersonDrawer({
                               : "default"
                           }
                         >
-                          {LEAVE_TYPE_LABEL[row.leave.leaveType] ??
-                            row.leave.leaveType}
+                          {LEAVE_TYPE_LABEL[row.leave.leaveType]
+                            ? t(LEAVE_TYPE_LABEL[row.leave.leaveType])
+                            : row.leave.leaveType}
                           {row.leave.status === "APPROVED"
                             ? ""
-                            : ` (${LEAVE_STATUS_LABEL[row.leave.status] ?? row.leave.status})`}
+                            : ` (${leaveStatusLabel(row.leave.status, lang)})`}
                         </Tag>
                       ) : null}
                       {row.overtime ? (
@@ -188,7 +195,7 @@ export default function ShiftPersonDrawer({
                               : "default"
                           }
                         >
-                          OT {row.overtime.hours} ชม.
+                          OT {t("{n} ชม.", { n: row.overtime.hours })}
                         </Tag>
                       ) : null}
                     </span>

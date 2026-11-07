@@ -18,6 +18,8 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, PlusOutlined, ThunderboltOutlined, WarningOutlined } from "@ant-design/icons";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useShiftsQuery } from "@/hooks/shifts/useShiftQueries";
 import {
   useCancelShutdownPlanMutation,
@@ -42,6 +44,8 @@ type Props = {
 
 /** ลิ้นชักรายละเอียดแผน: ความครบของกำลังคน · รายชื่อผู้ทำงาน (แก้แล้วกดบันทึก) · คำเตือน · ยกเลิกแผน */
 export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const planQuery = useShutdownPlanQuery(open ? planId : undefined);
   const plan = planQuery.data?.data;
   const shiftsQuery = useShiftsQuery(false, open);
@@ -137,35 +141,35 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
 
   const demandColumns: ColumnsType<ShutdownDemand> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "ตำแหน่ง", dataIndex: "position" },
-    { title: "กะ", dataIndex: "shiftName", width: 130 },
-    { title: "ต้องการ/วัน", dataIndex: "headcount", width: 110, align: "right" },
-    { title: "กำหนดแล้ว", dataIndex: "assigned", width: 110, align: "right" },
+    { title: lang === "en" ? "Position" : "ตำแหน่ง", dataIndex: "position" },
+    { title: t("กะ"), dataIndex: "shiftName", width: 130 },
+    { title: t("ต้องการ/วัน"), dataIndex: "headcount", width: 110, align: "right" },
+    { title: t("กำหนดแล้ว"), dataIndex: "assigned", width: 110, align: "right" },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 110,
       render: (_v, row) =>
-        row.shortage > 0 ? <Tag color="red">ขาด {row.shortage}</Tag> : <Tag color="green">ครบ</Tag>,
+        row.shortage > 0 ? <Tag color="red">{t("ขาด {n}", { n: row.shortage })}</Tag> : <Tag color="green">{t("ครบ")}</Tag>,
     },
   ];
 
   const memberColumns: ColumnsType<ShutdownMemberInput> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "พนักงาน",
+      title: t("พนักงาน"),
       key: "user",
       render: (_v, row) => {
         const info = memberInfo(row.userId);
@@ -186,7 +190,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
       },
     },
     {
-      title: "กะ",
+      title: t("กะ"),
       key: "shift",
       width: 150,
       render: (_v, row) =>
@@ -212,7 +216,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
         readOnly ? null : (
           <Button
             size="small"
-            aria-label="เอาออก"
+            aria-label={t("เอาออก")}
             icon={<DeleteOutlined />}
             onClick={() => setDraft(members.filter((m) => m.userId !== row.userId))}
           />
@@ -225,43 +229,43 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
       open={open}
       onClose={onClose}
       size={760}
-      title={plan ? `${plan.name} · ${formatBeRange(plan.dateFrom, plan.dateTo)} (${plan.dayCount} วัน)` : "แผน Shutdown"}
+      title={plan ? `${plan.name} · ${formatBeRange(plan.dateFrom, plan.dateTo, lang)} (${t("{n} วัน", { n: plan.dayCount })})` : t("แผน Shutdown")}
       destroyOnHidden
       extra={
         plan?.status === "ACTIVE" ? (
           <Popconfirm
-            title="ยกเลิกแผน Shutdown?"
+            title={t("ยกเลิกแผน Shutdown?")}
             description={
               <div style={{ display: "grid", gap: 8, minWidth: 260 }}>
-                <span>วัน &quot;ซ่อมเครื่อง&quot; ที่แผนนี้ลงไว้ในปฏิทินจะถูกถอน (วันที่ HR กดไว้เองไม่ถูกแตะ)</span>
+                <span>{t("วัน \"ซ่อมเครื่อง\" ที่แผนนี้ลงไว้ในปฏิทินจะถูกถอน (วันที่ HR กดไว้เองไม่ถูกแตะ)")}</span>
                 <Input
-                  placeholder="เหตุผล (ไม่บังคับ)"
+                  placeholder={t("เหตุผล (ไม่บังคับ)")}
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                 />
               </div>
             }
-            okText="ยกเลิกแผน"
+            okText={t("ยกเลิกแผน")}
             okButtonProps={{ danger: true }}
-            cancelText="ไม่"
+            cancelText={t("ไม่")}
             onConfirm={() => planId && cancel.mutate({ id: planId, reason: cancelReason.trim() || undefined })}
           >
             <Button danger loading={cancel.isPending}>
-              ยกเลิกแผน
+              {t("ยกเลิกแผน")}
             </Button>
           </Popconfirm>
         ) : null
       }
     >
       {!plan ? (
-        <Empty description={planQuery.isLoading ? "กำลังโหลด…" : "ไม่พบแผน"} />
+        <Empty description={planQuery.isLoading ? t("กำลังโหลด…") : t("ไม่พบแผน")} />
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
           {plan.status === "CANCELLED" ? (
             <Alert
               type="info"
               showIcon
-              title="แผนนี้ถูกยกเลิกแล้ว"
+              title={t("แผนนี้ถูกยกเลิกแล้ว")}
               description={plan.cancelReason || undefined}
             />
           ) : null}
@@ -270,7 +274,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
             <Alert
               type={generalWarnings.some((w) => w.code === "SHORTAGE") ? "warning" : "info"}
               showIcon
-              title="ข้อควรตรวจ"
+              title={t("ข้อควรตรวจ")}
               description={
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {generalWarnings.map((w, i) => (
@@ -283,7 +287,10 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
 
           <section>
             <h4 style={{ marginBottom: 8 }}>
-              กำลังคนที่ต้องการ · กำหนดแล้ว {plan.assignedHeadcount}/{plan.requiredHeadcount} คนต่อวัน
+              {t("กำลังคนที่ต้องการ · กำหนดแล้ว {a}/{r} คนต่อวัน", {
+                a: plan.assignedHeadcount,
+                r: plan.requiredHeadcount,
+              })}
             </h4>
             <Table
               size="small"
@@ -291,23 +298,23 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
               pagination={false}
               columns={demandColumns}
               dataSource={plan.demands}
-              locale={{ emptyText: "ยังไม่ได้ระบุความต้องการ — กดแก้ไขแผนเพื่อเพิ่ม" }}
+              locale={{ emptyText: t("ยังไม่ได้ระบุความต้องการ — กดแก้ไขแผนเพื่อเพิ่ม") }}
             />
           </section>
 
           <section>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <h4 style={{ margin: 0 }}>ผู้ทำงานช่วง Shutdown ({members.length} คน)</h4>
+              <h4 style={{ margin: 0 }}>{t("ผู้ทำงานช่วง Shutdown ({n} คน)", { n: members.length })}</h4>
               {readOnly ? null : (
                 <Space>
                   <Button
                     icon={<ThunderboltOutlined />}
                     loading={suggest.isPending}
                     disabled={dirty}
-                    title={dirty ? "บันทึกรายชื่อที่แก้ค้างอยู่ก่อน" : undefined}
+                    title={dirty ? t("บันทึกรายชื่อที่แก้ค้างอยู่ก่อน") : undefined}
                     onClick={() => void runSuggest()}
                   >
-                    แนะนำรายชื่อ
+                    {t("แนะนำรายชื่อ")}
                   </Button>
                   <Button
                     type="primary"
@@ -315,14 +322,14 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
                     loading={setMembers.isPending}
                     onClick={() => void save()}
                   >
-                    บันทึกรายชื่อ
+                    {t("บันทึกรายชื่อ")}
                   </Button>
                 </Space>
               )}
             </div>
 
             {dirty ? (
-              <Alert type="warning" showIcon style={{ marginBottom: 8 }} title="มีการแก้ไขรายชื่อที่ยังไม่บันทึก — คำเตือนจะอัปเดตหลังบันทึก" />
+              <Alert type="warning" showIcon style={{ marginBottom: 8 }} title={t("มีการแก้ไขรายชื่อที่ยังไม่บันทึก — คำเตือนจะอัปเดตหลังบันทึก")} />
             ) : null}
 
             {readOnly ? null : (
@@ -331,7 +338,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
                   showSearch
                   optionFilterProp="label"
                   style={{ flex: 2 }}
-                  placeholder="เลือกพนักงาน"
+                  placeholder={t("เลือกพนักงาน")}
                   value={addUserId}
                   loading={usersQuery.isLoading}
                   onChange={setAddUserId}
@@ -344,13 +351,13 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
                 />
                 <Select
                   style={{ flex: 1 }}
-                  placeholder="กะ"
+                  placeholder={t("กะ")}
                   value={addShiftId}
                   onChange={setAddShiftId}
                   options={shifts.map((s) => ({ value: s.id, label: s.name }))}
                 />
                 <Button icon={<PlusOutlined />} disabled={!addUserId || !addShiftId} onClick={addMember}>
-                  เพิ่ม
+                  {t("เพิ่ม")}
                 </Button>
               </Space.Compact>
             )}
@@ -361,7 +368,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
               pagination={false}
               columns={memberColumns}
               dataSource={members}
-              locale={{ emptyText: "ยังไม่มีผู้ทำงาน — เพิ่มเองหรือกด แนะนำรายชื่อ" }}
+              locale={{ emptyText: t("ยังไม่มีผู้ทำงาน — เพิ่มเองหรือกด แนะนำรายชื่อ") }}
             />
           </section>
         </div>
@@ -369,9 +376,9 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
 
       <Modal
         open={suggestions !== null}
-        title="รายชื่อที่แนะนำ"
-        okText="เพิ่มที่เลือก"
-        cancelText="ปิด"
+        title={t("รายชื่อที่แนะนำ")}
+        okText={t("เพิ่มที่เลือก")}
+        cancelText={t("ปิด")}
         okButtonProps={{ disabled: picked.length === 0 }}
         onOk={applySuggestions}
         onCancel={() => setSuggestions(null)}
@@ -379,11 +386,12 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
       >
         <div style={{ display: "grid", gap: 8 }}>
           <span style={{ color: "#8a94a6", fontSize: 13 }}>
-            เฉพาะคนที่ตำแหน่งตรง ยังใช้งาน ไม่มีลาที่อนุมัติทับช่วง และยังไม่อยู่ในแผน — เลือกแล้วกด เพิ่มที่เลือก
-            ระบบจะยังไม่บันทึกจนกด บันทึกรายชื่อ
+            {t(
+              "เฉพาะคนที่ตำแหน่งตรง ยังใช้งาน ไม่มีลาที่อนุมัติทับช่วง และยังไม่อยู่ในแผน — เลือกแล้วกด เพิ่มที่เลือก ระบบจะยังไม่บันทึกจนกด บันทึกรายชื่อ",
+            )}
           </span>
           {(suggestions ?? []).length === 0 ? (
-            <Empty description="ไม่มีคนที่แนะนำได้" />
+            <Empty description={t("ไม่มีคนที่แนะนำได้")} />
           ) : (
             <Checkbox.Group
               style={{ display: "grid", gap: 6 }}
@@ -391,7 +399,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
               onChange={(values) => setPicked(values as string[])}
               options={(suggestions ?? []).map((s) => ({
                 value: s.userId,
-                label: `${[s.employeeCode, s.displayName].filter(Boolean).join(" ")} · ${s.position} · กะ${s.shiftName}`,
+                label: `${[s.employeeCode, s.displayName].filter(Boolean).join(" ")} · ${s.position} · ${t("กะ{name}", { name: s.shiftName })}`,
               }))}
             />
           )}
@@ -399,7 +407,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
             <Alert
               type="warning"
               showIcon
-              title="ยังไม่ครบแม้เพิ่มทุกคนที่แนะนำ"
+              title={t("ยังไม่ครบแม้เพิ่มทุกคนที่แนะนำ")}
               description={
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {remaining.map((m, i) => (

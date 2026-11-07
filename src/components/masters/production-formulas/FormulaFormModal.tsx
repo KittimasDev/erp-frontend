@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useMemo, useState } from "react";
 import {
@@ -110,6 +111,7 @@ export default function FormulaFormModal({
   onCancel: () => void;
   onSubmit: (values: FormulaSubmitValues) => void;
 }) {
+  const t = useT();
   return (
     <Modal
       open={open}
@@ -118,8 +120,8 @@ export default function FormulaFormModal({
       centered
       destroyOnHidden
       className={masterStyles.masterModal}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       /*
         ปุ่มบันทึกอยู่บน footer ของ Modal (ไม่ใช่ footer ที่วาดเอง) เพื่อให้ได้
@@ -137,10 +139,9 @@ export default function FormulaFormModal({
           <div className={masterStyles.eyebrow}>
             {formula ? "EDIT FORMULA" : "CREATE FORMULA"}
           </div>
-          <h2>{formula ? `แก้ไขสูตร ${formula.formulaCode}` : "สร้างสูตรการผลิต"}</h2>
+          <h2>{formula ? t("แก้ไขสูตร {code}", { code: formula.formulaCode }) : t("สร้างสูตรการผลิต")}</h2>
           <p>
-            ตั้งว่า 1 รอบใช้อะไรเท่าไหร่ แล้วได้อะไรออกมาเท่าไหร่ —
-            และกำหนดรูปแบบบันทึกผลการผลิตตามสูตร
+            {t("ตั้งว่า 1 รอบใช้อะไรเท่าไหร่ แล้วได้อะไรออกมาเท่าไหร่ — และกำหนดรูปแบบบันทึกผลการผลิตตามสูตร")}
           </p>
         </div>
       </div>
@@ -158,6 +159,7 @@ function FormulaFormBody({
   formula?: ProductionFormula;
   onSubmit: (values: FormulaSubmitValues) => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const isEdit = Boolean(formula);
   const [recordingConfig, setRecordingConfig] =
@@ -318,7 +320,7 @@ function FormulaFormBody({
       );
       if (bomErrors.length > 0) {
         message.error(
-          `${bomErrors.join(" · ")} — ลิงก์ให้ครบที่แท็บ "การตั้งค่าบันทึกผลการผลิต" หรือปิดสถานะใช้งานเพื่อบันทึกเป็นฉบับร่าง`,
+          t("{errors} — ลิงก์ให้ครบที่แท็บ \"การตั้งค่าบันทึกผลการผลิต\" หรือปิดสถานะใช้งานเพื่อบันทึกเป็นฉบับร่าง", { errors: bomErrors.join(" · ") }),
           8,
         );
         return;
@@ -396,51 +398,51 @@ function FormulaFormBody({
         items={[
           {
             key: "formula",
-            label: "ข้อมูลสูตร (Input / Output / Waste)",
+            label: t("ข้อมูลสูตร (Input / Output / Waste)"),
             children: (
               <>
       <div className={masterStyles.formGrid}>
         <Form.Item
           name="formulaCode"
-          label="รหัสสูตร"
+          label={t("รหัสสูตร")}
           rules={[
-            { required: true, message: "กรอกรหัสสูตร" },
+            { required: true, message: t("กรอกรหัสสูตร") },
             {
               pattern: /^[A-Z][A-Z0-9_-]{2,29}$/,
-              message: "ขึ้นต้นด้วยตัวพิมพ์ใหญ่ ใช้ได้เฉพาะ A-Z 0-9 - และ _",
+              message: t("ขึ้นต้นด้วยตัวพิมพ์ใหญ่ ใช้ได้เฉพาะ A-Z 0-9 - และ _"),
             },
           ]}
           extra={
             isEdit
-              ? "แก้ไม่ได้ เพราะใบสั่งผลิตอ้างอิงไว้"
-              : "ตัวพิมพ์ใหญ่ ตัวเลข ขีด และขีดล่าง เช่น PYRO-STD-01"
+              ? t("แก้ไม่ได้ เพราะใบสั่งผลิตอ้างอิงไว้")
+              : t("ตัวพิมพ์ใหญ่ ตัวเลข ขีด และขีดล่าง เช่น PYRO-STD-01")
           }
         >
           <Input disabled={isEdit} placeholder="PYRO-STD-01" maxLength={30} />
         </Form.Item>
         <Form.Item
           name="nameTh"
-          label="ชื่อสูตร"
-          rules={[{ required: true, message: "กรอกชื่อสูตร" }]}
+          label={t("ชื่อสูตร")}
+          rules={[{ required: true, message: t("กรอกชื่อสูตร") }]}
         >
-          <Input placeholder="สูตรการผลิต 1" maxLength={150} />
+          <Input placeholder={t("สูตรการผลิต 1")} maxLength={150} />
         </Form.Item>
         <Form.Item
           name="batchLabel"
-          label="ขนาด 1 รอบ (ข้อความอธิบาย)"
-          extra="แสดงให้คนอ่านเข้าใจเท่านั้น ไม่ถูกนำไปคำนวณ"
+          label={t("ขนาด 1 รอบ (ข้อความอธิบาย)")}
+          extra={t("แสดงให้คนอ่านเข้าใจเท่านั้น ไม่ถูกนำไปคำนวณ")}
         >
-          <Input placeholder="ยางสับ 1,000 กก. ต่อรอบ" maxLength={80} />
+          <Input placeholder={t("ยางสับ 1,000 กก. ต่อรอบ")} maxLength={80} />
         </Form.Item>
-        <Form.Item name="sortOrder" label="ลำดับการแสดง">
+        <Form.Item name="sortOrder" label={t("ลำดับการแสดง")}>
           <InputNumber style={{ width: "100%" }} min={0} />
         </Form.Item>
-        <Form.Item name="isActive" label="สถานะใช้งาน" valuePropName="checked">
-          <Switch checkedChildren="ใช้งาน" unCheckedChildren="ปิด" />
+        <Form.Item name="isActive" label={t("สถานะใช้งาน")} valuePropName="checked">
+          <Switch checkedChildren={t("ใช้งาน")} unCheckedChildren={t("ปิด")} />
         </Form.Item>
       </div>
 
-      <Form.Item name="description" label="คำอธิบายสูตร">
+      <Form.Item name="description" label={t("คำอธิบายสูตร")}>
         <Input.TextArea rows={2} maxLength={2000} />
       </Form.Item>
 
@@ -452,9 +454,9 @@ function FormulaFormBody({
             <div className={styles.lineGroup}>
               <div className={styles.lineGroupHead}>
                 <span className={styles.lineGroupTitle}>
-                  {FORMULA_LINE_ROLE_LABEL[role]}
+                  {t(FORMULA_LINE_ROLE_LABEL[role])}
                 </span>
-                <span className={styles.lineGroupHint}>{ROLE_HINT[role]}</span>
+                <span className={styles.lineGroupHint}>{t(ROLE_HINT[role])}</span>
               </div>
 
               {fields.map((field) => {
@@ -466,13 +468,13 @@ function FormulaFormBody({
                   <div key={field.key} className={styles.lineRow}>
                     <Form.Item
                       name={[field.name, "itemId"]}
-                      rules={[{ required: true, message: "เลือกสินค้า" }]}
+                      rules={[{ required: true, message: t("เลือกสินค้า") }]}
                       style={{ marginBottom: 0 }}
                     >
                       <Select
                         showSearch
                         optionFilterProp="label"
-                        placeholder="เลือกสินค้า"
+                        placeholder={t("เลือกสินค้า")}
                         loading={itemsQuery.isFetching}
                         options={items.map((item) => ({
                           value: item.id,
@@ -482,24 +484,24 @@ function FormulaFormBody({
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "quantity"]}
-                      rules={[{ required: true, message: "กรอกจำนวน" }]}
+                      rules={[{ required: true, message: t("กรอกจำนวน") }]}
                       style={{ marginBottom: 0 }}
                     >
                       <InputNumber
                         style={{ width: "100%" }}
                         min={0.001}
                         precision={3}
-                        placeholder="จำนวนต่อ 1 รอบ"
+                        placeholder={t("จำนวนต่อ 1 รอบ")}
                       />
                     </Form.Item>
                     <div className={styles.muted} style={{ paddingTop: 6 }}>
-                      {unitCode ?? "หน่วย"}
+                      {unitCode ?? t("หน่วย")}
                     </div>
                     <Form.Item
                       name={[field.name, "remark"]}
                       style={{ marginBottom: 0 }}
                     >
-                      <Input placeholder="หมายเหตุ" maxLength={2000} />
+                      <Input placeholder={t("หมายเหตุ")} maxLength={2000} />
                     </Form.Item>
                     <Button
                       type="text"
@@ -518,7 +520,7 @@ function FormulaFormBody({
                 style={{ marginTop: 8 }}
                 onClick={() => add({})}
               >
-                เพิ่ม{FORMULA_LINE_ROLE_LABEL[role]}
+                {t("เพิ่ม{role}", { role: t(FORMULA_LINE_ROLE_LABEL[role]) })}
               </Button>
             </div>
           )}
@@ -531,8 +533,8 @@ function FormulaFormBody({
       */}
       <Form.Item
         name="defaultDriverKey"
-        label="ตัวตั้งเริ่มต้นในหน้าสร้างใบสั่งผลิต"
-        extra="บรรทัดที่ผู้ใช้จะพิมพ์จำนวนใส่เป็นค่าเริ่มต้น — ไม่เลือกก็ได้ ระบบจะใช้ผลผลิตบรรทัดแรก"
+        label={t("ตัวตั้งเริ่มต้นในหน้าสร้างใบสั่งผลิต")}
+        extra={t("บรรทัดที่ผู้ใช้จะพิมพ์จำนวนใส่เป็นค่าเริ่มต้น — ไม่เลือกก็ได้ ระบบจะใช้ผลผลิตบรรทัดแรก")}
       >
         <Radio.Group>
           {ROLES.flatMap((role) =>
@@ -540,7 +542,7 @@ function FormulaFormBody({
               line?.itemId ? (
                 <Radio key={`${role}:${indexInRole}`} value={`${role}:${indexInRole}`}>
                   {itemById.get(line.itemId)?.itemNameTh ?? "-"}{" "}
-                  <Tag>{FORMULA_LINE_ROLE_LABEL[role]}</Tag>
+                  <Tag>{t(FORMULA_LINE_ROLE_LABEL[role])}</Tag>
                 </Radio>
               ) : null,
             ),
@@ -550,23 +552,22 @@ function FormulaFormBody({
 
       {/* พรีวิวสมดุลมวลตอนกรอก — จับสูตรที่ไม่ปิดก่อนกดบันทึก */}
       <div className={styles.previewBox}>
-        <div className={styles.previewTitle}>ตรวจสูตรก่อนบันทึก</div>
+        <div className={styles.previewTitle}>{t("ตรวจสูตรก่อนบันทึก")}</div>
         {!balance.comparable ? (
           <span className={styles.muted}>
-            สูตรนี้ใช้หลายหน่วยนับ (หรือยังกรอกไม่ครบ) ระบบจึงตรวจสมดุลมวลให้ไม่ได้ —
-            ตัวเลขประมาณการยังถูกต้อง เพราะระบบคูณแยกทีละบรรทัด
+            {t("สูตรนี้ใช้หลายหน่วยนับ (หรือยังกรอกไม่ครบ) ระบบจึงตรวจสมดุลมวลให้ไม่ได้ — ตัวเลขประมาณการยังถูกต้อง เพราะระบบคูณแยกทีละบรรทัด")}
           </span>
         ) : (
           <div className={styles.previewGrid}>
-            <Tag color="blue">วัตถุดิบเข้ารวม {balance.input}</Tag>
-            <Tag color="green">ผลผลิตรวม {balance.output}</Tag>
-            <Tag>ของเสียรวม {balance.waste}</Tag>
+            <Tag color="blue">{t("วัตถุดิบเข้ารวม {n}", { n: balance.input })}</Tag>
+            <Tag color="green">{t("ผลผลิตรวม {n}", { n: balance.output })}</Tag>
+            <Tag>{t("ของเสียรวม {n}", { n: balance.waste })}</Tag>
             {balance.diff === 0 ? (
-              <Tag color="success">สมดุลมวลปิดพอดี</Tag>
+              <Tag color="success">{t("สมดุลมวลปิดพอดี")}</Tag>
             ) : (
               <Tag color="warning">
-                {balance.diff > 0 ? "ขาด" : "เกิน"} {Math.abs(balance.diff)} —
-                ใส่ของเสียให้ครบจะทำให้ Yield อ่านง่ายขึ้น
+                {balance.diff > 0 ? t("ขาด") : t("เกิน")} {Math.abs(balance.diff)} —{" "}
+                {t("ใส่ของเสียให้ครบจะทำให้ Yield อ่านง่ายขึ้น")}
               </Tag>
             )}
           </div>
@@ -578,12 +579,12 @@ function FormulaFormBody({
           style={{ marginTop: 12 }}
           type="info"
           showIcon
-          title="ยังกรอกไม่ครบทั้งสองฝั่ง"
-          description="สูตรต้องมีวัตถุดิบอย่างน้อย 1 รายการ และผลผลิตอย่างน้อย 1 รายการ เพราะใบสั่งผลิตบังคับทั้งสองฝั่ง"
+          title={t("ยังกรอกไม่ครบทั้งสองฝั่ง")}
+          description={t("สูตรต้องมีวัตถุดิบอย่างน้อย 1 รายการ และผลผลิตอย่างน้อย 1 รายการ เพราะใบสั่งผลิตบังคับทั้งสองฝั่ง")}
         />
       ) : null}
 
-      <Form.Item name="remark" label="หมายเหตุ" style={{ marginTop: 12 }}>
+      <Form.Item name="remark" label={t("หมายเหตุ")} style={{ marginTop: 12 }}>
         <Input.TextArea rows={2} maxLength={2000} />
       </Form.Item>
               </>
@@ -591,7 +592,7 @@ function FormulaFormBody({
           },
           {
             key: "recording",
-            label: "การตั้งค่าบันทึกผลการผลิต",
+            label: t("การตั้งค่าบันทึกผลการผลิต"),
             children: (
               <RecordingConfigEditor
                 value={recordingConfig}

@@ -6,6 +6,8 @@ import type { ColumnsType } from "antd/es/table";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
 import { useApInvoiceOptionsQuery } from "@/hooks/ap-documents/useApDocuments";
+import { useT } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
 import {
   AP_BILLING_STATUS_COLOR,
   AP_BILLING_STATUS_LABEL,
@@ -33,6 +35,7 @@ export default function ApInvoicePickerModal({
   onClose,
   onSelect,
 }: Props) {
+  const t = useT();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -58,52 +61,52 @@ export default function ApInvoicePickerModal({
 
   const columns: ColumnsType<ApInvoiceOption> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "เลขที่ AP", dataIndex: "docNo", width: 150 },
-    { title: "วันที่", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
-    { title: "เลขที่ PO", dataIndex: "poNo", width: 120, render: (v?: string | null) => v ?? "—" },
+    { title: t("เลขที่ AP"), dataIndex: "docNo", width: 150 },
+    { title: t("วันที่"), dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("เลขที่ PO"), dataIndex: "poNo", width: 120, render: (v?: string | null) => v ?? "—" },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       ellipsis: true,
       render: (_v, r) => `${r.creditorCode} ${r.creditorName}`,
     },
     {
-      title: "ยอด AP",
+      title: t("ยอด AP"),
       dataIndex: "totalAmount",
       align: "right",
       width: 120,
       render: (v: number) => money.format(v),
     },
     {
-      title: "ยอดคงเหลือ",
+      title: t("ยอดคงเหลือ"),
       dataIndex: "remainingAmount",
       align: "right",
       width: 120,
       render: (v: number) => money.format(v),
     },
     {
-      title: "สถานะการชำระ",
+      title: t("สถานะการชำระ"),
       dataIndex: "paymentStatus",
       width: 120,
       render: (v: string) => (
         <Tag color={AP_PAYMENT_STATUS_COLOR[v] ?? "default"}>
-          {AP_PAYMENT_STATUS_LABEL[v] ?? v}
+          {tStatus(AP_PAYMENT_STATUS_LABEL[v] ?? v)}
         </Tag>
       ),
     },
     {
-      title: "สถานะวางบิล",
+      title: t("สถานะวางบิล"),
       dataIndex: "billingStatus",
       width: 120,
       render: (v: string) => (
         <Tag color={AP_BILLING_STATUS_COLOR[v] ?? "default"}>
-          {AP_BILLING_STATUS_LABEL[v] ?? v}
+          {tStatus(AP_BILLING_STATUS_LABEL[v] ?? v)}
         </Tag>
       ),
     },
@@ -112,13 +115,13 @@ export default function ApInvoicePickerModal({
   return (
     <Modal
       open={open}
-      title="เลือกใบตั้งหนี้"
+      title={t("เลือกใบตั้งหนี้")}
       width={1100}
       destroyOnHidden
       onCancel={onClose}
       footer={[
         <Button key="cancel" onClick={onClose}>
-          ปิด
+          {t("ปิด")}
         </Button>,
         <Button
           key="ok"
@@ -130,7 +133,7 @@ export default function ApInvoicePickerModal({
             onClose();
           }}
         >
-          เลือก
+          {t("เลือก")}
         </Button>,
       ]}
     >
@@ -138,7 +141,7 @@ export default function ApInvoicePickerModal({
         <Input.Search
           allowClear
           style={{ width: 280 }}
-          placeholder="ค้นเลขที่ AP / PO / ผู้ขาย"
+          placeholder={t("ค้นเลขที่ AP / PO / ผู้ขาย")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onSearch={(v) => {
@@ -154,24 +157,24 @@ export default function ApInvoicePickerModal({
             setPage(1);
           }}
           options={[
-            { value: "UNBILLED", label: "ยังไม่วางบิล" },
-            { value: "BILLED", label: "วางบิลแล้ว" },
-            { value: "ALL", label: "ทั้งหมด" },
+            { value: "UNBILLED", label: t("ยังไม่วางบิล") },
+            { value: "BILLED", label: t("วางบิลแล้ว") },
+            { value: "ALL", label: t("ทั้งหมด") },
           ]}
         />
         <Select
           allowClear
           style={{ width: 160 }}
-          placeholder="สถานะการชำระ"
+          placeholder={t("สถานะการชำระ")}
           value={paymentStatus}
           onChange={(v) => {
             setPaymentStatus(v);
             setPage(1);
           }}
           options={[
-            { value: "UNPAID", label: "ยังไม่จ่าย" },
-            { value: "PARTIAL", label: "จ่ายบางส่วน" },
-            { value: "PAID", label: "จ่ายครบแล้ว" },
+            { value: "UNPAID", label: t("ยังไม่จ่าย") },
+            { value: "PARTIAL", label: t("จ่ายบางส่วน") },
+            { value: "PAID", label: t("จ่ายครบแล้ว") },
           ]}
         />
       </Space>
@@ -196,10 +199,10 @@ export default function ApInvoicePickerModal({
           total: query.data?.total ?? 0,
           onChange: setPage,
           showSizeChanger: false,
-          showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+          showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
         }}
         scroll={{ x: 1000 }}
-        locale={{ emptyText: "ไม่พบใบตั้งหนี้ตามเงื่อนไข" }}
+        locale={{ emptyText: t("ไม่พบใบตั้งหนี้ตามเงื่อนไข") }}
       />
     </Modal>
   );

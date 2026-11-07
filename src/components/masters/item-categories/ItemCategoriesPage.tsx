@@ -38,6 +38,8 @@ import type {
 import ItemCategoryFormModal from "./ItemCategoryFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 type ItemCategoryFilterFormValues = {
   code?: string;
@@ -114,6 +116,8 @@ function buildSearchFromForm(
 }
 
 export default function ItemCategoriesPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -214,7 +218,7 @@ export default function ItemCategoriesPage() {
 
   const columns: ColumnsType<ItemCategory> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -225,7 +229,7 @@ export default function ItemCategoriesPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 170,
@@ -234,7 +238,7 @@ export default function ItemCategoriesPage() {
       ),
     },
     {
-      title: "ชื่อหมวดหมู่",
+      title: t("ชื่อหมวดหมู่"),
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
@@ -244,7 +248,7 @@ export default function ItemCategoriesPage() {
       ),
     },
     {
-      title: "คำอธิบาย",
+      title: t("คำอธิบาย"),
       dataIndex: "description",
       key: "description",
       render: (value?: string) => (
@@ -252,7 +256,7 @@ export default function ItemCategoriesPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -261,53 +265,53 @@ export default function ItemCategoriesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.code}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.code })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบหมวดหมู่สินค้า",
-                content: `ต้องการลบ "${record.code}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบหมวดหมู่สินค้า"),
+                content: t("ต้องการลบ \"{code}\" หรือไม่?", { code: record.code }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -321,8 +325,8 @@ export default function ItemCategoriesPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="หมวดหมู่สินค้า"
-        subtitle="จัดการหมวดหมู่สำหรับจัดกลุ่มสินค้า วัตถุดิบ และวัสดุต่าง ๆ"
+        title={t("หมวดหมู่สินค้า")}
+        subtitle={t("จัดการหมวดหมู่สำหรับจัดกลุ่มสินค้า วัตถุดิบ และวัสดุต่าง ๆ")}
         actions={
           <>
 <Button
@@ -332,7 +336,7 @@ export default function ItemCategoriesPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มหมวดหมู่
+          {t("เพิ่มหมวดหมู่")}
         </Button>
           </>
         }
@@ -343,7 +347,7 @@ export default function ItemCategoriesPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "หมวดหมู่ทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("หมวดหมู่ทั้งหมด")}
             </span>
             <strong>{categories.length}</strong>
           </div>
@@ -352,7 +356,7 @@ export default function ItemCategoriesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCategories}</strong>
           </div>
         </div>
@@ -360,7 +364,7 @@ export default function ItemCategoriesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCategories}</strong>
           </div>
         </div>
@@ -370,13 +374,13 @@ export default function ItemCategoriesPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาหมวดหมู่</h3>
-            <p>กรองรายการด้วยรหัส ชื่อ คำอธิบาย และสถานะ</p>
+            <h3>{t("ค้นหาหมวดหมู่")}</h3>
+            <p>{t("กรองรายการด้วยรหัส ชื่อ คำอธิบาย และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -390,35 +394,35 @@ export default function ItemCategoriesPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสหมวดหมู่">
+              <Form.Item name="code" label={t("รหัสหมวดหมู่")}>
                 <Input
                   allowClear
-                  placeholder="เช่น RAW_MATERIAL"
+                  placeholder={t("เช่น RAW_MATERIAL")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อหมวดหมู่">
-                <Input allowClear placeholder="เช่น วัตถุดิบ" />
+              <Form.Item name="name" label={t("ชื่อหมวดหมู่")}>
+                <Input allowClear placeholder={t("เช่น วัตถุดิบ")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="description" label="คำอธิบาย">
-                <Input allowClear placeholder="เช่น ผลิต" />
+              <Form.Item name="description" label={t("คำอธิบาย")}>
+                <Input allowClear placeholder={t("เช่น ผลิต")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -433,7 +437,7 @@ export default function ItemCategoriesPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -441,7 +445,7 @@ export default function ItemCategoriesPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -454,15 +458,15 @@ export default function ItemCategoriesPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>CATEGORY MANAGEMENT</div>
-            <h3>รายการหมวดหมู่สินค้า</h3>
+            <h3>{t("รายการหมวดหมู่สินค้า")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลหมวดหมู่ทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลหมวดหมู่ทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{categories.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: categories.length })}</div>
         </div>
 
         {itemCategoriesQuery.isError ? (
@@ -470,7 +474,7 @@ export default function ItemCategoriesPage() {
             <Typography.Text type="danger">
               {itemCategoriesQuery.error instanceof Error
                 ? itemCategoriesQuery.error.message
-                : "โหลดข้อมูลหมวดหมู่สินค้าไม่สำเร็จ"}
+                : t("โหลดข้อมูลหมวดหมู่สินค้าไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -486,14 +490,14 @@ export default function ItemCategoriesPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1010 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบหมวดหมู่ตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลหมวดหมู่สินค้า",
+                ? t("ไม่พบหมวดหมู่ตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลหมวดหมู่สินค้า"),
             }}
           />
         )}

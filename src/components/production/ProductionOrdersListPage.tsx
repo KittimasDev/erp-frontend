@@ -15,10 +15,13 @@ import type { ProductionOrder } from "@/types/production-order";
 import {
   PRODUCTION_ORDER_STATUS_LABEL,
   ProductionOrderStatus,
+  tPoLabel,
 } from "@/types/production-order";
 import { formatProductionDateRange } from "@/utils/formatProductionDateRange";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 const STATUS_COLOR: Record<string, string> = {
   DRAFT: "default",
@@ -30,6 +33,8 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function ProductionOrdersListPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
   const canOperate =
@@ -58,14 +63,14 @@ export default function ProductionOrdersListPage() {
 
   const columns: ColumnsType<ProductionOrder> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 56,
       align: "center",
       render: (_v, _r, index) => (page - 1) * pageSize + index + 1,
     },
     {
-      title: "เลขที่ใบสั่งผลิต",
+      title: t("เลขที่ใบสั่งผลิต"),
       dataIndex: "orderNo",
       key: "orderNo",
       render: (value: string, row) => (
@@ -86,36 +91,38 @@ export default function ProductionOrdersListPage() {
       render: (value?: string) => value || "-",
     },
     {
-      title: "วันที่ผลิต",
+      title: t("วันที่ผลิต"),
       key: "productionDate",
       render: (_: unknown, row: ProductionOrder) =>
         formatProductionDateRange(row.productionDate, row.productionDateEnd),
     },
     {
-      title: "Cycle เป้าหมาย (ชม.)",
+      title: t("Cycle เป้าหมาย (ชม.)"),
       dataIndex: "cycleTargetHours",
       key: "cycleTargetHours",
       align: "right",
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       render: (value: string) => (
         <Tag color={STATUS_COLOR[value] ?? "default"}>
-          {PRODUCTION_ORDER_STATUS_LABEL[value] ?? value}
+          {PRODUCTION_ORDER_STATUS_LABEL[value]
+            ? tPoLabel(PRODUCTION_ORDER_STATUS_LABEL[value], lang)
+            : value}
         </Tag>
       ),
     },
     {
-      title: "เริ่มผลิต",
+      title: t("เริ่มผลิต"),
       dataIndex: "startedAt",
       key: "startedAt",
       render: (value?: string) =>
         value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-",
     },
     {
-      title: "เสร็จสิ้น",
+      title: t("เสร็จสิ้น"),
       dataIndex: "completedAt",
       key: "completedAt",
       render: (value?: string) =>
@@ -129,10 +136,10 @@ export default function ProductionOrdersListPage() {
       render: (_v, row) =>
         canOperate && row.status === ProductionOrderStatus.DRAFT ? (
           <Popconfirm
-            title="ยกเลิกใบสั่งผลิต?"
-            description="ยกเลิกได้เฉพาะใบที่ยังไม่เริ่มผลิต"
-            okText="ยกเลิกใบ"
-            cancelText="ปิด"
+            title={t("ยกเลิกใบสั่งผลิต?")}
+            description={t("ยกเลิกได้เฉพาะใบที่ยังไม่เริ่มผลิต")}
+            okText={t("ยกเลิกใบ")}
+            cancelText={t("ปิด")}
             okButtonProps={{ danger: true }}
             onConfirm={() => cancelMutation.mutate({ id: row.id })}
           >
@@ -143,7 +150,7 @@ export default function ProductionOrdersListPage() {
                 cancelMutation.isPending && cancelMutation.variables?.id === row.id
               }
             >
-              ยกเลิก
+              {t("ยกเลิก")}
             </Button>
           </Popconfirm>
         ) : null,
@@ -155,8 +162,8 @@ export default function ProductionOrdersListPage() {
       <section className={masterStyles.page}>
         <PageHeader
           eyebrow="PRODUCTION · PYROLYSIS"
-          title="ใบสั่งผลิต (Pyrolysis)"
-          subtitle="สร้าง / เริ่มผลิต / บันทึกผล / ขอรับผลผลิตเข้าคลัง"
+          title={t("ใบสั่งผลิต (Pyrolysis)")}
+          subtitle={t("สร้าง / เริ่มผลิต / บันทึกผล / ขอรับผลผลิตเข้าคลัง")}
           actions={
             <>
 <Button
@@ -165,7 +172,7 @@ export default function ProductionOrdersListPage() {
             icon={<PlusOutlined className={masterStyles.plusIcon} />}
             onClick={() => router.push("/production/production-orders/create")}
           >
-            สร้างใบสั่งผลิต
+            {t("สร้างใบสั่งผลิต")}
           </Button>
             </>
           }
@@ -174,9 +181,9 @@ export default function ProductionOrdersListPage() {
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
-              <div className={masterStyles.filterEyebrow}>ค้นหา</div>
-              <h3>รายการใบสั่งผลิต</h3>
-              <p>ทั้งหมด {total} ใบ</p>
+              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
+              <h3>{t("รายการใบสั่งผลิต")}</h3>
+              <p>{lang === "en" ? `${total} orders in total` : `ทั้งหมด ${total} ใบ`}</p>
             </div>
           </div>
           <div className={masterStyles.filterForm}>
@@ -184,7 +191,7 @@ export default function ProductionOrdersListPage() {
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
-                placeholder="ค้นหาเลขที่ใบสั่งผลิต"
+                placeholder={t("ค้นหาเลขที่ใบสั่งผลิต")}
                 value={orderNo}
                 onChange={(e) => {
                   setOrderNo(e.target.value);
@@ -193,14 +200,14 @@ export default function ProductionOrdersListPage() {
               />
               <Select
                 allowClear
-                placeholder="สถานะทั้งหมด"
+                placeholder={t("สถานะทั้งหมด")}
                 value={status}
                 onChange={(value) => {
                   setStatus(value);
                   setPage(1);
                 }}
                 options={Object.entries(PRODUCTION_ORDER_STATUS_LABEL).map(
-                  ([value, label]) => ({ value, label }),
+                  ([value, label]) => ({ value, label: tPoLabel(label, lang) }),
                 )}
               />
             </div>
@@ -210,10 +217,12 @@ export default function ProductionOrdersListPage() {
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>ใบสั่งผลิต</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t("ใบสั่งผลิต")}</h3>
             </div>
-            <span className={masterStyles.tableCount}>{total} ใบ</span>
+            <span className={masterStyles.tableCount}>
+              {lang === "en" ? `${total} orders` : `${total} ใบ`}
+            </span>
           </div>
           <Table
             className={masterStyles.dataTable}
@@ -226,7 +235,7 @@ export default function ProductionOrdersListPage() {
               pageSize,
               total,
               onChange: setPage,
-              showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+              showTotal: (n) => t("ทั้งหมด {n} รายการ", { n }),
             }}
           />
         </div>

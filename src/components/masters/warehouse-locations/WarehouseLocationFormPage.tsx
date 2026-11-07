@@ -1,4 +1,6 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
+import { tLoc } from "@/types/warehouse-locations";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +33,7 @@ export default function WarehouseLocationFormPage({
   mode,
   locationId,
 }: WarehouseLocationFormPageProps) {
+  const t = useT();
   const router = useRouter();
   const [form] = Form.useForm<WarehouseLocationFormValues>();
   const locationQuery = useWarehouseLocationQuery(
@@ -110,8 +113,8 @@ export default function WarehouseLocationFormPage({
       <section className={styles.page}>
         <PageHeader
           eyebrow={isCreateMode ? "CREATE WAREHOUSE LOCATION" : "EDIT WAREHOUSE LOCATION"}
-          title={isCreateMode ? "เพิ่มตำแหน่งจัดเก็บ" : "แก้ไขตำแหน่งจัดเก็บ"}
-          subtitle={isCreateMode ? "เลือกคลังก่อน แล้วกำหนดรหัสตำแหน่ง (ห้ามซ้ำในคลังเดียวกัน)" : "แก้ไขรายละเอียดตำแหน่งจัดเก็บภายใต้คลังสินค้า"}
+          title={isCreateMode ? t("เพิ่มตำแหน่งจัดเก็บ") : t("แก้ไขตำแหน่งจัดเก็บ")}
+          subtitle={isCreateMode ? t("เลือกคลังก่อน แล้วกำหนดรหัสตำแหน่ง (ห้ามซ้ำในคลังเดียวกัน)") : t("แก้ไขรายละเอียดตำแหน่งจัดเก็บภายใต้คลังสินค้า")}
           actions={
             <>
 <Button
@@ -119,7 +122,7 @@ export default function WarehouseLocationFormPage({
             onClick={goBack}
             className={styles.editButton}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
             </>
           }
@@ -136,66 +139,66 @@ export default function WarehouseLocationFormPage({
             <div className={styles.sectionTitle}>
               <span className={styles.sectionLine} />
               <div>
-                <strong>ข้อมูลตำแหน่งจัดเก็บ</strong>
-                <span>ตำแหน่งต้องอยู่ภายใต้คลังสินค้า</span>
+                <strong>{t("ข้อมูลตำแหน่งจัดเก็บ")}</strong>
+                <span>{t("ตำแหน่งต้องอยู่ภายใต้คลังสินค้า")}</span>
               </div>
             </div>
 
             <Form.Item
-              label="คลังสินค้า"
+              label={t("คลังสินค้า")}
               name="warehouseId"
-              rules={[{ required: true, message: "กรุณาเลือกคลังสินค้า" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกคลังสินค้า") }]}
             >
               <Select
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกคลังสินค้า"
+                placeholder={t("เลือกคลังสินค้า")}
                 loading={warehousesQuery.isLoading}
                 options={warehouseOptions}
               />
             </Form.Item>
 
             <Form.Item
-              label="รหัสตำแหน่ง"
+              label={tLoc("รหัสตำแหน่ง")}
               name="code"
               rules={[
-                { required: true, message: "กรุณากรอกรหัสตำแหน่ง" },
-                { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+                { required: true, message: tLoc("กรุณากรอกรหัสตำแหน่ง") },
+                { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น RAW-A01"
+                placeholder={t("เช่น RAW-A01")}
                 autoComplete="off"
               />
             </Form.Item>
 
             <Form.Item
-              label="ชื่อตำแหน่ง"
+              label={tLoc("ชื่อตำแหน่ง")}
               name="name"
               rules={[
-                { required: true, message: "กรุณากรอกชื่อตำแหน่ง" },
-                { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+                { required: true, message: tLoc("กรุณากรอกชื่อตำแหน่ง") },
+                { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น โซน A ช่อง 01"
+                placeholder={t("เช่น โซน A ช่อง 01")}
                 autoComplete="off"
               />
             </Form.Item>
 
             <Form.Item
-              label="รายละเอียด"
+              label={t("รายละเอียด")}
               name="description"
               rules={[
-                { max: 500, message: "รายละเอียดต้องไม่เกิน 500 ตัวอักษร" },
+                { max: 500, message: t("รายละเอียดต้องไม่เกิน 500 ตัวอักษร") },
               ]}
             >
               <Input.TextArea
                 rows={3}
-                placeholder="เช่น พื้นที่จัดเก็บยางดิบโซน A"
+                placeholder={t("เช่น พื้นที่จัดเก็บยางดิบโซน A")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -204,24 +207,24 @@ export default function WarehouseLocationFormPage({
               <div className={styles.statusContent}>
                 <div className={styles.statusIcon}>●</div>
                 <div>
-                  <strong>สถานะใช้งาน</strong>
-                  <span>เปิดใช้งานเพื่อเลือกตำแหน่งนี้ในเอกสารได้</span>
+                  <strong>{t("สถานะใช้งาน")}</strong>
+                  <span>{t("เปิดใช้งานเพื่อเลือกตำแหน่งนี้ในเอกสารได้")}</span>
                 </div>
               </div>
               <Form.Item name="isActive" valuePropName="checked" noStyle>
-                <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+                <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
               </Form.Item>
             </div>
 
             <Space style={{ marginTop: 24 }}>
-              <Button onClick={goBack}>ยกเลิก</Button>
+              <Button onClick={goBack}>{t("ยกเลิก")}</Button>
               <Button
                 type="primary"
                 htmlType="submit"
                 loading={saving}
                 className={styles.createButton}
               >
-                {isCreateMode ? "บันทึก" : "อัปเดต"}
+                {isCreateMode ? t("บันทึก") : t("อัปเดต")}
               </Button>
             </Space>
           </Form>

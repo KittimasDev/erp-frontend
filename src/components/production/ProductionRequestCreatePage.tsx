@@ -40,6 +40,8 @@ import type {
   EligibleSalesOrderItem,
   ProductionRequest,
 } from "@/types/production-request";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./ProductionOrderCreatePage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -49,7 +51,7 @@ function toNumber(value?: string) {
 }
 
 function fmt(value: string | number) {
-  return Number(value).toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return Number(value).toLocaleString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", { maximumFractionDigits: 3 });
 }
 
 type Props = {
@@ -124,6 +126,7 @@ function ProductionRequestForm({
   initialDeliveryScheduleId?: string;
 }) {
   const router = useRouter();
+  const t = useT();
   const isEdit = Boolean(requestId);
   const lockedSalesOrder = Boolean(initialSalesOrderId) && !isEdit;
   const createMutation = useCreateProductionRequestMutation();
@@ -410,14 +413,14 @@ function ProductionRequestForm({
 
   const columns: ColumnsType<EligibleSalesOrderItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_, row) => (
         <div>
@@ -427,28 +430,28 @@ function ProductionRequestForm({
       ),
     },
     {
-      title: "จำนวนตาม SO",
+      title: t("จำนวนตาม SO"),
       dataIndex: "salesOrderQty",
       key: "salesOrderQty",
       align: "right",
       render: (value: string, row) => `${fmt(value)} ${row.unitCode ?? ""}`,
     },
     {
-      title: "ส่งแล้ว",
+      title: (getStoredLanguage() === "en" ? "Delivered" : "ส่งแล้ว"),
       dataIndex: "deliveredQty",
       key: "deliveredQty",
       align: "right",
       render: (value: string) => fmt(value),
     },
     {
-      title: "ขอผลิตไปแล้ว",
+      title: t("ขอผลิตไปแล้ว"),
       dataIndex: "alreadyRequestedQty",
       key: "alreadyRequestedQty",
       align: "right",
       render: (value: string) => fmt(value),
     },
     {
-      title: "คงค้างขอได้",
+      title: t("คงค้างขอได้"),
       key: "remainingQty",
       align: "right",
       render: (_, row) => {
@@ -457,7 +460,7 @@ function ProductionRequestForm({
       },
     },
     {
-      title: "จำนวนที่ขอผลิต",
+      title: t("จำนวนที่ขอผลิต"),
       key: "requestedQty",
       align: "right",
       width: 180,
@@ -465,12 +468,12 @@ function ProductionRequestForm({
         const remaining = maxQtyFor(row);
         return (
           <InputNumber
-            aria-label={`จำนวนที่ขอผลิตของ ${row.itemCode ?? row.itemId}`}
+            aria-label={t("จำนวนที่ขอผลิตของ {item}", { item: row.itemCode ?? row.itemId })}
             style={{ width: "100%" }}
             min={0}
             max={remaining}
             disabled={remaining <= 0}
-            placeholder={remaining > 0 ? `ไม่เกิน ${fmt(remaining)}` : "ขอครบแล้ว"}
+            placeholder={remaining > 0 ? t("ไม่เกิน {n}", { n: fmt(remaining) }) : t("ขอครบแล้ว")}
             value={qtyByItemId[row.salesOrderItemId]}
             onChange={(value) =>
               setQtyByItemId((prev) => ({
@@ -488,19 +491,19 @@ function ProductionRequestForm({
     <MasterPageGate>
       <div className={styles.page}>
         <PageHeader
-          eyebrow="Production · จากใบสั่งขาย"
+          eyebrow={t("Production · จากใบสั่งขาย")}
           icon={<ProfileOutlined />}
           title={<>{isEdit
-                ? `แก้ไขใบขอผลิต ${existing?.requestNo ?? ""}`
-                : "สร้างใบขอผลิต"}</>}
-          subtitle={isEdit ? "แก้ไขจำนวนและรายการได้ตราบที่ยังไม่มีใบสั่งผลิตอ้างอิง — เปลี่ยนใบสั่งขายไม่ได้" : "เลือกใบสั่งขาย 1 ใบ แล้วระบุจำนวนที่ขอผลิตของสินค้าใน SO นั้น · รับถึงใบที่ยืนยันแล้ว"}
+                ? t("แก้ไขใบขอผลิต {no}", { no: existing?.requestNo ?? "" })
+                : t("สร้างใบขอผลิต")}</>}
+          subtitle={isEdit ? t("แก้ไขจำนวนและรายการได้ตราบที่ยังไม่มีใบสั่งผลิตอ้างอิง — เปลี่ยนใบสั่งขายไม่ได้") : t("เลือกใบสั่งขาย 1 ใบ แล้วระบุจำนวนที่ขอผลิตของสินค้าใน SO นั้น · รับถึงใบที่ยืนยันแล้ว")}
           back={
             <>
 <Link
               href="/production/production-requests"
               className={styles.backLink}
             >
-              <ArrowLeftOutlined /> กลับรายการ
+              <ArrowLeftOutlined /> {t("กลับรายการ")}
             </Link>
             </>
           }
@@ -513,18 +516,19 @@ function ProductionRequestForm({
             type="success"
             showIcon
             style={{ marginBottom: 12 }}
-            title={`ผูกกับรอบจัดส่งที่ ${boundRound.roundNo} (ส่งวันที่ ${dayjs(
-              boundRound.deliveryDate,
-            ).format("DD/MM/YYYY")})`}
-            description="ของที่ผลิตเสร็จจะถูกกันไว้ให้รอบนี้โดยตรง ใบสั่งขายอื่นและรอบอื่นแย่งไม่ได้"
+            title={t("ผูกกับรอบจัดส่งที่ {no} (ส่งวันที่ {date})", {
+              no: boundRound.roundNo,
+              date: dayjs(boundRound.deliveryDate).format("DD/MM/YYYY"),
+            })}
+            description={t("ของที่ผลิตเสร็จจะถูกกันไว้ให้รอบนี้โดยตรง ใบสั่งขายอื่นและรอบอื่นแย่งไม่ได้")}
           />
         ) : null}
 
         <Alert
           type="info"
           showIcon
-          title="ผลผลิตจะถูกกันไว้ให้ใบสั่งขายนี้"
-          description="เมื่อผลิตเสร็จและรับเข้าคลัง ระบบจะกันของไว้ให้ SO ต้นทางตามยอดที่ขอผลิตค้างอยู่ ใบสั่งขายอื่นแย่งไม่ได้ · ส่วนที่เกินความต้องการเท่านั้นที่เข้าสต๊อกกลาง"
+          title={t("ผลผลิตจะถูกกันไว้ให้ใบสั่งขายนี้")}
+          description={t("เมื่อผลิตเสร็จและรับเข้าคลัง ระบบจะกันของไว้ให้ SO ต้นทางตามยอดที่ขอผลิตค้างอยู่ ใบสั่งขายอื่นแย่งไม่ได้ · ส่วนที่เกินความต้องการเท่านั้นที่เข้าสต๊อกกลาง")}
           style={{ marginBottom: 16 }}
         />
         {roundBlockedByCap ? (
@@ -532,11 +536,10 @@ function ProductionRequestForm({
             type="warning"
             showIcon
             style={{ marginBottom: 16 }}
-            title="รอบนี้ยังขาดของ แต่ขอผลิตเพิ่มไม่ได้ — เพดานของใบสั่งขายถูกใบขอผลิตอื่นกินหมดแล้ว"
+            title={t("รอบนี้ยังขาดของ แต่ขอผลิตเพิ่มไม่ได้ — เพดานของใบสั่งขายถูกใบขอผลิตอื่นกินหมดแล้ว")}
             description={
               <span>
-                ยอดคงค้างขอได้เป็น 0 เพราะมีใบขอผลิต active ของ SO นี้อยู่แล้ว
-                (อาจยังไม่ผูกรอบนี้) — ติดตามหรือแก้ที่ใบเดิม{" "}
+                {t("ยอดคงค้างขอได้เป็น 0 เพราะมีใบขอผลิต active ของ SO นี้อยู่แล้ว (อาจยังไม่ผูกรอบนี้) — ติดตามหรือแก้ที่ใบเดิม")}{" "}
                 {otherActivePrs.length ? (
                   <>
                     —{" "}
@@ -550,7 +553,7 @@ function ProductionRequestForm({
                     ))}
                   </>
                 ) : (
-                  "— ตรวจรายการใบขอผลิตของใบสั่งขายนี้"
+                  t("— ตรวจรายการใบขอผลิตของใบสั่งขายนี้")
                 )}
               </span>
             }
@@ -559,11 +562,11 @@ function ProductionRequestForm({
           <Alert
             type="info"
             showIcon
-            title={`ใบสั่งขายนี้มีใบขอผลิตอยู่แล้ว ${otherActivePrs.length} ใบ`}
+            title={t("ใบสั่งขายนี้มีใบขอผลิตอยู่แล้ว {n} ใบ", { n: otherActivePrs.length })}
             description={
               <span>
-                เปิดใบเพิ่มได้ถ้าต้องแบ่งผลิตตามรอบจัดส่ง · ยอดที่ขอไปแล้วถูกหักออกจาก
-                &quot;คงค้างขอได้&quot; ให้แล้ว —{" "}
+                {t("เปิดใบเพิ่มได้ถ้าต้องแบ่งผลิตตามรอบจัดส่ง · ยอดที่ขอไปแล้วถูกหักออกจาก")}
+                &quot;{t("คงค้างขอได้")}&quot; {t("ให้แล้ว —")}{" "}
                 {otherActivePrs.map((pr, i) => (
                   <span key={pr.id}>
                     {i > 0 ? ", " : ""}
@@ -579,23 +582,23 @@ function ProductionRequestForm({
         ) : null}
 
         <section className={styles.formCard}>
-          <h2 className={styles.sectionTitle}>ใบสั่งขายที่อ้างอิง</h2>
+          <h2 className={styles.sectionTitle}>{t("ใบสั่งขายที่อ้างอิง")}</h2>
           <div className={styles.fieldGrid}>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                ใบสั่งขาย (รับถึงใบที่ยืนยันแล้ว)
+                {t("ใบสั่งขาย (รับถึงใบที่ยืนยันแล้ว)")}
               </span>
               {isEdit || lockedSalesOrder ? (
                 <Input
                   readOnly
-                  aria-label="ใบสั่งขายที่อ้างอิง"
+                  aria-label={t("ใบสั่งขายที่อ้างอิง")}
                   value={
                     detailQuery.isLoading
-                      ? "กำลังโหลด..."
+                      ? t("กำลังโหลด...")
                       : `${selectedSo?.soNo ?? existing?.soNo ?? ""} — ${
                           selectedSo?.customerName ??
                           existing?.customerName ??
-                          "ไม่ระบุลูกค้า"
+                          t("ไม่ระบุลูกค้า")
                         }`
                   }
                 />
@@ -603,7 +606,7 @@ function ProductionRequestForm({
                 <Select
                   showSearch
                   allowClear
-                  placeholder="ค้นหาเลขที่ SO หรือชื่อลูกค้า"
+                  placeholder={t("ค้นหาเลขที่ SO หรือชื่อลูกค้า")}
                   filterOption={false}
                   loading={eligibleQuery.isFetching}
                   value={salesOrderId}
@@ -612,18 +615,18 @@ function ProductionRequestForm({
                   onChange={handleSelectSo}
                   notFoundContent={
                     eligibleQuery.isFetching
-                      ? "กำลังค้นหา..."
-                      : "ไม่พบใบสั่งขายที่ยังขอผลิตได้"
+                      ? t("กำลังค้นหา...")
+                      : t("ไม่พบใบสั่งขายที่ยังขอผลิตได้")
                   }
                   options={(eligibleQuery.data?.data ?? []).map((so) => ({
                     value: so.salesOrderId,
-                    label: `${so.soNo} — ${so.customerName ?? "ไม่ระบุลูกค้า"}`,
+                    label: `${so.soNo} — ${so.customerName ?? t("ไม่ระบุลูกค้า")}`,
                   }))}
                 />
               )}
             </div>
             <div className={styles.field}>
-              <span className={styles.fieldLabel}>วันที่ขอผลิต</span>
+              <span className={styles.fieldLabel}>{t("วันที่ขอผลิต")}</span>
               <DatePicker
                 style={{ width: "100%" }}
                 value={requestDate}
@@ -633,7 +636,7 @@ function ProductionRequestForm({
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                ต้องการผลผลิตภายใน (ไม่บังคับ)
+                {t("ต้องการผลผลิตภายใน (ไม่บังคับ)")}
               </span>
               <DatePicker
                 style={{ width: "100%" }}
@@ -645,21 +648,21 @@ function ProductionRequestForm({
           </div>
           {selectedSo ? (
             <div className={styles.field}>
-              <span className={styles.fieldLabel}>ข้อมูล SO</span>
+              <span className={styles.fieldLabel}>{t("ข้อมูล SO")}</span>
               <div>
-                ลูกค้า: {selectedSo.customerName ?? "-"} · วันที่ SO:{" "}
-                {dayjs(selectedSo.soDate).format("DD/MM/YYYY")} · สถานะ:{" "}
+                {t("ลูกค้า:")} {selectedSo.customerName ?? "-"} · {t("วันที่ SO:")}{" "}
+                {dayjs(selectedSo.soDate).format("DD/MM/YYYY")} · {t("สถานะ:")}{" "}
                 <Tag>{selectedSo.status}</Tag>
               </div>
             </div>
           ) : null}
           <div className={styles.field}>
-            <span className={styles.fieldLabel}>หมายเหตุ</span>
+            <span className={styles.fieldLabel}>{t("หมายเหตุ")}</span>
             <Input.TextArea
               rows={2}
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
-              placeholder="หมายเหตุเพิ่มเติม..."
+              placeholder={t("หมายเหตุเพิ่มเติม...")}
             />
           </div>
         </section>
@@ -667,7 +670,7 @@ function ProductionRequestForm({
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-              สินค้าในใบสั่งขาย ({visibleSoItems.length} รายการ)
+              {t("สินค้าในใบสั่งขาย ({n} รายการ)", { n: visibleSoItems.length })}
             </h2>
           </div>
 
@@ -675,15 +678,15 @@ function ProductionRequestForm({
             <Alert
               type="warning"
               showIcon
-              title="เลือกใบสั่งขายก่อน จึงจะเลือกสินค้าได้"
-              description="เลือกได้เฉพาะสินค้าที่อยู่ในใบสั่งขายที่อ้างอิงเท่านั้น"
+              title={t("เลือกใบสั่งขายก่อน จึงจะเลือกสินค้าได้")}
+              description={t("เลือกได้เฉพาะสินค้าที่อยู่ในใบสั่งขายที่อ้างอิงเท่านั้น")}
             />
           ) : allRoundItemsCovered ? (
             <Alert
               type="success"
               showIcon
-              title="ทุกรายการมีของพอแล้ว ไม่ต้องขอผลิต"
-              description="สต๊อกและของที่กันไว้ครอบยอดรอบนี้แล้ว จึงไม่แสดงรายการในใบสั่งขายที่ของพอ"
+              title={t("ทุกรายการมีของพอแล้ว ไม่ต้องขอผลิต")}
+              description={t("สต๊อกและของที่กันไว้ครอบยอดรอบนี้แล้ว จึงไม่แสดงรายการในใบสั่งขายที่ของพอ")}
             />
           ) : (
             <>
@@ -700,7 +703,7 @@ function ProductionRequestForm({
                   type="error"
                   showIcon
                   style={{ marginTop: 12 }}
-                  title="จำนวนที่ขอผลิตเกินจำนวนคงค้างของใบสั่งขาย"
+                  title={t("จำนวนที่ขอผลิตเกินจำนวนคงค้างของใบสั่งขาย")}
                 />
               ) : null}
             </>
@@ -717,7 +720,7 @@ function ProductionRequestForm({
                 )
               }
             >
-              ยกเลิก
+              {t("ยกเลิก")}
             </Button>
             <Button
               type="primary"
@@ -726,8 +729,8 @@ function ProductionRequestForm({
               loading={createMutation.isPending || updateMutation.isPending}
               onClick={handleSubmit}
             >
-              {isEdit ? "บันทึกการแก้ไข" : "สร้างใบขอผลิต"} (
-              {selectedLines.length} รายการ)
+              {isEdit ? t("บันทึกการแก้ไข") : t("สร้างใบขอผลิต")} (
+              {t("{n} รายการ", { n: selectedLines.length })})
             </Button>
           </div>
         </section>

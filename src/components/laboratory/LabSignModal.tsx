@@ -5,6 +5,7 @@ import { Alert, Input, Modal, Typography } from "antd";
 
 import { ApiError } from "@/lib/api/client";
 import { useReviewLabSampleMutation } from "@/hooks/laboratory/useLaboratoryQuery";
+import { useT } from "@/lib/i18n/useT";
 import type { LabSample } from "@/types/laboratory";
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
  * มีพารามิเตอร์ FAIL แล้วอนุมัติ → ต้องใส่เหตุผล (M8.3) · รหัสผ่านไม่ถูกเก็บ ไม่ส่งไปที่อื่น
  */
 export default function LabSignModal({ sample, action, onClose }: Props) {
+  const t = useT();
   const review = useReviewLabSampleMutation(sample.id);
   const [password, setPassword] = useState("");
   const [remark, setRemark] = useState("");
@@ -43,7 +45,7 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
       {
         onSuccess: onClose,
         onError: (e) =>
-          setError(e instanceof ApiError ? e.message : "ดำเนินการไม่สำเร็จ"),
+          setError(e instanceof ApiError ? e.message : t("ดำเนินการไม่สำเร็จ")),
       },
     );
 
@@ -52,21 +54,24 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
       open
       title={
         approve
-          ? "อนุมัติผลตรวจ (ลงลายเซ็นอิเล็กทรอนิกส์)"
-          : "ตีกลับผลตรวจ (ลงลายเซ็นอิเล็กทรอนิกส์)"
+          ? t("อนุมัติผลตรวจ (ลงลายเซ็นอิเล็กทรอนิกส์)")
+          : t("ตีกลับผลตรวจ (ลงลายเซ็นอิเล็กทรอนิกส์)")
       }
-      okText={approve ? "อนุมัติและออก COA" : "ตีกลับผลตรวจ"}
+      okText={approve ? t("อนุมัติและออก COA") : t("ตีกลับผลตรวจ")}
       okButtonProps={{ danger: !approve, disabled: !ready }}
-      cancelText="ยกเลิก"
+      cancelText={t("ยกเลิก")}
       confirmLoading={review.isPending}
       onCancel={onClose}
       onOk={submit}
     >
       <Typography.Paragraph type="secondary">
-        ตัวอย่าง {sample.sampleNo} · ผลตรวจ {sample.results?.length ?? 0} รายการ
+        {t("ตัวอย่าง {no} · ผลตรวจ {n} รายการ", {
+          no: sample.sampleNo,
+          n: sample.results?.length ?? 0,
+        })}
         {approve
-          ? " — อนุมัติแล้วระบบออกเลขที่ COA และปล่อย Lot ที่รอ QC ให้อัตโนมัติ"
-          : " — ตีกลับแล้ว Lot ที่รอ QC จะถูกปฏิเสธ (ยอดถูก Block)"}
+          ? t(" — อนุมัติแล้วระบบออกเลขที่ COA และปล่อย Lot ที่รอ QC ให้อัตโนมัติ")
+          : t(" — ตีกลับแล้ว Lot ที่รอ QC จะถูกปฏิเสธ (ยอดถูก Block)")}
       </Typography.Paragraph>
 
       {needFailReason ? (
@@ -75,10 +80,13 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
             type="error"
             showIcon
             style={{ marginBottom: 8 }}
-            title={`มี ${fails.length} พารามิเตอร์ไม่ผ่านเกณฑ์: ${fails.map((r) => r.parameterName).join(", ")}`}
+            title={t("มี {n} พารามิเตอร์ไม่ผ่านเกณฑ์: {names}", {
+              n: fails.length,
+              names: fails.map((r) => r.parameterName).join(", "),
+            })}
           />
           <Typography.Text strong>
-            เหตุผลที่อนุมัติทั้งที่ไม่ผ่านเกณฑ์ (บังคับ)
+            {t("เหตุผลที่อนุมัติทั้งที่ไม่ผ่านเกณฑ์ (บังคับ)")}
           </Typography.Text>
           <Input.TextArea
             rows={2}
@@ -90,7 +98,7 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
         </>
       ) : null}
 
-      <Typography.Text strong>หมายเหตุ</Typography.Text>
+      <Typography.Text strong>{t("หมายเหตุ")}</Typography.Text>
       <Input.TextArea
         rows={2}
         maxLength={2000}
@@ -99,7 +107,7 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
         style={{ marginBottom: 12 }}
       />
 
-      <Typography.Text strong>ยืนยันด้วยรหัสผ่านของคุณ</Typography.Text>
+      <Typography.Text strong>{t("ยืนยันด้วยรหัสผ่านของคุณ")}</Typography.Text>
       <Input.Password
         autoComplete="current-password"
         value={password}

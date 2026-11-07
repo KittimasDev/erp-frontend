@@ -1,4 +1,18 @@
 import type { ProductionRecordingConfig } from "./production-formula";
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+
+/** แปลป้ายสถานะใบสั่งผลิต/หมวดต่าง ๆ ตามภาษา — "ยกเลิก" ในบริบทสถานะ = Cancelled, "เสร็จสิ้น" = Completed */
+export function tPoLabel(label: string, lang?: Language): string {
+  const current = lang ?? getStoredLanguage();
+  if (current === "en") {
+    if (label === "ยกเลิก") return "Cancelled";
+    if (label === "เสร็จสิ้น") return "Completed";
+    if (label === "ยังไม่เริ่มผลิต") return "Not started";
+    if (label === "กำลังผลิต") return "In production";
+  }
+  return translate(current, label);
+}
 
 export const ProductionOrderStatus = {
   DRAFT: "DRAFT",

@@ -28,6 +28,7 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import type { StageModuleConfig } from "./stage-modules";
 import styles from "./StageRunPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 function fmtQty(value?: string | number) {
   const num = Number(value ?? 0);
@@ -41,6 +42,7 @@ export default function StageRunCreatePage({
 }: {
   config: StageModuleConfig;
 }) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const actions = useScreenActionPermissions(config.screenCode);
@@ -131,7 +133,7 @@ export default function StageRunCreatePage({
 
   const submit = () => {
     if (!canSubmit || !selectedLot) {
-      message.warning("กรุณากรอกข้อมูลให้ครบก่อนบันทึก");
+      message.warning(t("กรุณากรอกข้อมูลให้ครบก่อนบันทึก"));
       return;
     }
     createMutation.mutate(
@@ -166,15 +168,15 @@ export default function StageRunCreatePage({
       <section className={masterStyles.page}>
         <PageHeader
           eyebrow={config.eyebrow}
-          title="สร้างรอบการทำงาน"
-          subtitle="บันทึกเป็นร่างก่อน — สต๊อกจะถูกตัดตอนกด &quot;เริ่มงาน&quot; ในหน้ารายละเอียด"
+          title={t("สร้างรอบการทำงาน")}
+          subtitle={t("บันทึกเป็นร่างก่อน — สต๊อกจะถูกตัดตอนกด \"เริ่มงาน\" ในหน้ารายละเอียด")}
           actions={
             <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(config.routeBase)}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
             </>
           }
@@ -184,19 +186,19 @@ export default function StageRunCreatePage({
           <Alert
             type="warning"
             showIcon
-            title="ไม่มีสิทธิ์สร้างรอบการทำงานในหน้าจอนี้"
+            title={t("ไม่มีสิทธิ์สร้างรอบการทำงานในหน้าจอนี้")}
           />
         )}
 
         <div className={styles.formCard}>
           <div className={styles.formGrid}>
             <Select
-              placeholder="เลือกขั้นตอน"
+              placeholder={t("เลือกขั้นตอน")}
               value={stageType}
               onChange={setStageType}
               options={config.stageTypes.map((option) => ({
                 value: option.value,
-                label: `${option.order}. ${option.label}`,
+                label: `${option.order}. ${t(option.label)}`,
               }))}
             />
             <DatePicker
@@ -206,7 +208,7 @@ export default function StageRunCreatePage({
               allowClear={false}
             />
             <Input
-              placeholder="Batch (ไม่บังคับ) — ใช้ร้อยรอบงานทั้งสายให้เป็นเส้นเดียวกัน"
+              placeholder={t("Batch (ไม่บังคับ) — ใช้ร้อยรอบงานทั้งสายให้เป็นเส้นเดียวกัน")}
               value={batchNo}
               maxLength={50}
               onChange={(e) => setBatchNo(e.target.value)}
@@ -215,9 +217,9 @@ export default function StageRunCreatePage({
 
           <div className={styles.formSection}>
             <div className={styles.formSectionHead}>
-              <h4>วัตถุดิบเข้า — ตัดออกจากคลัง</h4>
+              <h4>{t("วัตถุดิบเข้า — ตัดออกจากคลัง")}</h4>
               <span className={styles.formSectionHint}>
-                เลือก Lot แล้วระบบจะเติมคลัง ตำแหน่ง และหน่วยให้เอง
+                {t("เลือก Lot แล้วระบบจะเติมคลัง ตำแหน่ง และหน่วยให้เอง")}
               </span>
             </div>
             <div className={styles.formGrid}>
@@ -225,7 +227,7 @@ export default function StageRunCreatePage({
                 showSearch
                 allowClear
                 style={{ gridColumn: "span 2" }}
-                placeholder="เลือก Lot วัตถุดิบ"
+                placeholder={t("เลือก Lot วัตถุดิบ")}
                 value={inputBalanceId}
                 onChange={(value) => setInputBalanceId(value)}
                 loading={lotsQuery.isFetching}
@@ -239,7 +241,7 @@ export default function StageRunCreatePage({
                   label:
                     `${lot.lotNo} · ${lot.itemCode} — ${lot.itemNameTh} · ` +
                     `${lot.warehouseCode}/${lot.locationCode} · ` +
-                    `คงเหลือ ${fmtQty(lot.quantityAvailable)} ${lot.unitCode ?? ""}`,
+                    `${t("คงเหลือ")} ${fmtQty(lot.quantityAvailable)} ${lot.unitCode ?? ""}`,
                 }))}
               />
               <Space.Compact style={{ width: "100%" }}>
@@ -248,7 +250,7 @@ export default function StageRunCreatePage({
                   min={0.001}
                   step={0.001}
                   precision={3}
-                  placeholder="จำนวนที่จะใช้"
+                  placeholder={t("จำนวนที่จะใช้")}
                   value={inputQty}
                   onChange={setInputQty}
                   status={overLotStock ? "error" : undefined}
@@ -262,22 +264,22 @@ export default function StageRunCreatePage({
               <Alert
                 type="error"
                 showIcon
-                title={`Lot นี้คงเหลือ ${fmtQty(selectedLot.quantityAvailable)} ${selectedLot.unitCode ?? ""} — ใส่จำนวนเกินของที่มีจริง`}
+                title={t("Lot นี้คงเหลือ {qty} {unit} — ใส่จำนวนเกินของที่มีจริง", { qty: fmtQty(selectedLot.quantityAvailable), unit: selectedLot.unitCode ?? "" })}
               />
             ) : null}
           </div>
 
           <div className={styles.formSection}>
             <div className={styles.formSectionHead}>
-              <h4>ผลผลิตออก — รับเข้าคลัง</h4>
+              <h4>{t("ผลผลิตออก — รับเข้าคลัง")}</h4>
               <span className={styles.formSectionHint}>
-                จำนวนที่วางแผนว่าจะได้ · ของจะเข้าคลังจริงตอนกดยืนยันเสร็จงาน
+                {t("จำนวนที่วางแผนว่าจะได้ · ของจะเข้าคลังจริงตอนกดยืนยันเสร็จงาน")}
               </span>
             </div>
             <div className={styles.formGrid}>
               <Select
                 showSearch
-                placeholder="สินค้าผลผลิต"
+                placeholder={t("สินค้าผลผลิต")}
                 value={outputItemId}
                 onChange={setOutputItemId}
                 loading={itemsQuery.isFetching}
@@ -292,7 +294,7 @@ export default function StageRunCreatePage({
                 }))}
               />
               <Select
-                placeholder="คลังปลายทาง"
+                placeholder={t("คลังปลายทาง")}
                 value={outputWarehouseId}
                 onChange={(value) => {
                   setOutputWarehouseId(value);
@@ -305,7 +307,7 @@ export default function StageRunCreatePage({
                 }))}
               />
               <Select
-                placeholder="ตำแหน่งจัดเก็บ"
+                placeholder={t("ตำแหน่งจัดเก็บ")}
                 value={outputLocationId}
                 onChange={setOutputLocationId}
                 disabled={!outputWarehouseId}
@@ -316,7 +318,7 @@ export default function StageRunCreatePage({
                 }))}
               />
               <Select
-                placeholder="หน่วยนับ"
+                placeholder={t("หน่วยนับ")}
                 value={outputUnitId}
                 onChange={setOutputUnitId}
                 loading={unitsQuery.isFetching}
@@ -331,7 +333,7 @@ export default function StageRunCreatePage({
                   min={0}
                   step={0.001}
                   precision={3}
-                  placeholder="จำนวนผลผลิตตามแผน"
+                  placeholder={t("จำนวนผลผลิตตามแผน")}
                   value={outputQty}
                   onChange={setOutputQty}
                 />
@@ -339,13 +341,13 @@ export default function StageRunCreatePage({
                   <Input style={{ width: 56 }} value={outputUnitCode} disabled />
                 ) : null}
               </Space.Compact>
-              <Tooltip title="บันทึกไว้อ้างอิงเท่านั้น ระบบไม่รับเข้าสต๊อกให้อัตโนมัติ">
+              <Tooltip title={t("บันทึกไว้อ้างอิงเท่านั้น ระบบไม่รับเข้าสต๊อกให้อัตโนมัติ")}>
                 <InputNumber
                   style={{ width: "100%" }}
                   min={0}
                   step={0.001}
                   precision={3}
-                  placeholder={config.byproductLabel}
+                  placeholder={t(config.byproductLabel)}
                   value={byproductQty}
                   onChange={setByproductQty}
                 />
@@ -353,14 +355,14 @@ export default function StageRunCreatePage({
             </div>
 
             <div className={styles.yieldPreview}>
-              <span>Yield ตามแผน</span>
+              <span>{t("Yield ตามแผน")}</span>
               {previewYield !== null ? (
                 <span className={styles.yieldPreviewValue}>{previewYield}%</span>
               ) : (
                 <span>
                   {selectedLot && outputUnitId && !unitsMatch
-                    ? "เทียบไม่ได้ — หน่วยวัตถุดิบกับผลผลิตต่างกัน"
-                    : "กรอกจำนวนเข้าและออกเพื่อดูตัวเลข"}
+                    ? t("เทียบไม่ได้ — หน่วยวัตถุดิบกับผลผลิตต่างกัน")
+                    : t("กรอกจำนวนเข้าและออกเพื่อดูตัวเลข")}
                 </span>
               )}
             </div>
@@ -369,13 +371,13 @@ export default function StageRunCreatePage({
           <Input.TextArea
             rows={2}
             maxLength={500}
-            placeholder="หมายเหตุ (ถ้ามี)"
+            placeholder={t("หมายเหตุ (ถ้ามี)")}
             value={remark}
             onChange={(e) => setRemark(e.target.value)}
           />
 
           <div className={styles.formActions}>
-            <Button onClick={() => router.push(config.routeBase)}>ยกเลิก</Button>
+            <Button onClick={() => router.push(config.routeBase)}>{t("ยกเลิก")}</Button>
             <Button
               type="primary"
               icon={<SaveOutlined />}
@@ -383,7 +385,7 @@ export default function StageRunCreatePage({
               loading={createMutation.isPending}
               onClick={submit}
             >
-              บันทึกเป็นร่าง
+              {t("บันทึกเป็นร่าง")}
             </Button>
           </div>
         </div>

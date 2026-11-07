@@ -14,6 +14,8 @@ import {
 } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useBulkCreateShiftSchedulesMutation } from "@/hooks/shifts/useShiftMutations";
 import { useUsersQuery } from "@/hooks/users/useUsersQuery";
 import type { BulkShiftScheduleResult, Shift } from "@/types/shifts";
@@ -49,6 +51,16 @@ const WEEKDAY_OPTIONS = [
   { label: "อา", value: 0 },
 ];
 
+const EN_WEEKDAY_LABELS: Record<number, string> = {
+  1: "Mon",
+  2: "Tue",
+  3: "Wed",
+  4: "Thu",
+  5: "Fri",
+  6: "Sat",
+  0: "Sun",
+};
+
 function toDayjsTime(value?: string) {
   return value ? dayjs(`2000-01-01 ${value}`) : dayjs().hour(8).minute(0);
 }
@@ -60,6 +72,8 @@ export default function ShiftBulkModal({
   month,
   onClose,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const [result, setResult] = useState<BulkShiftScheduleResult | null>(null);
 
@@ -72,7 +86,7 @@ export default function ShiftBulkModal({
 
   const shiftOptions = shifts.map((shift) => ({
     value: shift.id,
-    label: `${shift.name} · ${shift.startTime}-${shift.endTime}${shift.isOvernight ? " (ข้ามคืน)" : ""}`,
+    label: `${shift.name} · ${shift.startTime}-${shift.endTime}${shift.isOvernight ? ` ${t("(ข้ามคืน)")}` : ""}`,
   }));
 
   useEffect(() => {
@@ -125,9 +139,9 @@ export default function ShiftBulkModal({
   return (
     <Modal
       open={open}
-      title="ลงกะเป็นช่วงวันที่"
-      okText="ลงกะ"
-      cancelText="ปิด"
+      title={t("ลงกะเป็นช่วงวันที่")}
+      okText={t("ลงกะ")}
+      cancelText={t("ปิด")}
       width={600}
       confirmLoading={bulkMutation.isPending}
       onCancel={onClose}
@@ -143,23 +157,23 @@ export default function ShiftBulkModal({
       >
         <Form.Item
           name="shiftId"
-          label="กะ"
-          rules={[{ required: true, message: "เลือกกะ" }]}
+          label={t("กะ")}
+          rules={[{ required: true, message: t("เลือกกะ") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกกะ"
+            placeholder={t("เลือกกะ")}
             options={shiftOptions}
             onChange={handleShiftChange}
-            notFoundContent="ยังไม่มีกะ — สร้างที่ปุ่ม จัดการกะ"
+            notFoundContent={t("ยังไม่มีกะ — สร้างที่ปุ่ม จัดการกะ")}
           />
         </Form.Item>
 
         <Form.Item
           name="range"
-          label="ช่วงวันที่"
-          rules={[{ required: true, message: "เลือกช่วงวันที่" }]}
+          label={t("ช่วงวันที่")}
+          rules={[{ required: true, message: t("เลือกช่วงวันที่") }]}
         >
           <DatePicker.RangePicker
             format="DD/MM/YYYY"
@@ -171,8 +185,8 @@ export default function ShiftBulkModal({
         <div className={styles.masterFormGrid}>
           <Form.Item
             name="startTime"
-            label="เข้ากะ"
-            rules={[{ required: true, message: "ระบุเวลาเข้ากะ" }]}
+            label={t("เข้ากะ")}
+            rules={[{ required: true, message: t("ระบุเวลาเข้ากะ") }]}
           >
             <TimePicker
               format="HH:mm"
@@ -183,8 +197,8 @@ export default function ShiftBulkModal({
 
           <Form.Item
             name="endTime"
-            label="เลิกกะ"
-            rules={[{ required: true, message: "ระบุเวลาเลิกกะ" }]}
+            label={t("เลิกกะ")}
+            rules={[{ required: true, message: t("ระบุเวลาเลิกกะ") }]}
           >
             <TimePicker
               format="HH:mm"
@@ -196,15 +210,20 @@ export default function ShiftBulkModal({
 
         <Form.Item
           name="weekdays"
-          label="ลงเฉพาะวัน"
-          extra="ไม่เลือกเลย = ลงทุกวันในช่วง"
+          label={t("ลงเฉพาะวัน")}
+          extra={t("ไม่เลือกเลย = ลงทุกวันในช่วง")}
         >
-          <Checkbox.Group options={WEEKDAY_OPTIONS} />
+          <Checkbox.Group
+            options={WEEKDAY_OPTIONS.map((o) => ({
+              ...o,
+              label: lang === "en" ? EN_WEEKDAY_LABELS[o.value] : o.label,
+            }))}
+          />
         </Form.Item>
 
         <Form.Item
           name="skipHolidays"
-          label="ข้ามวันที่กดหยุดไว้"
+          label={t("ข้ามวันที่กดหยุดไว้")}
           valuePropName="checked"
         >
           <Switch />
@@ -212,23 +231,23 @@ export default function ShiftBulkModal({
 
         <Form.Item
           name="userIds"
-          label="พนักงานในกะนี้"
-          extra="คนที่ติดกะอื่นของวันนั้นอยู่แล้วจะถูกข้ามให้ ไม่ทับกะเดิม"
+          label={t("พนักงานในกะนี้")}
+          extra={t("คนที่ติดกะอื่นของวันนั้นอยู่แล้วจะถูกข้ามให้ ไม่ทับกะเดิม")}
         >
           <Select
             mode="multiple"
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="ค้นหาชื่อหรือรหัสพนักงาน"
+            placeholder={t("ค้นหาชื่อหรือรหัสพนักงาน")}
             loading={usersQuery.isLoading}
             options={userOptions}
             maxTagCount="responsive"
           />
         </Form.Item>
 
-        <Form.Item name="note" label="หมายเหตุ">
-          <Input.TextArea rows={2} placeholder="เช่น รอบกะเดือนกันยายน" />
+        <Form.Item name="note" label={t("หมายเหตุ")}>
+          <Input.TextArea rows={2} placeholder={t("เช่น รอบกะเดือนกันยายน")} />
         </Form.Item>
       </Form>
 
@@ -236,17 +255,24 @@ export default function ShiftBulkModal({
         <Alert
           type="success"
           showIcon
-          title={`ลงกะใหม่ ${result.created} วัน · เพิ่มคนในรอบเดิม ${result.updated} วัน`}
+          title={t("ลงกะใหม่ {created} วัน · เพิ่มคนในรอบเดิม {updated} วัน", {
+            created: result.created,
+            updated: result.updated,
+          })}
           description={
             <div className={styles.bulkResult}>
               {result.skippedDates.length > 0 ? (
                 <p>
-                  ข้าม {result.skippedDates.length} วัน (วันหยุด หรือไม่ตรงวันที่เลือก)
+                  {t("ข้าม {n} วัน (วันหยุด หรือไม่ตรงวันที่เลือก)", {
+                    n: result.skippedDates.length,
+                  })}
                 </p>
               ) : null}
               {result.conflictDates.length > 0 ? (
                 <p>
-                  มีคนติดกะอื่นอยู่แล้ว {result.conflictDates.length} วัน:{" "}
+                  {t("มีคนติดกะอื่นอยู่แล้ว {n} วัน:", {
+                    n: result.conflictDates.length,
+                  })}{" "}
                   {result.conflictDates
                     .map((date) => dayjs(date).format("D/M"))
                     .join(", ")}

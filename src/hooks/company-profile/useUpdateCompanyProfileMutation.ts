@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import { updateCompanyProfile } from "@/lib/api/company-profile";
 import { getAccessToken } from "@/lib/auth/token";
@@ -13,6 +15,7 @@ import { companyProfileQueryKey } from "./useCompanyProfileQuery";
 export function useUpdateCompanyProfileMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "company-profile", "update"],
@@ -23,13 +26,13 @@ export function useUpdateCompanyProfileMutation() {
       // ไม่งั้นพิมพ์ใบถัดไปยังได้ข้อมูลบริษัทเก่าจนกว่าจะ reload
       invalidateCompanyInfo();
       await queryClient.invalidateQueries({ queryKey: companyProfileQueryKey });
-      message.success(response.message || "บันทึกข้อมูลบริษัทสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกข้อมูลบริษัทสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกข้อมูลบริษัทไม่สำเร็จ",
+          : t("บันทึกข้อมูลบริษัทไม่สำเร็จ"),
       );
     },
   });

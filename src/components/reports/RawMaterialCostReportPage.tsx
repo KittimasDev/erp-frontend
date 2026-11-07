@@ -43,6 +43,7 @@ import {
 } from "@/utils/rawMaterialCostReportSheets";
 import styles from "./RawTirePurchaseReportPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 const TAB_OPTIONS: Array<{ label: string; value: RawMaterialCostTab }> = [
   { label: "สรุปต้นทุนวัตถุดิบ", value: "summary" },
@@ -66,6 +67,7 @@ function negativeClass(value: string) {
 }
 
 export default function RawMaterialCostReportPage() {
+  const t = useT();
   const { message } = App.useApp();
   const router = useRouter();
   const pathname = usePathname();
@@ -150,7 +152,7 @@ export default function RawMaterialCostReportPage() {
     if (item) labels.push(`สินค้า: ${item.itemCode} — ${item.itemNameTh}`);
     const warehouse = warehouses.find((w) => w.id === applied.warehouseId);
     if (warehouse) labels.push(`คลังสินค้า: ${warehouse.warehouseName}`);
-    const type = RAW_MATERIAL_COST_TYPE_OPTIONS.find((t) => t.value === applied.movementType);
+    const type = RAW_MATERIAL_COST_TYPE_OPTIONS.find((o) => o.value === applied.movementType);
     if (type) labels.push(`ประเภทรายการ: ${type.label}`);
     if (applied.lotNo) labels.push(`Lot: ${applied.lotNo}`);
     if (tab === "detail" && applied.q) labels.push(`ค้นหา: ${applied.q}`);
@@ -189,7 +191,9 @@ export default function RawMaterialCostReportPage() {
       );
       if (all.truncated) {
         message.warning(
-          `มี ${all.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ 5,000 รายการแรก (ยอดรวมเป็นของทั้งชุด)`,
+          t("มี {total} รายการ — ไฟล์มีเฉพาะ 5,000 รายการแรก (ยอดรวมเป็นของทั้งชุด)", {
+            total: all.total.toLocaleString("th-TH"),
+          }),
         );
       }
       await downloadTabularReport(
@@ -203,7 +207,7 @@ export default function RawMaterialCostReportPage() {
         }),
       );
     } catch {
-      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
+      message.error(t("ดาวน์โหลดรายงานไม่สำเร็จ"));
     } finally {
       setExporting(null);
     }
@@ -212,14 +216,14 @@ export default function RawMaterialCostReportPage() {
   const summaryColumns: ColumnsType<RawMaterialCostSummaryRow> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 60,
         align: "center" as const,
         render: (_v: unknown, _row: RawMaterialCostSummaryRow, index: number) => index + 1,
       },
       {
-        title: "รหัสสินค้า",
+        title: t("รหัสสินค้า"),
         key: "itemCode",
         width: 110,
         render: (_v, row) => (
@@ -227,77 +231,77 @@ export default function RawMaterialCostReportPage() {
             type="button"
             className={styles.receiptNo}
             style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textDecoration: "underline" }}
-            title="ดูรายละเอียดรายการเคลื่อนไหวของสินค้านี้"
+            title={t("ดูรายละเอียดรายการเคลื่อนไหวของสินค้านี้")}
             onClick={() => openItemDetail(row)}
           >
             {row.itemCode}
           </button>
         ),
       },
-      { title: "ชื่อสินค้า", key: "itemName", render: (_v, row) => summaryItemName(row) },
+      { title: t("ชื่อสินค้า"), key: "itemName", render: (_v, row) => summaryItemName(row) },
       {
-        title: "จำนวนยกมา (KG)",
+        title: t("จำนวนยกมา (KG)"),
         key: "openingQty",
         align: "right",
         render: (_v, row) => qty(row.openingQty),
       },
       {
-        title: "มูลค่าต้นทุนยกมา (บาท)",
+        title: t("มูลค่าต้นทุนยกมา (บาท)"),
         key: "openingValue",
         align: "right",
         render: (_v, row) => money(row.openingValue),
       },
       {
-        title: "ต้นทุนรับเข้า (บาท)",
+        title: t("ต้นทุนรับเข้า (บาท)"),
         key: "receivedValue",
         align: "right",
         render: (_v, row) => money(row.receivedValue),
       },
       {
-        title: "ต้นทุนเบิกออก (บาท)",
+        title: t("ต้นทุนเบิกออก (บาท)"),
         key: "issuedValue",
         align: "right",
         render: (_v, row) => money(row.issuedValue),
       },
       {
-        title: "มูลค่าปรับปรุงสุทธิ (บาท)",
+        title: t("มูลค่าปรับปรุงสุทธิ (บาท)"),
         key: "adjustedValue",
         align: "right",
         render: (_v, row) => <span style={negativeClass(row.adjustedValue)}>{money(row.adjustedValue)}</span>,
       },
       {
-        title: "จำนวนคงเหลือ (KG)",
+        title: t("จำนวนคงเหลือ (KG)"),
         key: "closingQty",
         align: "right",
         render: (_v, row) => <span style={negativeClass(row.closingQty)}>{qty(row.closingQty)}</span>,
       },
       {
-        title: "ต้นทุนเฉลี่ยคงเหลือ (บาท/KG)",
+        title: t("ต้นทุนเฉลี่ยคงเหลือ (บาท/KG)"),
         key: "closingAvgCost",
         align: "right",
         render: (_v, row) => unitCost(row.closingAvgCost),
       },
       {
-        title: "มูลค่าคงเหลือ (บาท)",
+        title: t("มูลค่าคงเหลือ (บาท)"),
         key: "closingValue",
         align: "right",
         render: (_v, row) => <span style={negativeClass(row.closingValue)}>{money(row.closingValue)}</span>,
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [searchParams, pathname],
+    [searchParams, pathname, t],
   );
 
   const detailColumns: ColumnsType<RawMaterialCostDetailRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "no",
       width: 64,
       align: "center",
       render: (_v, _row, index) => (page - 1) * limit + index + 1,
     },
     {
-      title: "วันที่ทำรายการ",
+      title: t("วันที่ทำรายการ"),
       key: "movementDate",
       width: 120,
       render: (_v, row) => (
@@ -309,37 +313,37 @@ export default function RawMaterialCostReportPage() {
         </>
       ),
     },
-    { title: "ประเภทรายการ", key: "type", width: 120, render: (_v, row) => detailTypeLabel(row) },
+    { title: t("ประเภทรายการ"), key: "type", width: 120, render: (_v, row) => t(detailTypeLabel(row)) },
     {
-      title: "เลขที่เอกสารอ้างอิง",
+      title: t("เลขที่เอกสารอ้างอิง"),
       key: "doc",
       width: 190,
       render: (_v, row) => <span className={styles.receiptNo}>{detailDocLabel(row) || "—"}</span>,
     },
-    { title: "รหัสสินค้า", dataIndex: "itemCode", key: "itemCode", width: 110 },
-    { title: "ชื่อสินค้า", dataIndex: "itemNameTh", key: "itemNameTh" },
+    { title: t("รหัสสินค้า"), dataIndex: "itemCode", key: "itemCode", width: 110 },
+    { title: t("ชื่อสินค้า"), dataIndex: "itemNameTh", key: "itemNameTh" },
     { title: "Lot", key: "lot", render: (_v, row) => row.lotNo ?? "—" },
-    { title: "คลังสินค้า", dataIndex: "warehouseName", key: "warehouse" },
+    { title: t("คลังสินค้า"), dataIndex: "warehouseName", key: "warehouse" },
     {
-      title: "จำนวนเข้า (KG)",
+      title: t("จำนวนเข้า (KG)"),
       key: "qtyIn",
       align: "right",
       render: (_v, row) => (Number(row.quantityIn) > 0 ? qty(row.quantityIn) : "—"),
     },
     {
-      title: "จำนวนออก (KG)",
+      title: t("จำนวนออก (KG)"),
       key: "qtyOut",
       align: "right",
       render: (_v, row) => (Number(row.quantityOut) > 0 ? qty(row.quantityOut) : "—"),
     },
     {
-      title: "ต้นทุนต่อหน่วย (บาท/KG)",
+      title: t("ต้นทุนต่อหน่วย (บาท/KG)"),
       key: "unitCost",
       align: "right",
       render: (_v, row) => unitCost(row.unitCost),
     },
     {
-      title: "ต้นทุนรวม (บาท)",
+      title: t("ต้นทุนรวม (บาท)"),
       key: "amount",
       align: "right",
       render: (_v, row) => money(row.amount),
@@ -350,8 +354,8 @@ export default function RawMaterialCostReportPage() {
   const totals = summaryData?.totals;
   const emptyText = (
     <div className={styles.emptyState}>
-      <strong>ไม่พบรายการตามเงื่อนไขที่ค้นหา</strong>
-      ลองปรับช่วงวันที่หรือตัวกรองอื่น
+      <strong>{t("ไม่พบรายการตามเงื่อนไขที่ค้นหา")}</strong>
+      {t("ลองปรับช่วงวันที่หรือตัวกรองอื่น")}
     </div>
   );
 
@@ -360,8 +364,8 @@ export default function RawMaterialCostReportPage() {
       <PageHeader
         eyebrow="Reports · Raw Material Cost"
         icon={<DollarOutlined />}
-        title="รายงานต้นทุนวัตถุดิบ"
-        subtitle="ยกมา รับเข้า เบิกออก ปรับปรุง และคงเหลือของวัตถุดิบ พร้อมรายการเคลื่อนไหวต้นทุนตามเอกสาร และ Lot"
+        title={t("รายงานต้นทุนวัตถุดิบ")}
+        subtitle={t("ยกมา รับเข้า เบิกออก ปรับปรุง และคงเหลือของวัตถุดิบ พร้อมรายการเคลื่อนไหวต้นทุนตามเอกสาร และ Lot")}
         actions={
           <>
 
@@ -375,53 +379,57 @@ export default function RawMaterialCostReportPage() {
       />
 
       <div className={styles.modeBar}>
-        <Segmented<RawMaterialCostTab> options={TAB_OPTIONS} value={tab} onChange={setTab} />
+        <Segmented<RawMaterialCostTab>
+          options={TAB_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+          value={tab}
+          onChange={setTab}
+        />
         <span className={styles.modeHint}>
           {tab === "summary"
-            ? "สรุปต่อสินค้า — กดรหัสสินค้าเพื่อดูรายการเคลื่อนไหวของสินค้านั้น"
-            : "รายการรับเข้า เบิกออก โอนย้าย ปรับปรุง และเบิกไปผลิต (รวมรายการโอนเข้า/ออก)"}
+            ? t("สรุปต่อสินค้า — กดรหัสสินค้าเพื่อดูรายการเคลื่อนไหวของสินค้านั้น")
+            : t("รายการรับเข้า เบิกออก โอนย้าย ปรับปรุง และเบิกไปผลิต (รวมรายการโอนเข้า/ออก)")}
         </span>
       </div>
 
       {tab === "summary" ? (
         <div className={styles.statRow}>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>มูลค่าต้นทุนยกมา</span>
+            <span className={styles.statLabel}>{t("มูลค่าต้นทุนยกมา")}</span>
             <span className={styles.statValue}>{money(totals?.openingValue)}</span>
-            <span className={styles.statHint}>บาท · ก่อนวันเริ่มต้น</span>
+            <span className={styles.statHint}>{t("บาท · ก่อนวันเริ่มต้น")}</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>ต้นทุนรับเข้า</span>
+            <span className={styles.statLabel}>{t("ต้นทุนรับเข้า")}</span>
             <span className={styles.statValue}>{money(totals?.receivedValue)}</span>
-            <span className={styles.statHint}>บาท</span>
+            <span className={styles.statHint}>{t("บาท")}</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>ต้นทุนเบิกออก</span>
+            <span className={styles.statLabel}>{t("ต้นทุนเบิกออก")}</span>
             <span className={styles.statValue}>{money(totals?.issuedValue)}</span>
-            <span className={styles.statHint}>บาท</span>
+            <span className={styles.statHint}>{t("บาท")}</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>มูลค่าคงเหลือ</span>
+            <span className={styles.statLabel}>{t("มูลค่าคงเหลือ")}</span>
             <span className={styles.statValue}>{money(totals?.closingValue)}</span>
-            <span className={styles.statHint}>บาท · ณ สิ้นวันสิ้นสุด</span>
+            <span className={styles.statHint}>{t("บาท · ณ สิ้นวันสิ้นสุด")}</span>
           </div>
         </div>
       ) : (
         <div className={styles.statRow}>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>จำนวนรายการ</span>
+            <span className={styles.statLabel}>{t("จำนวนรายการ")}</span>
             <span className={styles.statValue}>{detailTotal.toLocaleString("th-TH")}</span>
-            <span className={styles.statHint}>ตามเงื่อนไขที่กรอง</span>
+            <span className={styles.statHint}>{t("ตามเงื่อนไขที่กรอง")}</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>ต้นทุนรวมรับเข้า</span>
+            <span className={styles.statLabel}>{t("ต้นทุนรวมรับเข้า")}</span>
             <span className={styles.statValue}>{money(detailData?.totals.totalCostIn)}</span>
-            <span className={styles.statHint}>บาท · {qty(detailData?.totals.totalQuantityIn)} KG</span>
+            <span className={styles.statHint}>{t("บาท · {qty} KG", { qty: qty(detailData?.totals.totalQuantityIn) })}</span>
           </div>
           <div className={styles.statChip}>
-            <span className={styles.statLabel}>ต้นทุนรวมเบิกออก</span>
+            <span className={styles.statLabel}>{t("ต้นทุนรวมเบิกออก")}</span>
             <span className={styles.statValue}>{money(detailData?.totals.totalCostOut)}</span>
-            <span className={styles.statHint}>บาท · {qty(detailData?.totals.totalQuantityOut)} KG</span>
+            <span className={styles.statHint}>{t("บาท · {qty} KG", { qty: qty(detailData?.totals.totalQuantityOut) })}</span>
           </div>
         </div>
       )}
@@ -431,8 +439,8 @@ export default function RawMaterialCostReportPage() {
           type="warning"
           showIcon
           style={{ marginBottom: 12 }}
-          title={`มี ${totals!.zeroCostMovements.toLocaleString("th-TH")} รายการเคลื่อนไหวในช่วงนี้ที่ต้นทุน 0 บาท`}
-          description="เช่น ผลผลิตจากการผลิตหรือรับเข้าน้ำมันที่ระบบยังไม่ได้บันทึกต้นทุน — ต้นทุนเฉลี่ยของสินค้านั้นอาจต่ำกว่าจริง ดูรายการได้ที่แท็บรายละเอียด"
+          title={t("มี {n} รายการเคลื่อนไหวในช่วงนี้ที่ต้นทุน 0 บาท", { n: totals!.zeroCostMovements.toLocaleString("th-TH") })}
+          description={t("เช่น ผลผลิตจากการผลิตหรือรับเข้าน้ำมันที่ระบบยังไม่ได้บันทึกต้นทุน — ต้นทุนเฉลี่ยของสินค้านั้นอาจต่ำกว่าจริง ดูรายการได้ที่แท็บรายละเอียด")}
         />
       ) : null}
       {tab === "summary" && applied.movementType ? (
@@ -440,14 +448,14 @@ export default function RawMaterialCostReportPage() {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          title="ตัวกรองประเภทรายการมีผลกับคอลัมน์ต้นทุนรับเข้า / เบิกออก / ปรับปรุงเท่านั้น ยอดยกมาและยอดคงเหลือยังเป็นยอดจริงทุกประเภท"
+          title={t("ตัวกรองประเภทรายการมีผลกับคอลัมน์ต้นทุนรับเข้า / เบิกออก / ปรับปรุงเท่านั้น ยอดยกมาและยอดคงเหลือยังเป็นยอดจริงทุกประเภท")}
         />
       ) : null}
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่</label>
+            <label>{t("ช่วงวันที่")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               value={dateRange}
@@ -459,12 +467,12 @@ export default function RawMaterialCostReportPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สินค้า</label>
+            <label>{t("สินค้า")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={itemId}
               onChange={setItemId}
               loading={itemsQuery.isLoading}
@@ -475,12 +483,12 @@ export default function RawMaterialCostReportPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>คลังสินค้า</label>
+            <label>{t("คลังสินค้า")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={warehouseId}
               onChange={setWarehouseId}
               loading={warehousesQuery.isLoading}
@@ -491,15 +499,15 @@ export default function RawMaterialCostReportPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ประเภทรายการ</label>
+            <label>{t("ประเภทรายการ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={movementType}
               onChange={setMovementType}
               options={RAW_MATERIAL_COST_TYPE_OPTIONS.map((option) => ({
                 value: option.value,
-                label: option.label,
+                label: t(option.label),
               }))}
             />
           </div>
@@ -507,7 +515,7 @@ export default function RawMaterialCostReportPage() {
             <label>Lot</label>
             <Input
               allowClear
-              placeholder="ค้นเลข Lot"
+              placeholder={t("ค้นเลข Lot")}
               value={lotNo}
               onChange={(event) => setLotNo(event.target.value)}
               onPressEnter={applySearch}
@@ -515,10 +523,10 @@ export default function RawMaterialCostReportPage() {
           </div>
           {tab === "detail" ? (
             <div className={styles.filterItem}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="สินค้า / เลขเอกสาร / เลข RP"
+                placeholder={t("สินค้า / เลขเอกสาร / เลข RP")}
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
                 onPressEnter={applySearch}
@@ -527,9 +535,9 @@ export default function RawMaterialCostReportPage() {
           ) : null}
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -539,17 +547,17 @@ export default function RawMaterialCostReportPage() {
           <div className={styles.toolbarLeft}>
             {tab === "summary" ? (
               <>
-                พบทั้งหมด <strong>{summaryRows.length}</strong> สินค้า
+                {t("พบทั้งหมด")} <strong>{summaryRows.length}</strong> {t("สินค้า")}
               </>
             ) : (
               <>
-                พบทั้งหมด <strong>{detailTotal.toLocaleString("th-TH")}</strong> รายการ
+                {t("พบทั้งหมด")} <strong>{detailTotal.toLocaleString("th-TH")}</strong> {t("รายการ")}
               </>
             )}
           </div>
           {tab === "detail" ? (
             <div className={styles.entriesBox}>
-              <span>แสดง</span>
+              <span>{t("แสดง")}</span>
               <Select
                 size="small"
                 value={limit}
@@ -564,7 +572,7 @@ export default function RawMaterialCostReportPage() {
                   setPage(1);
                 }}
               />
-              <span>รายการ/หน้า</span>
+              <span>{t("รายการ/หน้า")}</span>
             </div>
           ) : null}
         </div>
@@ -583,7 +591,7 @@ export default function RawMaterialCostReportPage() {
               summaryRows.length > 0 && totals ? (
                 <Table.Summary.Row className={styles.totalRow}>
                   <Table.Summary.Cell index={0} colSpan={3}>
-                    รวมทั้งหมด
+                    {t("รวมทั้งหมด")}
                   </Table.Summary.Cell>
                   <Table.Summary.Cell index={3} align="right">
                     {quantityTotals ? qty(quantityTotals.openingQty) : "—"}
@@ -631,8 +639,11 @@ export default function RawMaterialCostReportPage() {
         {tab === "detail" ? (
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง {detailTotal === 0 ? 0 : (page - 1) * limit + 1}–{Math.min(page * limit, detailTotal)} จาก{" "}
-              {detailTotal.toLocaleString("th-TH")}
+              {t("แสดง {from}–{to} จาก {total}", {
+                from: detailTotal === 0 ? 0 : (page - 1) * limit + 1,
+                to: Math.min(page * limit, detailTotal),
+                total: detailTotal.toLocaleString("th-TH"),
+              })}
             </div>
             <Pagination
               size="small"

@@ -59,6 +59,7 @@ import type {
 import ItemFormModal from "./ItemFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 type ItemFilterFormValues = {
   code?: string;
@@ -215,6 +216,7 @@ function buildSearchFromForm(values: ItemFilterFormValues): URLSearchParams {
 }
 
 export default function ItemsPage() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -327,7 +329,7 @@ export default function ItemsPage() {
 
   const columns: ColumnsType<Item> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 80,
       align: "center",
@@ -338,7 +340,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "itemCode",
       key: "itemCode",
       width: 130,
@@ -347,7 +349,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "ชื่อสินค้า",
+      title: t("ชื่อสินค้า"),
       dataIndex: "itemNameTh",
       key: "itemNameTh",
       render: (value: string) => (
@@ -357,7 +359,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "คำอธิบาย",
+      title: t("คำอธิบาย"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
@@ -366,7 +368,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "หมวดหมู่สินค้า",
+      title: t("หมวดหมู่สินค้า"),
       key: "itemCategory",
       width: 160,
       render: (_, record) => (
@@ -378,7 +380,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "สำเร็จรูป",
+      title: t("สำเร็จรูป"),
       dataIndex: "isFinishedGood",
       key: "isFinishedGood",
       width: 110,
@@ -386,14 +388,14 @@ export default function ItemsPage() {
       render: (isFinishedGood: boolean) =>
         isFinishedGood ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
-            สำเร็จรูป
+            {t("สำเร็จรูป")}
           </Tag>
         ) : (
           <span className={styles.symbolText}>-</span>
         ),
     },
     {
-      title: "หน่วย",
+      title: t("หน่วย"),
       key: "unit",
       width: 100,
       render: (_, record) => (
@@ -403,7 +405,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "คงเหลือ (ทุกคลัง)",
+      title: t("คงเหลือ (ทุกคลัง)"),
       key: "onHand",
       width: 150,
       align: "right",
@@ -417,7 +419,7 @@ export default function ItemsPage() {
       },
     },
     {
-      title: "ขั้นต่ำ",
+      title: t("ขั้นต่ำ"),
       key: "minimum",
       width: 110,
       align: "right",
@@ -431,7 +433,7 @@ export default function ItemsPage() {
       },
     },
     {
-      title: "สถานะสต๊อก",
+      title: t("สถานะสต๊อก"),
       key: "stockLevel",
       width: 190,
       align: "center",
@@ -442,16 +444,16 @@ export default function ItemsPage() {
           return <span className={styles.symbolText}>-</span>;
         }
         if (level === "OUT") {
-          return <Tag className={`${styles.statusTag} ${styles.stockBadgeOut}`}>หมดสต๊อก · ขาด {qty.format(s.shortageQty)}</Tag>;
+          return <Tag className={`${styles.statusTag} ${styles.stockBadgeOut}`}>{t("หมดสต๊อก · ขาด {n}", { n: qty.format(s.shortageQty) })}</Tag>;
         }
         if (level === "LOW") {
-          return <Tag className={`${styles.statusTag} ${styles.stockBadgeLow}`}>ต่ำกว่าขั้นต่ำ · ขาด {qty.format(s.shortageQty)}</Tag>;
+          return <Tag className={`${styles.statusTag} ${styles.stockBadgeLow}`}>{t("ต่ำกว่าขั้นต่ำ · ขาด {n}", { n: qty.format(s.shortageQty) })}</Tag>;
         }
-        return <Tag className={`${styles.statusTag} ${styles.stockBadgeOk}`}>ปกติ</Tag>;
+        return <Tag className={`${styles.statusTag} ${styles.stockBadgeOk}`}>{t("ปกติ")}</Tag>;
       },
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 120,
@@ -460,36 +462,36 @@ export default function ItemsPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     ...(canEdit || canDelete
       ? ([
           {
-            title: "จัดการ",
+            title: t("จัดการ"),
             key: "actions",
             width: 100,
             align: "center" as const,
             render: (_: unknown, record: Item) => (
               <RowActionsMenu
-                ariaLabel={`เมนูจัดการ ${record.itemCode}`}
+                ariaLabel={t("เมนูจัดการ {code}", { code: record.itemCode })}
                 actions={[
                   canEdit && {
                     key: "edit",
                     icon: <EditOutlined />,
-                    label: "แก้ไข",
+                    label: t("แก้ไข"),
                     onClick: () => openEditModal(record),
                   },
                   canAccessScreen("MASTERS_UNIT_CONVERSIONS") && {
                     key: "unit-conversions",
                     icon: <SwapOutlined />,
-                    label: "กฎแปลงหน่วย",
+                    label: t("กฎแปลงหน่วย"),
                     onClick: () =>
                       router.push(
                         `/masters/unit-conversions?itemId=${record.id}`,
@@ -502,7 +504,7 @@ export default function ItemsPage() {
                     record.isActive && {
                       key: "deactivate",
                       icon: <StopOutlined />,
-                      label: "ปิดใช้งาน",
+                      label: t("ปิดใช้งาน"),
                       danger: true,
                       onClick: () =>
                         updateMutation.mutate({
@@ -510,24 +512,24 @@ export default function ItemsPage() {
                           body: { isActive: false },
                         }),
                       confirm: {
-                        title: "ปิดใช้งานสินค้า",
-                        content: `ต้องการปิดการใช้งาน "${record.itemCode}" หรือไม่? ประวัติเอกสารและล็อตของสินค้านี้จะยังอยู่ รหัสสินค้านี้จะสร้างซ้ำไม่ได้`,
-                        okText: "ปิดใช้งาน",
-                        cancelText: "ยกเลิก",
+                        title: t("ปิดใช้งานสินค้า"),
+                        content: t("ต้องการปิดการใช้งาน \"{code}\" หรือไม่? ประวัติเอกสารและล็อตของสินค้านี้จะยังอยู่ รหัสสินค้านี้จะสร้างซ้ำไม่ได้", { code: record.itemCode }),
+                        okText: t("ปิดใช้งาน"),
+                        cancelText: t("ยกเลิก"),
                       },
                     },
                   canDelete &&
                     !record.hasTransactions && {
                       key: "delete",
                       icon: <DeleteOutlined />,
-                      label: "ลบ",
+                      label: t("ลบ"),
                       danger: true,
                       onClick: () => deleteMutation.mutate(record.id),
                       confirm: {
-                        title: "ลบสินค้า",
-                        content: `ต้องการลบ "${record.itemCode}" ออกจากระบบหรือไม่? รหัสสินค้านี้จะใช้ซ้ำได้`,
-                        okText: "ลบ",
-                        cancelText: "ยกเลิก",
+                        title: t("ลบสินค้า"),
+                        content: t("ต้องการลบ \"{code}\" ออกจากระบบหรือไม่? รหัสสินค้านี้จะใช้ซ้ำได้", { code: record.itemCode }),
+                        okText: t("ลบ"),
+                        cancelText: t("ยกเลิก"),
                       },
                     },
                 ]}
@@ -543,8 +545,8 @@ export default function ItemsPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="สินค้า / วัตถุดิบ"
-        subtitle="จัดการข้อมูลสินค้า วัตถุดิบ อะไหล่ และสินค้าสำเร็จรูป"
+        title={t("สินค้า / วัตถุดิบ")}
+        subtitle={t("จัดการข้อมูลสินค้า วัตถุดิบ อะไหล่ และสินค้าสำเร็จรูป")}
         actions={
           <>
 {canAdd ? (
@@ -554,7 +556,7 @@ export default function ItemsPage() {
               icon={<UploadOutlined />}
               onClick={() => setImportOpen(true)}
             >
-              นำเข้า Excel / CSV
+              {t("นำเข้า Excel / CSV")}
             </Button>
             <Button
               type="primary"
@@ -563,7 +565,7 @@ export default function ItemsPage() {
               icon={<PlusOutlined />}
               onClick={openCreateModal}
             >
-              เพิ่มสินค้า
+              {t("เพิ่มสินค้า")}
             </Button>
           </div>
         ) : (
@@ -578,7 +580,7 @@ export default function ItemsPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "สินค้าทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("สินค้าทั้งหมด")}
             </span>
             <strong>{items.length}</strong>
           </div>
@@ -587,7 +589,7 @@ export default function ItemsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeItems}</strong>
           </div>
         </div>
@@ -595,7 +597,7 @@ export default function ItemsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveItems}</strong>
           </div>
         </div>
@@ -606,20 +608,20 @@ export default function ItemsPage() {
           className={styles.stockBanner}
           type="error"
           showIcon
-          title={`มีสินค้า ${lowCount} รายการต่ำกว่าสต๊อกขั้นต่ำ${outCount > 0 ? ` (หมดสต๊อก ${outCount} รายการ)` : ""}`}
-          description="ยอดนับรวมทุกคลังเทียบกับสต๊อกขั้นต่ำที่ตั้งไว้ที่สินค้า — ควรสั่งซื้อหรือผลิตเพิ่ม"
+          title={`${t("มีสินค้า {n} รายการต่ำกว่าสต๊อกขั้นต่ำ", { n: lowCount })}${outCount > 0 ? ` ${t("(หมดสต๊อก {n} รายการ)", { n: outCount })}` : ""}`}
+          description={t("ยอดนับรวมทุกคลังเทียบกับสต๊อกขั้นต่ำที่ตั้งไว้ที่สินค้า — ควรสั่งซื้อหรือผลิตเพิ่ม")}
           action={
             <Space orientation="vertical" size={4}>
               {filters.lowStock ? (
                 <Button size="small" onClick={handleClearFilters}>
-                  แสดงสินค้าทั้งหมด
+                  {t("แสดงสินค้าทั้งหมด")}
                 </Button>
               ) : (
                 <Button size="small" danger onClick={() => router.replace(`${pathname}?lowStock=true`)}>
-                  ดูเฉพาะรายการที่ต่ำ
+                  {t("ดูเฉพาะรายการที่ต่ำ")}
                 </Button>
               )}
-              <Link href="/inventory/stock-balances">ดูยอดคงเหลือสต๊อก</Link>
+              <Link href="/inventory/stock-balances">{t("ดูยอดคงเหลือสต๊อก")}</Link>
             </Space>
           }
         />
@@ -629,13 +631,13 @@ export default function ItemsPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาสินค้า</h3>
-            <p>กรองด้วยรหัส ชื่อ คำอธิบาย หมวดหมู่สินค้า หน่วย และสถานะ</p>
+            <h3>{t("ค้นหาสินค้า")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ คำอธิบาย หมวดหมู่สินค้า หน่วย และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -649,34 +651,34 @@ export default function ItemsPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสสินค้า">
+              <Form.Item name="code" label={t("รหัสสินค้า")}>
                 <Input
                   allowClear
-                  placeholder="เช่น RM-001"
+                  placeholder={t("เช่น RM-001")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อสินค้า">
-                <Input allowClear placeholder="เช่น ยาง" />
+              <Form.Item name="name" label={t("ชื่อสินค้า")}>
+                <Input allowClear placeholder={t("เช่น ยาง")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="description" label="คำอธิบาย">
-                <Input allowClear placeholder="เช่น pyrolysis" />
+              <Form.Item name="description" label={t("คำอธิบาย")}>
+                <Input allowClear placeholder={t("เช่น pyrolysis")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="itemCategoryId" label="หมวดหมู่สินค้า">
+              <Form.Item name="itemCategoryId" label={t("หมวดหมู่สินค้า")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   loading={categoriesQuery.isLoading}
                   options={categories.map((category) => ({
                     value: category.id,
@@ -687,12 +689,12 @@ export default function ItemsPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="unitId" label="หน่วยนับ">
+              <Form.Item name="unitId" label={t("หน่วยนับ")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   loading={unitsQuery.isLoading}
                   options={units.map((unit) => ({
                     value: unit.id,
@@ -703,63 +705,63 @@ export default function ItemsPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isPurchaseItem" label="ใช้จัดซื้อ">
+              <Form.Item name="isPurchaseItem" label={t("ใช้จัดซื้อ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช่" },
-                    { value: false, label: "ไม่" },
+                    { value: true, label: t("ใช่") },
+                    { value: false, label: t("ไม่") },
                   ]}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isStockItem" label="คุมสต๊อก">
+              <Form.Item name="isStockItem" label={t("คุมสต๊อก")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช่" },
-                    { value: false, label: "ไม่" },
+                    { value: true, label: t("ใช่") },
+                    { value: false, label: t("ไม่") },
                   ]}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isFinishedGood" label="สินค้าสำเร็จรูป">
+              <Form.Item name="isFinishedGood" label={t("สินค้าสำเร็จรูป")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช่" },
-                    { value: false, label: "ไม่" },
+                    { value: true, label: t("ใช่") },
+                    { value: false, label: t("ไม่") },
                   ]}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="lowStock" label="สถานะสต๊อก">
+              <Form.Item name="lowStock" label={t("สถานะสต๊อก")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
-                  options={[{ value: true, label: "ต่ำกว่าขั้นต่ำ" }]}
+                  placeholder={t("ทั้งหมด")}
+                  options={[{ value: true, label: t("ต่ำกว่าขั้นต่ำ") }]}
                 />
               </Form.Item>
             </Col>
@@ -773,7 +775,7 @@ export default function ItemsPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -781,7 +783,7 @@ export default function ItemsPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -794,15 +796,15 @@ export default function ItemsPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>ITEM MANAGEMENT</div>
-            <h3>รายการสินค้า</h3>
+            <h3>{t("รายการสินค้า")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลสินค้าทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลสินค้าทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{items.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: items.length })}</div>
         </div>
 
         {itemsQuery.isError ? (
@@ -810,7 +812,7 @@ export default function ItemsPage() {
             <Typography.Text type="danger">
               {itemsQuery.error instanceof Error
                 ? itemsQuery.error.message
-                : "โหลดข้อมูลสินค้าไม่สำเร็จ"}
+                : t("โหลดข้อมูลสินค้าไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -828,14 +830,14 @@ export default function ItemsPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1560 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบสินค้าตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลสินค้า",
+                ? t("ไม่พบสินค้าตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลสินค้า"),
             }}
           />
         )}
@@ -843,7 +845,7 @@ export default function ItemsPage() {
 
       <CsvImportModal
         open={importOpen}
-        title="นำเข้าสินค้าจาก Excel / CSV"
+        title={t("นำเข้าสินค้าจาก Excel / CSV")}
         acceptExtensions={[".csv", ".xlsx"]}
         onDownloadExcelTemplate={async () => {
           const { blob, filename } = await downloadItemImportTemplate(

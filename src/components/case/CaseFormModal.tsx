@@ -17,6 +17,7 @@ import { App } from "antd";
 
 import { downloadTempCaseImage } from "@/lib/api/temp-cases";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import { useTempCaseImagesQuery } from "@/hooks/temp-cases/useTempCaseImagesQuery";
 import type {
   CreateTempCaseRequest,
@@ -69,6 +70,7 @@ export default function CaseFormModal({
   onSubmit,
 }: CaseFormModalProps) {
   const { message } = App.useApp();
+  const t = useT();
   const [form] = Form.useForm<CaseFormValues>();
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingPreviewUrls, setPendingPreviewUrls] = useState<string[]>([]);
@@ -194,11 +196,11 @@ export default function CaseFormModal({
 
   const addPendingFile = (file: File) => {
     if (!isAllowedImageFile(file)) {
-      message.error("รองรับเฉพาะไฟล์รูปภาพ JPG PNG WEBP GIF");
+      message.error(t("รองรับเฉพาะไฟล์รูปภาพ JPG PNG WEBP GIF"));
       return false;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      message.error("ขนาดรูปต้องไม่เกิน 10MB");
+      message.error(t("ขนาดรูปต้องไม่เกิน 10MB"));
       return false;
     }
     setPendingFiles((prev) => {
@@ -275,8 +277,8 @@ export default function CaseFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={680}
       centered
@@ -287,27 +289,27 @@ export default function CaseFormModal({
           <div className={styles.eyebrow}>
             {isCreateMode ? "CREATE CASE" : "EDIT CASE"}
           </div>
-          <h2>{isCreateMode ? "เพิ่มเคส" : "แก้ไขเคส"}</h2>
-          <p>บันทึก issue จากหน้าจอในระบบ (ชั่วคราว — ลบได้เมื่อจบโปรเจกต์)</p>
+          <h2>{isCreateMode ? t("เพิ่มเคส") : t("แก้ไขเคส")}</h2>
+          <p>{t("บันทึก issue จากหน้าจอในระบบ (ชั่วคราว — ลบได้เมื่อจบโปรเจกต์)")}</p>
         </div>
       </div>
 
       <Form form={form} layout="vertical" requiredMark={false}>
         <Form.Item
-          label="หัวข้อ"
+          label={t("หัวข้อ")}
           name="title"
-          rules={[{ required: true, message: "กรุณาระบุหัวข้อ" }]}
+          rules={[{ required: true, message: t("กรุณาระบุหัวข้อ") }]}
         >
-          <Input placeholder="เช่น ปุ่มบันทึกกดแล้วไม่ทำงาน" maxLength={255} />
+          <Input placeholder={t("เช่น ปุ่มบันทึกกดแล้วไม่ทำงาน")} maxLength={255} />
         </Form.Item>
 
         <Form.Item
-          label="หมวด"
+          label={t("หมวด")}
           name="categoryId"
-          rules={[{ required: true, message: "กรุณาเลือกหมวด" }]}
+          rules={[{ required: true, message: t("กรุณาเลือกหมวด") }]}
         >
           <Select
-            placeholder="เลือกหมวด"
+            placeholder={t("เลือกหมวด")}
             options={categories.map((c) => ({
               value: c.id,
               label: c.nameTh,
@@ -316,49 +318,49 @@ export default function CaseFormModal({
         </Form.Item>
 
         <Form.Item
-          label="URL หน้าจอ"
+          label={t("URL หน้าจอ")}
           name="pageUrl"
           rules={[
-            { required: true, message: "กรุณาระบุ URL" },
+            { required: true, message: t("กรุณาระบุ URL") },
             {
               pattern: /^(https?:\/\/|\/)/,
-              message: "ต้องขึ้นต้นด้วย / หรือ http:// หรือ https://",
+              message: t("ต้องขึ้นต้นด้วย / หรือ http:// หรือ https://"),
             },
           ]}
         >
-          <Input placeholder="/purchase-orders/create หรือ https://..." />
+          <Input placeholder={t("/purchase-orders/create หรือ https://...")} />
         </Form.Item>
 
         <Form.Item
-          label="คำอธิบาย"
+          label={t("คำอธิบาย")}
           name="description"
-          rules={[{ required: true, message: "กรุณาระบุคำอธิบาย" }]}
+          rules={[{ required: true, message: t("กรุณาระบุคำอธิบาย") }]}
         >
           <Input.TextArea
             rows={4}
-            placeholder="อธิบายปัญหา / สิ่งที่ต้องการให้แก้"
+            placeholder={t("อธิบายปัญหา / สิ่งที่ต้องการให้แก้")}
           />
         </Form.Item>
 
         <Form.Item
-          label="สถานะ"
+          label={t("สถานะ")}
           name="status"
-          rules={[{ required: true, message: "กรุณาเลือกสถานะ" }]}
+          rules={[{ required: true, message: t("กรุณาเลือกสถานะ") }]}
         >
           <Select
             options={[
-              { value: "OPEN", label: "ยังไม่ทำ" },
-              { value: "DONE", label: "ทำแล้ว" },
+              { value: "OPEN", label: t("ยังไม่ทำ") },
+              { value: "DONE", label: t("ทำแล้ว") },
             ]}
           />
         </Form.Item>
 
-        <Form.Item label="แนบรูป">
+        <Form.Item label={t("แนบรูป")}>
           <Upload {...uploadProps}>
-            <Button>เลือกรูป</Button>
+            <Button>{t("เลือกรูป")}</Button>
           </Upload>
           <div style={{ marginTop: 8, color: "#777", fontSize: 12 }}>
-            รองรับ JPG/PNG/WEBP/GIF ไม่เกิน 10MB ต่อไฟล์ — หรือ Ctrl+V วางภาพจากคลิปบอร์ด
+            {t("รองรับ JPG/PNG/WEBP/GIF ไม่เกิน 10MB ต่อไฟล์ — หรือ Ctrl+V วางภาพจากคลิปบอร์ด")}
           </div>
 
           {pendingFiles.length > 0 ? (
@@ -438,14 +440,14 @@ export default function CaseFormModal({
                             fontSize: 11,
                           }}
                         >
-                          {previewFailed ? "โหลดไม่ได้" : <Spin size="small" />}
+                          {previewFailed ? t("โหลดไม่ได้") : <Spin size="small" />}
                         </div>
                       ),
                     )}
                   </Space>
                 </Image.PreviewGroup>
               ) : (
-                <div style={{ color: "#999", fontSize: 12 }}>ยังไม่มีรูปแนบ</div>
+                <div style={{ color: "#999", fontSize: 12 }}>{t("ยังไม่มีรูปแนบ")}</div>
               )}
             </div>
           ) : null}

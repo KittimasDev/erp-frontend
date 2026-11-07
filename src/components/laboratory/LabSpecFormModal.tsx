@@ -4,6 +4,7 @@ import { Button, Checkbox, Form, Input, Modal, Select } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useT } from "@/lib/i18n/useT";
 import {
   LAB_SAMPLE_TYPE_LABEL,
   LAB_SAMPLE_TYPES,
@@ -42,6 +43,7 @@ export default function LabSpecFormModal({
   onCreate,
   onUpdate,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm<Values>();
   const editing = Boolean(spec);
   const itemsQuery = useItemsQuery({ isActive: true });
@@ -50,9 +52,13 @@ export default function LabSpecFormModal({
     <Modal
       open
       width={760}
-      title={editing ? `แก้ไข Spec — ${spec?.nameTh}` : "เพิ่ม Spec การตรวจ"}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={
+        editing
+          ? t("แก้ไข Spec — {name}", { name: spec?.nameTh ?? "" })
+          : t("เพิ่ม Spec การตรวจ")
+      }
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       onCancel={onCancel}
       onOk={() =>
@@ -104,23 +110,23 @@ export default function LabSpecFormModal({
         <div style={{ display: "flex", gap: 12 }}>
           <Form.Item
             name="sampleType"
-            label="ประเภทตัวอย่าง"
-            rules={[{ required: true, message: "เลือกประเภท" }]}
+            label={t("ประเภทตัวอย่าง")}
+            rules={[{ required: true, message: t("เลือกประเภท") }]}
             style={{ flex: 1 }}
           >
             <Select
               disabled={editing}
               options={LAB_SAMPLE_TYPES.map((value) => ({
                 value,
-                label: LAB_SAMPLE_TYPE_LABEL[value],
+                label: t(LAB_SAMPLE_TYPE_LABEL[value]),
               }))}
             />
           </Form.Item>
           <Form.Item
             name="itemId"
-            label="สินค้าเฉพาะ (ไม่ใส่ = ใช้กับทั้งประเภท)"
+            label={t("สินค้าเฉพาะ (ไม่ใส่ = ใช้กับทั้งประเภท)")}
             style={{ flex: 1 }}
-            extra="สินค้าที่มี Spec เฉพาะจะใช้อันนั้น ไม่ใช้ของทั้งประเภท"
+            extra={t("สินค้าที่มี Spec เฉพาะจะใช้อันนั้น ไม่ใช้ของทั้งประเภท")}
           >
             <Select
               allowClear
@@ -137,24 +143,24 @@ export default function LabSpecFormModal({
         </div>
         <Form.Item
           name="nameTh"
-          label="ชื่อ Spec"
-          rules={[{ required: true, message: "ใส่ชื่อ Spec" }]}
+          label={t("ชื่อ Spec")}
+          rules={[{ required: true, message: t("ใส่ชื่อ Spec") }]}
         >
-          <Input maxLength={255} placeholder="เช่น น้ำมันไพโรไลซิส" />
+          <Input maxLength={255} placeholder={t("เช่น น้ำมันไพโรไลซิส")} />
         </Form.Item>
         {editing ? (
           <Form.Item name="isActive" valuePropName="checked">
-            <Checkbox>เปิดใช้งาน</Checkbox>
+            <Checkbox>{t("เปิดใช้งาน")}</Checkbox>
           </Form.Item>
         ) : null}
 
         <div style={{ fontWeight: 600, marginBottom: 6 }}>
-          พารามิเตอร์และเกณฑ์
+          {t("พารามิเตอร์และเกณฑ์")}
         </div>
         <div style={{ color: "#8a94a6", fontSize: 12, marginBottom: 8 }}>
-          เกณฑ์เว้นว่างได้ (ไม่จำกัด) —
-          ผลที่ไม่มีเกณฑ์จะไม่ถูกตัดสินผ่าน/ไม่ผ่าน · ติ๊ก &quot;จำเป็น&quot; =
-          เตือนตอนคีย์ผลถ้ายังไม่มีพารามิเตอร์นี้
+          {t(
+            "เกณฑ์เว้นว่างได้ (ไม่จำกัด) — ผลที่ไม่มีเกณฑ์จะไม่ถูกตัดสินผ่าน/ไม่ผ่าน · ติ๊ก \"จำเป็น\" = เตือนตอนคีย์ผลถ้ายังไม่มีพารามิเตอร์นี้",
+          )}
         </div>
         <Form.List name="parameters">
           {(fields, { add, remove }) => (
@@ -166,16 +172,16 @@ export default function LabSpecFormModal({
                 >
                   <Form.Item
                     name={[field.name, "parameterName"]}
-                    rules={[{ required: true, message: "ชื่อ" }]}
+                    rules={[{ required: true, message: t("ชื่อ") }]}
                     style={{ flex: 3 }}
                   >
                     <Input
-                      placeholder="พารามิเตอร์ เช่น Viscosity"
+                      placeholder={t("พารามิเตอร์ เช่น Viscosity")}
                       maxLength={255}
                     />
                   </Form.Item>
                   <Form.Item name={[field.name, "unit"]} style={{ flex: 1 }}>
-                    <Input placeholder="หน่วย" maxLength={50} />
+                    <Input placeholder={t("หน่วย")} maxLength={50} />
                   </Form.Item>
                   <Form.Item name={[field.name, "specMin"]} style={{ flex: 1 }}>
                     <Input placeholder="Min" maxLength={100} />
@@ -188,20 +194,20 @@ export default function LabSpecFormModal({
                     valuePropName="checked"
                     style={{ flex: 1 }}
                   >
-                    <Checkbox>จำเป็น</Checkbox>
+                    <Checkbox>{t("จำเป็น")}</Checkbox>
                   </Form.Item>
                   <Button
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
-                    aria-label="ลบพารามิเตอร์"
+                    aria-label={t("ลบพารามิเตอร์")}
                     disabled={fields.length <= 1}
                     onClick={() => remove(field.name)}
                   />
                 </div>
               ))}
               <Button icon={<PlusOutlined />} onClick={() => add({})}>
-                เพิ่มพารามิเตอร์
+                {t("เพิ่มพารามิเตอร์")}
               </Button>
             </>
           )}

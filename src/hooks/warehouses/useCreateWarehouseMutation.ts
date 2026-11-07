@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
@@ -12,6 +13,7 @@ import { warehousesQueryKey } from "./useWarehousesQuery";
 export function useCreateWarehouseMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "warehouses", "create"],
@@ -19,13 +21,13 @@ export function useCreateWarehouseMutation() {
       createWarehouse(getAccessToken(), payload),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: warehousesQueryKey });
-      message.success(response.message || "สร้างคลังสินค้าสำเร็จแล้ว");
+      message.success(response.message || t("สร้างคลังสินค้าสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างคลังสินค้าไม่สำเร็จ",
+          : t("สร้างคลังสินค้าไม่สำเร็จ"),
       );
     },
   });

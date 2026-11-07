@@ -1,4 +1,6 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 import {
   Alert,
@@ -87,6 +89,8 @@ export default function RecordingConfigEditor({
   onChange,
   bomLines,
 }: Props) {
+  const t = useT();
+  const language = useLanguage();
   const fields = [...(value.fields ?? [])].sort(
     (a, b) => a.sortOrder - b.sortOrder,
   );
@@ -99,8 +103,8 @@ export default function RecordingConfigEditor({
   const capacityText = (id: string) => {
     const e = equipmentById.get(id);
     return e?.capacity != null
-      ? `${e.capacity.toLocaleString("th-TH")} ${e.capacityUnitLabel ?? ""}/ชม.`
-      : "ยังไม่ตั้ง Capacity";
+      ? `${e.capacity.toLocaleString(language === "en" ? "en-GB" : "th-TH")} ${e.capacityUnitLabel ?? ""}${t("/ชม.")}`
+      : t("ยังไม่ตั้ง Capacity");
   };
 
   // ต้องคง equipmentIds ไว้ทุกครั้งที่แก้ฟิลด์ — ไม่งั้นเครื่องที่เลือกไว้หาย
@@ -175,19 +179,19 @@ export default function RecordingConfigEditor({
       render: (_v, _r, i) => i + 1,
     },
     {
-      title: "รหัส / ชื่อ",
+      title: t("รหัส / ชื่อ"),
       width: 220,
       render: (_v, row) => (
         <Space orientation="vertical" size={4} style={{ width: "100%" }}>
           <Input
             size="small"
-            placeholder="รหัส"
+            placeholder={t("รหัส")}
             value={row.code}
             onChange={(e) => patch(row.id, { code: e.target.value })}
           />
           <Input
             size="small"
-            placeholder="ชื่อรายการ"
+            placeholder={t("ชื่อรายการ")}
             value={row.label}
             onChange={(e) => patch(row.id, { label: e.target.value })}
           />
@@ -195,7 +199,7 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "หน่วย",
+      title: t("หน่วย"),
       width: 90,
       render: (_v, row) => (
         <Input
@@ -206,7 +210,7 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "บังคับ",
+      title: t("บังคับ"),
       width: 72,
       align: "center",
       render: (_v, row) => (
@@ -218,26 +222,26 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "วิธีคำนวณ",
+      title: t("วิธีคำนวณ"),
       width: 180,
       render: (_v, row) => (
         <Select
           size="small"
           style={{ width: "100%" }}
-          options={CALC_OPTIONS}
+          options={CALC_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
           value={row.calcType}
           onChange={(calcType) => patch(row.id, { calcType })}
         />
       ),
     },
     {
-      title: "ผลลัพธ์",
+      title: t("ผลลัพธ์"),
       width: 160,
       render: (_v, row) => (
         <Select
           size="small"
           style={{ width: "100%" }}
-          options={ROLE_OPTIONS}
+          options={ROLE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
           value={row.resultRole}
           onChange={(resultRole) => {
             const clearLink =
@@ -253,17 +257,17 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "ใช้คำนวณ",
+      title: t("ใช้คำนวณ"),
       width: 160,
       render: (_v, row) => (
         <Select
           size="small"
           allowClear
           style={{ width: "100%" }}
-          placeholder="ไม่ใช้"
+          placeholder={t("ไม่ใช้")}
           options={[
-            { value: "INPUT_TIRE", label: "ยางป้อน" },
-            { value: "OPERATING_HOURS", label: "ชั่วโมงเดินเครื่อง" },
+            { value: "INPUT_TIRE", label: t("ยางป้อน") },
+            { value: "OPERATING_HOURS", label: t("ชั่วโมงเดินเครื่อง") },
           ]}
           value={row.dashboardMetric}
           onChange={(metric) => {
@@ -284,7 +288,7 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "ลิงก์ BOM",
+      title: t("ลิงก์ BOM"),
       width: 200,
       render: (_v, row) => {
         if (row.resultRole !== "INPUT" && row.resultRole !== "OUTPUT") {
@@ -298,7 +302,7 @@ export default function RecordingConfigEditor({
             size="small"
             allowClear
             style={{ width: "100%" }}
-            placeholder="เลือกสินค้า"
+            placeholder={t("เลือกสินค้า")}
             options={options}
             value={row.linkedItemId ?? undefined}
             onChange={(itemId) => {
@@ -340,7 +344,7 @@ export default function RecordingConfigEditor({
       },
     },
     {
-      title: "จุดตัด Stock",
+      title: t("จุดตัด Stock"),
       width: 170,
       render: (_v, row) => {
         if (row.resultRole !== "INPUT" || !row.linkedItemId) {
@@ -351,8 +355,8 @@ export default function RecordingConfigEditor({
             size="small"
             style={{ width: "100%" }}
             options={[
-              { value: "deduct", label: "ตัด Stock" },
-              { value: "record", label: "บันทึกข้อมูลอย่างเดียว" },
+              { value: "deduct", label: t("ตัด Stock") },
+              { value: "record", label: t("บันทึกข้อมูลอย่างเดียว") },
             ]}
             value={row.stockDeduct === false ? "record" : "deduct"}
             onChange={(v) => {
@@ -376,7 +380,7 @@ export default function RecordingConfigEditor({
       },
     },
     {
-      title: "เครื่องจักร",
+      title: t("เครื่องจักร"),
       width: 200,
       render: (_v, row) => (
         <Select
@@ -385,7 +389,7 @@ export default function RecordingConfigEditor({
           showSearch
           optionFilterProp="label"
           style={{ width: "100%" }}
-          placeholder={equipmentIds.length ? "เลือกเครื่อง" : "เลือกเครื่องของสูตรก่อน"}
+          placeholder={equipmentIds.length ? t("เลือกเครื่อง") : t("เลือกเครื่องของสูตรก่อน")}
           disabled={equipmentIds.length === 0}
           options={equipmentIds.map((id) => ({
             value: id,
@@ -405,14 +409,14 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "แหล่งข้อมูล",
+      title: t("แหล่งข้อมูล"),
       width: 200,
       render: (_v, row) => (
         <Space orientation="vertical" size={4} style={{ width: "100%" }}>
           <Select
             size="small"
             style={{ width: "100%" }}
-            options={DATA_SOURCE_OPTIONS}
+            options={DATA_SOURCE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
             value={row.dataSource ?? "MANUAL"}
             onChange={(dataSource) =>
               patch(row.id, {
@@ -433,7 +437,7 @@ export default function RecordingConfigEditor({
       ),
     },
     {
-      title: "เทียบกำลังผลิต",
+      title: t("เทียบกำลังผลิต"),
       width: 110,
       align: "center",
       render: (_v, row) => (
@@ -490,17 +494,16 @@ export default function RecordingConfigEditor({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        กำหนดรายการที่ต้องบันทึกเมื่อใช้สูตรนี้ในใบสั่งผลิต — ไม่ตัด/รับ Stock
-        โดยตรงจากฟอร์มนี้
+        {t("กำหนดรายการที่ต้องบันทึกเมื่อใช้สูตรนี้ในใบสั่งผลิต — ไม่ตัด/รับ Stock โดยตรงจากฟอร์มนี้")}
       </Typography.Paragraph>
 
-      <Card size="small" title="เครื่องจักรที่ใช้ในสูตรนี้">
+      <Card size="small" title={t("เครื่องจักรที่ใช้ในสูตรนี้")}>
         <Select
           mode="multiple"
           showSearch
           optionFilterProp="label"
           style={{ width: "100%" }}
-          placeholder="เลือกเครื่องจักร (เลือกได้หลายเครื่อง)"
+          placeholder={t("เลือกเครื่องจักร (เลือกได้หลายเครื่อง)")}
           loading={equipmentQuery.isLoading}
           value={equipmentIds}
           onChange={setEquipmentIds}
@@ -513,20 +516,20 @@ export default function RecordingConfigEditor({
           <Space size={[8, 4]} wrap style={{ marginTop: 8 }}>
             {equipmentIds.map((id) => (
               <Tag key={id}>
-                {equipmentById.get(id)?.equipmentCode ?? id} · กำลังผลิต {capacityText(id)}
+                {equipmentById.get(id)?.equipmentCode ?? id} · {t("กำลังผลิต")} {capacityText(id)}
               </Tag>
             ))}
           </Space>
         ) : (
           <Typography.Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-            ไม่เลือกเครื่อง = สูตรนี้ไม่ผูกเครื่องจักร (ใบสั่งผลิตทำงานแบบเดิม)
+            {t("ไม่เลือกเครื่อง = สูตรนี้ไม่ผูกเครื่องจักร (ใบสั่งผลิตทำงานแบบเดิม)")}
           </Typography.Text>
         )}
         <Alert
           type="info"
           showIcon
           style={{ marginTop: 8 }}
-          title="ผูกเครื่องกับแต่ละฟิลด์ที่คอลัมน์ ‘เครื่องจักร’ · ติ๊ก ‘เทียบกำลังผลิต’ ที่ฟิลด์ผลจริงของเครื่อง (หน่วยต้องตรงกับหน่วย Capacity — ผูก BOM จะเทียบหน่วยได้แม่นที่สุด) · แหล่งข้อมูล AUTO ยังไม่ทำงานจริง"
+          title={t("ผูกเครื่องกับแต่ละฟิลด์ที่คอลัมน์ ‘เครื่องจักร’ · ติ๊ก ‘เทียบกำลังผลิต’ ที่ฟิลด์ผลจริงของเครื่อง (หน่วยต้องตรงกับหน่วย Capacity — ผูก BOM จะเทียบหน่วยได้แม่นที่สุด) · แหล่งข้อมูล AUTO ยังไม่ทำงานจริง")}
         />
       </Card>
 
@@ -536,7 +539,7 @@ export default function RecordingConfigEditor({
         pagination={false}
         dataSource={fields}
         columns={columns}
-        locale={{ emptyText: "ยังไม่มีรายการ — กดเพิ่มรายการด้านล่าง" }}
+        locale={{ emptyText: t("ยังไม่มีรายการ — กดเพิ่มรายการด้านล่าง") }}
         scroll={{ x: 1760 }}
       />
 
@@ -545,21 +548,20 @@ export default function RecordingConfigEditor({
         icon={<PlusOutlined />}
         onClick={() => setFields([...fields, emptyField(fields.length)])}
       >
-        เพิ่มรายการบันทึก
+        {t("เพิ่มรายการบันทึก")}
       </Button>
 
-      <Card size="small" title="การลิงก์วัตถุดิบ (BOM) กับช่องบันทึก Input">
+      <Card size="small" title={t("การลิงก์วัตถุดิบ (BOM) กับช่องบันทึก Input")}>
         <Space orientation="vertical" size={8} style={{ width: "100%" }}>
           <Typography.Text type="secondary">
-            วัตถุดิบทุกตัวในสูตรต้องมีช่อง Input ที่ลิงก์ไว้ (เพื่อให้ตัดสต๊อกครบ) หรือยกเว้นพร้อมเหตุผล ·
-            ถ้ายังไม่ครบ บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่เปิดใช้งานไม่ได้
+            {t("วัตถุดิบทุกตัวในสูตรต้องมีช่อง Input ที่ลิงก์ไว้ (เพื่อให้ตัดสต๊อกครบ) หรือยกเว้นพร้อมเหตุผล · ถ้ายังไม่ครบ บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่เปิดใช้งานไม่ได้")}
           </Typography.Text>
           {unlinkedNames.length > 0 ? (
             <Alert
               type="warning"
               showIcon
-              message={`ยังไม่ได้ลิงก์ ${unlinkedNames.length} รายการ: ${unlinkedNames.join(", ")}`}
-              description="บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่ต้องลิงก์หรือยกเว้นพร้อมเหตุผลให้ครบก่อนเปิดใช้งาน"
+              message={t("ยังไม่ได้ลิงก์ {n} รายการ: {names}", { n: unlinkedNames.length, names: unlinkedNames.join(", ") })}
+              description={t("บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่ต้องลิงก์หรือยกเว้นพร้อมเหตุผลให้ครบก่อนเปิดใช้งาน")}
             />
           ) : null}
           {bomLines
@@ -572,19 +574,19 @@ export default function RecordingConfigEditor({
                 <Space key={l.itemId} wrap size={8}>
                   <Typography.Text>{name}</Typography.Text>
                   {isLinked ? (
-                    <Tag color="green">ลิงก์แล้ว</Tag>
+                    <Tag color="green">{t("ลิงก์แล้ว")}</Tag>
                   ) : ex ? (
-                    <Tag color="gold">ยกเว้น</Tag>
+                    <Tag color="gold">{t("ยกเว้น")}</Tag>
                   ) : (
-                    <Tag color="red">ยังไม่ได้ลิงก์</Tag>
+                    <Tag color="red">{t("ยังไม่ได้ลิงก์")}</Tag>
                   )}
                   {!isLinked ? (
                     <>
                       <Switch
                         size="small"
                         checked={Boolean(ex)}
-                        checkedChildren="ไม่ต้องบันทึกรายกะ"
-                        unCheckedChildren="ไม่ต้องบันทึกรายกะ"
+                        checkedChildren={t("ไม่ต้องบันทึกรายกะ")}
+                        unCheckedChildren={t("ไม่ต้องบันทึกรายกะ")}
                         onChange={(on) =>
                           setExemptions(
                             on
@@ -597,7 +599,7 @@ export default function RecordingConfigEditor({
                         <Input
                           size="small"
                           style={{ width: 280 }}
-                          placeholder="เหตุผล (จำเป็น)"
+                          placeholder={t("เหตุผล (จำเป็น)")}
                           value={ex.reason}
                           status={ex.reason.trim() ? undefined : "error"}
                           onChange={(e) =>
@@ -619,28 +621,28 @@ export default function RecordingConfigEditor({
         </Space>
       </Card>
 
-      <Card size="small" title="ตัวอย่างฟอร์มบันทึกผล">
+      <Card size="small" title={t("ตัวอย่างฟอร์มบันทึกผล")}>
         {fields.length === 0 ? (
-          <Typography.Text type="secondary">ยังไม่มีฟิลด์</Typography.Text>
+          <Typography.Text type="secondary">{t("ยังไม่มีฟิลด์")}</Typography.Text>
         ) : (
           <Form layout="vertical" disabled>
             {fields.map((field) => (
               <div key={field.id} style={{ marginBottom: 12 }}>
                 <Space size={8} wrap>
                   <Typography.Text strong>
-                    {field.label || field.code || "(ไม่มีชื่อ)"}
+                    {field.label || field.code || t("(ไม่มีชื่อ)")}
                     {field.required ? " *" : ""}
                   </Typography.Text>
-                  <Tag>{RECORDING_CALC_TYPE_LABEL[field.calcType]}</Tag>
+                  <Tag>{t(RECORDING_CALC_TYPE_LABEL[field.calcType])}</Tag>
                   <Tag color="blue">
-                    {RECORDING_RESULT_ROLE_LABEL[field.resultRole]}
+                    {t(RECORDING_RESULT_ROLE_LABEL[field.resultRole])}
                   </Tag>
                   {field.unitLabel ? <Tag>{field.unitLabel}</Tag> : null}
                   {field.equipmentId ? (
-                    <Tag color="geekblue">{equipmentById.get(field.equipmentId)?.equipmentCode ?? "เครื่อง"}</Tag>
+                    <Tag color="geekblue">{equipmentById.get(field.equipmentId)?.equipmentCode ?? t("เครื่อง")}</Tag>
                   ) : null}
                   {field.dataSource === "AUTO" ? <Tag color="purple">AUTO</Tag> : null}
-                  {field.compareToCapacity ? <Tag color="green">เทียบกำลังผลิต</Tag> : null}
+                  {field.compareToCapacity ? <Tag color="green">{t("เทียบกำลังผลิต")}</Tag> : null}
                 </Space>
                 <PreviewInputs field={field} />
               </div>
@@ -653,14 +655,15 @@ export default function RecordingConfigEditor({
 }
 
 function PreviewInputs({ field }: { field: RecordingFieldDef }) {
+  const t = useT();
   switch (field.calcType) {
     case "METER_DELTA":
       return (
         <Space>
-          <Form.Item label="ต้นกะ" style={{ marginBottom: 0 }}>
+          <Form.Item label={t("ต้นกะ")} style={{ marginBottom: 0 }}>
             <InputNumber disabled style={{ width: 120 }} />
           </Form.Item>
-          <Form.Item label="ปลายกะ" style={{ marginBottom: 0 }}>
+          <Form.Item label={t("ปลายกะ")} style={{ marginBottom: 0 }}>
             <InputNumber disabled style={{ width: 120 }} />
           </Form.Item>
         </Space>
@@ -668,10 +671,10 @@ function PreviewInputs({ field }: { field: RecordingFieldDef }) {
     case "HOURS_TIMES_RATE":
       return (
         <Space>
-          <Form.Item label="ชั่วโมง" style={{ marginBottom: 0 }}>
+          <Form.Item label={t("ชั่วโมง")} style={{ marginBottom: 0 }}>
             <InputNumber disabled style={{ width: 100 }} />
           </Form.Item>
-          <Form.Item label="อัตรา" style={{ marginBottom: 0 }}>
+          <Form.Item label={t("อัตรา")} style={{ marginBottom: 0 }}>
             <InputNumber disabled style={{ width: 100 }} />
           </Form.Item>
         </Space>
@@ -679,17 +682,17 @@ function PreviewInputs({ field }: { field: RecordingFieldDef }) {
     case "QTY_TIMES_UNIT_WEIGHT":
       return (
         <Space>
-          <Form.Item label="จำนวน" style={{ marginBottom: 0 }}>
+          <Form.Item label={t("จำนวน")} style={{ marginBottom: 0 }}>
             <InputNumber disabled style={{ width: 100 }} />
           </Form.Item>
-          <Form.Item label="น้ำหนัก/หน่วย" style={{ marginBottom: 0 }}>
+          <Form.Item label={t("น้ำหนัก/หน่วย")} style={{ marginBottom: 0 }}>
             <InputNumber disabled style={{ width: 120 }} />
           </Form.Item>
         </Space>
       );
     case "INFORMATION":
       return field.infoValueKind === "TEXT" || field.infoValueKind === "QC" ? (
-        <Input disabled placeholder="ข้อความ" />
+        <Input disabled placeholder={t("ข้อความ")} />
       ) : (
         <InputNumber disabled style={{ width: 160 }} />
       );

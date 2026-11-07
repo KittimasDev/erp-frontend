@@ -1,5 +1,10 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatDate } from "@/lib/i18n/format";
+import type { Language } from "@/lib/i18n/translate";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,7 +24,7 @@ import {
 import { useCustomerQuery } from "@/hooks/customers/useCustomerQuery";
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { SALES_ORDER_STATUS_LABEL } from "@/types/sales-orders";
+import { SALES_ORDER_STATUS_LABEL, tSoStatus } from "@/types/sales-orders";
 import type { SalesOrder, SalesOrderStatus } from "@/types/sales-orders";
 import styles from "@/components/masters/shared/master-page.module.css";
 import detailStyles from "./customer-detail.module.css";
@@ -50,23 +55,12 @@ function statusColor(status: string) {
   }
 }
 
-function formatLongDate(value?: string) {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleDateString("th-TH", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatMoney(value?: string) {
+function formatMoney(value: string | undefined, lang: Language) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount)) {
     return "-";
   }
-  return amount.toLocaleString("th-TH", {
+  return amount.toLocaleString(lang === "en" ? "en-GB" : "th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -108,6 +102,8 @@ function InfoCard({
 }
 
 export default function CustomerDetailPage({ id }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const query = useCustomerQuery(id);
   const activateMutation = useActivateCustomerMutation();
@@ -125,14 +121,14 @@ export default function CustomerDetailPage({ id }: Props) {
 
   const historyColumns: ColumnsType<SalesOrder> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ใบสั่งซื้อ",
+      title: t("เลขที่ใบสั่งซื้อ"),
       dataIndex: "soNo",
       key: "soNo",
       width: 150,
@@ -146,18 +142,18 @@ export default function CustomerDetailPage({ id }: Props) {
       ),
     },
     {
-      title: "วันที่ทำรายการ",
+      title: t("วันที่ทำรายการ"),
       dataIndex: "soDate",
       key: "soDate",
       width: 150,
       render: (value?: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleDateString("th-TH") : "-"}
+          {value ? formatDate(value, lang) : "-"}
         </span>
       ),
     },
     {
-      title: "รายการสินค้า/บริการ",
+      title: t("รายการสินค้า/บริการ"),
       key: "items",
       render: (_value, record) => {
         const items = record.items ?? [];
@@ -179,29 +175,29 @@ export default function CustomerDetailPage({ id }: Props) {
       },
     },
     {
-      title: "จำนวนรายการ",
+      title: t("จำนวนรายการ"),
       key: "itemCount",
       width: 130,
       align: "right",
       render: (_value, record) => (record.items?.length ?? 0).toLocaleString("th-TH"),
     },
     {
-      title: "จำนวนเงิน",
+      title: t("จำนวนเงิน"),
       dataIndex: "totalAmount",
       key: "totalAmount",
       width: 140,
       align: "right",
-      render: (value?: string) => formatMoney(value),
+      render: (value?: string) => formatMoney(value, lang),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       width: 160,
       align: "center",
       render: (value: string) => (
         <Tag color={statusColor(value)}>
-          {SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value}
+          {tSoStatus(SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value, lang)}
         </Tag>
       ),
     },
@@ -214,7 +210,7 @@ export default function CustomerDetailPage({ id }: Props) {
           className={styles.tableCard}
           style={{ textAlign: "center", padding: 48 }}
         >
-          <Spin /> กำลังโหลดข้อมูลลูกค้า...
+          <Spin /> {t("กำลังโหลดข้อมูลลูกค้า...")}
         </div>
       </section>
     );
@@ -227,9 +223,9 @@ export default function CustomerDetailPage({ id }: Props) {
           className={styles.tableCard}
           style={{ textAlign: "center", padding: 48 }}
         >
-          ไม่พบข้อมูลลูกค้า
+          {t("ไม่พบข้อมูลลูกค้า")}
           <div style={{ marginTop: 12 }}>
-            <Link href="/customers">กลับรายการลูกค้า</Link>
+            <Link href="/customers">{t("กลับรายการลูกค้า")}</Link>
           </div>
         </div>
       </section>
@@ -238,7 +234,7 @@ export default function CustomerDetailPage({ id }: Props) {
 
   const busy = activateMutation.isPending || deactivateMutation.isPending;
   const customerTypeLabel = data.customerType
-    ? (CUSTOMER_TYPE_LABEL[data.customerType] ?? data.customerType)
+    ? (t(CUSTOMER_TYPE_LABEL[data.customerType] ?? data.customerType))
     : "-";
   const salesOrders = salesOrdersQuery.data?.data ?? [];
 
@@ -248,8 +244,10 @@ export default function CustomerDetailPage({ id }: Props) {
         eyebrow="MASTER DATA"
         icon={<TeamOutlined />}
         title={data.nameTh}
-        subtitle={<>ประเภทลูกค้า: {customerTypeLabel} • ลงทะเบียนเมื่อวันที่{" "}
-            {formatLongDate(data.createdAt)}</>}
+        subtitle={t("ประเภทลูกค้า: {type} • ลงทะเบียนเมื่อวันที่ {date}", {
+          type: customerTypeLabel,
+          date: formatDate(data.createdAt, lang),
+        })}
         back={
           <Button
           type="text"
@@ -257,19 +255,19 @@ export default function CustomerDetailPage({ id }: Props) {
           className={detailStyles.backLink}
           onClick={() => router.push("/customers")}
         >
-          ย้อนกลับ
+          {t("ย้อนกลับ")}
         </Button>
         }
         meta={
           <>{data.isActive ? (
               <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
                 <span className={styles.statusDot} />
-                ใช้งาน
+                {t("ใช้งาน")}
               </Tag>
             ) : (
               <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
                 <span className={styles.statusDot} />
-                ปิดใช้งาน
+                {t("ปิดใช้งาน")}
               </Tag>
             )}</>
         }
@@ -278,10 +276,10 @@ export default function CustomerDetailPage({ id }: Props) {
           <Space className={detailStyles.heroActions}>
             {data.isActive ? (
               <Popconfirm
-                title="ปิดใช้งานลูกค้า"
-                description={`ต้องการปิดใช้งาน "${data.customerCode}" หรือไม่?`}
-                okText="ปิดใช้งาน"
-                cancelText="ยกเลิก"
+                title={t("ปิดใช้งานลูกค้า")}
+                description={t('ต้องการปิดใช้งาน "{code}" หรือไม่?', { code: data.customerCode })}
+                okText={t("ปิดใช้งาน")}
+                cancelText={t("ยกเลิก")}
                 okButtonProps={{ danger: true }}
                 onConfirm={() => deactivateMutation.mutate(id)}
               >
@@ -290,7 +288,7 @@ export default function CustomerDetailPage({ id }: Props) {
                   icon={<StopOutlined />}
                   loading={busy}
                 >
-                  ปิดการใช้งาน
+                  {t("ปิดการใช้งาน")}
                 </Button>
               </Popconfirm>
             ) : (
@@ -299,7 +297,7 @@ export default function CustomerDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() => activateMutation.mutate(id)}
               >
-                เปิดใช้งาน
+                {t("เปิดใช้งาน")}
               </Button>
             )}
 
@@ -308,7 +306,7 @@ export default function CustomerDetailPage({ id }: Props) {
               className={styles.editButton}
               onClick={() => router.push(`/customers/${id}/edit`)}
             >
-              แก้ไขข้อมูล
+              {t("แก้ไขข้อมูล")}
             </Button>
           </Space>
         ) : null}</>
@@ -318,45 +316,45 @@ export default function CustomerDetailPage({ id }: Props) {
       <div className={detailStyles.infoGrid}>
         <InfoCard
           eyebrow="GENERAL INFO"
-          title="ข้อมูลทั่วไปและบัญชี"
+          title={t("ข้อมูลทั่วไปและบัญชี")}
           rows={[
             {
-              label: "รหัสลูกค้า",
+              label: t("รหัสลูกค้า"),
               value: data.customerCode,
             },
             {
-              label: "ประเภทลูกค้า",
+              label: t("ประเภทลูกค้า"),
               value: customerTypeLabel,
             },
             {
-              label: "เลขผู้เสียภาษี",
+              label: t("เลขผู้เสียภาษี"),
               value: data.taxId || "-",
             },
             {
-              label: "ระยะเวลาการชำระเงิน",
-              value: `${data.defaultCreditDays} วัน (Credit Term)`,
+              label: t("ระยะเวลาการชำระเงิน"),
+              value: t("{n} วัน (Credit Term)", { n: data.defaultCreditDays }),
             },
           ]}
         />
 
         <InfoCard
           eyebrow="CONTACT DETAIL"
-          title="ข้อมูลผู้ติดต่อและการสื่อสาร"
+          title={t("ข้อมูลผู้ติดต่อและการสื่อสาร")}
           rows={[
             {
-              label: "ชื่อผู้ติดต่อหลัก",
+              label: t("ชื่อผู้ติดต่อหลัก"),
               value: data.contactName || "-",
             },
             {
-              label: "เบอร์โทรศัพท์",
+              label: t("เบอร์โทรศัพท์"),
               value: data.contactPhone || "-",
             },
             {
-              label: "อีเมลติดต่อ",
+              label: t("อีเมลติดต่อ"),
               value: data.email || "-",
             },
             {
-              label: "ที่อยู่จัดส่งเอกสาร",
+              label: t("ที่อยู่จัดส่งเอกสาร"),
               value: data.address || "-",
             },
           ]}
@@ -367,18 +365,18 @@ export default function CustomerDetailPage({ id }: Props) {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>TRANSACTION HISTORY</div>
-            <h3>ประวัติการซื้อขาย</h3>
-            <p>ประวัติการซื้อขาย และสถานะการดำเนินการของลูกค้า</p>
+            <h3>{t("ประวัติการซื้อขาย")}</h3>
+            <p>{t("ประวัติการซื้อขาย และสถานะการดำเนินการของลูกค้า")}</p>
 
             {/* สิทธิ์ดูใบสั่งขายของคนอื่นไม่มี → backend คืนเฉพาะรายการที่ตัวเองสร้าง */}
             {canViewAllSalesOrders ? null : (
               <div className={detailStyles.historyNote}>
-                แสดงเฉพาะใบสั่งขายที่คุณเป็นผู้สร้าง
+                {t("แสดงเฉพาะใบสั่งขายที่คุณเป็นผู้สร้าง")}
               </div>
             )}
           </div>
 
-          <div className={styles.tableCount}>{salesOrders.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: salesOrders.length })}</div>
         </div>
 
         {salesOrdersQuery.isError ? (
@@ -386,7 +384,7 @@ export default function CustomerDetailPage({ id }: Props) {
             <Typography.Text type="danger">
               {salesOrdersQuery.error instanceof Error
                 ? salesOrdersQuery.error.message
-                : "โหลดประวัติการซื้อขายไม่สำเร็จ"}
+                : t("โหลดประวัติการซื้อขายไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -399,10 +397,10 @@ export default function CustomerDetailPage({ id }: Props) {
             pagination={{
               pageSize: 5,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {total} รายการ", { total }),
             }}
             scroll={{ x: 900 }}
-            locale={{ emptyText: "ยังไม่มีประวัติการซื้อขาย" }}
+            locale={{ emptyText: t("ยังไม่มีประวัติการซื้อขาย") }}
           />
         )}
       </div>

@@ -17,6 +17,8 @@ import PositionsPage from "@/components/masters/positions/PositionsPage";
 import SectionsPage from "@/components/masters/sections/SectionsPage";
 import PermissionMatrixPage from "@/components/permissions/PermissionMatrixPage";
 import { isAdministrator } from "@/lib/auth/session";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 import NotificationSettingsPage from "./NotificationSettingsPage";
@@ -48,6 +50,8 @@ function resolveTab(raw: string | null): ManagementTab {
 }
 
 export default function UserManagementPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -115,17 +119,16 @@ export default function UserManagementPage() {
         <PageHeader
           eyebrow="SECURITY · ORGANIZATION"
           icon={<TeamOutlined />}
-          title="บุคคล / ผู้ใช้งาน · แผนก · แผนกย่อย · ตำแหน่ง · บทบาท"
-          subtitle="บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน · แผนกย่อย = หน่วยย่อยใต้แผนก · ตำแหน่ง = ตำแหน่งงาน · บทบาท = สิทธิ์ใช้งานระบบ"
+          title={t("บุคคล / ผู้ใช้งาน · แผนก · แผนกย่อย · ตำแหน่ง · บทบาท")}
+          subtitle={t("บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน · แผนกย่อย = หน่วยย่อยใต้แผนก · ตำแหน่ง = ตำแหน่งงาน · บทบาท = สิทธิ์ใช้งานระบบ")}
         />
 
         <div className={styles.hint}>
-          ลำดับที่แนะนำ: สร้าง<strong> แผนก </strong>(ถ้าต้องการ) → สร้าง
-          <strong> บทบาท </strong>และกด <strong>ตั้งสิทธิ์</strong> → จากนั้น
-          <strong> บุคคล/ผู้ใช้งาน </strong> (กรอก HR + login ในฟอร์มเดียว)
+          {t("ลำดับที่แนะนำ: สร้าง")}<strong> {lang === "en" ? "Department" : "แผนก"} </strong>{t("(ถ้าต้องการ) → สร้าง")}
+          <strong> {t("บทบาท")} </strong>{t("และกด")} <strong>{t("ตั้งสิทธิ์")}</strong> {t("→ จากนั้น")}
+          <strong> {t("บุคคล/ผู้ใช้งาน")} </strong> {t("(กรอก HR + login ในฟอร์มเดียว)")}
           <br />
-          ปิด &quot;เปิด login ERP&quot; ได้สำหรับพนักงานที่ไม่ใช้ระบบ — ยังใช้
-          ข้อมูลคนเดียวกันกับเวลางาน/OT/ลา
+          {t("ปิด \"เปิด login ERP\" ได้สำหรับพนักงานที่ไม่ใช้ระบบ — ยังใช้ข้อมูลคนเดียวกันกับเวลางาน/OT/ลา")}
         </div>
 
         <Tabs
@@ -139,7 +142,7 @@ export default function UserManagementPage() {
               label: (
                 <span className={styles.tabLabel}>
                   <ApartmentOutlined />
-                  แผนก
+                  {lang === "en" ? "Departments" : "แผนก"}
                 </span>
               ),
               children: <DepartmentsPage embedded />,
@@ -149,7 +152,7 @@ export default function UserManagementPage() {
               label: (
                 <span className={styles.tabLabel}>
                   <ApartmentOutlined />
-                  แผนกย่อย
+                  {t("แผนกย่อย")}
                 </span>
               ),
               children: <SectionsPage />,
@@ -159,7 +162,7 @@ export default function UserManagementPage() {
               label: (
                 <span className={styles.tabLabel}>
                   <IdcardOutlined />
-                  ตำแหน่ง
+                  {lang === "en" ? "Positions" : "ตำแหน่ง"}
                 </span>
               ),
               children: <PositionsPage />,
@@ -169,7 +172,7 @@ export default function UserManagementPage() {
               label: (
                 <span className={styles.tabLabel}>
                   <SafetyCertificateOutlined />
-                  บทบาท
+                  {t("บทบาท")}
                 </span>
               ),
               children: <RolesPage embedded />,
@@ -179,7 +182,7 @@ export default function UserManagementPage() {
               label: (
                 <span className={styles.tabLabel}>
                   <BellOutlined />
-                  การแจ้งเตือน
+                  {t("การแจ้งเตือน")}
                 </span>
               ),
               children: <NotificationSettingsPage embedded />,
@@ -189,7 +192,7 @@ export default function UserManagementPage() {
               label: (
                 <span className={styles.tabLabel}>
                   <TeamOutlined />
-                  ผู้ใช้งาน
+                  {t("ผู้ใช้งาน")}
                 </span>
               ),
               children: <UsersPage embedded />,

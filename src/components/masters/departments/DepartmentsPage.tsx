@@ -1,5 +1,8 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -110,6 +113,8 @@ type DepartmentsPageProps = {
 export default function DepartmentsPage({
   embedded = false,
 }: DepartmentsPageProps) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -217,7 +222,7 @@ export default function DepartmentsPage({
 
   const columns: ColumnsType<Department> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -228,7 +233,7 @@ export default function DepartmentsPage({
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 160,
@@ -237,7 +242,7 @@ export default function DepartmentsPage({
       ),
     },
     {
-      title: "ชื่อแผนก",
+      title: t("ชื่อแผนก"),
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
@@ -247,7 +252,7 @@ export default function DepartmentsPage({
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -256,53 +261,53 @@ export default function DepartmentsPage({
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {formatDateTime(value, lang)}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.code}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.code })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบแผนก",
-                content: `ต้องการลบ "${record.code}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบแผนก"),
+                content: t('ต้องการลบ "{name}" หรือไม่?', { name: record.code }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -317,8 +322,8 @@ export default function DepartmentsPage({
       {!embedded ? (
       <PageHeader
         eyebrow="MASTER DATA"
-        title="แผนก"
-        subtitle="จัดการข้อมูลแผนกหรือส่วนงานภายในองค์กร"
+        title={t("แผนก")}
+        subtitle={t("จัดการข้อมูลแผนกหรือส่วนงานภายในองค์กร")}
         actions={
           <>
 <Button
@@ -328,7 +333,7 @@ export default function DepartmentsPage({
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มแผนก
+          {t("เพิ่มแผนก")}
         </Button>
           </>
         }
@@ -340,7 +345,7 @@ export default function DepartmentsPage({
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "แผนกทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("แผนกทั้งหมด")}
             </span>
             <strong>{departments.length}</strong>
           </div>
@@ -349,7 +354,7 @@ export default function DepartmentsPage({
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeDepartments}</strong>
           </div>
         </div>
@@ -357,7 +362,7 @@ export default function DepartmentsPage({
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveDepartments}</strong>
           </div>
         </div>
@@ -367,13 +372,13 @@ export default function DepartmentsPage({
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาแผนก</h3>
-            <p>กรองรายการด้วยรหัส ชื่อแผนก และสถานะ</p>
+            <h3>{t("ค้นหาแผนก")}</h3>
+            <p>{t("กรองรายการด้วยรหัส ชื่อแผนก และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -387,29 +392,29 @@ export default function DepartmentsPage({
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={8}>
-              <Form.Item name="code" label="รหัสแผนก">
+              <Form.Item name="code" label={t("รหัสแผนก")}>
                 <Input
                   allowClear
-                  placeholder="เช่น PURCHASE"
+                  placeholder={t("เช่น PURCHASE")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Form.Item name="name" label="ชื่อแผนก">
-                <Input allowClear placeholder="เช่น ฝ่ายจัดซื้อ" />
+              <Form.Item name="name" label={t("ชื่อแผนก")}>
+                <Input allowClear placeholder={t("เช่น ฝ่ายจัดซื้อ")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={8}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -424,7 +429,7 @@ export default function DepartmentsPage({
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -432,7 +437,7 @@ export default function DepartmentsPage({
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -445,11 +450,11 @@ export default function DepartmentsPage({
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>DEPARTMENT MANAGEMENT</div>
-            <h3>รายการแผนก</h3>
+            <h3>{t("รายการแผนก")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลแผนกทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลแผนกทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
@@ -461,10 +466,10 @@ export default function DepartmentsPage({
                 className={styles.createButton}
                 onClick={openCreateModal}
               >
-                เพิ่มแผนก
+                {t("เพิ่มแผนก")}
               </Button>
             ) : null}
-            <div className={styles.tableCount}>{departments.length} รายการ</div>
+            <div className={styles.tableCount}>{t("{n} รายการ", { n: departments.length })}</div>
           </Space>
         </div>
 
@@ -473,7 +478,7 @@ export default function DepartmentsPage({
             <Typography.Text type="danger">
               {departmentsQuery.error instanceof Error
                 ? departmentsQuery.error.message
-                : "โหลดข้อมูลแผนกไม่สำเร็จ"}
+                : t("โหลดข้อมูลแผนกไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -490,7 +495,7 @@ export default function DepartmentsPage({
               pageSize,
               showSizeChanger: true,
               pageSizeOptions: [20, 50, 100],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: (nextPage, nextSize) => {
                 setPage(nextPage);
                 if (nextSize && nextSize !== pageSize) {
@@ -502,8 +507,8 @@ export default function DepartmentsPage({
             scroll={{ x: 810 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบแผนกตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลแผนก",
+                ? t("ไม่พบแผนกตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลแผนก"),
             }}
           />
         )}

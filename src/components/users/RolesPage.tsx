@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useT } from "@/lib/i18n/useT";
 import {
   Button,
   Space,
@@ -33,6 +34,7 @@ type RolesPageProps = {
 };
 
 export default function RolesPage({ embedded = false }: RolesPageProps) {
+  const t = useT();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [page, setPage] = useState(1);
@@ -51,55 +53,55 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
 
   const columns: ColumnsType<Role> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * pageSize + index + 1,
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "roleCode",
       key: "roleCode",
       width: 260,
       render: (value: string) => <code>{value}</code>,
     },
     {
-      title: "ชื่อบทบาท",
+      title: t("ชื่อบทบาท"),
       dataIndex: "roleName",
       key: "roleName",
     },
     {
-      title: "คำอธิบาย",
+      title: t("คำอธิบาย"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
       render: (value?: string) => value?.trim() || "—",
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       key: "type",
       width: 120,
       render: (_, record) =>
         record.isSystemRole ? (
-          <Tag color="blue">ระบบ</Tag>
+          <Tag color="blue">{t("ระบบ")}</Tag>
         ) : (
-          <Tag color="green">กำหนดเอง</Tag>
+          <Tag color="green">{t("กำหนดเอง")}</Tag>
         ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการบทบาท ${record.roleName}`}
+          ariaLabel={t("เมนูจัดการบทบาท {name}", { name: record.roleName })}
           actions={[
             {
               key: "permissions",
               icon: <SafetyCertificateOutlined />,
-              label: "ตั้งสิทธิ์",
+              label: t("ตั้งสิทธิ์"),
               onClick: () =>
                 router.push(`/users?tab=permissions&roleId=${record.id}`),
             },
@@ -107,16 +109,16 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบบทบาท",
+              label: t("ลบบทบาท"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบบทบาทนี้?",
+                title: t("ลบบทบาทนี้?"),
                 content: record.isSystemRole
-                  ? "บทบาทนี้เคยเป็นของระบบ — ลบแล้วจะไม่ถูกสร้างกลับตอน restart (ต้องไม่มีผู้ใช้ผูก)"
-                  : "ลบได้เฉพาะบทบาทที่ยังไม่มีผู้ใช้ผูกอยู่",
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                  ? t("บทบาทนี้เคยเป็นของระบบ — ลบแล้วจะไม่ถูกสร้างกลับตอน restart (ต้องไม่มีผู้ใช้ผูก)")
+                  : t("ลบได้เฉพาะบทบาทที่ยังไม่มีผู้ใช้ผูกอยู่"),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -132,8 +134,8 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
           <PageHeader
             eyebrow="SECURITY · ROLES"
             icon={<SafetyCertificateOutlined />}
-            title="บทบาทผู้ใช้งาน"
-            subtitle="สร้างบทบาท (Role) เพื่อกำหนดสิทธิ์ — ไม่ใช่แผนกองค์กร"
+            title={t("บทบาทผู้ใช้งาน")}
+            subtitle={t("สร้างบทบาท (Role) เพื่อกำหนดสิทธิ์ — ไม่ใช่แผนกองค์กร")}
             actions={
               <>
 <Button
@@ -143,7 +145,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
               icon={<PlusOutlined />}
               onClick={() => setModalOpen(true)}
             >
-              เพิ่มบทบาท
+              {t("เพิ่มบทบาท")}
             </Button>
               </>
             }
@@ -156,7 +158,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
           >
             <div className={masterStyles.summaryIcon}>Σ</div>
             <div>
-              <span className={masterStyles.summaryLabel}>บทบาททั้งหมด</span>
+              <span className={masterStyles.summaryLabel}>{t("บทบาททั้งหมด")}</span>
               <strong>{roles.length}</strong>
             </div>
           </div>
@@ -165,7 +167,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
           >
             <div className={masterStyles.summaryIcon}>✓</div>
             <div>
-              <span className={masterStyles.summaryLabel}>มาตรฐานระบบ</span>
+              <span className={masterStyles.summaryLabel}>{t("มาตรฐานระบบ")}</span>
               <strong>{systemCount}</strong>
             </div>
           </div>
@@ -174,7 +176,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
           >
             <div className={masterStyles.summaryIcon}>+</div>
             <div>
-              <span className={masterStyles.summaryLabel}>กำหนดเอง</span>
+              <span className={masterStyles.summaryLabel}>{t("กำหนดเอง")}</span>
               <strong>{customCount}</strong>
             </div>
           </div>
@@ -184,9 +186,9 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
           <div className={masterStyles.tableHeader}>
             <div>
               <div className={masterStyles.tableEyebrow}>ROLE CATALOG</div>
-              <h3>รายการบทบาท</h3>
+              <h3>{t("รายการบทบาท")}</h3>
               <p>
-                ใช้เลือกตอนสร้าง/แก้ไขผู้ใช้งาน — แผนกอยู่แท็บอื่น ไม่ใช่บทบาท
+                {t("ใช้เลือกตอนสร้าง/แก้ไขผู้ใช้งาน — แผนกอยู่แท็บอื่น ไม่ใช่บทบาท")}
               </p>
             </div>
             <Space>
@@ -197,11 +199,11 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
                   className={masterStyles.createButton}
                   onClick={() => setModalOpen(true)}
                 >
-                  เพิ่มบทบาท
+                  {t("เพิ่มบทบาท")}
                 </Button>
               ) : null}
               <div className={masterStyles.tableCount}>
-                {roles.length} รายการ
+                {t("{n} รายการ", { n: roles.length })}
               </div>
             </Space>
           </div>
@@ -211,7 +213,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
               <Typography.Text type="danger">
                 {rolesQuery.error instanceof Error
                   ? rolesQuery.error.message
-                  : "โหลดบทบาทไม่สำเร็จ"}
+                  : t("โหลดบทบาทไม่สำเร็จ")}
               </Typography.Text>
             </div>
           ) : (
@@ -226,7 +228,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
                 pageSize,
                 showSizeChanger: true,
                 pageSizeOptions: [20, 50, 100],
-                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
                 onChange: (nextPage, nextSize) => {
                   setPage(nextPage);
                   if (nextSize && nextSize !== pageSize) {
@@ -236,7 +238,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
                 },
               }}
               scroll={{ x: 780 }}
-              locale={{ emptyText: "ยังไม่มีบทบาท" }}
+              locale={{ emptyText: t("ยังไม่มีบทบาท") }}
             />
           )}
         </div>

@@ -21,6 +21,7 @@ import {
 } from "@/hooks/material-conversions/useMaterialConversionQueries";
 import { useCreateMaterialConversionMutation } from "@/hooks/material-conversions/useMaterialConversionMutations";
 import type { MaterialConversionRouteStep } from "@/types/material-conversion";
+import { useT } from "@/lib/i18n/useT";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import RunTeamFields from "./RunTeamFields";
 import MaterialConversionRunLinesFields, {
@@ -48,6 +49,7 @@ type FormValues = {
 };
 
 export default function MaterialConversionCreatePage() {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const actions = useScreenActionPermissions("MATERIAL_CONVERSIONS");
@@ -158,12 +160,12 @@ export default function MaterialConversionCreatePage() {
             <div className={masterStyles.eyebrow}>
               PRODUCTION · MATERIAL CONVERSION
             </div>
-            <h2 className={masterStyles.pageTitle}>สร้างใบแปรสภาพวัตถุดิบ</h2>
+            <h2 className={masterStyles.pageTitle}>{t("สร้างใบแปรสภาพวัตถุดิบ")}</h2>
             <span className={masterStyles.pageSubtitle}>
-              บันทึกวัตถุดิบเข้าหลายตัวและผลผลิตออกหลายตัว — ยังไม่แตะสต๊อกจนกดเริ่มงาน
+              {t("บันทึกวัตถุดิบเข้าหลายตัวและผลผลิตออกหลายตัว — ยังไม่แตะสต๊อกจนกดเริ่มงาน")}
             </span>
           </div>
-          <Button onClick={() => router.push(ROUTE_BASE)}>กลับ</Button>
+          <Button onClick={() => router.push(ROUTE_BASE)}>{t("กลับ")}</Button>
         </div>
 
         {!actions.canAdd ? (
@@ -171,8 +173,8 @@ export default function MaterialConversionCreatePage() {
             className={styles.notice}
             type="warning"
             showIcon
-            title="ไม่มีสิทธิ์สร้างเอกสาร"
-            description="บัญชีนี้ยังไม่ได้รับสิทธิ์เพิ่มใบแปรสภาพวัตถุดิบ กรุณาติดต่อผู้ดูแลระบบ"
+            title={t("ไม่มีสิทธิ์สร้างเอกสาร")}
+            description={t("บัญชีนี้ยังไม่ได้รับสิทธิ์เพิ่มใบแปรสภาพวัตถุดิบ กรุณาติดต่อผู้ดูแลระบบ")}
           />
         ) : null}
 
@@ -190,21 +192,21 @@ export default function MaterialConversionCreatePage() {
           <div className={styles.formCard}>
             <div className={styles.formSection}>
               <div className={styles.formSectionHead}>
-                <h4>ข้อมูลเอกสาร</h4>
+                <h4>{t("ข้อมูลเอกสาร")}</h4>
                 <span className={styles.formSectionHint}>
-                  ใส่ Batch ให้ตรงกันทุกขั้น แล้วแดชบอร์ดจะตอบได้ว่า Batch นี้เดินถึงไหน
+                  {t("ใส่ Batch ให้ตรงกันทุกขั้น แล้วแดชบอร์ดจะตอบได้ว่า Batch นี้เดินถึงไหน")}
                 </span>
               </div>
               <div className={styles.formGrid}>
                 <Form.Item
                   name="routeId"
-                  label="เส้นทางแปรสภาพ"
-                  rules={[{ required: true, message: "เลือกเส้นทาง" }]}
+                  label={t("เส้นทางแปรสภาพ")}
+                  rules={[{ required: true, message: t("เลือกเส้นทาง") }]}
                 >
                   <Select
                     showSearch
                     optionFilterProp="label"
-                    placeholder="เลือกเส้นทาง"
+                    placeholder={t("เลือกเส้นทาง")}
                     loading={routesQuery.isFetching}
                     onChange={() => form.setFieldsValue({ stepId: undefined })}
                     options={routes.map((route) => ({
@@ -215,18 +217,18 @@ export default function MaterialConversionCreatePage() {
                 </Form.Item>
                 <Form.Item
                   name="stepId"
-                  label="ขั้นตอน"
-                  rules={[{ required: true, message: "เลือกขั้นตอน" }]}
+                  label={t("ขั้นตอน")}
+                  rules={[{ required: true, message: t("เลือกขั้นตอน") }]}
                   extra={
                     selectedRoute
-                      ? `เลขที่เอกสารจะขึ้นต้นด้วย ${selectedRoute.runNoPrefix}`
+                      ? t("เลขที่เอกสารจะขึ้นต้นด้วย {prefix}", { prefix: selectedRoute.runNoPrefix })
                       : undefined
                   }
                 >
                   <Select
                     showSearch
                     optionFilterProp="label"
-                    placeholder={routeId ? "เลือกขั้นตอน" : "เลือกเส้นทางก่อน"}
+                    placeholder={routeId ? t("เลือกขั้นตอน") : t("เลือกเส้นทางก่อน")}
                     disabled={!routeId}
                     options={steps.map((step: MaterialConversionRouteStep) => ({
                       value: step.id,
@@ -236,13 +238,13 @@ export default function MaterialConversionCreatePage() {
                 </Form.Item>
                 <Form.Item
                   name="runDate"
-                  label="วันที่ทำงาน"
-                  rules={[{ required: true, message: "เลือกวันที่" }]}
+                  label={t("วันที่ทำงาน")}
+                  rules={[{ required: true, message: t("เลือกวันที่") }]}
                 >
                   <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                 </Form.Item>
                 <Form.Item name="batchNo" label="Batch">
-                  <Input placeholder="เช่น B-2609-01" maxLength={50} allowClear />
+                  <Input placeholder={t("เช่น B-2609-01")} maxLength={50} allowClear />
                 </Form.Item>
               </div>
 
@@ -251,7 +253,7 @@ export default function MaterialConversionCreatePage() {
                   className={styles.notice}
                   type="warning"
                   showIcon
-                  title="ข้ามขั้นตอนในเส้นทาง"
+                  title={t("ข้ามขั้นตอนในเส้นทาง")}
                   description={skipWarning}
                 />
               ) : null}
@@ -268,24 +270,24 @@ export default function MaterialConversionCreatePage() {
             <RunTeamFields />
 
             <div className={styles.formSection}>
-              <Form.Item name="remark" label="หมายเหตุเอกสาร">
+              <Form.Item name="remark" label={t("หมายเหตุเอกสาร")}>
                 <Input.TextArea
                   rows={2}
                   maxLength={2000}
                   showCount
-                  placeholder="เช่น ยางล็อตนี้เปียก ต้องตากก่อน"
+                  placeholder={t("เช่น ยางล็อตนี้เปียก ต้องตากก่อน")}
                 />
               </Form.Item>
             </div>
 
             <div className={styles.formActions}>
-              <Button onClick={() => router.push(ROUTE_BASE)}>ยกเลิก</Button>
+              <Button onClick={() => router.push(ROUTE_BASE)}>{t("ยกเลิก")}</Button>
               <Button
                 type="primary"
                 htmlType="submit"
                 loading={createMutation.isPending}
               >
-                บันทึกเอกสาร
+                {t("บันทึกเอกสาร")}
               </Button>
             </div>
           </div>

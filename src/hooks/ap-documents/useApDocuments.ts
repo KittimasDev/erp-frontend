@@ -35,6 +35,7 @@ import {
   updateApDocument,
 } from "@/lib/api/ap-documents";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow } from "@/lib/i18n/useT";
 import type {
   ApDocumentKind,
   ApInvoiceOptionsQuery,
@@ -215,8 +216,10 @@ export function useApplySupplierCreditsMutation(apId: string) {
           });
           done += 1;
         } catch (error) {
-          const text = error instanceof Error ? error.message : "ใช้เครดิตไม่สำเร็จ";
-          throw new Error(done > 0 ? `${text} (ใช้เครดิตสำเร็จก่อนหน้านี้ ${done} ใบ)` : text);
+          const text = error instanceof Error ? error.message : tNow("ใช้เครดิตไม่สำเร็จ");
+          throw new Error(
+            done > 0 ? tNow("{text} (ใช้เครดิตสำเร็จก่อนหน้านี้ {done} ใบ)", { text, done }) : text,
+          );
         }
       }
       return done;

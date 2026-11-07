@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { usePartyLabels } from "@/lib/i18n/partyLabels";
+
 import { useEffect, useRef, type MutableRefObject } from "react";
 import {
   Form,
@@ -89,6 +92,8 @@ function CustomerFormBody({
   initialCustomer?: Customer | null;
   formRef: MutableRefObject<FormInstance<CustomerFormValues> | null>;
 }) {
+  const partyLabels = usePartyLabels();
+  const t = useT();
   const [form] = Form.useForm<CustomerFormValues>();
   const isCreateMode = mode === "create";
 
@@ -109,12 +114,12 @@ function CustomerFormBody({
             {isCreateMode ? "CREATE CUSTOMER" : "EDIT CUSTOMER"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มลูกค้า" : "แก้ไขข้อมูลลูกค้า"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มลูกค้า") : t("แก้ไขข้อมูลลูกค้า")}</h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลลูกค้าใหม่ รหัสลูกค้าต้องไม่ซ้ำ"
-              : "แก้ไขรายละเอียดลูกค้าและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลลูกค้าใหม่ รหัสลูกค้าต้องไม่ซ้ำ")
+              : t("แก้ไขรายละเอียดลูกค้าและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -130,69 +135,69 @@ function CustomerFormBody({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลลูกค้า</strong>
-            <span>ระบุรหัส ชื่อ และประเภทลูกค้า</span>
+            <strong>{t("ข้อมูลลูกค้า")}</strong>
+            <span>{t("ระบุรหัส ชื่อ และประเภทลูกค้า")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="รหัสลูกค้า"
+          label={t("รหัสลูกค้า")}
           name="customerCode"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสลูกค้า" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกรหัสลูกค้า") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น CUST-00001"
+            placeholder={t("เช่น CUST-00001")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อลูกค้า"
+          label={t("ชื่อลูกค้า")}
           name="nameTh"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อลูกค้า" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อลูกค้า") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น บริษัท ตัวอย่าง จำกัด"
+            placeholder={t("เช่น บริษัท ตัวอย่าง จำกัด")}
             autoComplete="off"
           />
         </Form.Item>
 
-        <Form.Item label="ประเภทลูกค้า" name="customerType">
+        <Form.Item label={t("ประเภทลูกค้า")} name="customerType">
           <Select
             size="large"
             allowClear
-            placeholder="เลือกประเภทลูกค้า"
+            placeholder={t("เลือกประเภทลูกค้า")}
             options={CUSTOMER_TYPES.map((type) => ({
               value: type,
-              label: CUSTOMER_TYPE_LABEL[type] ?? type,
+              label: t(CUSTOMER_TYPE_LABEL[type] ?? type),
             }))}
           />
         </Form.Item>
 
         <Form.Item
-          label="เลขประจำตัวผู้เสียภาษี"
+          label={t("เลขประจำตัวผู้เสียภาษี")}
           name="taxId"
-          rules={[{ max: 50, message: "ไม่เกิน 50 ตัวอักษร" }]}
+          rules={[{ max: 50, message: t("ไม่เกิน 50 ตัวอักษร") }]}
         >
           <Input
             size="large"
-            placeholder="เช่น 0-1234-56789-01-2"
+            placeholder={t("เช่น 0-1234-56789-01-2")}
             autoComplete="off"
           />
         </Form.Item>
 
-        <Form.Item label="ที่อยู่" name="address">
+        <Form.Item label={t("ที่อยู่")} name="address">
           <Input.TextArea
             rows={3}
-            placeholder="ที่อยู่ของลูกค้า"
+            placeholder={t("ที่อยู่ของลูกค้า")}
             autoComplete="off"
           />
         </Form.Item>
@@ -200,43 +205,43 @@ function CustomerFormBody({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ผู้ติดต่อ</strong>
-            <span>ข้อมูลผู้ติดต่อของลูกค้า</span>
+            <strong>{t("ผู้ติดต่อ")}</strong>
+            <span>{t("ข้อมูลผู้ติดต่อของลูกค้า")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="ชื่อผู้ติดต่อ"
+          label={t("ชื่อผู้ติดต่อ")}
           name="contactName"
-          rules={[{ max: 255, message: "ไม่เกิน 255 ตัวอักษร" }]}
+          rules={[{ max: 255, message: t("ไม่เกิน 255 ตัวอักษร") }]}
         >
           <Input
             size="large"
-            placeholder="เช่น คุณสมชาย ใจดี"
+            placeholder={t("เช่น คุณสมชาย ใจดี")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="เบอร์ติดต่อ"
+          label={t("เบอร์ติดต่อ")}
           name="contactPhone"
-          rules={[{ max: 50, message: "ไม่เกิน 50 ตัวอักษร" }]}
+          rules={[{ max: 50, message: t("ไม่เกิน 50 ตัวอักษร") }]}
         >
           <Input
             size="large"
-            placeholder="เช่น 081-234-5678"
+            placeholder={t("เช่น 081-234-5678")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="อีเมล"
+          label={t("อีเมล")}
           name="email"
-          rules={[{ type: "email", message: "รูปแบบอีเมลไม่ถูกต้อง" }]}
+          rules={[{ type: "email", message: t("รูปแบบอีเมลไม่ถูกต้อง") }]}
         >
           <Input
             size="large"
-            placeholder="เช่น contact@example.com"
+            placeholder={t("เช่น contact@example.com")}
             autoComplete="off"
           />
         </Form.Item>
@@ -244,12 +249,12 @@ function CustomerFormBody({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>เงื่อนไขเครดิต</strong>
-            <span>จำนวนวันเครดิตเริ่มต้นของลูกค้า</span>
+            <strong>{t("เงื่อนไขเครดิต")}</strong>
+            <span>{t("จำนวนวันเครดิตเริ่มต้นของลูกค้า")}</span>
           </div>
         </div>
 
-        <Form.Item label="จำนวนวันเครดิต (วัน)" name="defaultCreditDays">
+        <Form.Item label={t("จำนวนวันเครดิต (วัน)")} name="defaultCreditDays">
           <InputNumber
             size="large"
             min={0}
@@ -263,13 +268,13 @@ function CustomerFormBody({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกลูกค้านี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกลูกค้านี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={partyLabels.on} unCheckedChildren={partyLabels.off} />
           </Form.Item>
         </div>
       </Form>
@@ -285,6 +290,7 @@ export default function CustomerFormModal({
   onCancel,
   onSubmit,
 }: CustomerFormModalProps) {
+  const t = useT();
   const formRef = useRef<FormInstance<CustomerFormValues> | null>(null);
   const isCreateMode = mode === "create";
 
@@ -316,8 +322,8 @@ export default function CustomerFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={560}
       centered

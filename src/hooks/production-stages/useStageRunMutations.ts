@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
+import { useT } from "@/lib/i18n/useT";
 
 import type { StageModuleConfig } from "@/components/production-stages/stage-modules";
 import { ApiError } from "@/lib/api/client";
@@ -39,6 +40,7 @@ function errorMessage(error: unknown, fallback: string) {
 export function useCreateStageRunMutation(config: StageModuleConfig) {
   const invalidate = useInvalidateStageRuns(config);
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...config.queryKeyRoot, "create"],
@@ -46,10 +48,10 @@ export function useCreateStageRunMutation(config: StageModuleConfig) {
       createStageRun(getAccessToken(), config.apiBase, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "สร้างรอบการทำงานสำเร็จ");
+      message.success(res.message || t("สร้างรอบการทำงานสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "สร้างรอบการทำงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("สร้างรอบการทำงานไม่สำเร็จ")));
     },
   });
 }
@@ -57,6 +59,7 @@ export function useCreateStageRunMutation(config: StageModuleConfig) {
 export function useStartStageRunMutation(config: StageModuleConfig) {
   const invalidate = useInvalidateStageRuns(config);
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...config.queryKeyRoot, "start"],
@@ -64,10 +67,10 @@ export function useStartStageRunMutation(config: StageModuleConfig) {
       startStageRun(getAccessToken(), config.apiBase, id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เริ่มงานและตัดสต๊อกแล้ว");
+      message.success(res.message || t("เริ่มงานและตัดสต๊อกแล้ว"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "เริ่มงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("เริ่มงานไม่สำเร็จ")));
     },
   });
 }
@@ -75,6 +78,7 @@ export function useStartStageRunMutation(config: StageModuleConfig) {
 export function useCompleteStageRunMutation(config: StageModuleConfig) {
   const invalidate = useInvalidateStageRuns(config);
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...config.queryKeyRoot, "complete"],
@@ -82,10 +86,10 @@ export function useCompleteStageRunMutation(config: StageModuleConfig) {
       completeStageRun(getAccessToken(), config.apiBase, id, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยืนยันเสร็จงานและรับผลผลิตเข้าคลังแล้ว");
+      message.success(res.message || t("ยืนยันเสร็จงานและรับผลผลิตเข้าคลังแล้ว"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ยืนยันเสร็จงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ยืนยันเสร็จงานไม่สำเร็จ")));
     },
   });
 }
@@ -93,6 +97,7 @@ export function useCompleteStageRunMutation(config: StageModuleConfig) {
 export function useCancelStageRunMutation(config: StageModuleConfig) {
   const invalidate = useInvalidateStageRuns(config);
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...config.queryKeyRoot, "cancel"],
@@ -100,10 +105,10 @@ export function useCancelStageRunMutation(config: StageModuleConfig) {
       cancelStageRun(getAccessToken(), config.apiBase, id, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกรอบการทำงานแล้ว");
+      message.success(res.message || t("ยกเลิกรอบการทำงานแล้ว"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ยกเลิกรอบการทำงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ยกเลิกรอบการทำงานไม่สำเร็จ")));
     },
   });
 }

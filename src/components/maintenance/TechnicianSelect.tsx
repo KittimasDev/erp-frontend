@@ -5,6 +5,7 @@ import { Select } from "antd";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
 import { useUsersQuery } from "@/hooks/users/useUsersQuery";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = {
   value?: string | string[];
@@ -19,7 +20,8 @@ type Props = {
  * เลือกช่างจากพนักงานในระบบ — กรองตามแผนกได้ (ช่างซ่อมบำรุง = พนักงานที่ใช้งานอยู่ในแผนก/ตำแหน่งซ่อมบำรุง)
  * ไม่มี master ช่างแยก (ตกลงกับผู้ใช้)
  */
-export default function TechnicianSelect({ value, onChange, mode, placeholder = "เลือกช่าง", style }: Props) {
+export default function TechnicianSelect({ value, onChange, mode, placeholder, style }: Props) {
+  const t = useT();
   const [departmentId, setDepartmentId] = useState<string>();
   const departmentsQuery = useDepartmentsQuery({ isActive: true });
   const usersQuery = useUsersQuery({ limit: 200, isActive: true, departmentId });
@@ -37,7 +39,7 @@ export default function TechnicianSelect({ value, onChange, mode, placeholder = 
     <div style={{ display: "flex", gap: 8, ...style }}>
       <Select
         allowClear
-        placeholder="ทุกแผนก"
+        placeholder={t("ทุกแผนก")}
         style={{ width: 150 }}
         value={departmentId}
         onChange={setDepartmentId}
@@ -49,7 +51,7 @@ export default function TechnicianSelect({ value, onChange, mode, placeholder = 
         optionFilterProp="label"
         mode={mode}
         style={{ flex: 1, minWidth: 200 }}
-        placeholder={placeholder}
+        placeholder={placeholder ? t(placeholder) : t("เลือกช่าง")}
         loading={usersQuery.isLoading}
         value={value}
         onChange={onChange as never}

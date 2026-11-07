@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { updatePaymentTerm } from "@/lib/api/payment-terms";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -17,6 +19,7 @@ type UpdatePaymentTermPayload = {
 export function useUpdatePaymentTermMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "payment-terms", "update"],
@@ -25,14 +28,14 @@ export function useUpdatePaymentTermMutation() {
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: paymentTermsQueryKey });
       message.success(
-        response.message || "แก้ไขเงื่อนไขการชำระเงินสำเร็จแล้ว",
+        response.message || t("แก้ไขเงื่อนไขการชำระเงินสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "แก้ไขเงื่อนไขการชำระเงินไม่สำเร็จ",
+          : t("แก้ไขเงื่อนไขการชำระเงินไม่สำเร็จ"),
       );
     },
   });

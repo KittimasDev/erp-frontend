@@ -1,3 +1,5 @@
+import { tNow } from "@/lib/i18n/useT";
+
 /**
  * ค่าที่แตกต่างกันระหว่าง "ขั้นตอนเตรียมยาง" กับ "กระบวนการผลิต rCB"
  *
@@ -94,8 +96,6 @@ export function stageTypeLabel(
   stageType?: string,
 ): string {
   if (!stageType) return "-";
-  return (
-    config.stageTypes.find((option) => option.value === stageType)?.label ??
-    stageType
-  );
+  const label = config.stageTypes.find((option) => option.value === stageType)?.label;
+  return label ? tNow(label) : stageType;
 }

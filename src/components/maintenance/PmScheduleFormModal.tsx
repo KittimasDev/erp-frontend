@@ -5,6 +5,7 @@ import { Alert, Col, DatePicker, Form, Input, InputNumber, Modal, Radio, Row, Se
 import dayjs from "dayjs";
 
 import { useEquipmentQuery } from "@/hooks/maintenance/useMaintenance";
+import { useT } from "@/lib/i18n/useT";
 import type { PlannedPart, PmSchedule, PmScheduleBody, PmScheduleType } from "@/types/maintenance";
 
 import PlannedPartsEditor from "./PlannedPartsEditor";
@@ -40,6 +41,7 @@ const PRESETS = [
 
 /** แผน PM: ปฏิทิน (ทุก N วัน: รายวัน/รายสัปดาห์/...) หรือ ทุก N รอบผลิต + แจ้งล่วงหน้า + อะไหล่/กำลังคนที่ต้องเตรียม */
 export default function PmScheduleFormModal({ schedule, loading, onCancel, onSubmit }: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const editing = Boolean(schedule);
   const [type, setType] = useState<PmScheduleType>(schedule?.scheduleType ?? "CALENDAR");
@@ -49,9 +51,9 @@ export default function PmScheduleFormModal({ schedule, loading, onCancel, onSub
     <Modal
       open
       width={760}
-      title={editing ? "แก้ไขแผน PM" : "สร้างแผน PM"}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={editing ? t("แก้ไขแผน PM") : t("สร้างแผน PM")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       onCancel={onCancel}
       onOk={() =>
@@ -91,7 +93,7 @@ export default function PmScheduleFormModal({ schedule, loading, onCancel, onSub
       >
         <Row gutter={12}>
           <Col xs={24} md={12}>
-            <Form.Item name="equipmentId" label="เครื่องจักร" rules={[{ required: true, message: "เลือกเครื่อง" }]}>
+            <Form.Item name="equipmentId" label={t("เครื่องจักร")} rules={[{ required: true, message: t("เลือกเครื่อง") }]}>
               <Select
                 showSearch
                 optionFilterProp="label"
@@ -102,20 +104,20 @@ export default function PmScheduleFormModal({ schedule, loading, onCancel, onSub
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item name="title" label="ชื่องาน PM">
-              <Input maxLength={200} placeholder="เช่น เปลี่ยนน้ำมันเกียร์" />
+            <Form.Item name="title" label={t("ชื่องาน PM")}>
+              <Input maxLength={200} placeholder={t("เช่น เปลี่ยนน้ำมันเกียร์")} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item label="รูปแบบรอบ">
+        <Form.Item label={t("รูปแบบรอบ")}>
           <Radio.Group
             value={type}
             disabled={editing}
             onChange={(e) => setType(e.target.value as PmScheduleType)}
             options={[
-              { value: "CALENDAR", label: "ปฏิทิน (ทุก N วัน)" },
-              { value: "CYCLE", label: "ทุก N รอบผลิต" },
+              { value: "CALENDAR", label: t("ปฏิทิน (ทุก N วัน)") },
+              { value: "CYCLE", label: t("ทุก N รอบผลิต") },
             ]}
           />
         </Form.Item>
@@ -123,11 +125,11 @@ export default function PmScheduleFormModal({ schedule, loading, onCancel, onSub
         {type === "CALENDAR" ? (
           <Row gutter={12}>
             <Col xs={24} md={12}>
-              <Form.Item name="frequencyDays" label="ความถี่ (วัน)" rules={[{ required: true, message: "ใส่ความถี่" }]} extra={
+              <Form.Item name="frequencyDays" label={t("ความถี่ (วัน)")} rules={[{ required: true, message: t("ใส่ความถี่") }]} extra={
                 <span>
                   {PRESETS.map((p) => (
                     <a key={p.days} style={{ marginRight: 10 }} onClick={() => form.setFieldValue("frequencyDays", p.days)}>
-                      {p.label}
+                      {t(p.label)}
                     </a>
                   ))}
                 </span>
@@ -136,47 +138,47 @@ export default function PmScheduleFormModal({ schedule, loading, onCancel, onSub
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item name="nextDueDate" label="ครบกำหนดครั้งถัดไป" rules={[{ required: true, message: "เลือกวัน" }]}>
+              <Form.Item name="nextDueDate" label={t("ครบกำหนดครั้งถัดไป")} rules={[{ required: true, message: t("เลือกวัน") }]}>
                 <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
               </Form.Item>
             </Col>
           </Row>
         ) : (
           <>
-            <Form.Item name="frequencyCycles" label="ทุกกี่รอบผลิต" rules={[{ required: true, message: "ใส่จำนวนรอบ" }]}>
+            <Form.Item name="frequencyCycles" label={t("ทุกกี่รอบผลิต")} rules={[{ required: true, message: t("ใส่จำนวนรอบ") }]}>
               <InputNumber min={1} max={1000} style={{ width: 200 }} />
             </Form.Item>
             <Alert
               type="info"
               showIcon
               style={{ marginBottom: 12 }}
-              title="1 รอบผลิต = ใบสั่งผลิต 1 ใบที่ปิดงานแล้ว · เริ่มนับตั้งแต่สร้างแผน (หรือจาก PM ครั้งล่าสุดที่ปิดงาน) · เมื่อเหลือ 1 รอบและมีรอบที่กำลังเดิน ระบบแจ้งล่วงหน้าให้เตรียมของ"
+              title={t("1 รอบผลิต = ใบสั่งผลิต 1 ใบที่ปิดงานแล้ว · เริ่มนับตั้งแต่สร้างแผน (หรือจาก PM ครั้งล่าสุดที่ปิดงาน) · เมื่อเหลือ 1 รอบและมีรอบที่กำลังเดิน ระบบแจ้งล่วงหน้าให้เตรียมของ")}
             />
           </>
         )}
 
         <Row gutter={12}>
           <Col xs={24} md={8}>
-            <Form.Item name="leadDays" label="แจ้งล่วงหน้า (วัน)" extra="แผนแบบปฏิทิน: แจ้ง/สร้างใบก่อนครบกำหนดกี่วัน">
+            <Form.Item name="leadDays" label={t("แจ้งล่วงหน้า (วัน)")} extra={t("แผนแบบปฏิทิน: แจ้ง/สร้างใบก่อนครบกำหนดกี่วัน")}>
               <InputNumber min={0} max={90} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="plannedManpower" label="ช่างที่ต้องเตรียม (คน)">
+            <Form.Item name="plannedManpower" label={t("ช่างที่ต้องเตรียม (คน)")}>
               <InputNumber min={1} max={100} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="autoGenerate" label="สร้างใบสั่งงานอัตโนมัติ" valuePropName="checked">
+            <Form.Item name="autoGenerate" label={t("สร้างใบสั่งงานอัตโนมัติ")} valuePropName="checked">
               <Switch />
             </Form.Item>
           </Col>
         </Row>
-        <Form.Item name="taskDescription" label="รายละเอียด / Checklist งาน">
+        <Form.Item name="taskDescription" label={t("รายละเอียด / Checklist งาน")}>
           <Input.TextArea rows={3} maxLength={4000} />
         </Form.Item>
         <PlannedPartsEditor form={form} />
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
       </Form>

@@ -22,6 +22,9 @@ import type {
   ProductionOrderOutputTrendPoint,
 } from "@/types/production-order";
 import styles from "./ProductionOrderDataTab.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 const GREEN = "#739816";
 const GREEN_DARK = "#627F13";
@@ -40,7 +43,7 @@ const { RangePicker } = DatePicker;
 
 function fmt(value?: number | null, digits = 2) {
   if (value === null || value === undefined) return "—";
-  return value.toLocaleString("th-TH", { maximumFractionDigits: digits });
+  return formatNumber(value, getStoredLanguage(), digits);
 }
 
 function itemLabel(item: {
@@ -67,6 +70,7 @@ export default function ProductionOrderDataTab({
   completedAt,
   productionDate,
 }: Props) {
+  const t = useT();
   const [range, setRange] = useState<[Dayjs, Dayjs]>(() => {
     const to = completedAt ? dayjs(completedAt) : dayjs();
     const from = startedAt
@@ -104,7 +108,7 @@ export default function ProductionOrderDataTab({
         ...point,
         label:
           bucket === "WEEK"
-            ? `สัปดาห์ ${dayjs(point.bucket).format("DD/MM")}`
+            ? t("สัปดาห์ {d}", { d: dayjs(point.bucket).format("DD/MM") })
             : dayjs(point.bucket).format("DD/MM"),
         actualOutputQty: Number(point.actualOutputQty),
         cumulativeYieldPercent:
@@ -116,7 +120,7 @@ export default function ProductionOrderDataTab({
             ? null
             : Number(point.plannedYieldPercent),
       })),
-    [trend?.points, bucket],
+    [trend?.points, bucket, t],
   );
 
   const stackedData = useMemo(
@@ -135,42 +139,42 @@ export default function ProductionOrderDataTab({
 
   const tableColumns: ColumnsType<ProductionOrderOutputTrendPoint> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ช่วง",
+      title: t("ช่วง"),
       dataIndex: "bucket",
       key: "bucket",
       render: (value: string) =>
         bucket === "WEEK"
-          ? `สัปดาห์ ${dayjs(value).format("DD/MM/YYYY")}`
+          ? t("สัปดาห์ {d}", { d: dayjs(value).format("DD/MM/YYYY") })
           : dayjs(value).format("DD/MM/YYYY"),
     },
     {
-      title: "ผลผลิตในช่วง",
+      title: t("ผลผลิตในช่วง"),
       dataIndex: "actualOutputQty",
       key: "actualOutputQty",
       align: "right",
       render: (value: number) => fmt(Number(value), 3),
     },
     {
-      title: "ผลผลิตสะสม",
+      title: t("ผลผลิตสะสม"),
       dataIndex: "cumulativeOutputQty",
       key: "cumulativeOutputQty",
       align: "right",
       render: (value: number) => fmt(Number(value), 3),
     },
     {
-      title: "Yield สะสม",
+      title: t("Yield สะสม"),
       dataIndex: "cumulativeYieldPercent",
       key: "cumulativeYieldPercent",
       align: "right",
       render: (value: number | null) =>
-        value === null ? "เทียบไม่ได้" : `${fmt(value)}%`,
+        value === null ? t("เทียบไม่ได้") : `${fmt(value)}%`,
     },
   ];
 
@@ -178,18 +182,18 @@ export default function ProductionOrderDataTab({
     trendQuery.error instanceof Error
       ? trendQuery.error.message
       : trendQuery.isError
-        ? "โหลดแนวโน้มผลผลิตไม่สำเร็จ"
+        ? t("โหลดแนวโน้มผลผลิตไม่สำเร็จ")
         : null;
 
   return (
     <div className={styles.page}>
       <div className={styles.toolbar}>
         <div className={styles.filterField}>
-          <span>ช่วงวันที่</span>
+          <span>{t("ช่วงวันที่")}</span>
           <RangePicker
             allowClear={false}
             value={range}
-            aria-label="ช่วงวันที่แนวโน้มผลผลิต"
+            aria-label={t("ช่วงวันที่แนวโน้มผลผลิต")}
             onChange={(value) => {
               if (value?.[0] && value[1]) {
                 setRange([value[0], value[1]]);
@@ -198,41 +202,41 @@ export default function ProductionOrderDataTab({
           />
         </div>
         <div className={styles.filterField}>
-          <span>ความละเอียด</span>
+          <span>{t("ความละเอียด")}</span>
           <Segmented
-            aria-label="ความละเอียดแกนเวลา"
+            aria-label={t("ความละเอียดแกนเวลา")}
             value={bucket}
             onChange={(value) =>
               setBucket(value as ProductionOrderOutputTrendBucket)
             }
             options={[
-              { value: "DAY", label: "รายวัน" },
-              { value: "WEEK", label: "รายสัปดาห์" },
+              { value: "DAY", label: t("รายวัน") },
+              { value: "WEEK", label: t("รายสัปดาห์") },
             ]}
           />
         </div>
       </div>
 
       {errorMessage ? (
-        <Alert type="error" showIcon title="โหลดข้อมูลไม่สำเร็จ" description={errorMessage} />
+        <Alert type="error" showIcon title={t("โหลดข้อมูลไม่สำเร็จ")} description={errorMessage} />
       ) : null}
 
       {trend && trend.items.length > 1 ? (
         <Alert
           type="info"
           showIcon
-          title="ไม่คำนวณ Yield รวม — มีหลายสินค้า"
-          description="กราฟด้านล่างแยกจำนวนตามสินค้า ไม่ได้บวกข้ามรายการเป็นยอดเดียว"
+          title={t("ไม่คำนวณ Yield รวม — มีหลายสินค้า")}
+          description={t("กราฟด้านล่างแยกจำนวนตามสินค้า ไม่ได้บวกข้ามรายการเป็นยอดเดียว")}
         />
       ) : trend && !trend.quantitiesComparable ? (
         <Alert
           type="warning"
           showIcon
-          title="ตัวเลข Yield เทียบไม่ได้ — ใบนี้มีหลายหน่วย"
-          description={
-            `พบหน่วย ${trend.unitCodes.join(" · ")} ในใบเดียวกัน ` +
-            "เส้น Yield จึงไม่วาด ค่าในตารางผลผลิตยังใช้ดูรายสินค้าได้"
-          }
+          title={t("ตัวเลข Yield เทียบไม่ได้ — ใบนี้มีหลายหน่วย")}
+          description={t(
+            "พบหน่วย {units} ในใบเดียวกัน เส้น Yield จึงไม่วาด ค่าในตารางผลผลิตยังใช้ดูรายสินค้าได้",
+            { units: trend.unitCodes.join(" · ") },
+          )}
         />
       ) : null}
 
@@ -241,7 +245,7 @@ export default function ProductionOrderDataTab({
         <Alert
           type="error"
           showIcon
-          title="ตัวเลขเป็นไปไม่ได้ — ผลผลิตมากกว่าวัตถุดิบ"
+          title={t("ตัวเลขเป็นไปไม่ได้ — ผลผลิตมากกว่าวัตถุดิบ")}
           description={trend.massBalanceWarning}
         />
       ) : null}
@@ -249,17 +253,17 @@ export default function ProductionOrderDataTab({
       {(trend?.items.length ?? 0) > 1 ? null : (
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>
-          <h3>ผลผลิตและ Yield ตามเวลา</h3>
+          <h3>{t("ผลผลิตและ Yield ตามเวลา")}</h3>
           <p>
-            แท่งคือผลผลิตที่คลังอนุมัติในช่วงนั้น · เส้นคือ Yield สะสมเทียบวัตถุดิบที่ตัดตอนเริ่มผลิต
+            {t("แท่งคือผลผลิตที่คลังอนุมัติในช่วงนั้น · เส้นคือ Yield สะสมเทียบวัตถุดิบที่ตัดตอนเริ่มผลิต")}
           </p>
         </div>
         <div className={styles.chartBody}>
           {trendQuery.isLoading ? (
-            <div className={styles.emptyState}>กำลังโหลด...</div>
+            <div className={styles.emptyState}>{t("กำลังโหลด...")}</div>
           ) : !trend?.hasApprovedOutput ? (
             <div className={styles.emptyState}>
-              ยังไม่มีคำขอรับผลผลิตที่อนุมัติแล้ว
+              {t("ยังไม่มีคำขอรับผลผลิตที่อนุมัติแล้ว")}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -280,7 +284,7 @@ export default function ProductionOrderDataTab({
                 />
                 <Tooltip
                   formatter={(value, name) => [
-                    value === null ? "เทียบไม่ได้" : fmt(Number(value)),
+                    value === null ? t("เทียบไม่ได้") : fmt(Number(value)),
                     name,
                   ]}
                 />
@@ -288,7 +292,7 @@ export default function ProductionOrderDataTab({
                 <Bar
                   yAxisId="qty"
                   dataKey="actualOutputQty"
-                  name="ผลผลิตจริง"
+                  name={t("ผลผลิตจริง")}
                   fill={GREEN}
                   radius={[4, 4, 0, 0]}
                 />
@@ -296,7 +300,7 @@ export default function ProductionOrderDataTab({
                   yAxisId="pct"
                   type="monotone"
                   dataKey="cumulativeYieldPercent"
-                  name="Yield สะสม"
+                  name={t("Yield สะสม")}
                   stroke={GREEN_DARK}
                   strokeWidth={2}
                   connectNulls={false}
@@ -305,7 +309,7 @@ export default function ProductionOrderDataTab({
                   yAxisId="pct"
                   type="monotone"
                   dataKey="plannedYieldPercent"
-                  name="Yield ตามแผน"
+                  name={t("Yield ตามแผน")}
                   stroke={MUTED}
                   strokeDasharray="5 4"
                   strokeWidth={2}
@@ -320,15 +324,15 @@ export default function ProductionOrderDataTab({
 
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>
-          <h3>ผลผลิตรายสินค้า</h3>
-          <p>จำนวนที่อนุมัติเข้าคลังในแต่ละช่วง แยกตามสินค้าในแผน</p>
+          <h3>{t("ผลผลิตรายสินค้า")}</h3>
+          <p>{t("จำนวนที่อนุมัติเข้าคลังในแต่ละช่วง แยกตามสินค้าในแผน")}</p>
         </div>
         <div className={styles.chartBody}>
           {trendQuery.isLoading ? (
-            <div className={styles.emptyState}>กำลังโหลด...</div>
+            <div className={styles.emptyState}>{t("กำลังโหลด...")}</div>
           ) : !trend?.hasApprovedOutput ? (
             <div className={styles.emptyState}>
-              ยังไม่มีคำขอรับผลผลิตที่อนุมัติแล้ว
+              {t("ยังไม่มีคำขอรับผลผลิตที่อนุมัติแล้ว")}
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
@@ -357,7 +361,7 @@ export default function ProductionOrderDataTab({
 
       <div className={styles.tableCard}>
         <div className={styles.chartHeader}>
-          <h3>ตารางจุดข้อมูล</h3>
+          <h3>{t("ตารางจุดข้อมูล")}</h3>
         </div>
         <Table
           rowKey="bucket"
@@ -366,7 +370,7 @@ export default function ProductionOrderDataTab({
           loading={trendQuery.isFetching}
           dataSource={trend?.points ?? []}
           columns={tableColumns}
-          locale={{ emptyText: "ยังไม่มีข้อมูลในช่วงนี้" }}
+          locale={{ emptyText: t("ยังไม่มีข้อมูลในช่วงนี้") }}
         />
       </div>
     </div>

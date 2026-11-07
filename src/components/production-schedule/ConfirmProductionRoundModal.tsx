@@ -6,6 +6,8 @@ import { Input, Modal } from "antd";
 import { useConfirmScheduleRoundMutation } from "@/hooks/production-schedule/useProductionSchedule";
 import type { ScheduleRound } from "@/types/production-schedule";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { fmtDate } from "./schedule-dates";
 
 type Props = {
@@ -14,6 +16,7 @@ type Props = {
 };
 
 export default function ConfirmProductionRoundModal({ round, onClose }: Props) {
+  const t = useT();
   const confirm = useConfirmScheduleRoundMutation();
   const [reason, setReason] = useState("");
   const overdue = round.displayStatus === "OVERDUE";
@@ -22,9 +25,9 @@ export default function ConfirmProductionRoundModal({ round, onClose }: Props) {
   return (
     <Modal
       open
-      title={overdue ? "ยืนยันรอบเกินกำหนด" : "ยืนยันรอบการผลิต"}
-      okText="ยืนยัน"
-      cancelText="ยกเลิก"
+      title={overdue ? t("ยืนยันรอบเกินกำหนด") : t("ยืนยันรอบการผลิต")}
+      okText={t("ยืนยัน")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       confirmLoading={confirm.isPending}
       okButtonProps={{ disabled: !reasonOk }}
@@ -37,14 +40,14 @@ export default function ConfirmProductionRoundModal({ round, onClose }: Props) {
       }
     >
       <p>
-        ยืนยันรอบ {round.roundNo} ผลิต {fmtDate(round.startDate)} – {fmtDate(round.endDate)}
+        {t("ยืนยันรอบ {no} ผลิต {from} – {to}", { no: round.roundNo, from: fmtDate(round.startDate), to: fmtDate(round.endDate) })}
       </p>
-      <p>หลังยืนยันจะล็อกข้อมูล สร้างรอบผลิต และให้ฝ่ายบุคคลเลือกช่วงวันนี้ไปจัดตารางกะ</p>
+      <p>{t("หลังยืนยันจะล็อกข้อมูล สร้างรอบผลิต และให้ฝ่ายบุคคลเลือกช่วงวันนี้ไปจัดตารางกะ")}</p>
       {overdue ? (
         <label style={{ display: "grid", gap: 6 }}>
-          <span>เหตุผล (กรณีเกินกำหนดยืนยัน)</span>
+          <span>{t("เหตุผล (กรณีเกินกำหนดยืนยัน)")}</span>
           <Input.TextArea
-            aria-label="เหตุผลกรณียืนยันเกินกำหนด"
+            aria-label={t("เหตุผลกรณียืนยันเกินกำหนด")}
             value={reason}
             rows={3}
             maxLength={2000}

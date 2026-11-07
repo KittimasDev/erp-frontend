@@ -1,4 +1,6 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -170,6 +172,8 @@ function buildSearchFromForm(values: ScaleFilterFormValues): URLSearchParams {
 }
 
 export default function WeighbridgeScalesPage() {
+  const t = useT();
+  const language = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -269,7 +273,7 @@ export default function WeighbridgeScalesPage() {
 
   const columns: ColumnsType<WeighbridgeScale> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -280,7 +284,7 @@ export default function WeighbridgeScalesPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "scaleCode",
       key: "scaleCode",
       width: 150,
@@ -289,7 +293,7 @@ export default function WeighbridgeScalesPage() {
       ),
     },
     {
-      title: "ชื่อ",
+      title: t("ชื่อ"),
       dataIndex: "scaleName",
       key: "scaleName",
       width: 200,
@@ -300,7 +304,7 @@ export default function WeighbridgeScalesPage() {
       ),
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "scaleType",
       key: "scaleType",
       width: 130,
@@ -309,7 +313,7 @@ export default function WeighbridgeScalesPage() {
       ),
     },
     {
-      title: "ตำแหน่ง",
+      title: t("ตำแหน่ง"),
       dataIndex: "locationName",
       key: "locationName",
       width: 160,
@@ -318,7 +322,7 @@ export default function WeighbridgeScalesPage() {
       ),
     },
     {
-      title: "การเชื่อมต่อ",
+      title: t("การเชื่อมต่อ"),
       dataIndex: "connectionType",
       key: "connectionType",
       width: 120,
@@ -327,7 +331,7 @@ export default function WeighbridgeScalesPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -336,53 +340,53 @@ export default function WeighbridgeScalesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 170,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(language === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.scaleCode}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.scaleCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบเครื่องชั่ง",
-                content: `ต้องการลบ "${record.scaleCode}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบเครื่องชั่ง"),
+                content: t("ต้องการลบ \"{code}\" หรือไม่?", { code: record.scaleCode }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -396,8 +400,8 @@ export default function WeighbridgeScalesPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="เครื่องชั่ง"
-        subtitle="จัดการเครื่องชั่งน้ำหนักและการตั้งค่าการเชื่อมต่อ"
+        title={t("เครื่องชั่ง")}
+        subtitle={t("จัดการเครื่องชั่งน้ำหนักและการตั้งค่าการเชื่อมต่อ")}
         actions={
           <>
 <Button
@@ -407,7 +411,7 @@ export default function WeighbridgeScalesPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มเครื่องชั่ง
+          {t("เพิ่มเครื่องชั่ง")}
         </Button>
           </>
         }
@@ -418,7 +422,7 @@ export default function WeighbridgeScalesPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "เครื่องชั่งทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("เครื่องชั่งทั้งหมด")}
             </span>
             <strong>{scales.length}</strong>
           </div>
@@ -427,7 +431,7 @@ export default function WeighbridgeScalesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -435,7 +439,7 @@ export default function WeighbridgeScalesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -445,13 +449,13 @@ export default function WeighbridgeScalesPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาเครื่องชั่ง</h3>
-            <p>กรองด้วยรหัส ชื่อ ประเภท ตำแหน่ง และการเชื่อมต่อ</p>
+            <h3>{t("ค้นหาเครื่องชั่ง")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ ประเภท ตำแหน่ง และการเชื่อมต่อ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -465,68 +469,68 @@ export default function WeighbridgeScalesPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสเครื่องชั่ง">
+              <Form.Item name="code" label={t("รหัสเครื่องชั่ง")}>
                 <Input
                   allowClear
-                  placeholder="เช่น TRUCK"
+                  placeholder={t("เช่น TRUCK")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อเครื่องชั่ง">
-                <Input allowClear placeholder="เช่น เครื่องชั่ง" />
+              <Form.Item name="name" label={t("ชื่อเครื่องชั่ง")}>
+                <Input allowClear placeholder={t("เช่น เครื่องชั่ง")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="scaleType" label="ประเภท">
+              <Form.Item name="scaleType" label={t("ประเภท")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={SCALE_TYPE_OPTIONS}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="connectionType" label="การเชื่อมต่อ">
+              <Form.Item name="connectionType" label={t("การเชื่อมต่อ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={CONNECTION_TYPE_OPTIONS}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="locationName" label="ตำแหน่ง">
-                <Input allowClear placeholder="เช่น หน้าโรงงาน" />
+              <Form.Item name="locationName" label={t("ตำแหน่ง")}>
+                <Input allowClear placeholder={t("เช่น หน้าโรงงาน")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isAutoReadEnabled" label="อ่านอัตโนมัติ">
+              <Form.Item name="isAutoReadEnabled" label={t("อ่านอัตโนมัติ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "เปิด" },
-                    { value: false, label: "ปิด" },
+                    { value: true, label: t("เปิด") },
+                    { value: false, label: t("ปิด") },
                   ]}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -541,7 +545,7 @@ export default function WeighbridgeScalesPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -549,7 +553,7 @@ export default function WeighbridgeScalesPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -562,15 +566,15 @@ export default function WeighbridgeScalesPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>SCALE MANAGEMENT</div>
-            <h3>รายการเครื่องชั่ง</h3>
+            <h3>{t("รายการเครื่องชั่ง")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลเครื่องชั่งน้ำหนักทั้งหมดในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลเครื่องชั่งน้ำหนักทั้งหมดในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{scales.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: scales.length })}</div>
         </div>
 
         {scalesQuery.isError ? (
@@ -578,7 +582,7 @@ export default function WeighbridgeScalesPage() {
             <Typography.Text type="danger">
               {scalesQuery.error instanceof Error
                 ? scalesQuery.error.message
-                : "โหลดข้อมูลเครื่องชั่งไม่สำเร็จ"}
+                : t("โหลดข้อมูลเครื่องชั่งไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -592,14 +596,14 @@ export default function WeighbridgeScalesPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1260 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบเครื่องชั่งตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลเครื่องชั่ง",
+                ? t("ไม่พบเครื่องชั่งตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลเครื่องชั่ง"),
             }}
           />
         )}

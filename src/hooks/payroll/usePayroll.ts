@@ -18,6 +18,7 @@ import {
   updatePayrollSettings,
 } from "@/lib/api/payroll";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow } from "@/lib/i18n/useT";
 import type {
   CreatePayrollRunRequest,
   PayrollAdjustmentInput,
@@ -63,7 +64,7 @@ function useRunMutation<TVars, TRes extends { message: string }>(
       void queryClient.invalidateQueries({ queryKey: payrollQueryKey });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : fallbackError);
+      message.error(error instanceof ApiError ? error.message : tNow(fallbackError));
     },
   });
 }
@@ -116,7 +117,7 @@ export function useUpdatePayrollSettingsMutation() {
       void queryClient.invalidateQueries({ queryKey: settingsKey });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : "บันทึกตั้งค่าไม่สำเร็จ");
+      message.error(error instanceof ApiError ? error.message : tNow("บันทึกตั้งค่าไม่สำเร็จ"));
     },
   });
 }

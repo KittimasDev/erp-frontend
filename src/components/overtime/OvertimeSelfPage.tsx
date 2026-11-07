@@ -24,6 +24,8 @@ import dayjs, { type Dayjs } from "dayjs";
 import { ApiError } from "@/lib/api/client";
 import { redirectToLogin } from "@/lib/auth/redirect-to-login";
 import { hasAccessToken } from "@/lib/auth/token";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import {
   useCancelMyOvertimeRequestMutation,
   useCreateMyOvertimeRequestMutation,
@@ -31,7 +33,7 @@ import {
 import { useMyOvertimeRequestsQuery } from "@/hooks/overtime/useOvertimeQueries";
 import {
   OVERTIME_STATUS_COLOR,
-  OVERTIME_STATUS_LABEL,
+  overtimeStatusLabel,
 } from "@/types/overtime";
 
 import styles from "./OvertimeSelfPage.module.css";
@@ -48,14 +50,16 @@ function noopSubscribe() {
   return () => {};
 }
 
-function formatHours(value: string) {
-  return `${Number(value).toLocaleString("th-TH", {
+function formatHours(value: string, lang: "th" | "en") {
+  return `${Number(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH", {
     maximumFractionDigits: 2,
-  })} ชม.`;
+  })} ${lang === "en" ? "hrs" : "ชม."}`;
 }
 
 export default function OvertimeSelfPage() {
   const { modal } = App.useApp();
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const [hours, setHours] = useState<number | null>(2);
 
@@ -103,11 +107,11 @@ export default function OvertimeSelfPage() {
 
   const confirmCancel = (id: string, otDate: string) => {
     modal.confirm({
-      title: "ยกเลิกคำขอ OT",
-      content: `ยกเลิกคำขอของวันที่ ${dayjs(otDate).format("DD/MM/YYYY")}?`,
-      okText: "ยกเลิกคำขอ",
+      title: t("ยกเลิกคำขอ OT"),
+      content: t("ยกเลิกคำขอของวันที่ {date}?", { date: dayjs(otDate).format("DD/MM/YYYY") }),
+      okText: t("ยกเลิกคำขอ"),
       okButtonProps: { danger: true },
-      cancelText: "ไม่ใช่",
+      cancelText: t("ไม่ใช่"),
       centered: true,
       onOk: () => cancelMutation.mutateAsync(id).then(() => undefined),
     });
@@ -117,7 +121,7 @@ export default function OvertimeSelfPage() {
     return (
       <div className={styles.centerScreen}>
         <Spin size="large" />
-        <p className={styles.centerText}>กำลังโหลดคำขอ OT...</p>
+        <p className={styles.centerText}>{t("กำลังโหลดคำขอ OT...")}</p>
       </div>
     );
   }
@@ -127,11 +131,11 @@ export default function OvertimeSelfPage() {
       <div className={styles.centerScreen}>
         <Result
           status="warning"
-          title="โหลดข้อมูลไม่สำเร็จ"
+          title={t("โหลดข้อมูลไม่สำเร็จ")}
           subTitle={
             listQuery.error instanceof ApiError
               ? listQuery.error.message
-              : "ตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง"
+              : t("ตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง")
           }
           extra={
             <Button
@@ -139,7 +143,7 @@ export default function OvertimeSelfPage() {
               icon={<ReloadOutlined />}
               onClick={() => void listQuery.refetch()}
             >
-              ลองใหม่
+              {t("ลองใหม่")}
             </Button>
           }
         />
@@ -153,16 +157,16 @@ export default function OvertimeSelfPage() {
         <header className={styles.header}>
           <a className={styles.backLink} href="/attendance">
             <ArrowLeftOutlined />
-            <span>ลงเวลา</span>
+            <span>{t("ลงเวลา")}</span>
           </a>
           <div className={styles.brand}>
             <FieldTimeOutlined />
-            <span>ขอทำงานล่วงเวลา</span>
+            <span>{t("ขอทำงานล่วงเวลา")}</span>
           </div>
         </header>
 
         <section className={styles.formCard}>
-          <h2 className={styles.formTitle}>สร้างคำขอใหม่</h2>
+          <h2 className={styles.formTitle}>{t("สร้างคำขอใหม่")}</h2>
           <Form<FormValues>
             form={form}
             layout="vertical"
@@ -172,8 +176,8 @@ export default function OvertimeSelfPage() {
           >
             <Form.Item
               name="otDate"
-              label="วันที่ทำ OT"
-              rules={[{ required: true, message: "เลือกวันที่" }]}
+              label={t("วันที่ทำ OT")}
+              rules={[{ required: true, message: t("เลือกวันที่") }]}
             >
               <DatePicker
                 allowClear={false}
@@ -186,8 +190,8 @@ export default function OvertimeSelfPage() {
 
             <Form.Item
               name="hours"
-              label="จำนวนชั่วโมง"
-              rules={[{ required: true, message: "ระบุจำนวนชั่วโมง" }]}
+              label={t("จำนวนชั่วโมง")}
+              rules={[{ required: true, message: t("ระบุจำนวนชั่วโมง") }]}
             >
               <InputNumber
                 min={0.5}
@@ -195,7 +199,7 @@ export default function OvertimeSelfPage() {
                 step={0.5}
                 size="large"
                 className={styles.fullWidth}
-                suffix="ชม."
+                suffix={t("ชม.")}
                 onChange={(value) => setHours(value)}
               />
             </Form.Item>
@@ -214,23 +218,23 @@ export default function OvertimeSelfPage() {
                     setHours(value);
                   }}
                 >
-                  {value} ชม.
+                  {value} {t("ชม.")}
                 </button>
               ))}
             </div>
 
             <Form.Item
               name="reason"
-              label="เหตุผล"
+              label={t("เหตุผล")}
               rules={[
-                { required: true, message: "ระบุเหตุผล" },
-                { max: 2000, message: "ยาวเกินไป" },
+                { required: true, message: t("ระบุเหตุผล") },
+                { max: 2000, message: t("ยาวเกินไป") },
               ]}
             >
               <Input.TextArea
                 rows={3}
                 size="large"
-                placeholder="เช่น เร่งงานผลิตให้ทันส่งพรุ่งนี้"
+                placeholder={t("เช่น เร่งงานผลิตให้ทันส่งพรุ่งนี้")}
               />
             </Form.Item>
 
@@ -240,23 +244,23 @@ export default function OvertimeSelfPage() {
               disabled={createMutation.isPending}
             >
               <SendOutlined />
-              <span>ส่งคำขอ</span>
+              <span>{t("ส่งคำขอ")}</span>
             </button>
           </Form>
         </section>
 
         {pending.length > 0 ? (
           <div className={styles.pendingHint}>
-            มีคำขอรออนุมัติอยู่ {pending.length} รายการ
+            {t("มีคำขอรออนุมัติอยู่ {n} รายการ", { n: pending.length })}
           </div>
         ) : null}
 
         <section className={styles.historyCard}>
-          <h2 className={styles.historyTitle}>คำขอของฉัน</h2>
+          <h2 className={styles.historyTitle}>{t("คำขอของฉัน")}</h2>
           {rows.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="ยังไม่มีคำขอ OT"
+              description={t("ยังไม่มีคำขอ OT")}
             />
           ) : (
             <ul className={styles.historyList}>
@@ -265,16 +269,16 @@ export default function OvertimeSelfPage() {
                   <div className={styles.historyTop}>
                     <strong>{dayjs(row.otDate).format("DD/MM/YYYY")}</strong>
                     <span className={styles.historyHours}>
-                      {formatHours(row.hours)}
+                      {formatHours(row.hours, lang)}
                     </span>
                     <Tag color={OVERTIME_STATUS_COLOR[row.status]}>
-                      {OVERTIME_STATUS_LABEL[row.status] ?? row.status}
+                      {overtimeStatusLabel(row.status, lang)}
                     </Tag>
                   </div>
                   <p className={styles.historyReason}>{row.reason}</p>
                   {row.reviewRemark ? (
                     <p className={styles.historyRemark}>
-                      ผู้อนุมัติ: {row.reviewRemark}
+                      {t("ผู้อนุมัติ")}: {row.reviewRemark}
                     </p>
                   ) : null}
                   {row.status === "DRAFT" ? (
@@ -284,7 +288,7 @@ export default function OvertimeSelfPage() {
                       disabled={cancelMutation.isPending}
                       onClick={() => confirmCancel(row.id, row.otDate)}
                     >
-                      ยกเลิกคำขอ
+                      {t("ยกเลิกคำขอ")}
                     </button>
                   ) : null}
                 </li>

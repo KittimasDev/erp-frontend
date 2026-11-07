@@ -32,6 +32,8 @@ import {
   CompleteConversionModal,
   StartConversionModal,
 } from "./MaterialConversionActionModals";
+import { useT } from "@/lib/i18n/useT";
+import { tConvStatusLabel } from "@/types/material-conversion";
 import styles from "./MaterialConversionPage.module.css";
 import ChemicalUsagePanel from "./ChemicalUsagePanel";
 import RunDowntimePanel from "./RunDowntimePanel";
@@ -62,6 +64,7 @@ export default function MaterialConversionDetailPage({
 }: {
   runId: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const actions = useScreenActionPermissions("MATERIAL_CONVERSIONS");
   const detailQuery = useMaterialConversionQuery(runId);
@@ -80,14 +83,14 @@ export default function MaterialConversionDetailPage({
   const inputColumns: ColumnsType<MaterialConversionInputLine> = useMemo(
     () => [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "item",
         render: (_v, row) => (
           <div className={styles.cellStack}>
@@ -97,21 +100,21 @@ export default function MaterialConversionDetailPage({
         ),
       },
       {
-        title: "ตามแผน",
+        title: t("ตามแผน"),
         key: "planned",
         width: 130,
         align: "right",
         render: (_v, row) => `${fmtQty(row.plannedQty)} ${row.unitCode ?? ""}`,
       },
       {
-        title: "ตัดจริง",
+        title: t("ตัดจริง"),
         key: "actual",
         width: 130,
         align: "right",
         render: (_v, row) => `${fmtQty(row.actualQty)} ${row.unitCode ?? ""}`,
       },
       {
-        title: "น้ำหนักเทียบ",
+        title: t("น้ำหนักเทียบ"),
         key: "base",
         width: 130,
         align: "right",
@@ -119,51 +122,51 @@ export default function MaterialConversionDetailPage({
           row.baseQty ? (
             fmtQty(row.baseQty)
           ) : (
-            <Tooltip title="ไม่มีกฎแปลงหน่วยไปเป็นหน่วยเทียบร่วม">
-              <span className={styles.cellMuted}>แปลงไม่ได้</span>
+            <Tooltip title={t("ไม่มีกฎแปลงหน่วยไปเป็นหน่วยเทียบร่วม")}>
+              <span className={styles.cellMuted}>{t("แปลงไม่ได้")}</span>
             </Tooltip>
           ),
       },
       {
-        title: "ต้นทุน/หน่วย",
+        title: t("ต้นทุน/หน่วย"),
         key: "unitCost",
         width: 120,
         align: "right",
         render: (_v, row) => fmtMoney(row.unitCost),
       },
       {
-        title: "หมายเหตุ",
+        title: t("หมายเหตุ"),
         dataIndex: "remark",
         key: "remark",
         render: (value?: string) =>
           value ?? <span className={styles.cellMuted}>-</span>,
       },
     ],
-    [],
+    [t],
   );
 
   const outputColumns: ColumnsType<MaterialConversionOutputLine> = useMemo(
     () => [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
       {
-        title: "ชนิด",
+        title: t("ชนิด"),
         dataIndex: "outputType",
         key: "outputType",
         width: 130,
         render: (value: string) => (
           <Tag color={OUTPUT_TYPE_COLOR[value] ?? "default"}>
-            {OUTPUT_TYPE_LABEL[value] ?? value}
+            {t(OUTPUT_TYPE_LABEL[value] ?? value)}
           </Tag>
         ),
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "item",
         render: (_v, row) => (
           <div className={styles.cellStack}>
@@ -173,26 +176,26 @@ export default function MaterialConversionDetailPage({
         ),
       },
       {
-        title: "ตามแผน",
+        title: t("ตามแผน"),
         key: "planned",
         width: 120,
         align: "right",
         render: (_v, row) => `${fmtQty(row.plannedQty)} ${row.unitCode ?? ""}`,
       },
       {
-        title: "ได้จริง",
+        title: t("ได้จริง"),
         key: "actual",
         width: 120,
         align: "right",
         render: (_v, row) =>
           row.actualQty === undefined ? (
-            <span className={styles.cellMuted}>ยังไม่ปิดงาน</span>
+            <span className={styles.cellMuted}>{t("ยังไม่ปิดงาน")}</span>
           ) : (
             `${fmtQty(row.actualQty)} ${row.unitCode ?? ""}`
           ),
       },
       {
-        title: "น้ำหนักจาก",
+        title: t("น้ำหนักจาก"),
         key: "weightSource",
         width: 170,
         render: (_v, row) =>
@@ -200,7 +203,7 @@ export default function MaterialConversionDetailPage({
             <div className={styles.cellStack}>
               <span>
                 <Tag color={row.weightSource === "SCALE_OVERRIDE" ? "orange" : "green"}>
-                  {row.weightSource === "SCALE_OVERRIDE" ? "ตั๋วชั่ง (กรอกต่าง)" : "ตั๋วชั่ง"}
+                  {row.weightSource === "SCALE_OVERRIDE" ? t("ตั๋วชั่ง (กรอกต่าง)") : t("ตั๋วชั่ง")}
                 </Tag>
                 {row.floorScaleTicketNo}
               </span>
@@ -209,25 +212,25 @@ export default function MaterialConversionDetailPage({
               ) : null}
             </div>
           ) : row.weightSource === "MANUAL" ? (
-            <span className={styles.cellMuted}>กรอกมือ</span>
+            <span className={styles.cellMuted}>{t("กรอกมือ")}</span>
           ) : (
             <span className={styles.cellMuted}>-</span>
           ),
       },
       {
-        title: "ภาชนะบรรจุ",
+        title: t("ภาชนะบรรจุ"),
         key: "packaging",
         width: 170,
         render: (_v, row) =>
           row.packagingType ? (
             <div className={styles.cellStack}>
               <span>
-                {PACKAGING_TYPE_LABEL[row.packagingType] ?? row.packagingType}
+                {t(PACKAGING_TYPE_LABEL[row.packagingType] ?? row.packagingType)}
                 {row.packageCount ? ` × ${row.packageCount}` : ""}
               </span>
               {row.grossQty !== undefined ? (
                 <span className={styles.cellMuted}>
-                  รวม {fmtQty(row.grossQty)} − ภาชนะ {fmtQty(row.tareQty)}
+                  {t("รวม")} {fmtQty(row.grossQty)} − {t("ภาชนะ")} {fmtQty(row.tareQty)}
                 </span>
               ) : null}
             </div>
@@ -236,28 +239,28 @@ export default function MaterialConversionDetailPage({
           ),
       },
       {
-        title: "Lot ที่ได้",
+        title: t("Lot ที่ได้"),
         key: "lot",
         render: (_v, row) =>
           row.lotNo ? (
             <span>{row.lotNo}</span>
           ) : row.postsToStock ? (
-            <span className={styles.cellMuted}>ยังไม่สร้าง</span>
+            <span className={styles.cellMuted}>{t("ยังไม่สร้าง")}</span>
           ) : (
-            <Tooltip title="ของเสียไม่เข้าสต๊อก จึงไม่มี Lot">
-              <span className={styles.cellMuted}>ไม่เข้าสต๊อก</span>
+            <Tooltip title={t("ของเสียไม่เข้าสต๊อก จึงไม่มี Lot")}>
+              <span className={styles.cellMuted}>{t("ไม่เข้าสต๊อก")}</span>
             </Tooltip>
           ),
       },
       {
-        title: "มูลค่าที่ปันได้",
+        title: t("มูลค่าที่ปันได้"),
         key: "amount",
         width: 130,
         align: "right",
         render: (_v, row) => fmtMoney(row.amount),
       },
     ],
-    [],
+    [t],
   );
 
   if (!run) {
@@ -290,17 +293,17 @@ export default function MaterialConversionDetailPage({
             </div>
             <h2 className={masterStyles.pageTitle}>{run.runNo}</h2>
             <span className={masterStyles.pageSubtitle}>
-              วันที่ {run.runDate} · Batch {run.batchNo ?? "ไม่ระบุ"}{" "}
+              {t("วันที่")} {run.runDate} · Batch {run.batchNo ?? t("ไม่ระบุ")}{" "}
               <Tag
                 color={
                   MATERIAL_CONVERSION_STATUS_COLOR[run.status] ?? "default"
                 }
               >
-                {MATERIAL_CONVERSION_STATUS_LABEL[run.status] ?? run.status}
+                {tConvStatusLabel(MATERIAL_CONVERSION_STATUS_LABEL[run.status] ?? run.status)}
               </Tag>
             </span>
           </div>
-          <Button onClick={() => router.push(ROUTE_BASE)}>กลับ</Button>
+          <Button onClick={() => router.push(ROUTE_BASE)}>{t("กลับ")}</Button>
         </div>
 
         {run.stepSkipWarning ? (
@@ -308,7 +311,7 @@ export default function MaterialConversionDetailPage({
             className={styles.notice}
             type="warning"
             showIcon
-            title="ข้ามขั้นตอนในเส้นทาง"
+            title={t("ข้ามขั้นตอนในเส้นทาง")}
             description={run.stepSkipWarning}
           />
         ) : null}
@@ -318,7 +321,7 @@ export default function MaterialConversionDetailPage({
             className={styles.notice}
             type="error"
             showIcon
-            title="ผลผลิตมากกว่าวัตถุดิบ — เป็นไปไม่ได้ทางกายภาพ"
+            title={t("ผลผลิตมากกว่าวัตถุดิบ — เป็นไปไม่ได้ทางกายภาพ")}
             description={run.massBalanceMessage}
           />
         ) : run.massBalanceStatus === "NOT_COMPARABLE" ? (
@@ -326,7 +329,7 @@ export default function MaterialConversionDetailPage({
             className={styles.notice}
             type="warning"
             showIcon
-            title="รวมเป็นน้ำหนักเดียวกันไม่ได้"
+            title={t("รวมเป็นน้ำหนักเดียวกันไม่ได้")}
             description={run.massBalanceMessage}
           />
         ) : null}
@@ -335,17 +338,17 @@ export default function MaterialConversionDetailPage({
           <div className={styles.actionBar}>
             {isDraft ? (
               <Button type="primary" onClick={() => setStartOpen(true)}>
-                เริ่มงาน (ตัดสต๊อกวัตถุดิบ)
+                {t("เริ่มงาน (ตัดสต๊อกวัตถุดิบ)")}
               </Button>
             ) : null}
             {isInProgress ? (
               <Button type="primary" onClick={() => setCompleteOpen(true)}>
-                ปิดงาน (รับผลผลิตเข้าคลัง)
+                {t("ปิดงาน (รับผลผลิตเข้าคลัง)")}
               </Button>
             ) : null}
             {isDraft || isInProgress ? (
               <Button danger onClick={() => setCancelOpen(true)}>
-                ยกเลิกเอกสาร
+                {t("ยกเลิกเอกสาร")}
               </Button>
             ) : null}
           </div>
@@ -353,32 +356,32 @@ export default function MaterialConversionDetailPage({
 
         {isCompleted ? (
           <div className={styles.detailSection}>
-            <h3>สมดุลมวลและ Yield</h3>
+            <h3>{t("สมดุลมวลและ Yield")}</h3>
             <div className={styles.balanceRow}>
               <div className={styles.balanceCard}>
-                <span className={styles.balanceLabel}>วัตถุดิบเข้า</span>
+                <span className={styles.balanceLabel}>{t("วัตถุดิบเข้า")}</span>
                 <strong className={styles.balanceValue}>
                   {fmtQty(run.totalInputBaseQty)}
                 </strong>
                 <span className={styles.balanceHint}>
-                  {run.baseUnitCode ?? "หน่วยเทียบร่วม"}
+                  {run.baseUnitCode ?? t("หน่วยเทียบร่วม")}
                 </span>
               </div>
               <div className={styles.balanceCard}>
-                <span className={styles.balanceLabel}>ผลผลิตเข้าคลัง</span>
+                <span className={styles.balanceLabel}>{t("ผลผลิตเข้าคลัง")}</span>
                 <strong className={styles.balanceValue}>
                   {fmtQty(run.totalOutputBaseQty)}
                 </strong>
-                <span className={styles.balanceHint}>ไม่รวมของเสีย</span>
+                <span className={styles.balanceHint}>{t("ไม่รวมของเสีย")}</span>
               </div>
               <div className={styles.balanceCard}>
-                <span className={styles.balanceLabel}>ของเสีย</span>
+                <span className={styles.balanceLabel}>{t("ของเสีย")}</span>
                 <strong className={styles.balanceValue}>
                   {fmtQty(run.totalWasteBaseQty)}
                 </strong>
                 <span className={styles.balanceHint}>
                   {massBalanceDiff !== undefined
-                    ? `อธิบายไม่ได้ ${massBalanceDiff.toLocaleString("th-TH", { maximumFractionDigits: 3 })} (ความชื้น/แก๊ส)`
+                    ? t("อธิบายไม่ได้ {qty} (ความชื้น/แก๊ส)", { qty: massBalanceDiff.toLocaleString("th-TH", { maximumFractionDigits: 3 }) })
                     : "-"}
                 </span>
               </div>
@@ -388,12 +391,12 @@ export default function MaterialConversionDetailPage({
                 <span className={styles.balanceLabel}>Yield</span>
                 <strong className={styles.balanceValue}>
                   {run.yieldPercent === null
-                    ? "เทียบไม่ได้"
+                    ? t("เทียบไม่ได้")
                     : `${run.yieldPercent.toLocaleString("th-TH", { maximumFractionDigits: 2 })}%`}
                 </strong>
                 <span className={styles.balanceHint}>
                   {run.massBalanceStatus
-                    ? (MASS_BALANCE_STATUS_LABEL[run.massBalanceStatus] ??
+                    ? t(MASS_BALANCE_STATUS_LABEL[run.massBalanceStatus] ??
                       run.massBalanceStatus)
                     : "-"}
                 </span>
@@ -401,24 +404,24 @@ export default function MaterialConversionDetailPage({
             </div>
             <div className={styles.infoGrid}>
               <InfoItem
-                label="ต้นทุนวัตถุดิบรวม"
-                value={`${fmtMoney(run.totalInputCost)} บาท`}
+                label={t("ต้นทุนวัตถุดิบรวม")}
+                value={`${fmtMoney(run.totalInputCost)} ${t("บาท")}`}
               />
               <InfoItem
-                label="วิธีปันต้นทุน"
+                label={t("วิธีปันต้นทุน")}
                 value={
                   run.costAllocationBasis
-                    ? (COST_ALLOCATION_BASIS_LABEL[run.costAllocationBasis] ??
+                    ? t(COST_ALLOCATION_BASIS_LABEL[run.costAllocationBasis] ??
                       run.costAllocationBasis)
                     : "-"
                 }
               />
               <InfoItem
-                label="ปิดงานโดย"
+                label={t("ปิดงานโดย")}
                 value={run.completedBy?.displayName ?? "-"}
               />
               <InfoItem
-                label="เวลาปิดงาน"
+                label={t("เวลาปิดงาน")}
                 value={
                   run.completedAt
                     ? new Date(run.completedAt).toLocaleString("th-TH")
@@ -430,7 +433,7 @@ export default function MaterialConversionDetailPage({
         ) : null}
 
         <div className={styles.detailSection}>
-          <h3>วัตถุดิบเข้า ({run.inputs.length} รายการ)</h3>
+          <h3>{t("วัตถุดิบเข้า ({n} รายการ)", { n: run.inputs.length })}</h3>
           <Table
             className={masterStyles.dataTable}
             rowKey="id"
@@ -438,12 +441,12 @@ export default function MaterialConversionDetailPage({
             columns={inputColumns}
             dataSource={run.inputs}
             pagination={false}
-            locale={{ emptyText: "ไม่มีบรรทัดวัตถุดิบ" }}
+            locale={{ emptyText: t("ไม่มีบรรทัดวัตถุดิบ") }}
           />
         </div>
 
         <div className={styles.detailSection}>
-          <h3>ผลผลิตออก ({run.outputs.length} รายการ)</h3>
+          <h3>{t("ผลผลิตออก ({n} รายการ)", { n: run.outputs.length })}</h3>
           <Table
             className={masterStyles.dataTable}
             rowKey="id"
@@ -451,7 +454,7 @@ export default function MaterialConversionDetailPage({
             columns={outputColumns}
             dataSource={run.outputs}
             pagination={false}
-            locale={{ emptyText: "ไม่มีบรรทัดผลผลิต" }}
+            locale={{ emptyText: t("ไม่มีบรรทัดผลผลิต") }}
           />
         </div>
 
@@ -463,34 +466,34 @@ export default function MaterialConversionDetailPage({
         <RunDowntimePanel run={run} canEdit={canOperate} />
 
         <div className={styles.detailSection}>
-          <h3>เครื่องจักรและผู้ปฏิบัติงาน</h3>
+          <h3>{t("เครื่องจักรและผู้ปฏิบัติงาน")}</h3>
           <div className={styles.infoGrid}>
             <InfoItem
-              label="เครื่องจักร"
+              label={t("เครื่องจักร")}
               value={
                 run.equipment
                   ? `${run.equipment.equipmentCode} — ${run.equipment.name}`
-                  : "ไม่ได้ระบุ"
+                  : t("ไม่ได้ระบุ")
               }
             />
             <InfoItem
-              label="ผู้ปฏิบัติงาน"
+              label={t("ผู้ปฏิบัติงาน")}
               value={
                 run.operators && run.operators.length > 0
                   ? run.operators.map((o) => o.displayName).join(", ")
-                  : "ไม่ได้ระบุ"
+                  : t("ไม่ได้ระบุ")
               }
             />
           </div>
         </div>
 
         <div className={styles.detailSection}>
-          <h3>ผู้ดำเนินการ</h3>
+          <h3>{t("ผู้ดำเนินการ")}</h3>
           <div className={styles.infoGrid}>
-            <InfoItem label="ผู้สร้าง" value={run.requestedBy?.displayName ?? "-"} />
-            <InfoItem label="ผู้เริ่มงาน" value={run.startedBy?.displayName ?? "-"} />
+            <InfoItem label={t("ผู้สร้าง")} value={run.requestedBy?.displayName ?? "-"} />
+            <InfoItem label={t("ผู้เริ่มงาน")} value={run.startedBy?.displayName ?? "-"} />
             <InfoItem
-              label="เวลาเริ่มงาน"
+              label={t("เวลาเริ่มงาน")}
               value={
                 run.startedAt
                   ? new Date(run.startedAt).toLocaleString("th-TH")
@@ -498,7 +501,7 @@ export default function MaterialConversionDetailPage({
               }
             />
             <InfoItem
-              label="ผู้ยกเลิก"
+              label={t("ผู้ยกเลิก")}
               value={run.cancelledBy?.displayName ?? "-"}
             />
           </div>
@@ -507,7 +510,7 @@ export default function MaterialConversionDetailPage({
               style={{ marginTop: 12 }}
               type="error"
               showIcon
-              title="เหตุผลการยกเลิก"
+              title={t("เหตุผลการยกเลิก")}
               description={run.cancelReason}
             />
           ) : null}
@@ -515,7 +518,7 @@ export default function MaterialConversionDetailPage({
             <Alert
               style={{ marginTop: 12 }}
               type="info"
-              title="หมายเหตุ"
+              title={t("หมายเหตุ")}
               description={
                 <span style={{ whiteSpace: "pre-line" }}>{run.remark}</span>
               }

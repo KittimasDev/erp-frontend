@@ -2,6 +2,7 @@
 
 import { use } from "react";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 const FINANCE_PAGE_TITLES: Record<string, string> = {
   "": "การเงิน",
@@ -43,12 +44,13 @@ export default function FinanceSectionPage({
 }: {
   params: Promise<{ slug?: string[] }>;
 }) {
+  const t = useT();
   const { slug = [] } = use(params);
-  const title = FINANCE_PAGE_TITLES[slug.join("/")] ?? "การเงิน";
+  const title = t(FINANCE_PAGE_TITLES[slug.join("/")] ?? "การเงิน");
 
   return (
     <section>
-      <PageHeader title={title} subtitle="ยังไม่มีรายการ" />
+      <PageHeader title={title} subtitle={t("ยังไม่มีรายการ")} />
     </section>
   );
 }

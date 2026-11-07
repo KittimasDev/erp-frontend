@@ -3,7 +3,9 @@ import {
   calcLineAmount,
   resolveVatMode,
 } from "@/lib/money/vat-totals";
-import type { ApDocumentKind } from "@/types/ap-documents";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tNow } from "@/lib/i18n/useT";
+import { AP_EVENT_LABEL, type ApDocumentKind } from "@/types/ap-documents";
 
 /**
  * ใบตั้งหนี้กับใบเพิ่มหนี้ใช้หน้าจอชุดเดียวกัน ต่างกันที่ข้อความ เส้นทาง และรหัสสิทธิ์
@@ -41,6 +43,52 @@ export const AP_DOCUMENT_CONFIG: Record<ApDocumentKind, ApDocumentConfig> = {
   },
 };
 
+const AP_EVENT_LABEL_EN: Record<string, string> = {
+  CREATE: "Created AP invoice",
+  UPDATE: "Edited",
+  SUBMIT: "Submitted for approval",
+  APPROVE: "Approved",
+  REJECT: "Rejected",
+  CANCEL: "Cancelled",
+  ADJUST: "Debt adjustment",
+  ISSUE_PV: "Payment voucher issued (queued)",
+  CANCEL_PV_QUEUE: "Cancelled pending payment voucher item",
+  DEPOSIT_ALLOCATED: "Deposit allocated",
+  BILLING_RESERVE: "Added to billing note",
+  BILLING_RELEASE: "Billing amount released",
+  REFUND: "Refund received",
+  CANCEL_REFUND: "Refund cancelled",
+  USE_CREDIT: "Supplier credit applied",
+  CHARGE_ALLOCATED: "PO additional charges allocated",
+};
+
+/** ป้ายเหตุการณ์ในประวัติ AP ตามภาษา (แยกจากป้ายสถานะ เพราะ "แก้ไข"/"ยกเลิก" ในที่นี้คือการกระทำ) */
+export function apEventLabel(action: string): string {
+  if (getStoredLanguage() === "en" && AP_EVENT_LABEL_EN[action]) return AP_EVENT_LABEL_EN[action];
+  return AP_EVENT_LABEL[action] ?? action;
+}
+
+const AP_SHORT_LABEL_EN: Record<ApDocumentKind, string> = {
+  invoice: "AP invoice",
+  debitNote: "Debit note",
+  creditNote: "Credit note",
+};
+const AP_FULL_LABEL_EN: Record<ApDocumentKind, string> = {
+  invoice: "AP invoice",
+  debitNote: "AP debit note",
+  creditNote: "AP credit note",
+};
+
+/** ชื่อสั้นของเอกสาร (เอกพจน์ในภาษาอังกฤษ) ใช้ต่อท้ายประโยค เช่น "สร้าง{label}" */
+export function apShortLabel(config: ApDocumentConfig): string {
+  return getStoredLanguage() === "en" ? AP_SHORT_LABEL_EN[config.kind] : config.shortLabel;
+}
+
+/** ชื่อเต็มของเอกสาร (เอกพจน์ในภาษาอังกฤษ) */
+export function apFullLabel(config: ApDocumentConfig): string {
+  return getStoredLanguage() === "en" ? AP_FULL_LABEL_EN[config.kind] : config.title;
+}
+
 export const money = new Intl.NumberFormat("th-TH", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -51,7 +99,8 @@ export function formatThaiDate(value?: string | null) {
   if (!value) return "—";
   const [y, m, d] = value.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return value;
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y + 543}`;
+  const year = getStoredLanguage() === "en" ? y : y + 543;
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${year}`;
 }
 
 /**
@@ -81,12 +130,14 @@ export function termText(term: {
 }): string {
   switch (term.termType) {
     case "ADVANCE":
-      return term.advancePercent >= 100 ? "ชำระล่วงหน้าเต็มจำนวน" : `มัดจำ ${term.advancePercent}%`;
+      return term.advancePercent >= 100
+        ? tNow("ชำระล่วงหน้าเต็มจำนวน")
+        : tNow("มัดจำ {n}%", { n: term.advancePercent });
     case "ON_RECEIPT":
-      return "ชำระเมื่อรับสินค้า";
+      return tNow("ชำระเมื่อรับสินค้า");
     case "CREDIT":
-      return `เครดิต ${term.creditDays} วัน`;
+      return tNow("เครดิต {n} วัน", { n: term.creditDays });
     default:
-      return term.name ?? "ไม่ระบุเงื่อนไข";
+      return term.name ?? tNow("ไม่ระบุเงื่อนไข");
   }
 }

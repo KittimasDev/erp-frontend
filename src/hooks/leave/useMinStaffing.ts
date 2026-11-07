@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import { getMinStaffing, setMinStaffing } from "@/lib/api/leave";
 import { getAccessToken } from "@/lib/auth/token";
@@ -20,15 +22,16 @@ export function useMinStaffingQuery(enabled = true) {
 
 export function useSetMinStaffingMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (items: MinStaffingItem[]) => setMinStaffing(getAccessToken(), items),
     onSuccess: (res) => {
-      message.success(res.message || "บันทึกกำลังคนขั้นต่ำแล้ว");
+      message.success(res.message || t("บันทึกกำลังคนขั้นต่ำแล้ว"));
       void queryClient.invalidateQueries({ queryKey: minStaffingQueryKey });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : "บันทึกกำลังคนขั้นต่ำไม่สำเร็จ");
+      message.error(error instanceof ApiError ? error.message : t("บันทึกกำลังคนขั้นต่ำไม่สำเร็จ"));
     },
   });
 }

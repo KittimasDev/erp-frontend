@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { updateTaxRate } from "@/lib/api/tax-rates";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -17,6 +19,7 @@ type UpdateTaxRatePayload = {
 export function useUpdateTaxRateMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "tax-rates", "update"],
@@ -24,13 +27,13 @@ export function useUpdateTaxRateMutation() {
       updateTaxRate(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: taxRatesQueryKey });
-      message.success(response.message || "แก้ไขอัตราภาษีสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขอัตราภาษีสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "แก้ไขอัตราภาษีไม่สำเร็จ",
+          : t("แก้ไขอัตราภาษีไม่สำเร็จ"),
       );
     },
   });

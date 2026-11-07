@@ -45,6 +45,7 @@ import ProductionRoundDetailDrawer from "./ProductionRoundDetailDrawer";
 import { fmtDate } from "./schedule-dates";
 import styles from "./ProductionSchedulePage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 const STATUS_LABEL: Record<ScheduleDisplayStatus, string> = {
   PENDING: "รอยืนยัน",
@@ -71,6 +72,7 @@ const DAY_CLASS: Record<ScheduleDayType, string> = {
 };
 
 export default function ProductionSchedulePage() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { canAdd, canEdit, canApprove } = getScreenActionPermissions("PRODUCTION_SCHEDULE");
@@ -132,42 +134,42 @@ export default function ProductionSchedulePage() {
   const openCreate = () => setCreateOpen(true);
 
   const columns: ColumnsType<ScheduleRound> = [
-    { title: "ลำดับ", dataIndex: "sequence", width: 80 },
-    { title: "รหัสรอบ", dataIndex: "roundNo", width: 140 },
+    { title: t("ลำดับ"), dataIndex: "sequence", width: 80 },
+    { title: t("รหัสรอบ"), dataIndex: "roundNo", width: 140 },
     {
-      title: "ช่วงวันที่ผลิต",
+      title: t("ช่วงวันที่ผลิต"),
       render: (_value, row) => `${fmtDate(row.startDate)} – ${fmtDate(row.endDate)}`,
     },
     {
-      title: "ช่วง Shutdown",
+      title: t("ช่วง Shutdown"),
       render: (_value, row) =>
         `${fmtDate(row.shutdownStartDate)} – ${fmtDate(row.shutdownEndDate)}`,
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       width: 160,
       render: (_value, row) => (
-        <Tag color={STATUS_COLOR[row.displayStatus]}>{STATUS_LABEL[row.displayStatus]}</Tag>
+        <Tag color={STATUS_COLOR[row.displayStatus]}>{t(STATUS_LABEL[row.displayStatus])}</Tag>
       ),
     },
     {
-      title: "การจัดการ",
+      title: t("การจัดการ"),
       width: 240,
       render: (_value, row) => {
         const locked = row.displayStatus === "CONFIRMED";
         return (
           <Space size={0}>
             <Button type="link" onClick={() => setDetail(row)}>
-              ดูรายละเอียด
+              {t("ดูรายละเอียด")}
             </Button>
             {!locked && canEdit ? (
               <Button type="link" onClick={() => setEditing(row)}>
-                แก้ไข
+                {t("แก้ไข")}
               </Button>
             ) : null}
             {!locked && canApprove ? (
               <Button type="link" onClick={() => setConfirming(row)}>
-                ยืนยัน
+                {t("ยืนยัน")}
               </Button>
             ) : null}
           </Space>
@@ -181,10 +183,10 @@ export default function ProductionSchedulePage() {
       {calendarQuery.isLoading ? (
         <Spin />
       ) : totalRounds === 0 ? (
-        <Empty description="ยังไม่มีแผนการผลิต">
+        <Empty description={t("ยังไม่มีแผนการผลิต")}>
           {canAdd ? (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              สร้างแผนการผลิต
+              {t("สร้างแผนการผลิต")}
             </Button>
           ) : null}
         </Empty>
@@ -204,11 +206,11 @@ export default function ProductionSchedulePage() {
               const pending = !day.confirmed;
               return (
                 <Tooltip
-                  title={`${day.roundNo} · ${DAY_LABEL[day.dayType]} · ${STATUS_LABEL[day.displayStatus]}${day.note ? ` · ${day.note}` : ""}`}
+                  title={`${day.roundNo} · ${t(DAY_LABEL[day.dayType])} · ${t(STATUS_LABEL[day.displayStatus])}${day.note ? ` · ${day.note}` : ""}`}
                 >
                   <div className={`${styles.chip} ${pending ? styles.pending : DAY_CLASS[day.dayType]}`}>
                     <strong>{day.roundNo}</strong>
-                    <span>{DAY_LABEL[day.dayType]}</span>
+                    <span>{t(DAY_LABEL[day.dayType])}</span>
                   </div>
                 </Tooltip>
               );
@@ -216,16 +218,16 @@ export default function ProductionSchedulePage() {
           />
           <div className={styles.legend}>
             <span className={styles.legendItem}>
-              <i className={`${styles.swatch} ${styles.prod}`} /> วันผลิต (ยืนยันแล้ว)
+              <i className={`${styles.swatch} ${styles.prod}`} /> {t("วันผลิต (ยืนยันแล้ว)")}
             </span>
             <span className={styles.legendItem}>
-              <i className={`${styles.swatch} ${styles.shutdown}`} /> วัน Shutdown (ยืนยันแล้ว)
+              <i className={`${styles.swatch} ${styles.shutdown}`} /> {t("วัน Shutdown (ยืนยันแล้ว)")}
             </span>
             <span className={styles.legendItem}>
-              <i className={`${styles.swatch} ${styles.extra}`} /> วันหยุดผลิตเพิ่มเติม (ยืนยันแล้ว)
+              <i className={`${styles.swatch} ${styles.extra}`} /> {t("วันหยุดผลิตเพิ่มเติม (ยืนยันแล้ว)")}
             </span>
             <span className={styles.legendItem}>
-              <i className={`${styles.swatch} ${styles.pending}`} /> ยังไม่ยืนยัน (ป้ายบอกชนิดวัน)
+              <i className={`${styles.swatch} ${styles.pending}`} /> {t("ยังไม่ยืนยัน (ป้ายบอกชนิดวัน)")}
             </span>
           </div>
         </>
@@ -237,24 +239,24 @@ export default function ProductionSchedulePage() {
     <div style={{ display: "grid", gap: 12 }}>
       <Space wrap>
         <Input
-          aria-label="ค้นหารหัสรอบ"
+          aria-label={t("ค้นหารหัสรอบ")}
           allowClear
-          placeholder="ค้นหารหัสรอบ"
+          placeholder={t("ค้นหารหัสรอบ")}
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           style={{ width: 220 }}
         />
         <Select
-          aria-label="กรองสถานะ"
+          aria-label={t("กรองสถานะ")}
           allowClear
-          placeholder="สถานะ"
+          placeholder={t("สถานะ")}
           value={status || undefined}
           onChange={(value) => setStatus(value ?? "")}
           style={{ width: 200 }}
           options={[
-            { value: "PENDING", label: STATUS_LABEL.PENDING },
-            { value: "CONFIRMED", label: STATUS_LABEL.CONFIRMED },
-            { value: "OVERDUE", label: STATUS_LABEL.OVERDUE },
+            { value: "PENDING", label: t(STATUS_LABEL.PENDING) },
+            { value: "CONFIRMED", label: t(STATUS_LABEL.CONFIRMED) },
+            { value: "OVERDUE", label: t(STATUS_LABEL.OVERDUE) },
           ]}
         />
       </Space>
@@ -264,7 +266,7 @@ export default function ProductionSchedulePage() {
         dataSource={filtered}
         loading={roundsQuery.isLoading}
         pagination={{ pageSize: 12, showSizeChanger: false }}
-        locale={{ emptyText: items.length === 0 ? "ยังไม่มีแผนการผลิต" : "ไม่พบรอบตามเงื่อนไข" }}
+        locale={{ emptyText: items.length === 0 ? t("ยังไม่มีแผนการผลิต") : t("ไม่พบรอบตามเงื่อนไข") }}
       />
     </div>
   );
@@ -272,8 +274,8 @@ export default function ProductionSchedulePage() {
   return (
     <div className={styles.page}>
       <PageHeader
-        title="ตารางการผลิต"
-        subtitle="ดูภาพรวมรายเดือน วางแผนและยืนยันรอบการผลิต แล้วติดตามรอบผลิตจริงในแท็บเดียว · รหัสรอบเป็นรหัสเดียวกันตั้งแต่ตอนวางแผน"
+        title={t("ตารางการผลิต")}
+        subtitle={t("ดูภาพรวมรายเดือน วางแผนและยืนยันรอบการผลิต แล้วติดตามรอบผลิตจริงในแท็บเดียว · รหัสรอบเป็นรหัสเดียวกันตั้งแต่ตอนวางแผน")}
         actions={
           <>
           {canEdit ? (
@@ -284,12 +286,12 @@ export default function ProductionSchedulePage() {
                 setSettingsOpen(true);
               }}
             >
-              ตั้งค่าวันล่วงหน้า
+              {t("ตั้งค่าวันล่วงหน้า")}
             </Button>
           ) : null}
           {canAdd ? (
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              สร้างแผนการผลิต
+              {t("สร้างแผนการผลิต")}
             </Button>
           ) : null}
           </>
@@ -300,9 +302,9 @@ export default function ProductionSchedulePage() {
         <Alert
           type="warning"
           showIcon
-          title="มีรอบใกล้ถึงกำหนดยืนยัน"
+          title={t("มีรอบใกล้ถึงกำหนดยืนยัน")}
           description={near
-            .map((item) => `${item.roundNo} ภายใน ${fmtDate(item.confirmByDate)}`)
+            .map((item) => t("{no} ภายใน {date}", { no: item.roundNo, date: fmtDate(item.confirmByDate) }))
             .join(" · ")}
         />
       ) : null}
@@ -310,12 +312,12 @@ export default function ProductionSchedulePage() {
         <Alert
           type="error"
           showIcon
-          title="มีรอบเกินกำหนดยืนยัน"
+          title={t("มีรอบเกินกำหนดยืนยัน")}
           description={overdue.map((item) => item.roundNo).join(", ")}
         />
       ) : null}
       {canViewSchedule && (roundsQuery.isError || calendarQuery.isError) ? (
-        <Alert type="error" showIcon title="โหลดตารางการผลิตไม่สำเร็จ" />
+        <Alert type="error" showIcon title={t("โหลดตารางการผลิตไม่สำเร็จ")} />
       ) : null}
 
       <Tabs
@@ -324,12 +326,12 @@ export default function ProductionSchedulePage() {
         items={[
           ...(canViewSchedule
             ? [
-                { key: "calendar", label: "ตารางการผลิต", children: calendar },
-                { key: "rounds", label: "รายการรอบการผลิต", children: list },
+                { key: "calendar", label: t("ตารางการผลิต"), children: calendar },
+                { key: "rounds", label: t("รายการรอบการผลิต"), children: list },
               ]
             : []),
           ...(canViewCycles
-            ? [{ key: "cycles", label: "รอบผลิตจริง", children: <CyclesPanel /> }]
+            ? [{ key: "cycles", label: t("รอบผลิตจริง"), children: <CyclesPanel /> }]
             : []),
         ]}
       />
@@ -353,9 +355,9 @@ export default function ProductionSchedulePage() {
 
       <Modal
         open={settingsOpen}
-        title="กำหนดวันล่วงหน้าก่อนยืนยัน"
-        okText="บันทึก"
-        cancelText="ยกเลิก"
+        title={t("กำหนดวันล่วงหน้าก่อนยืนยัน")}
+        okText={t("บันทึก")}
+        cancelText={t("ยกเลิก")}
         destroyOnHidden
         confirmLoading={saveSettings.isPending}
         onCancel={() => setSettingsOpen(false)}
@@ -366,11 +368,11 @@ export default function ProductionSchedulePage() {
         }
       >
         <p>
-          ต้องยืนยันรอบก่อนวันเริ่มผลิตอย่างน้อยกี่วัน
-          {settingsQuery.data ? ` (ปัจจุบัน ${settingsQuery.data.data.confirmLeadDays} วัน)` : ""}
+          {t("ต้องยืนยันรอบก่อนวันเริ่มผลิตอย่างน้อยกี่วัน")}
+          {settingsQuery.data ? ` (${t("ปัจจุบัน {n} วัน", { n: settingsQuery.data.data.confirmLeadDays })})` : ""}
         </p>
         <InputNumber
-          aria-label="จำนวนวันล่วงหน้า"
+          aria-label={t("จำนวนวันล่วงหน้า")}
           min={1}
           max={180}
           precision={0}

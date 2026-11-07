@@ -24,6 +24,7 @@ import type {
   UnitConversion,
 } from "@/types/unit-conversions";
 import styles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type UnitConversionFormValues = {
   isGlobal: boolean;
@@ -63,6 +64,7 @@ export default function UnitConversionFormModal({
   onCancel,
   onSubmit,
 }: UnitConversionFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<UnitConversionFormValues>();
 
   /*
@@ -101,7 +103,7 @@ export default function UnitConversionFormModal({
               setQuickUnitOpen(true);
             }}
           >
-            เพิ่มหน่วยนับใหม่
+            {t("เพิ่มหน่วยนับใหม่")}
           </Button>
         </>
       ) : null}
@@ -237,9 +239,9 @@ export default function UnitConversionFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
       okButtonProps={{ disabled: Boolean(duplicateRule) }}
-      cancelText="ยกเลิก"
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={620}
       centered
@@ -252,11 +254,10 @@ export default function UnitConversionFormModal({
             {isCreateMode ? "CREATE RULE" : "EDIT RULE"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มกฎแปลงหน่วย" : "แก้ไขกฎแปลงหน่วย"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มกฎแปลงหน่วย") : t("แก้ไขกฎแปลงหน่วย")}</h2>
 
           <p>
-            กำหนดว่า 1 หน่วยต้นทาง เท่ากับกี่หน่วยปลายทาง
-            ทิศย้อนกลับระบบคำนวณให้เองไม่ต้องตั้งซ้ำ
+            {t("กำหนดว่า 1 หน่วยต้นทาง เท่ากับกี่หน่วยปลายทาง ทิศย้อนกลับระบบคำนวณให้เองไม่ต้องตั้งซ้ำ")}
           </p>
         </div>
       </div>
@@ -271,9 +272,9 @@ export default function UnitConversionFormModal({
           <span className={styles.sectionLine} />
 
           <div>
-            <strong>ขอบเขตของกฎ</strong>
+            <strong>{t("ขอบเขตของกฎ")}</strong>
             <span>
-              กฎกลางใช้ได้ทุกสินค้า ส่วนกฎรายสินค้าจะทับกฎกลางคู่หน่วยเดียวกัน
+              {t("กฎกลางใช้ได้ทุกสินค้า ส่วนกฎรายสินค้าจะทับกฎกลางคู่หน่วยเดียวกัน")}
             </span>
           </div>
         </div>
@@ -283,19 +284,18 @@ export default function UnitConversionFormModal({
             <div className={styles.statusIcon}>●</div>
 
             <div>
-              <strong>ใช้กับทุกสินค้า (กฎกลาง)</strong>
+              <strong>{t("ใช้กับทุกสินค้า (กฎกลาง)")}</strong>
 
               <span>
-                เปิดไว้สำหรับกฎฟิสิกส์ เช่น 1 กิโลกรัม = 1000 กรัม ·
-                ปิดเมื่อกฎขึ้นกับสินค้า เช่น ยางแผ่น 1 มัด = 25 กิโลกรัม
+                {t("เปิดไว้สำหรับกฎฟิสิกส์ เช่น 1 กิโลกรัม = 1000 กรัม · ปิดเมื่อกฎขึ้นกับสินค้า เช่น ยางแผ่น 1 มัด = 25 กิโลกรัม")}
               </span>
             </div>
           </div>
 
           <Form.Item name="isGlobal" valuePropName="checked" noStyle>
             <Switch
-              checkedChildren="กลาง"
-              unCheckedChildren="รายสินค้า"
+              checkedChildren={t("กลาง")}
+              unCheckedChildren={t("รายสินค้า")}
               disabled={mode === "edit"}
             />
           </Form.Item>
@@ -303,12 +303,12 @@ export default function UnitConversionFormModal({
 
         {!isGlobal ? (
           <Form.Item
-            label="สินค้า"
+            label={t("สินค้า")}
             name="itemId"
-            rules={[{ required: true, message: "กรุณาเลือกสินค้า" }]}
+            rules={[{ required: true, message: t("กรุณาเลือกสินค้า") }]}
             extra={
               mode === "edit"
-                ? "ย้ายกฎข้ามสินค้าไม่ได้ — ถ้าต้องเปลี่ยนให้ลบแล้วสร้างใหม่"
+                ? t("ย้ายกฎข้ามสินค้าไม่ได้ — ถ้าต้องเปลี่ยนให้ลบแล้วสร้างใหม่")
                 : undefined
             }
           >
@@ -316,7 +316,7 @@ export default function UnitConversionFormModal({
               size="large"
               showSearch
               optionFilterProp="label"
-              placeholder="เลือกสินค้าที่กฎนี้ใช้"
+              placeholder={t("เลือกสินค้าที่กฎนี้ใช้")}
               loading={itemsQuery.isLoading}
               options={itemOptions}
               disabled={mode === "edit"}
@@ -328,22 +328,22 @@ export default function UnitConversionFormModal({
           <span className={styles.sectionLine} />
 
           <div>
-            <strong>ตัวคูณ</strong>
-            <span>1 หน่วยต้นทาง เท่ากับกี่หน่วยปลายทาง</span>
+            <strong>{t("ตัวคูณ")}</strong>
+            <span>{t("1 หน่วยต้นทาง เท่ากับกี่หน่วยปลายทาง")}</span>
           </div>
         </div>
 
         <div className={styles.formGrid}>
           <Form.Item
-            label="หน่วยต้นทาง"
+            label={t("หน่วยต้นทาง")}
             name="fromUnitId"
-            rules={[{ required: true, message: "กรุณาเลือกหน่วยต้นทาง" }]}
+            rules={[{ required: true, message: t("กรุณาเลือกหน่วยต้นทาง") }]}
           >
             <Select
               size="large"
               showSearch
               optionFilterProp="label"
-              placeholder="เช่น กิโลกรัม"
+              placeholder={t("เช่น กิโลกรัม")}
               loading={unitsQuery.isLoading}
               options={unitOptions}
               popupRender={(menu) => renderUnitDropdown("fromUnitId", menu)}
@@ -351,15 +351,15 @@ export default function UnitConversionFormModal({
           </Form.Item>
 
           <Form.Item
-            label="หน่วยปลายทาง"
+            label={t("หน่วยปลายทาง")}
             name="toUnitId"
             dependencies={["fromUnitId"]}
             rules={[
-              { required: true, message: "กรุณาเลือกหน่วยปลายทาง" },
+              { required: true, message: t("กรุณาเลือกหน่วยปลายทาง") },
               {
                 validator: async (_, value: string) => {
                   if (value && value === form.getFieldValue("fromUnitId")) {
-                    throw new Error("หน่วยต้นทางกับปลายทางต้องไม่ใช่หน่วยเดียวกัน");
+                    throw new Error(t("หน่วยต้นทางกับปลายทางต้องไม่ใช่หน่วยเดียวกัน"));
                   }
                 },
               },
@@ -369,7 +369,7 @@ export default function UnitConversionFormModal({
               size="large"
               showSearch
               optionFilterProp="label"
-              placeholder="เช่น กรัม"
+              placeholder={t("เช่น กรัม")}
               loading={unitsQuery.isLoading}
               options={unitOptions}
               popupRender={(menu) => renderUnitDropdown("toUnitId", menu)}
@@ -378,14 +378,14 @@ export default function UnitConversionFormModal({
         </div>
 
         <Form.Item
-          label="ตัวคูณ"
+          label={t("ตัวคูณ")}
           name="factor"
           rules={[
-            { required: true, message: "กรุณากรอกตัวคูณ" },
+            { required: true, message: t("กรุณากรอกตัวคูณ") },
             {
               validator: async (_, value: number | null) => {
                 if (value !== null && value !== undefined && value <= 0) {
-                  throw new Error("ตัวคูณต้องมากกว่า 0");
+                  throw new Error(t("ตัวคูณต้องมากกว่า 0"));
                 }
               },
             },
@@ -397,7 +397,7 @@ export default function UnitConversionFormModal({
             min={0}
             step={1}
             precision={6}
-            placeholder="เช่น 1000"
+            placeholder={t("เช่น 1000")}
           />
         </Form.Item>
 
@@ -416,16 +416,15 @@ export default function UnitConversionFormModal({
 
         {duplicateRule ? (
           <Typography.Text type="danger">
-            มีกฎแปลงระหว่างหน่วยคู่นี้อยู่แล้วในขอบเขตเดียวกัน
-            กรุณาแก้กฎเดิมแทนการสร้างใหม่
+            {t("มีกฎแปลงระหว่างหน่วยคู่นี้อยู่แล้วในขอบเขตเดียวกัน กรุณาแก้กฎเดิมแทนการสร้างใหม่")}
           </Typography.Text>
         ) : null}
 
-        <Form.Item label="หมายเหตุ" name="remark">
+        <Form.Item label={t("หมายเหตุ")} name="remark">
           <Input.TextArea
             rows={2}
             maxLength={500}
-            placeholder="เช่น อ้างอิงข้อตกลงกับผู้ขาย"
+            placeholder={t("เช่น อ้างอิงข้อตกลงกับผู้ขาย")}
           />
         </Form.Item>
 
@@ -434,14 +433,14 @@ export default function UnitConversionFormModal({
             <div className={styles.statusIcon}>●</div>
 
             <div>
-              <strong>สถานะใช้งาน</strong>
+              <strong>{t("สถานะใช้งาน")}</strong>
 
-              <span>ปิดไว้เพื่อหยุดใช้กฎนี้ชั่วคราวโดยไม่ต้องลบ</span>
+              <span>{t("ปิดไว้เพื่อหยุดใช้กฎนี้ชั่วคราวโดยไม่ต้องลบ")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

@@ -7,6 +7,8 @@ import dayjs, { type Dayjs } from "dayjs";
 import PageHeader from "@/components/common/PageHeader";
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type { DashboardRange } from "@/types/dashboards";
 import { downloadTabularReport, type TabularReport } from "@/utils/downloadTabularReport";
 
@@ -24,7 +26,7 @@ export const DASH_COLORS = {
 
 export function fmt(value?: number | null, digits = 2) {
   if (value === null || value === undefined) return "—";
-  return value.toLocaleString("th-TH", { maximumFractionDigits: digits });
+  return value.toLocaleString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", { maximumFractionDigits: digits });
 }
 export const fmtKg = (v?: number | null) => (v === null || v === undefined ? "—" : `${fmt(v, 0)} kg`);
 export const fmtBaht = (v?: number | null) => (v === null || v === undefined ? "—" : `฿${fmt(v, 0)}`);
@@ -50,6 +52,7 @@ export function DashboardExportButtons({
   screenCode: string;
   build: () => TabularReport | null;
 }) {
+  const t = useT();
   const { message } = App.useApp();
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const canExport = !isMatrixPermissionMode() || hasPermission(`${screenCode}.EXPORT`);
@@ -58,14 +61,14 @@ export function DashboardExportButtons({
   const run = async (format: ReportExportFormat) => {
     const report = build();
     if (!report) {
-      message.warning("ยังไม่มีข้อมูลให้ส่งออก");
+      message.warning(t("ยังไม่มีข้อมูลให้ส่งออก"));
       return;
     }
     setDownloading(format);
     try {
       await downloadTabularReport(format, report);
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : "ส่งออกรายงานไม่สำเร็จ");
+      message.error(e instanceof Error && e.message ? e.message : t("ส่งออกรายงานไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -97,6 +100,7 @@ export function DashboardShell({
   extra?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <section className={styles.page}>
       <PageHeader
@@ -107,7 +111,7 @@ export function DashboardShell({
           range && onRangeChange ? (
             <>
               <div className={styles.field}>
-                <span>ช่วงวันที่ (กว้างสุด 90 วัน)</span>
+                <span>{t("ช่วงวันที่ (กว้างสุด 90 วัน)")}</span>
                 <DatePicker.RangePicker
                   value={range}
                   allowClear={false}
@@ -127,7 +131,7 @@ export function DashboardShell({
         <Alert
           type="error"
           showIcon
-          title="โหลดข้อมูลแดชบอร์ดไม่สำเร็จ"
+          title={t("โหลดข้อมูลแดชบอร์ดไม่สำเร็จ")}
           description={error instanceof Error ? error.message : undefined}
         />
       ) : null}

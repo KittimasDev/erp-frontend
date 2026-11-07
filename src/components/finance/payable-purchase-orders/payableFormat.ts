@@ -1,4 +1,6 @@
-import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
+import { formatThaiDate as formatThaiDateBe, money } from "@/components/ap-documents/apDocumentConfig";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { translate, type Language } from "@/lib/i18n/translate";
 import {
   PAYABLE_ITEM_STATUS_LABEL,
   type PayablePaymentTerm,
@@ -17,24 +19,35 @@ export const TERM_TYPE_FILTER_LABEL: Record<PayableTermTypeFilter, string> = {
   NONE: "ไม่ระบุเงื่อนไข",
 };
 
-/** "มัดจำ 30%" / "ชำระล่วงหน้า 100%" / "ชำระเมื่อรับสินค้า" / "เครดิต 30 วัน" */
-export function describeTerm(term: PayablePaymentTerm | null) {
-  if (!term) return "ไม่ระบุเงื่อนไข";
+/** "มัดจำ 30%" / "ชำระล่วงหน้า 100%" / "ชำระเมื่อรับสินค้า" / "เครดิต 30 วัน" — lang ไม่ส่ง = ภาษาปัจจุบัน */
+export function describeTerm(term: PayablePaymentTerm | null, lang?: Language) {
+  const tr = (thai: string, params?: Record<string, string | number>) =>
+    translate(lang ?? getStoredLanguage(), thai, params);
+  if (!term) return tr("ไม่ระบุเงื่อนไข");
   switch (term.termType) {
     case "ADVANCE":
       return term.advancePercent >= 100
-        ? "ชำระล่วงหน้าเต็มจำนวน"
-        : `มัดจำ ${term.advancePercent}%`;
+        ? tr("ชำระล่วงหน้าเต็มจำนวน")
+        : tr("มัดจำ {n}%", { n: term.advancePercent });
     case "ON_RECEIPT":
-      return "ชำระเมื่อรับสินค้า";
+      return tr("ชำระเมื่อรับสินค้า");
     case "CREDIT":
-      return `เครดิต ${term.creditDays} วัน`;
+      return tr("เครดิต {n} วัน", { n: term.creditDays });
     default:
       return term.name;
   }
 }
 
-export { formatThaiDate, money };
+/** วันที่ dd/mm/yyyy — ไทย = พ.ศ., อังกฤษ = ค.ศ. */
+export function formatThaiDate(value?: string | null) {
+  if (getStoredLanguage() !== "en") return formatThaiDateBe(value);
+  if (!value) return "—";
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return value;
+  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+}
+
+export { money };
 
 export function toPayableSheet(
   rows: PayablePurchaseOrder[],
@@ -42,7 +55,7 @@ export function toPayableSheet(
 ): TabularReport {
   const now = new Date();
   const meta = [
-    `วันที่ออกรายงาน: ${formatThaiDate(now.toISOString().slice(0, 10))}`,
+    `วันที่ออกรายงาน: ${formatThaiDateBe(now.toISOString().slice(0, 10))}`,
     ...options.filters,
     options.truncated
       ? `ทั้งหมด ${options.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ ${rows.length.toLocaleString("th-TH")} รายการแรก`
@@ -72,19 +85,19 @@ export function toPayableSheet(
     rows: rows.map((row, index) => [
       String(index + 1),
       row.poNo,
-      formatThaiDate(row.poDate),
+      formatThaiDateBe(row.poDate),
       row.creditor?.creditorCode ?? "",
       row.creditor?.nameTh ?? "",
       row.paymentTerm
-        ? `${describeTerm(row.paymentTerm)} (${row.paymentTerm.name})`
-        : describeTerm(null),
+        ? `${describeTerm(row.paymentTerm, "th")} (${row.paymentTerm.name})`
+        : describeTerm(null, "th"),
       money.format(row.totalAmount),
       money.format(row.goodsAmount),
       money.format(row.extraChargesAmount),
       money.format(row.extraChargesInvoiced),
       money.format(row.extraChargesRemaining),
       money.format(row.amountDue),
-      formatThaiDate(row.dueDate),
+      formatThaiDateBe(row.dueDate),
       PAYABLE_ITEM_STATUS_LABEL[row.payableStatus as PayableItemStatus] ??
         row.payableStatus,
     ]),

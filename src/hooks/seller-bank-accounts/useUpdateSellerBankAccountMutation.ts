@@ -6,6 +6,7 @@ import { App } from "antd";
 import { updateSellerBankAccount } from "@/lib/api/seller-bank-accounts";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type { UpdateSellerBankAccountRequest } from "@/types/seller-bank-accounts";
 import { sellerBankAccountsQueryKey } from "./useSellerBankAccountsQuery";
 
@@ -17,6 +18,7 @@ type UpdateSellerBankAccountPayload = {
 export function useUpdateSellerBankAccountMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "seller-bank-accounts", "update"],
@@ -27,14 +29,14 @@ export function useUpdateSellerBankAccountMutation() {
         queryKey: sellerBankAccountsQueryKey,
       });
       message.success(
-        response.message || "แก้ไขบัญชีธนาคารผู้ขายสำเร็จแล้ว",
+        response.message || t("แก้ไขบัญชีธนาคารผู้ขายสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "แก้ไขบัญชีธนาคารผู้ขายไม่สำเร็จ",
+          : t("แก้ไขบัญชีธนาคารผู้ขายไม่สำเร็จ"),
       );
     },
   });

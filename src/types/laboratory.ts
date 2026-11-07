@@ -264,3 +264,29 @@ export type LabSampleQrCodeApiResponse = {
   message: string;
   data: LabSampleQrCode;
 };
+
+/** ป้ายสถานะตัวอย่างตามภาษา — ไทยใช้ LAB_SAMPLE_STATUS_LABEL เดิม ("ปฏิเสธ"/"ลงทะเบียน" ชนกับคำกริยาใน dictionary) */
+export function labSampleStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = {
+      REGISTERED: "Registered",
+      TESTING: "Testing",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+    };
+    return en[status] ?? status;
+  }
+  return LAB_SAMPLE_STATUS_LABEL[status] ?? status;
+}
+
+/** ป้ายสถานะ COA ตามภาษา — "ยกเลิก" ในไทยคือ Voided ไม่ใช่ปุ่ม Cancel */
+export function labCoaStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") return status === "VOIDED" ? "Voided" : "Active";
+  return status === "VOIDED" ? "ยกเลิก" : "ใช้งานอยู่";
+}
+
+/** ป้ายสถานะ Spec ตามภาษา — "ปิด" = ปิดใช้งาน (Inactive) ไม่ใช่ปุ่ม Close */
+export function labSpecActiveLabel(isActive: boolean, lang: "th" | "en"): string {
+  if (lang === "en") return isActive ? "Active" : "Inactive";
+  return isActive ? "ใช้งาน" : "ปิด";
+}

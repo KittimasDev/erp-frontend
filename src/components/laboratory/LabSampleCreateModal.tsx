@@ -5,6 +5,7 @@ import { Alert, DatePicker, Form, Input, Modal, Select } from "antd";
 import dayjs from "dayjs";
 
 import { useCreateLabSampleMutation } from "@/hooks/laboratory/useLaboratoryQuery";
+import { useT } from "@/lib/i18n/useT";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import {
   LAB_SAMPLE_TYPE_ITEM_CATEGORY,
@@ -27,6 +28,7 @@ export default function LabSampleCreateModal({
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<Values>();
   const create = useCreateLabSampleMutation();
   const [search, setSearch] = useState("");
@@ -61,9 +63,9 @@ export default function LabSampleCreateModal({
   return (
     <Modal
       open
-      title="ลงทะเบียนตัวอย่างส่งตรวจ"
-      okText="ลงทะเบียน"
-      cancelText="ยกเลิก"
+      title={t("ลงทะเบียนตัวอย่างส่งตรวจ")}
+      okText={t("ลงทะเบียน")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={create.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -92,29 +94,31 @@ export default function LabSampleCreateModal({
       >
         <Form.Item
           name="sampleType"
-          label="ประเภทตัวอย่าง"
-          rules={[{ required: true, message: "เลือกประเภทตัวอย่าง" }]}
+          label={t("ประเภทตัวอย่าง")}
+          rules={[{ required: true, message: t("เลือกประเภทตัวอย่าง") }]}
         >
           <Select
-            placeholder="เลือกประเภท"
+            placeholder={t("เลือกประเภท")}
             options={LAB_SAMPLE_TYPES.map((value) => ({
               value,
-              label: LAB_SAMPLE_TYPE_LABEL[value],
+              label: t(LAB_SAMPLE_TYPE_LABEL[value]),
             }))}
             onChange={() => form.setFieldValue("lotId", undefined)}
           />
         </Form.Item>
         <Form.Item
           name="collectedDate"
-          label="วันที่เก็บตัวอย่าง"
+          label={t("วันที่เก็บตัวอย่าง")}
           rules={[{ required: true }]}
         >
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
         <Form.Item
           name="lotId"
-          label="Lot ต้นทาง"
-          extra="ค้นด้วยเลข Lot / ชื่อสินค้า / Batch — เลือกแล้วระบบดึงสินค้าและเลข Batch ให้ · ผล Lab อนุมัติจะปล่อย Lot ที่รอ QC ให้อัตโนมัติ"
+          label={t("Lot ต้นทาง")}
+          extra={t(
+            "ค้นด้วยเลข Lot / ชื่อสินค้า / Batch — เลือกแล้วระบบดึงสินค้าและเลข Batch ให้ · ผล Lab อนุมัติจะปล่อย Lot ที่รอ QC ให้อัตโนมัติ",
+          )}
         >
           <Select
             allowClear
@@ -122,7 +126,7 @@ export default function LabSampleCreateModal({
             filterOption={false}
             onSearch={setSearch}
             loading={lotsQuery.isFetching}
-            placeholder="ค้นหา Lot"
+            placeholder={t("ค้นหา Lot")}
             options={lotOptions}
           />
         </Form.Item>
@@ -133,10 +137,12 @@ export default function LabSampleCreateModal({
             style={{ marginBottom: 12 }}
             type="info"
             showIcon
-            title={`Lot นี้ QC สถานะ ${selected.qcStatus} แล้ว — ผล Lab จะไม่เปลี่ยนสถานะ QC ของ Lot`}
+            title={t("Lot นี้ QC สถานะ {status} แล้ว — ผล Lab จะไม่เปลี่ยนสถานะ QC ของ Lot", {
+              status: selected.qcStatus,
+            })}
           />
         ) : null}
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
       </Form>

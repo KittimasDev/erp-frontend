@@ -25,6 +25,7 @@ import {
 } from "@/types/material-conversion";
 import { OUTPUT_VARIANCE_WARN_PERCENT } from "@/lib/production/constants";
 import { useConversionScaleTicketsQuery } from "@/hooks/material-conversions/useMaterialConversionQueries";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./MaterialConversionPage.module.css";
 
 const { Text } = Typography;
@@ -57,13 +58,14 @@ type StartModalProps = {
 };
 
 export function StartConversionModal(props: StartModalProps) {
+  const t = useT();
   // destroyOnHidden + ตั้งค่าเริ่มต้นใน useState ตอน mount — ไม่ใช้ effect มา sync
   // สิ่งที่ผู้ใช้พิมพ์อยู่จึงไม่ถูกล้างเมื่อข้อมูลเบื้องหลัง refetch
   return (
     <Modal
       open={props.open}
       destroyOnHidden
-      title="เริ่มงาน — ตัดสต๊อกวัตถุดิบจริง"
+      title={t("เริ่มงาน — ตัดสต๊อกวัตถุดิบจริง")}
       footer={null}
       onCancel={props.onCancel}
       width={720}
@@ -79,6 +81,7 @@ function StartModalBody({
   onCancel,
   onConfirm,
 }: StartModalProps) {
+  const t = useT();
   const [quantities, setQuantities] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     for (const line of run.inputs) {
@@ -108,12 +111,12 @@ function StartModalBody({
         className={styles.notice}
         type="warning"
         showIcon
-        title="กดแล้วสต๊อกจะถูกตัดทันที"
-        description="ยกเลิกกลางคันได้ แต่วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าคลัง — ของเข้าเครื่องไปแล้ว ถ้ามีของเหลือจริงต้องเปิดใบปรับปรุงสต๊อกซึ่งมีคนอนุมัติ"
+        title={t("กดแล้วสต๊อกจะถูกตัดทันที")}
+        description={t("ยกเลิกกลางคันได้ แต่วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าคลัง — ของเข้าเครื่องไปแล้ว ถ้ามีของเหลือจริงต้องเปิดใบปรับปรุงสต๊อกซึ่งมีคนอนุมัติ")}
       />
 
       <Text type="secondary" style={{ display: "block", marginBottom: 8 }}>
-        ยืนยันจำนวนที่ใช้จริงต่อบรรทัด — ใส่ 0 ได้ หมายถึงวางแผนไว้แต่ไม่ได้ใช้บรรทัดนั้น
+        {t("ยืนยันจำนวนที่ใช้จริงต่อบรรทัด — ใส่ 0 ได้ หมายถึงวางแผนไว้แต่ไม่ได้ใช้บรรทัดนั้น")}
       </Text>
 
       {run.inputs.map((line) => (
@@ -121,7 +124,7 @@ function StartModalBody({
           <div className={styles.modalLineName}>
             <strong>{line.itemNameTh ?? line.itemCode ?? "-"}</strong>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              ตามแผน {fmtQty(line.plannedQty)} {line.unitCode ?? ""}
+              {t("ตามแผน")} {fmtQty(line.plannedQty)} {line.unitCode ?? ""}
             </Text>
           </div>
           <Space.Compact style={{ width: "100%" }}>
@@ -142,7 +145,7 @@ function StartModalBody({
             ) : null}
           </Space.Compact>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            {line.lotId ? "มี Lot ระบุแล้ว" : "ไม่มี Lot — ตัดสต๊อกไม่ได้"}
+            {line.lotId ? t("มี Lot ระบุแล้ว") : t("ไม่มี Lot — ตัดสต๊อกไม่ได้")}
           </Text>
         </div>
       ))}
@@ -152,8 +155,8 @@ function StartModalBody({
           style={{ marginTop: 12 }}
           type="warning"
           showIcon
-          title={`ต่างจากแผน ${variancePercent.toFixed(1)}%`}
-          description="บันทึกต่อได้ แต่ควรใส่เหตุผลไว้ในหมายเหตุเพื่อให้คนตรวจย้อนหลังเข้าใจ"
+          title={t("ต่างจากแผน {pct}%", { pct: variancePercent.toFixed(1) })}
+          description={t("บันทึกต่อได้ แต่ควรใส่เหตุผลไว้ในหมายเหตุเพื่อให้คนตรวจย้อนหลังเข้าใจ")}
         />
       ) : null}
 
@@ -162,13 +165,13 @@ function StartModalBody({
         rows={2}
         maxLength={500}
         showCount
-        placeholder="หมายเหตุ เช่น ยางเปียกกว่าที่คิด ใช้เพิ่ม"
+        placeholder={t("หมายเหตุ เช่น ยางเปียกกว่าที่คิด ใช้เพิ่ม")}
         value={remark}
         onChange={(e) => setRemark(e.target.value)}
       />
 
       <div className={styles.formActions}>
-        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button onClick={onCancel}>{t("ยกเลิก")}</Button>
         <Button
           type="primary"
           loading={loading}
@@ -182,7 +185,7 @@ function StartModalBody({
             })
           }
         >
-          ยืนยันและตัดสต๊อก
+          {t("ยืนยันและตัดสต๊อก")}
         </Button>
       </div>
     </>
@@ -215,11 +218,12 @@ type PackState = {
 };
 
 export function CompleteConversionModal(props: CompleteModalProps) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
       destroyOnHidden
-      title="ปิดงาน — รับผลผลิตทุกบรรทัดเข้าคลัง"
+      title={t("ปิดงาน — รับผลผลิตทุกบรรทัดเข้าคลัง")}
       footer={null}
       onCancel={props.onCancel}
       width={760}
@@ -235,6 +239,7 @@ function CompleteModalBody({
   onCancel,
   onConfirm,
 }: CompleteModalProps) {
+  const t = useT();
   const [quantities, setQuantities] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     for (const line of run.outputs) {
@@ -332,8 +337,7 @@ function CompleteModalBody({
   return (
     <>
       <Text type="secondary" style={{ display: "block", marginBottom: 10 }}>
-        กรอกจำนวนที่ชั่งได้จริง — แต่ละบรรทัดที่เข้าสต๊อกจะได้ Lot ของตัวเอง
-        พร้อมต้นทุนที่ปันมาจากวัตถุดิบตามน้ำหนัก
+        {t("กรอกจำนวนที่ชั่งได้จริง — แต่ละบรรทัดที่เข้าสต๊อกจะได้ Lot ของตัวเอง พร้อมต้นทุนที่ปันมาจากวัตถุดิบตามน้ำหนัก")}
       </Text>
 
       {run.outputs.map((line) => (
@@ -349,7 +353,7 @@ function CompleteModalBody({
             <strong>{line.itemNameTh ?? line.itemCode ?? "-"}</strong>
             <span>
               <Tag color={OUTPUT_TYPE_COLOR[line.outputType]}>
-                {OUTPUT_TYPE_LABEL[line.outputType] ?? line.outputType}
+                {t(OUTPUT_TYPE_LABEL[line.outputType] ?? line.outputType)}
               </Tag>
             </span>
           </div>
@@ -379,8 +383,8 @@ function CompleteModalBody({
             ) : null}
           </Space.Compact>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            ตามแผน {fmtQty(line.plannedQty)}
-            {line.postsToStock ? "" : " · ไม่เข้าสต๊อก"}
+            {t("ตามแผน")} {fmtQty(line.plannedQty)}
+            {line.postsToStock ? "" : ` · ${t("ไม่เข้าสต๊อก")}`}
           </Text>
           {line.postsToStock && tickets.length + (scale[line.id]?.ticketId ? 1 : 0) > 0 ? (
             <div
@@ -396,25 +400,25 @@ function CompleteModalBody({
                 allowClear
                 showSearch
                 optionFilterProp="label"
-                placeholder="ตั๋วชั่ง Floor Scale (ดึงน้ำหนักสุทธิอัตโนมัติ)"
+                placeholder={t("ตั๋วชั่ง Floor Scale (ดึงน้ำหนักสุทธิอัตโนมัติ)")}
                 style={{ minWidth: 280 }}
                 value={scale[line.id]?.ticketId}
                 onChange={(value) =>
                   patchScale(line.id, { ticketId: value, override: false, reason: "" })
                 }
                 options={tickets
-                  .filter((t) => t.id === scale[line.id]?.ticketId || !usedTicketIds.has(t.id))
-                  .map((t) => ({
-                    value: t.id,
-                    label: `${t.ticketNo} · ${fmtQty(t.netWeightKg)} กก.${t.scaleCode ? " · " + t.scaleCode : ""}`,
+                  .filter((tk) => tk.id === scale[line.id]?.ticketId || !usedTicketIds.has(tk.id))
+                  .map((tk) => ({
+                    value: tk.id,
+                    label: `${tk.ticketNo} · ${fmtQty(tk.netWeightKg)} ${t("กก.")}${tk.scaleCode ? " · " + tk.scaleCode : ""}`,
                   }))}
               />
               {scale[line.id]?.ticketId ? (
                 <>
                   <Text type="secondary" style={{ fontSize: 12 }}>
                     {ticketQtyOf(line.id, line.unitCode) === null
-                      ? "น้ำหนักตามตั๋ว — ระบบแปลงเป็นหน่วยของบรรทัดตอนบันทึก"
-                      : "ใช้น้ำหนักสุทธิตามตั๋ว"}
+                      ? t("น้ำหนักตามตั๋ว — ระบบแปลงเป็นหน่วยของบรรทัดตอนบันทึก")
+                      : t("ใช้น้ำหนักสุทธิตามตั๋ว")}
                   </Text>
                   <Button
                     type="link"
@@ -423,13 +427,13 @@ function CompleteModalBody({
                       patchScale(line.id, { override: !scale[line.id]?.override })
                     }
                   >
-                    {scale[line.id]?.override ? "ใช้ตามตั๋ว" : "กรอกน้ำหนักเองต่างจากตั๋ว"}
+                    {scale[line.id]?.override ? t("ใช้ตามตั๋ว") : t("กรอกน้ำหนักเองต่างจากตั๋ว")}
                   </Button>
                   {scale[line.id]?.override ? (
                     <Input
                       style={{ minWidth: 260, flex: 1 }}
                       maxLength={500}
-                      placeholder="เหตุผลที่น้ำหนักต่างจากตั๋ว (บังคับ)"
+                      placeholder={t("เหตุผลที่น้ำหนักต่างจากตั๋ว (บังคับ)")}
                       value={scale[line.id]?.reason}
                       onChange={(e) => patchScale(line.id, { reason: e.target.value })}
                     />
@@ -453,19 +457,19 @@ function CompleteModalBody({
               >
                 <Select
                   allowClear
-                  placeholder="ภาชนะ"
+                  placeholder={t("ภาชนะ")}
                   style={{ width: 130 }}
                   value={pack[line.id]?.type}
                   onChange={(value) => patchPack(line.id, { type: value })}
                   options={PACKAGING_TYPES.map((value) => ({
                     value,
-                    label: PACKAGING_TYPE_LABEL[value],
+                    label: t(PACKAGING_TYPE_LABEL[value]),
                   }))}
                 />
                 <InputNumber
                   min={1}
                   precision={0}
-                  placeholder="จำนวนถุง"
+                  placeholder={t("จำนวนถุง")}
                   style={{ width: 110 }}
                   value={pack[line.id]?.count ?? null}
                   onChange={(value) => patchPack(line.id, { count: value })}
@@ -473,7 +477,7 @@ function CompleteModalBody({
                 <InputNumber
                   min={0}
                   precision={3}
-                  placeholder="น้ำหนักรวม (gross)"
+                  placeholder={t("น้ำหนักรวม (gross)")}
                   style={{ width: 160 }}
                   value={pack[line.id]?.gross ?? null}
                   onChange={(value) => patchPack(line.id, { gross: value })}
@@ -481,7 +485,7 @@ function CompleteModalBody({
                 <InputNumber
                   min={0}
                   precision={3}
-                  placeholder="น้ำหนักภาชนะ (tare)"
+                  placeholder={t("น้ำหนักภาชนะ (tare)")}
                   style={{ width: 160 }}
                   value={pack[line.id]?.tare ?? null}
                   onChange={(value) => patchPack(line.id, { tare: value })}
@@ -489,11 +493,11 @@ function CompleteModalBody({
                 {pack[line.id]?.gross !== undefined &&
                 pack[line.id]?.gross !== null ? (
                   <Text strong>
-                    สุทธิ {fmtQty(String(netOf(line.id)))} {line.unitCode ?? ""}
+                    {t("สุทธิ")} {fmtQty(String(netOf(line.id)))} {line.unitCode ?? ""}
                     {pack[line.id]?.count
-                      ? ` · เฉลี่ย ${fmtQty(
+                      ? ` · ${t("เฉลี่ย")} ${fmtQty(
                           String(netOf(line.id) / Number(pack[line.id]?.count)),
-                        )}/ถุง`
+                        )}/${t("ถุง")}`
                       : ""}
                   </Text>
                 ) : null}
@@ -505,7 +509,7 @@ function CompleteModalBody({
                 style={{ gridColumn: "1 / -1", justifySelf: "start", padding: 0 }}
                 onClick={() => setPackOpen((prev) => ({ ...prev, [line.id]: true }))}
               >
-                + บันทึกการบรรจุภาชนะ (Big Bag / ถุง)
+                {t("+ บันทึกการบรรจุภาชนะ (Big Bag / ถุง)")}
               </Button>
             )
           ) : null}
@@ -514,28 +518,28 @@ function CompleteModalBody({
 
       <div className={styles.balanceRow} style={{ marginTop: 14 }}>
         <div className={styles.balanceCard}>
-          <span className={styles.balanceLabel}>วัตถุดิบที่ตัดไป</span>
+          <span className={styles.balanceLabel}>{t("วัตถุดิบที่ตัดไป")}</span>
           <strong className={styles.balanceValue}>{fmtQty(String(totalInput))}</strong>
         </div>
         <div className={styles.balanceCard}>
-          <span className={styles.balanceLabel}>ผลผลิตเข้าคลัง</span>
+          <span className={styles.balanceLabel}>{t("ผลผลิตเข้าคลัง")}</span>
           <strong className={styles.balanceValue}>{fmtQty(String(totalOutput))}</strong>
         </div>
         <div className={styles.balanceCard}>
-          <span className={styles.balanceLabel}>ของเสีย</span>
+          <span className={styles.balanceLabel}>{t("ของเสีย")}</span>
           <strong className={styles.balanceValue}>{fmtQty(String(totalWaste))}</strong>
         </div>
         <div
           className={`${styles.balanceCard} ${styles.balanceCardStrong}`}
         >
-          <span className={styles.balanceLabel}>Yield ประมาณ</span>
+          <span className={styles.balanceLabel}>{t("Yield ประมาณ")}</span>
           <strong className={styles.balanceValue}>
-            {previewYield === null ? "เทียบไม่ได้" : `${previewYield}%`}
+            {previewYield === null ? t("เทียบไม่ได้") : `${previewYield}%`}
           </strong>
           <span className={styles.balanceHint}>
             {previewYield === null
-              ? "หน่วยต่างกัน — ตัวเลขจริงคำนวณหลังบันทึก"
-              : "ประมาณจากหน่วยเดียวกัน"}
+              ? t("หน่วยต่างกัน — ตัวเลขจริงคำนวณหลังบันทึก")
+              : t("ประมาณจากหน่วยเดียวกัน")}
           </span>
         </div>
       </div>
@@ -544,8 +548,8 @@ function CompleteModalBody({
         <Alert
           type="error"
           showIcon
-          title="ผลผลิตรวมของเสียมากกว่าวัตถุดิบที่ใส่เข้าไป"
-          description="เป็นไปไม่ได้ทางกายภาพ — ตรวจจำนวนอีกครั้ง · บันทึกต่อได้ แต่ตัวเลข Yield ของใบนี้จะถูกกันออกจากค่าเฉลี่ยบนแดชบอร์ด"
+          title={t("ผลผลิตรวมของเสียมากกว่าวัตถุดิบที่ใส่เข้าไป")}
+          description={t("เป็นไปไม่ได้ทางกายภาพ — ตรวจจำนวนอีกครั้ง · บันทึกต่อได้ แต่ตัวเลข Yield ของใบนี้จะถูกกันออกจากค่าเฉลี่ยบนแดชบอร์ด")}
         />
       ) : null}
 
@@ -554,13 +558,13 @@ function CompleteModalBody({
         rows={2}
         maxLength={500}
         showCount
-        placeholder="หมายเหตุ เช่น ปิดงานตามน้ำหนักที่ชั่งได้"
+        placeholder={t("หมายเหตุ เช่น ปิดงานตามน้ำหนักที่ชั่งได้")}
         value={remark}
         onChange={(e) => setRemark(e.target.value)}
       />
 
       <div className={styles.formActions}>
-        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button onClick={onCancel}>{t("ยกเลิก")}</Button>
         <Button
           type="primary"
           loading={loading}
@@ -607,7 +611,7 @@ function CompleteModalBody({
             })
           }
         >
-          ยืนยันปิดงาน
+          {t("ยืนยันปิดงาน")}
         </Button>
       </div>
     </>
@@ -624,11 +628,12 @@ type CancelModalProps = {
 };
 
 export function CancelConversionModal(props: CancelModalProps) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
       destroyOnHidden
-      title="ยกเลิกใบแปรสภาพวัตถุดิบ"
+      title={t("ยกเลิกใบแปรสภาพวัตถุดิบ")}
       footer={null}
       onCancel={props.onCancel}
     >
@@ -643,6 +648,7 @@ function CancelModalBody({
   onCancel,
   onConfirm,
 }: CancelModalProps) {
+  const t = useT();
   const [reason, setReason] = useState("");
   const tooShort = requireReason && reason.trim().length < CANCEL_REASON_MIN;
 
@@ -653,16 +659,16 @@ function CancelModalBody({
           className={styles.notice}
           type="error"
           showIcon
-          title="วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก"
-          description="ของเข้าเครื่องไปแล้ว ไม่ได้กลับมาวางบนชั้นเพราะเครื่องพัง — ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ"
+          title={t("วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก")}
+          description={t("ของเข้าเครื่องไปแล้ว ไม่ได้กลับมาวางบนชั้นเพราะเครื่องพัง — ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ")}
         />
       ) : (
         <Alert
           className={styles.notice}
           type="info"
           showIcon
-          title="เอกสารนี้ยังไม่ได้ตัดสต๊อก"
-          description="ยกเลิกได้ทันที ไม่มีผลกับยอดคงเหลือ"
+          title={t("เอกสารนี้ยังไม่ได้ตัดสต๊อก")}
+          description={t("ยกเลิกได้ทันที ไม่มีผลกับยอดคงเหลือ")}
         />
       )}
       <Input.TextArea
@@ -671,8 +677,8 @@ function CancelModalBody({
         showCount
         placeholder={
           requireReason
-            ? `เหตุผลการยกเลิก (อย่างน้อย ${CANCEL_REASON_MIN} ตัวอักษร) เช่น เครื่องย่อยพัง หยุดกลางคัน`
-            : "เหตุผลการยกเลิก (ไม่บังคับ)"
+            ? t("เหตุผลการยกเลิก (อย่างน้อย {min} ตัวอักษร) เช่น เครื่องย่อยพัง หยุดกลางคัน", { min: CANCEL_REASON_MIN })
+            : t("เหตุผลการยกเลิก (ไม่บังคับ)")
         }
         value={reason}
         onChange={(e) => setReason(e.target.value)}
@@ -680,7 +686,7 @@ function CancelModalBody({
       />
 
       <div className={styles.formActions}>
-        <Button onClick={onCancel}>ปิด</Button>
+        <Button onClick={onCancel}>{t("ปิด")}</Button>
         <Button
           danger
           type="primary"
@@ -690,7 +696,7 @@ function CancelModalBody({
             onConfirm({ cancelReason: reason.trim() || undefined })
           }
         >
-          ยืนยันยกเลิกเอกสาร
+          {t("ยืนยันยกเลิกเอกสาร")}
         </Button>
       </div>
     </>

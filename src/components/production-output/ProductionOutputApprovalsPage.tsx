@@ -16,13 +16,15 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { userHasRole } from "@/lib/auth/session";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
-import { PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL } from "@/types/production-output-stock-request";
+import { productionOutputStatusLabel } from "@/types/production-output-stock-request";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 const PAGE_SIZE = 10;
 
 export default function ProductionOutputApprovalsPage() {
+  const t = useT();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const canApprove =
@@ -44,14 +46,14 @@ export default function ProductionOutputApprovalsPage() {
   const columns: ColumnsType<ProductionOutputStockRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "index",
         width: 72,
         align: "center",
         render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
       },
       {
-        title: "เลขที่คำขอ",
+        title: t("เลขที่คำขอ"),
         dataIndex: "requestNo",
         key: "requestNo",
         render: (value: string) => (
@@ -59,7 +61,7 @@ export default function ProductionOutputApprovalsPage() {
         ),
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "item",
         render: (_, row) =>
           row.itemCode
@@ -67,39 +69,39 @@ export default function ProductionOutputApprovalsPage() {
             : row.itemId,
       },
       {
-        title: "จำนวน",
+        title: t("จำนวน"),
         key: "qty",
         align: "right",
         render: (_, row) => `${row.quantity} ${row.unitCode ?? ""}`,
       },
       {
-        title: "คลัง / ตำแหน่ง",
+        title: t("คลัง / ตำแหน่ง"),
         key: "warehouse",
         render: (_, row) =>
           `${row.warehouseCode ?? "-"} / ${row.locationCode ?? "-"}`,
       },
       {
-        title: "วันที่รับเข้า",
+        title: t("วันที่รับเข้า"),
         dataIndex: "postingDate",
         key: "postingDate",
         width: 120,
       },
       {
-        title: "ผู้ขอ",
+        title: t("ผู้ขอ"),
         dataIndex: "requestedByName",
         key: "requestedByName",
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 120,
         render: (value: string) => (
-          <Tag>{PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[value] ?? value}</Tag>
+          <Tag>{productionOutputStatusLabel(value)}</Tag>
         ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "actions",
         width: 210,
         align: "center",
@@ -118,15 +120,15 @@ export default function ProductionOutputApprovalsPage() {
                 router.push(`/warehouse/production-output-approvals/${row.id}`)
               }
             >
-              ตรวจสอบ
+              {t("ตรวจสอบ")}
             </Button>
             {/* อนุมัติได้จากแถวเลย — หัวหน้าคลังไม่ต้องเปิดเข้าไปทีละใบ */}
             {canApprove && row.status === "PENDING_APPROVAL" ? (
               <Popconfirm
-                title={`อนุมัติ ${row.requestNo}`}
-                description="ยืนยัน POST สต๊อกสำหรับคำขอนี้"
-                okText="อนุมัติ"
-                cancelText="ยกเลิก"
+                title={t("อนุมัติ {no}", { no: row.requestNo })}
+                description={t("ยืนยัน POST สต๊อกสำหรับคำขอนี้")}
+                okText={t("อนุมัติ")}
+                cancelText={t("ยกเลิก")}
                 onConfirm={() =>
                   approveMutation.mutate(row.id, {
                     onSuccess: () => void approvalsQuery.refetch(),
@@ -141,7 +143,7 @@ export default function ProductionOutputApprovalsPage() {
                     approveMutation.variables === row.id
                   }
                 >
-                  อนุมัติ
+                  {t("อนุมัติ")}
                 </Button>
               </Popconfirm>
             ) : null}
@@ -149,7 +151,7 @@ export default function ProductionOutputApprovalsPage() {
         ),
       },
     ],
-    [page, router, canApprove, approveMutation, approvalsQuery],
+    [page, router, canApprove, approveMutation, approvalsQuery, t],
   );
 
   return (
@@ -157,8 +159,8 @@ export default function ProductionOutputApprovalsPage() {
       <section className={styles.page}>
         <PageHeader
           eyebrow="WAREHOUSE · PRODUCTION OUTPUT"
-          title="อนุมัติรับผลผลิตเข้าคลัง"
-          subtitle="หัวหน้าคลังอนุมัติแล้วระบบจะ POST สต๊อก (RECEIVE) จริง"
+          title={t("อนุมัติรับผลผลิตเข้าคลัง")}
+          subtitle={t("หัวหน้าคลังอนุมัติแล้วระบบจะ POST สต๊อก (RECEIVE) จริง")}
         />
 
         {!canApprove ? (
@@ -166,8 +168,7 @@ export default function ProductionOutputApprovalsPage() {
             type="secondary"
             style={{ display: "block", marginBottom: 12 }}
           >
-            ดูรายการได้ — การอนุมัติต้องเปิดสิทธิ์ PRODUCTION_OUTPUT_APPROVALS ·
-            APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต
+            {t("ดูรายการได้ — การอนุมัติต้องเปิดสิทธิ์ PRODUCTION_OUTPUT_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต")}
           </Typography.Text>
         ) : null}
 
@@ -182,10 +183,10 @@ export default function ProductionOutputApprovalsPage() {
               current: page,
               pageSize: PAGE_SIZE,
               showSizeChanger: false,
-              showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
-            locale={{ emptyText: "ไม่มีคำขอรออนุมัติ" }}
+            locale={{ emptyText: t("ไม่มีคำขอรออนุมัติ") }}
           />
         </div>
       </section>

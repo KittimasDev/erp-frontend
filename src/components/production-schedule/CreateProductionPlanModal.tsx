@@ -19,6 +19,7 @@ import {
   type DraftHoliday,
   type DraftRound,
 } from "./schedule-dates";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./ProductionSchedulePage.module.css";
 
 type Props = {
@@ -34,6 +35,7 @@ export default function CreateProductionPlanModal({
   onClose,
   onCreated,
 }: Props) {
+  const t = useT();
   const { modal } = App.useApp();
   const create = useCreateProductionPlanMutation();
   const [rounds, setRounds] = useState<DraftRound[]>([]);
@@ -93,42 +95,41 @@ export default function CreateProductionPlanModal({
       })),
     );
     if (!result.ok) {
-      modal.error({ title: "เปลี่ยนวันเริ่มไม่ได้", content: result.message });
+      modal.error({ title: t("เปลี่ยนวันเริ่มไม่ได้"), content: result.message });
       return;
     }
     const changed = result.rounds.filter(
       (round, row) => row >= index && round.startDate !== rounds[row]?.startDate,
     );
     modal.confirm({
-      title: "ยืนยันเปลี่ยนวันเริ่มผลิต?",
-      okText: "เปลี่ยนวันที่",
-      cancelText: "ยกเลิก",
+      title: t("ยืนยันเปลี่ยนวันเริ่มผลิต?"),
+      okText: t("เปลี่ยนวันที่"),
+      cancelText: t("ยกเลิก"),
       content: (
         <div>
           <p>
-            รอบก่อนหน้าไม่เปลี่ยน รอบนี้และรอบถัดไปจะถูกคำนวณใหม่
-            โดยรอบถัดไปเริ่มชิดจาก Shutdown ของรอบก่อนหน้า ช่องว่างเดิมของรอบถัดไปจะหายไป
+            {t("รอบก่อนหน้าไม่เปลี่ยน รอบนี้และรอบถัดไปจะถูกคำนวณใหม่ โดยรอบถัดไปเริ่มชิดจาก Shutdown ของรอบก่อนหน้า ช่องว่างเดิมของรอบถัดไปจะหายไป")}
           </p>
           <ul style={{ paddingLeft: 18 }}>
             {changed.map((round) => {
               const before = rounds[round.index - 1];
               return (
                 <li key={round.index}>
-                  รอบ {round.index}: ผลิต {fmtDate(before.startDate)} – {fmtDate(before.endDate)}{" "}
-                  เป็น {fmtDate(round.startDate)} – {fmtDate(round.endDate)}
+                  {t("รอบ {no}: ผลิต", { no: round.index })} {fmtDate(before.startDate)} – {fmtDate(before.endDate)}{" "}
+                  {t("เป็น")} {fmtDate(round.startDate)} – {fmtDate(round.endDate)}
                   <br />
                   Shutdown {fmtDate(before.shutdownStartDate)} – {fmtDate(before.shutdownEndDate)}{" "}
-                  เป็น {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)}
+                  {t("เป็น")} {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)}
                 </li>
               );
             })}
           </ul>
           {result.dropped.length > 0 ? (
             <p>
-              วันหยุดที่หลุดช่วงและจะถูกตัดออก:{" "}
+              {t("วันหยุดที่หลุดช่วงและจะถูกตัดออก:")}{" "}
               {result.dropped
                 .map((holiday) =>
-                  `รอบ ${holiday.index} ${fmtDate(holiday.date)}${holiday.note.trim() ? ` (${holiday.note.trim()})` : ""}`,
+                  `${t("รอบ {no}", { no: holiday.index })} ${fmtDate(holiday.date)}${holiday.note.trim() ? ` (${holiday.note.trim()})` : ""}`,
                 )
                 .join(", ")}
             </p>
@@ -142,9 +143,9 @@ export default function CreateProductionPlanModal({
   return (
     <Modal
       open={open}
-      title="สร้างแผนการผลิต"
-      okText="สร้างแผนการผลิต"
-      cancelText="ยกเลิก"
+      title={t("สร้างแผนการผลิต")}
+      okText={t("สร้างแผนการผลิต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={860}
       confirmLoading={create.isPending}
@@ -167,10 +168,10 @@ export default function CreateProductionPlanModal({
         );
       }}
     >
-      <p>ผลิต 45 วัน / Shutdown 3 วัน ระบบคำนวณช่วงวันที่ให้ และบันทึกเฉพาะรอบที่เลือก เป็นสถานะรอยืนยัน</p>
+      <p>{t("ผลิต 45 วัน / Shutdown 3 วัน ระบบคำนวณช่วงวันที่ให้ และบันทึกเฉพาะรอบที่เลือก เป็นสถานะรอยืนยัน")}</p>
       {previous ? (
         <p>
-          รอบก่อนหน้า {previous.roundNo}: ผลิต {fmtDate(previous.startDate)} – {fmtDate(previous.endDate)}
+          {t("รอบก่อนหน้า {no}: ผลิต", { no: previous.roundNo })} {fmtDate(previous.startDate)} – {fmtDate(previous.endDate)}
           {" · "}Shutdown {fmtDate(previous.shutdownStartDate)} – {fmtDate(previous.shutdownEndDate)}
         </p>
       ) : null}
@@ -183,12 +184,12 @@ export default function CreateProductionPlanModal({
             <div key={round.index}>
               {gap ? (
                 <div className={styles.gapBanner}>
-                  ช่วงหยุดผลิตเพิ่มเติม {fmtDate(gap.from)} – {fmtDate(gap.to)}
+                  {t("ช่วงหยุดผลิตเพิ่มเติม")} {fmtDate(gap.from)} – {fmtDate(gap.to)}
                 </div>
               ) : null}
               <div className={styles.draftRow}>
                 <Checkbox
-                  aria-label={`สร้างรอบที่ ${round.index}`}
+                  aria-label={t("สร้างรอบที่ {no}", { no: round.index })}
                   checked={round.selected}
                   onChange={(event) =>
                     setRounds((current) =>
@@ -200,26 +201,26 @@ export default function CreateProductionPlanModal({
                     )
                   }
                 />
-                <strong>รอบ {round.index}</strong>
+                <strong>{t("รอบ {no}", { no: round.index })}</strong>
                 <DatePicker
-                  aria-label={`วันเริ่มผลิตรอบที่ ${round.index}`}
+                  aria-label={t("วันเริ่มผลิตรอบที่ {no}", { no: round.index })}
                   value={dayjs(round.startDate)}
                   format="DD/MM/YYYY"
                   allowClear={false}
                   onChange={(value) => onStartChange(index, value)}
                 />
                 <span className={styles.draftMeta}>
-                  ผลิต {fmtDate(round.startDate)} – {fmtDate(round.endDate)}
+                  {t("ผลิต")} {fmtDate(round.startDate)} – {fmtDate(round.endDate)}
                   {" · "}Shutdown {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)}
                 </span>
               </div>
               <div className={styles.holidayBlock}>
                 <div className={styles.holidayHeader}>
-                  <span>วันหยุดผลิตเพิ่มเติม</span>
+                  <span>{t("วันหยุดผลิตเพิ่มเติม")}</span>
                   <DatePicker
                     size="small"
-                    aria-label={`เพิ่มวันหยุดผลิตเพิ่มเติมรอบที่ ${round.index}`}
-                    placeholder="เพิ่มวันหยุด"
+                    aria-label={t("เพิ่มวันหยุดผลิตเพิ่มเติมรอบที่ {no}", { no: round.index })}
+                    placeholder={t("เพิ่มวันหยุด")}
                     value={null}
                     format="DD/MM/YYYY"
                     defaultPickerValue={dayjs(round.startDate)}
@@ -241,12 +242,12 @@ export default function CreateProductionPlanModal({
                       {isShutdownDay(round, holiday.date) ? (
                         <Tag color="orange">Shutdown</Tag>
                       ) : (
-                        <Tag color="blue">ผลิต</Tag>
+                        <Tag color="blue">{t("ผลิต")}</Tag>
                       )}
                       <Input
                         size="small"
-                        aria-label={`หมายเหตุวันหยุด ${fmtDate(holiday.date)}`}
-                        placeholder="เช่น วันปีใหม่"
+                        aria-label={t("หมายเหตุวันหยุด {date}", { date: fmtDate(holiday.date) })}
+                        placeholder={t("เช่น วันปีใหม่")}
                         maxLength={200}
                         value={holiday.note}
                         status={empty ? "error" : undefined}
@@ -265,7 +266,7 @@ export default function CreateProductionPlanModal({
                         type="text"
                         danger
                         icon={<DeleteOutlined />}
-                        aria-label={`ลบวันหยุด ${fmtDate(holiday.date)}`}
+                        aria-label={t("ลบวันหยุด {date}", { date: fmtDate(holiday.date) })}
                         onClick={() =>
                           updateHolidays(round.index, (holidays) =>
                             holidays.filter((item) => item.date !== holiday.date),
@@ -276,7 +277,7 @@ export default function CreateProductionPlanModal({
                   );
                 })}
                 {round.selected && round.holidays.some((holiday) => !holiday.note.trim()) ? (
-                  <span className={styles.holidayHint}>ระบุหมายเหตุของวันหยุดทุกวัน</span>
+                  <span className={styles.holidayHint}>{t("ระบุหมายเหตุของวันหยุดทุกวัน")}</span>
                 ) : null}
               </div>
             </div>

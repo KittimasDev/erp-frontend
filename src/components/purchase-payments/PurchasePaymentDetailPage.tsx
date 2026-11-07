@@ -32,6 +32,9 @@ import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceip
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT, tNow } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
@@ -88,7 +91,7 @@ function isImageMime(mimeType?: string) {
 }
 
 function attachmentDisplayName(file: DocumentAttachment) {
-  return file.originalFileName || "ไฟล์แนบ";
+  return file.originalFileName || tNow("ไฟล์แนบ");
 }
 
 function formatDateTime(value?: string) {
@@ -108,13 +111,14 @@ export default function PurchasePaymentDetailPage({
   id,
   listHref = "/purchase-payments",
 }: Props) {
+  const t = useT();
   const query = usePurchasePaymentQuery(id);
   const data = query.data?.data;
 
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -122,9 +126,9 @@ export default function PurchasePaymentDetailPage({
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบสำคัญจ่าย
+        {t("ไม่พบใบสำคัญจ่าย")}
         <div style={{ marginTop: 12 }}>
-          <Link href={listHref}>กลับรายการ</Link>
+          <Link href={listHref}>{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -141,6 +145,8 @@ function PurchasePaymentDetailView({
   listHref: string;
 }) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const { modal, message } = App.useApp();
   const confirmMutation = useConfirmPurchasePaymentMutation();
   const cancelMutation = useCancelPurchasePaymentMutation();
@@ -211,7 +217,7 @@ function PurchasePaymentDetailView({
       URL.revokeObjectURL(url);
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ดาวน์โหลดไฟล์ไม่สำเร็จ"),
       );
     }
   };
@@ -234,7 +240,7 @@ function PurchasePaymentDetailView({
     } catch (error) {
       setPreviewOpen(false);
       message.error(
-        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิดไฟล์ไม่สำเร็จ"),
       );
     } finally {
       setPreviewLoading(false);
@@ -246,11 +252,11 @@ function PurchasePaymentDetailView({
     accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
     beforeUpload: (file) => {
       if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        message.error(t("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP"));
         return Upload.LIST_IGNORE;
       }
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        message.error(t("ขนาดไฟล์ต้องไม่เกิน 20MB"));
         return Upload.LIST_IGNORE;
       }
       void uploadMutation.mutateAsync({ documentId: data.id, file });
@@ -270,7 +276,7 @@ function PurchasePaymentDetailView({
       );
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "พิมพ์ใบสำคัญจ่ายไม่สำเร็จ",
+        error instanceof Error ? error.message : t("พิมพ์ใบสำคัญจ่ายไม่สำเร็จ"),
       );
     } finally {
       setIsPrinting(false);
@@ -284,14 +290,14 @@ function PurchasePaymentDetailView({
         icon={<DollarOutlined />}
         title={data.voucherNo}
         subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.voucherDate)} ·{" "}
-            {formatMoney(data.totalAmount)} บาท</>}
+            {formatMoney(data.totalAmount)} {t("บาท")}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(listHref)}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button
             type="primary"
@@ -299,7 +305,7 @@ function PurchasePaymentDetailView({
             loading={isPrinting}
             onClick={() => void handlePrintPdf()}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           </>
         }
@@ -309,21 +315,21 @@ function PurchasePaymentDetailView({
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลใบสำคัญจ่าย</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบสำคัญจ่าย")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.voucherNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่</span>
+                <span className={styles.metaLabel}>{t("วันที่")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.voucherDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ขาย</span>
+                <span className={styles.metaLabel}>{t("ผู้ขาย")}</span>
                 <div className={styles.metaValue}>
                   {data.creditor
                     ? `${data.creditor.creditorCode} — ${data.creditor.nameTh}`
@@ -331,7 +337,7 @@ function PurchasePaymentDetailView({
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อ้างอิง PO</span>
+                <span className={styles.metaLabel}>{t("อ้างอิง PO")}</span>
                 <div className={styles.metaValue}>
                   {data.purchaseOrder ? (
                     <Link href={`/purchase-orders/${data.purchaseOrder.id}`}>
@@ -343,16 +349,18 @@ function PurchasePaymentDetailView({
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วิธีจ่าย</span>
+                <span className={styles.metaLabel}>{t("วิธีจ่าย")}</span>
                 <div className={styles.metaValue}>
-                  {SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
-                    data.paymentMethod}
+                  {t(
+                    SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
+                      data.paymentMethod,
+                  )}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เงื่อนไขชำระ</span>
+                <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
                 <div className={styles.metaValue}>
-                  {data.paymentTerm?.name ?? "ไม่ระบุ"}
+                  {data.paymentTerm?.name ?? t("ไม่ระบุ")}
                 </div>
               </div>
             </div>
@@ -361,7 +369,7 @@ function PurchasePaymentDetailView({
           {(data.payments ?? []).length > 0 ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>รายการจ่ายเงิน</h2>
+                <h2 className={styles.sectionTitle}>{t("รายการจ่ายเงิน")}</h2>
               </div>
               <div className={styles.itemList}>
                 {data.payments.map((payment, index) => (
@@ -370,15 +378,17 @@ function PurchasePaymentDetailView({
                     <div className={styles.itemBody}>
                       <p className={styles.itemName}>
                         {formatDate(payment.paymentDate)} ·{" "}
-                        {SUPPLIER_PAYMENT_METHOD_LABEL[payment.paymentMethod] ??
-                          payment.paymentMethod}
+                        {t(
+                          SUPPLIER_PAYMENT_METHOD_LABEL[payment.paymentMethod] ??
+                            payment.paymentMethod,
+                        )}
                       </p>
                       <p className={styles.itemCode}>
                         {payment.transactionRef
-                          ? `อ้างอิง ${payment.transactionRef}`
-                          : "ไม่มีเลขอ้างอิง"}
+                          ? `${t("อ้างอิง")} ${payment.transactionRef}`
+                          : t("ไม่มีเลขอ้างอิง")}
                         {payment.paidBy
-                          ? ` · โดย ${payment.paidBy.displayName}`
+                          ? ` · ${t("โดย")} ${payment.paidBy.displayName}`
                           : ""}
                       </p>
                     </div>
@@ -394,7 +404,7 @@ function PurchasePaymentDetailView({
           {data.remark ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
@@ -402,17 +412,17 @@ function PurchasePaymentDetailView({
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>หลักฐานการจ่ายเงิน</h2>
+              <h2 className={styles.sectionTitle}>{t("หลักฐานการจ่ายเงิน")}</h2>
               <span className={styles.sectionHint}>
                 {attachmentsQuery.isLoading
-                  ? "กำลังโหลด..."
-                  : `${attachments.length} ไฟล์`}
+                  ? t("กำลังโหลด...")
+                  : t("{n} ไฟล์", { n: attachments.length })}
               </span>
             </div>
             {attachmentsQuery.isLoading ? (
               <Spin size="small" />
             ) : attachments.length === 0 ? (
-              <p className={styles.attachmentEmpty}>ยังไม่มีไฟล์หลักฐาน</p>
+              <p className={styles.attachmentEmpty}>{t("ยังไม่มีไฟล์หลักฐาน")}</p>
             ) : (
               <ul className={styles.attachmentList}>
                 {attachments.map((file) => {
@@ -441,7 +451,7 @@ function PurchasePaymentDetailView({
                             icon={<EyeOutlined />}
                             onClick={() => void openAttachmentPreview(file)}
                           >
-                            ดู
+                            {t("ดู")}
                           </Button>
                         )}
                         <Button
@@ -449,7 +459,7 @@ function PurchasePaymentDetailView({
                           icon={<DownloadOutlined />}
                           onClick={() => void downloadAttachment(file)}
                         >
-                          ดาวน์โหลด
+                          {t("ดาวน์โหลด")}
                         </Button>
                         {canManageAttachment ? (
                           <Button
@@ -464,9 +474,9 @@ function PurchasePaymentDetailView({
                             disabled={busy}
                             onClick={() =>
                               modal.confirm({
-                                title: "ยืนยันลบไฟล์แนบ?",
+                                title: t("ยืนยันลบไฟล์แนบ?"),
                                 content: attachmentDisplayName(file),
-                                okText: "ลบ",
+                                okText: t("ลบ"),
                                 okButtonProps: { danger: true },
                                 onOk: () =>
                                   deleteAttachmentMutation.mutateAsync({
@@ -476,7 +486,7 @@ function PurchasePaymentDetailView({
                               })
                             }
                           >
-                            ลบ
+                            {t("ลบ")}
                           </Button>
                         ) : null}
                       </div>
@@ -492,13 +502,13 @@ function PurchasePaymentDetailView({
                   loading={uploadMutation.isPending}
                   style={{ marginTop: 10 }}
                 >
-                  อัปโหลดหลักฐาน
+                  {t("อัปโหลดหลักฐาน")}
                 </Button>
               </Upload>
             ) : null}
             {canManageAttachment ? (
               <p className={styles.sectionHint} style={{ marginTop: 8 }}>
-                รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
+                {t("รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB")}
               </p>
             ) : null}
           </div>
@@ -506,20 +516,20 @@ function PurchasePaymentDetailView({
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.voucherNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {SUPPLIER_PAYMENT_STATUS_LABEL[data.status] ?? data.status}
+            {tStatus(SUPPLIER_PAYMENT_STATUS_LABEL[data.status] ?? data.status)}
           </div>
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>ยอดจ่าย</span>
+              <span>{t("ยอดจ่าย")}</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>จ่ายเมื่อ</span>
+              <span>{t("จ่ายเมื่อ")}</span>
               <strong>
                 {data.paidAt
                   ? dayjs(data.paidAt).format("DD/MM/YYYY HH:mm")
@@ -527,7 +537,7 @@ function PurchasePaymentDetailView({
               </strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ไฟล์แนบ</span>
+              <span>{t("ไฟล์แนบ")}</span>
               <strong>{attachments.length}</strong>
             </div>
           </div>
@@ -546,7 +556,7 @@ function PurchasePaymentDetailView({
                   setConfirmOpen(true);
                 }}
               >
-                Confirm จ่ายเงิน
+                {t("Confirm จ่ายเงิน")}
               </Button>
             ) : null}
             {data.status === "DRAFT" && canCancelPayment ? (
@@ -556,12 +566,12 @@ function PurchasePaymentDetailView({
                 loading={busy}
                 onClick={() =>
                   modal.confirm({
-                    title: "ยืนยันยกเลิกใบสำคัญจ่าย?",
+                    title: t("ยืนยันยกเลิกใบสำคัญจ่าย?"),
                     onOk: () => cancelMutation.mutateAsync(data.id),
                   })
                 }
               >
-                ยกเลิกเอกสาร
+                {t("ยกเลิกเอกสาร")}
               </Button>
             ) : null}
           </div>
@@ -606,11 +616,11 @@ function PurchasePaymentDetailView({
       </div>
 
       <Modal
-        title="Confirm จ่ายเงิน"
+        title={t("Confirm จ่ายเงิน")}
         open={confirmOpen}
         onCancel={() => setConfirmOpen(false)}
         confirmLoading={confirmMutation.isPending}
-        okText="จ่ายเงิน"
+        okText={lang === "en" ? "Pay" : "จ่ายเงิน"}
         destroyOnHidden={false}
         forceRender
         onOk={async () => {
@@ -628,24 +638,24 @@ function PurchasePaymentDetailView({
       >
         <Form form={confirmForm} layout="vertical" preserve={false}>
           <Form.Item
-            label="วันที่จ่าย"
+            label={t("วันที่จ่าย")}
             name="paymentDate"
             rules={[{ required: true }]}
           >
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
           <Form.Item
-            label="เลขอ้างอิงการโอน"
+            label={t("เลขอ้างอิงการโอน")}
             name="transactionRef"
             rules={
               data.paymentMethod === "TRANSFER"
-                ? [{ required: true, message: "กรณีโอนต้องระบุเลขอ้างอิง" }]
+                ? [{ required: true, message: t("กรณีโอนต้องระบุเลขอ้างอิง") }]
                 : undefined
             }
           >
             <Input placeholder="TRX-..." />
           </Form.Item>
-          <Form.Item label="หมายเหตุ" name="remark">
+          <Form.Item label={t("หมายเหตุ")} name="remark">
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
@@ -653,7 +663,7 @@ function PurchasePaymentDetailView({
 
       <Modal
         open={previewOpen}
-        title={previewTitle || "ดูไฟล์แนบ"}
+        title={previewTitle || t("ดูไฟล์แนบ")}
         onCancel={closePreview}
         footer={null}
         width={previewIsImage ? 720 : 900}
@@ -661,7 +671,7 @@ function PurchasePaymentDetailView({
       >
         {previewLoading || !previewUrl ? (
           <div className={styles.stateCard}>
-            <Spin /> กำลังโหลดไฟล์...
+            <Spin /> {t("กำลังโหลดไฟล์...")}
           </div>
         ) : previewIsImage ? (
           // eslint-disable-next-line @next/next/no-img-element

@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useMemo, useState } from "react";
 import { Button, Input, Popconfirm, Table, Tag, Tooltip } from "antd";
@@ -26,6 +27,7 @@ import RouteStepsDrawer from "./RouteStepsDrawer";
 import PageHeader from "@/components/common/PageHeader";
 
 export default function MaterialConversionRoutesPage() {
+  const t = useT();
   const actions = useScreenActionPermissions("MATERIAL_CONVERSION_ROUTES");
   const canWrite = actions.canAdd || actions.canEdit;
 
@@ -49,14 +51,14 @@ export default function MaterialConversionRoutesPage() {
 
   const columns: ColumnsType<MaterialConversionRoute> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
     {
-      title: "เส้นทาง",
+      title: t("เส้นทาง"),
       key: "route",
       render: (_v, row) => (
         <div>
@@ -66,13 +68,13 @@ export default function MaterialConversionRoutesPage() {
       ),
     },
     {
-      title: "คำนำหน้าเลขที่",
+      title: t("คำนำหน้าเลขที่"),
       dataIndex: "runNoPrefix",
       key: "runNoPrefix",
       width: 140,
     },
     {
-      title: "ขั้นตอน",
+      title: t("ขั้นตอน"),
       key: "steps",
       width: 120,
       align: "center",
@@ -86,7 +88,7 @@ export default function MaterialConversionRoutesPage() {
       },
     },
     {
-      title: "รอบงานที่บันทึกแล้ว",
+      title: t("รอบงานที่บันทึกแล้ว"),
       key: "runs",
       width: 150,
       align: "center",
@@ -94,20 +96,20 @@ export default function MaterialConversionRoutesPage() {
         row.steps.reduce((acc, step) => acc + step.runCount, 0),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 160,
       render: (_v, row) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <Tag color={row.isActive ? "success" : "default"}>
-            {row.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
+            {row.isActive ? t("ใช้งาน") : t("ปิดใช้งาน")}
           </Tag>
-          {row.isSystem ? <Tag color="blue">เส้นทางของระบบ</Tag> : null}
+          {row.isSystem ? <Tag color="blue">{t("เส้นทางของระบบ")}</Tag> : null}
         </div>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 240,
       render: (_v, row) => (
@@ -117,7 +119,7 @@ export default function MaterialConversionRoutesPage() {
             icon={<UnorderedListOutlined />}
             onClick={() => setDrawerRouteId(row.id)}
           >
-            ดูขั้นตอน
+            {t("ดูขั้นตอน")}
           </Button>
           {actions.canEdit ? (
             <Button
@@ -128,20 +130,20 @@ export default function MaterialConversionRoutesPage() {
                 setFormOpen(true);
               }}
             >
-              แก้ไข
+              {t("แก้ไข")}
             </Button>
           ) : null}
           {actions.canDelete ? (
             row.isSystem ? (
-              <Tooltip title="เส้นทางตั้งต้นของระบบ ลบไม่ได้ — ปิดใช้งานแทนได้">
+              <Tooltip title={t("เส้นทางตั้งต้นของระบบ ลบไม่ได้ — ปิดใช้งานแทนได้")}>
                 <Button size="small" danger disabled icon={<DeleteOutlined />} />
               </Tooltip>
             ) : (
               <Popconfirm
-                title="ลบเส้นทางนี้?"
-                description="ขั้นตอนและแม่แบบทั้งหมดในเส้นทางจะถูกลบไปด้วย"
-                okText="ลบ"
-                cancelText="ยกเลิก"
+                title={t("ลบเส้นทางนี้?")}
+                description={t("ขั้นตอนและแม่แบบทั้งหมดในเส้นทางจะถูกลบไปด้วย")}
+                okText={t("ลบ")}
+                cancelText={t("ยกเลิก")}
                 okButtonProps={{ danger: true }}
                 onConfirm={() => deleteRoute.mutate(row.id)}
               >
@@ -159,8 +161,8 @@ export default function MaterialConversionRoutesPage() {
       <section className={masterStyles.page}>
         <PageHeader
           eyebrow="MASTER DATA · CONVERSION ROUTES"
-          title="เส้นทางแปรสภาพวัตถุดิบ"
-          subtitle="ตั้งสายงานและขั้นตอนได้เอง — วัตถุดิบชนิดใหม่ที่ไม่ใช่ยางเพิ่มได้ที่นี่ ไม่ต้องแก้โค้ด · รหัสขั้นตอนไม่ซ้ำทั้งระบบและแก้ไม่ได้หลังมีเอกสารอ้างอิง"
+          title={t("เส้นทางแปรสภาพวัตถุดิบ")}
+          subtitle={t("ตั้งสายงานและขั้นตอนได้เอง — วัตถุดิบชนิดใหม่ที่ไม่ใช่ยางเพิ่มได้ที่นี่ ไม่ต้องแก้โค้ด · รหัสขั้นตอนไม่ซ้ำทั้งระบบและแก้ไม่ได้หลังมีเอกสารอ้างอิง")}
           actions={
             <>
 {actions.canAdd ? (
@@ -173,7 +175,7 @@ export default function MaterialConversionRoutesPage() {
                 setFormOpen(true);
               }}
             >
-              สร้างเส้นทาง
+              {t("สร้างเส้นทาง")}
             </Button>
           ) : null}
             </>
@@ -183,9 +185,9 @@ export default function MaterialConversionRoutesPage() {
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
-              <div className={masterStyles.filterEyebrow}>ค้นหา</div>
-              <h3>รายการเส้นทาง</h3>
-              <p>ทั้งหมด {routes.length} เส้นทาง</p>
+              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
+              <h3>{t("รายการเส้นทาง")}</h3>
+              <p>{t("ทั้งหมด {n} เส้นทาง", { n: routes.length })}</p>
             </div>
           </div>
           <div className={masterStyles.filterForm}>
@@ -193,7 +195,7 @@ export default function MaterialConversionRoutesPage() {
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
-                placeholder="ค้นหาด้วยรหัสหรือชื่อเส้นทาง"
+                placeholder={t("ค้นหาด้วยรหัสหรือชื่อเส้นทาง")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -204,11 +206,11 @@ export default function MaterialConversionRoutesPage() {
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>เส้นทางแปรสภาพวัตถุดิบ</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t("เส้นทางแปรสภาพวัตถุดิบ")}</h3>
             </div>
             <span className={masterStyles.tableCount}>
-              {routes.length} เส้นทาง
+              {t("{n} เส้นทาง", { n: routes.length })}
             </span>
           </div>
           <Table
@@ -218,7 +220,7 @@ export default function MaterialConversionRoutesPage() {
             dataSource={routes}
             loading={listQuery.isFetching}
             pagination={false}
-            locale={{ emptyText: "ยังไม่มีเส้นทางแปรสภาพวัตถุดิบ" }}
+            locale={{ emptyText: t("ยังไม่มีเส้นทางแปรสภาพวัตถุดิบ") }}
           />
         </div>
 

@@ -61,6 +61,9 @@ import type {
 import { ProductionOrderPlanLineType } from "@/types/production-order";
 import styles from "./ProductionOrderCreatePage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 export type Row = {
   key: number;
@@ -122,6 +125,8 @@ export function MaterialRow({
   onRemove: () => void;
   removable: boolean;
 }) {
+  const t = useT();
+  const lang = useLanguage();
   /*
     เปิดหลายหมวด — ตรวจข้อมูลจริง 2026-09-08 พบว่าวัตถุดิบที่ **เคยเบิกเข้าผลิตจริง**
     มาจาก 4 หมวด (RAW_MATERIAL, CHEMICAL, CONSUMABLE, FINISHED_GOODS) แต่เดิม
@@ -150,10 +155,10 @@ export function MaterialRow({
       <span className={styles.materialCardNo}>{index + 1}</span>
       <div className={styles.materialGrid}>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>สินค้า (วัตถุดิบ)<Required /></span>
+          <span className={styles.fieldLabel}>{t("สินค้า (วัตถุดิบ)")}<Required /></span>
           <Select
             showSearch
-            placeholder="เลือกสินค้า"
+            placeholder={t("เลือกสินค้า")}
             optionFilterProp="label"
             loading={itemsQuery.isLoading || stockByItemQuery.isLoading}
             value={row.itemId}
@@ -164,7 +169,7 @@ export function MaterialRow({
                 value: item.id,
                 label: `${item.itemCode} — ${item.itemNameTh}${
                   stockByItemQuery.isSuccess
-                    ? ` (คงเหลือ ${available.toLocaleString("th-TH")})`
+                    ? ` (${t("คงเหลือ {n}", { n: formatNumber(available, lang) })})`
                     : ""
                 }`,
                 unitId: item.unitId,
@@ -184,7 +189,7 @@ export function MaterialRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>จำนวนที่วางแผน<Required /></span>
+          <span className={styles.fieldLabel}>{t("จำนวนที่วางแผน")}<Required /></span>
           <InputNumber
             min={0.001}
             placeholder="0.000"
@@ -196,7 +201,7 @@ export function MaterialRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>สถานะสต๊อกรวม</span>
+          <span className={styles.fieldLabel}>{t("สถานะสต๊อกรวม")}</span>
           {(() => {
             if (!row.itemId || !row.plannedQty) {
               return (
@@ -206,7 +211,7 @@ export function MaterialRow({
             if (!stockByItemQuery.isSuccess) {
               return (
                 <span style={{ color: "#8c8c8c", fontSize: 13 }}>
-                  กำลังโหลด…
+                  {t("กำลังโหลด…")}
                 </span>
               );
             }
@@ -216,14 +221,16 @@ export function MaterialRow({
             if (shortfall <= 1e-9) {
               return (
                 <span style={{ color: "#739816", fontWeight: 600, fontSize: 13 }}>
-                  เพียงพอ (คงเหลือ {available.toLocaleString("th-TH")})
+                  {t("เพียงพอ (คงเหลือ {n})", { n: formatNumber(available, lang) })}
                 </span>
               );
             }
             return (
               <span style={{ color: "#cf1322", fontWeight: 600, fontSize: 13 }}>
-                ไม่เพียงพอ · ขาด {shortfall.toLocaleString("th-TH")}
-                {" "}(คงเหลือ {available.toLocaleString("th-TH")})
+                {t("ไม่เพียงพอ · ขาด {short} (คงเหลือ {n})", {
+                  short: formatNumber(shortfall, lang),
+                  n: formatNumber(available, lang),
+                })}
               </span>
             );
           })()}
@@ -235,11 +242,11 @@ export function MaterialRow({
           disabled={!removable}
           onClick={onRemove}
         >
-          ลบ
+          {t("ลบ")}
         </Button>
       </div>
       <p style={{ margin: "0 0 0 36px", color: "#8c8c8c", fontSize: 12 }}>
-        ไม่ต้องเลือกคลัง/Lot ตอนสร้าง — เลือกตอนยืนยันบันทึกกะเพื่อตัดสต๊อก
+        {t("ไม่ต้องเลือกคลัง/Lot ตอนสร้าง — เลือกตอนยืนยันบันทึกกะเพื่อตัดสต๊อก")}
       </p>
     </div>
   );
@@ -269,6 +276,7 @@ export function PlanLineRow({
   /** ก้อนกฎแปลงหน่วย — parent สร้างครั้งเดียวแล้วส่งลงมา เพื่อให้ graphCache ถูกแชร์ */
   unitCtx: UnitOptionContext & { isLoading: boolean };
 }) {
+  const t = useT();
   const itemsQuery = useItemsQuery({
     isActive: true,
     ...(stockItemsOnly ? { isStockItem: true } : {}),
@@ -298,10 +306,10 @@ export function PlanLineRow({
       <span className={styles.materialCardNo}>{index + 1}</span>
       <div className={styles.materialGrid}>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>สินค้า<Required /></span>
+          <span className={styles.fieldLabel}>{t("สินค้า")}<Required /></span>
           <Select
             showSearch
-            placeholder="เลือกสินค้า"
+            placeholder={t("เลือกสินค้า")}
             optionFilterProp="label"
             loading={itemsQuery.isLoading}
             value={row.itemId}
@@ -322,7 +330,7 @@ export function PlanLineRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>หน่วยนับ<Required /></span>
+          <span className={styles.fieldLabel}>{t("หน่วยนับ")}<Required /></span>
           <Select
             showSearch
             optionFilterProp="title"
@@ -334,7 +342,7 @@ export function PlanLineRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>จำนวนที่วางแผน<Required /></span>
+          <span className={styles.fieldLabel}>{t("จำนวนที่วางแผน")}<Required /></span>
           <InputNumber
             min={0.001}
             style={{ width: "100%" }}
@@ -351,7 +359,7 @@ export function PlanLineRow({
           danger
           icon={<DeleteOutlined />}
           onClick={onRemove}
-          aria-label="ลบรายการ"
+          aria-label={t("ลบรายการ")}
         />
       ) : null}
     </div>
@@ -359,6 +367,8 @@ export function PlanLineRow({
 }
 
 export default function ProductionOrderCreatePage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const { modal } = App.useApp();
   const searchParams = useSearchParams();
@@ -475,9 +485,9 @@ export default function ProductionOrderCreatePage() {
     }
 
     modal.confirm({
-      title: "เติมค่าจากสูตรลงฟอร์ม",
-      okText: "เติมเลย",
-      cancelText: "ยกเลิก",
+      title: t("เติมค่าจากสูตรลงฟอร์ม"),
+      okText: t("เติมเลย"),
+      cancelText: t("ยกเลิก"),
       content: (
         <div>
           <p style={{ marginTop: 0 }}>
@@ -488,7 +498,7 @@ export default function ProductionOrderCreatePage() {
             ])}
           </p>
           <p style={{ color: "#8a9199", fontSize: 12, marginBottom: 0 }}>
-            คลัง ตำแหน่ง และ Lot ของแถวที่มีอยู่แล้วจะไม่ถูกล้าง
+            {t("คลัง ตำแหน่ง และ Lot ของแถวที่มีอยู่แล้วจะไม่ถูกล้าง")}
           </p>
         </div>
       ),
@@ -503,36 +513,36 @@ export default function ProductionOrderCreatePage() {
   const missingFields: string[] = [];
 
   if (rows.length === 0) {
-    missingFields.push("วัตถุดิบที่ต้องใช้: ต้องมีอย่างน้อย 1 รายการ");
+    missingFields.push(t("วัตถุดิบที่ต้องใช้: ต้องมีอย่างน้อย 1 รายการ"));
   }
   rows.forEach((row, index) => {
     const gaps: string[] = [];
-    if (!row.itemId) gaps.push("สินค้า (วัตถุดิบ)");
-    if (!row.unitId) gaps.push("หน่วยนับ");
-    if (!row.plannedQty) gaps.push("จำนวนที่วางแผน");
+    if (!row.itemId) gaps.push(t("สินค้า (วัตถุดิบ)"));
+    if (!row.unitId) gaps.push(t("หน่วยนับ"));
+    if (!row.plannedQty) gaps.push(t("จำนวนที่วางแผน"));
     if (gaps.length) {
       missingFields.push(
-        `วัตถุดิบรายการที่ ${index + 1}: ยังขาด ${gaps.join(" · ")}`,
+        t("วัตถุดิบรายการที่ {n}: ยังขาด {gaps}", { n: index + 1, gaps: gaps.join(" · ") }),
       );
     }
   });
 
   const collectPlanGaps = (row: PlanRow) => {
     const gaps: string[] = [];
-    if (!row.itemId) gaps.push("สินค้า");
-    if (!row.unitId) gaps.push("หน่วยนับ");
-    if (!row.plannedQty) gaps.push("จำนวนที่วางแผน");
+    if (!row.itemId) gaps.push(t("สินค้า"));
+    if (!row.unitId) gaps.push(t("หน่วยนับ"));
+    if (!row.plannedQty) gaps.push(t("จำนวนที่วางแผน"));
     return gaps;
   };
 
   if (outputRows.length === 0) {
-    missingFields.push("ผลผลิตที่คาดว่าจะได้: ต้องมีอย่างน้อย 1 รายการ");
+    missingFields.push(t("ผลผลิตที่คาดว่าจะได้: ต้องมีอย่างน้อย 1 รายการ"));
   }
   outputRows.forEach((row, index) => {
     const gaps = collectPlanGaps(row);
     if (gaps.length) {
       missingFields.push(
-        `ผลผลิตรายการที่ ${index + 1}: ยังขาด ${gaps.join(" · ")}`,
+        t("ผลผลิตรายการที่ {n}: ยังขาด {gaps}", { n: index + 1, gaps: gaps.join(" · ") }),
       );
     }
   });
@@ -541,7 +551,7 @@ export default function ProductionOrderCreatePage() {
     const gaps = collectPlanGaps(row);
     if (gaps.length) {
       missingFields.push(
-        `ของเสียรายการที่ ${index + 1}: ยังขาด ${gaps.join(" · ")} (ถ้าไม่ต้องการวางแผนของเสีย กดลบรายการทิ้งได้)`,
+        t("ของเสียรายการที่ {n}: ยังขาด {gaps} (ถ้าไม่ต้องการวางแผนของเสีย กดลบรายการทิ้งได้)", { n: index + 1, gaps: gaps.join(" · ") }),
       );
     }
   });
@@ -569,7 +579,7 @@ export default function ProductionOrderCreatePage() {
       )
       .join(" · ");
     missingFields.push(
-      `ใบขอผลิตที่เลือกขอ ${names} แต่แผนผลผลิตของใบนี้ยังไม่มีสินค้านั้น — เพิ่มลงในผลผลิตที่คาดว่าจะได้ หรือเอาใบขอผลิตนั้นออก`,
+      t("ใบขอผลิตที่เลือกขอ {names} แต่แผนผลผลิตของใบนี้ยังไม่มีสินค้านั้น — เพิ่มลงในผลผลิตที่คาดว่าจะได้ หรือเอาใบขอผลิตนั้นออก", { names }),
     );
   }
 
@@ -695,15 +705,15 @@ export default function ProductionOrderCreatePage() {
         <PageHeader
           eyebrow="Production · Pyrolysis"
           icon={<ExperimentOutlined />}
-          title="สร้างใบสั่งผลิต"
-          subtitle="ระบุวัตถุดิบและ Lot ที่จะใช้ — สถานะเริ่มต้น DRAFT"
+          title={t("สร้างใบสั่งผลิต")}
+          subtitle={t("ระบุวัตถุดิบและ Lot ที่จะใช้ — สถานะเริ่มต้น DRAFT")}
           back={
             <>
 <Link
               href="/production/production-orders"
               className={styles.backLink}
             >
-              <ArrowLeftOutlined /> กลับรายการ
+              <ArrowLeftOutlined /> {t("กลับรายการ")}
             </Link>
             </>
           }
@@ -711,19 +721,19 @@ export default function ProductionOrderCreatePage() {
 
         {productionRequestId ? (
           <section className={styles.formCard}>
-            <h2 className={styles.sectionTitle}>ใบขอผลิตต้นทาง</h2>
+            <h2 className={styles.sectionTitle}>{t("ใบขอผลิตต้นทาง")}</h2>
             {productionRequest ? (
               <>
                 <Alert
                   type={productionRequest.sourceSoCancelled ? "warning" : "info"}
                   showIcon
-                  title={`${productionRequest.requestNo} · อ้างอิงใบสั่งขาย ${
-                    productionRequest.soNo ?? "-"
-                  }`}
+                  title={`${productionRequest.requestNo} · ${t("อ้างอิงใบสั่งขาย {no}", {
+                    no: productionRequest.soNo ?? "-",
+                  })}`}
                   description={
                     productionRequest.sourceSoCancelled
-                      ? "ใบสั่งขายต้นทางถูกยกเลิกแล้ว — โปรดพิจารณาก่อนเปิดใบสั่งผลิต ผลผลิตที่ได้จะรับเข้าสต๊อกกลาง ไม่ผูกกับ SO เดิม"
-                      : "เมื่อสร้างใบสั่งผลิตแล้ว ใบขอผลิตจะแสดงเป็น “ยังไม่เริ่มผลิต” จนกว่าจะกดเริ่มผลิต"
+                      ? t("ใบสั่งขายต้นทางถูกยกเลิกแล้ว — โปรดพิจารณาก่อนเปิดใบสั่งผลิต ผลผลิตที่ได้จะรับเข้าสต๊อกกลาง ไม่ผูกกับ SO เดิม")
+                      : t("เมื่อสร้างใบสั่งผลิตแล้ว ใบขอผลิตจะแสดงเป็น “ยังไม่เริ่มผลิต” จนกว่าจะกดเริ่มผลิต")
                   }
                   style={{ marginBottom: 12 }}
                 />
@@ -734,26 +744,24 @@ export default function ProductionOrderCreatePage() {
                   dataSource={productionRequest.items}
                   columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-                      title: "สินค้าที่ขอผลิต",
+                      title: t("สินค้าที่ขอผลิต"),
                       key: "item",
                       render: (_, row) =>
                         `${row.itemCode ?? "-"} — ${row.itemNameTh ?? ""}`,
                     },
                     {
-                      title: "จำนวนที่ขอ",
+                      title: t("จำนวนที่ขอ"),
                       key: "qty",
                       align: "right",
                       render: (_, row) =>
-                        `${Number(row.requestedQty).toLocaleString("th-TH", {
-                          maximumFractionDigits: 3,
-                        })} ${row.unitCode ?? ""}`,
+                        `${formatNumber(Number(row.requestedQty), lang, 3)} ${row.unitCode ?? ""}`,
                     },
                   ]}
                 />
@@ -762,17 +770,17 @@ export default function ProductionOrderCreatePage() {
               <Alert
                 type="info"
                 showIcon
-                title="กำลังโหลดข้อมูลใบขอผลิต..."
+                title={t("กำลังโหลดข้อมูลใบขอผลิต...")}
               />
             )}
           </section>
         ) : null}
 
         <section className={styles.formCard}>
-          <h2 className={styles.sectionTitle}>ข้อมูลทั่วไป</h2>
+          <h2 className={styles.sectionTitle}>{t("ข้อมูลทั่วไป")}</h2>
           <div className={styles.fieldGrid}>
             <div className={styles.field}>
-              <span className={styles.fieldLabel}>วันที่ผลิต</span>
+              <span className={styles.fieldLabel}>{t("วันที่ผลิต")}</span>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
                 allowEmpty={[false, false]}
@@ -788,12 +796,12 @@ export default function ProductionOrderCreatePage() {
                 }}
               />
               <span style={{ fontSize: 12, color: "#8a9199", marginTop: 4 }}>
-                จำนวนวันผลิต: {productionDayCount} วัน
-                {productionDayCount === 1 ? " (เลือกวันเดียวหรือช่วงเดียวกันได้)" : ""}
+                {t("จำนวนวันผลิต: {n} วัน", { n: productionDayCount })}
+                {productionDayCount === 1 ? ` ${t("(เลือกวันเดียวหรือช่วงเดียวกันได้)")}` : ""}
               </span>
             </div>
             <div className={styles.field}>
-              <span className={styles.fieldLabel}>เลข Batch (ไม่บังคับ)</span>
+              <span className={styles.fieldLabel}>{t("เลข Batch (ไม่บังคับ)")}</span>
               <Input
                 value={batchNo}
                 onChange={(e) => setBatchNo(e.target.value)}
@@ -802,7 +810,7 @@ export default function ProductionOrderCreatePage() {
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                Cycle เป้าหมาย (ชั่วโมง)
+                {t("Cycle เป้าหมาย (ชั่วโมง)")}
               </span>
               <InputNumber
                 style={{ width: "100%" }}
@@ -814,24 +822,24 @@ export default function ProductionOrderCreatePage() {
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                ชั่วโมงแรงงานที่วางแผน
+                {t("ชั่วโมงแรงงานที่วางแผน")}
               </span>
               <InputNumber
                 style={{ width: "100%" }}
                 min={0.01}
                 value={plannedLaborHours}
                 onChange={setPlannedLaborHours}
-                placeholder="เช่น 24"
+                placeholder={t("เช่น 24")}
               />
             </div>
           </div>
           <div className={styles.field}>
-            <span className={styles.fieldLabel}>หมายเหตุ</span>
+            <span className={styles.fieldLabel}>{t("หมายเหตุ")}</span>
             <Input.TextArea
               rows={2}
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
-              placeholder="หมายเหตุเพิ่มเติม..."
+              placeholder={t("หมายเหตุเพิ่มเติม...")}
             />
           </div>
         </section>
@@ -916,20 +924,18 @@ export default function ProductionOrderCreatePage() {
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-              วัตถุดิบที่ต้องใช้ ({rows.length} รายการ)
+              {t("วัตถุดิบที่ต้องใช้ ({n} รายการ)", { n: rows.length })}
             </h2>
             <Button
               icon={<PlusOutlined />}
               className={styles.secondaryBtn}
               onClick={() => setRows((prev) => [...prev, emptyRow()])}
             >
-              เพิ่มวัตถุดิบ
+              {t("เพิ่มวัตถุดิบ")}
             </Button>
           </div>
           <p className={styles.sectionHint}>
-            ทุกแถวต้องเลือกให้ครบ: สินค้า · คลัง · ตำแหน่งจัดเก็บ · Lot ·
-            จำนวนที่วางแผน (ช่องที่มี <Required />) — เลือกไล่จากซ้ายไปขวา
-            เพราะคลัง/ตำแหน่ง/Lot จะขึ้นตามสินค้าที่เลือก
+            {t("ทุกแถวต้องเลือกให้ครบ: สินค้า · คลัง · ตำแหน่งจัดเก็บ · Lot · จำนวนที่วางแผน (ช่องที่มี")} <Required />{t(") — เลือกไล่จากซ้ายไปขวา เพราะคลัง/ตำแหน่ง/Lot จะขึ้นตามสินค้าที่เลือก")}
           </p>
           <div className={styles.materialsList}>
             {rows.map((row, index) => (
@@ -956,20 +962,18 @@ export default function ProductionOrderCreatePage() {
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-              ผลผลิตที่คาดว่าจะได้ ({outputRows.length} รายการ)
+              {t("ผลผลิตที่คาดว่าจะได้ ({n} รายการ)", { n: outputRows.length })}
             </h2>
             <Button
               icon={<PlusOutlined />}
               className={styles.secondaryBtn}
               onClick={() => setOutputRows((prev) => [...prev, emptyPlanRow()])}
             >
-              เพิ่มผลผลิต
+              {t("เพิ่มผลผลิต")}
             </Button>
           </div>
           <p className={styles.sectionHint}>
-            ประมาณการผลผลิต — ใช้เทียบ yield กับของจริงที่รับเข้าคลังภายหลัง ·
-            ต้องมีอย่างน้อย 1 รายการ และทุกแถวต้องครบ สินค้า · หน่วยนับ ·
-            จำนวนที่วางแผน
+            {t("ประมาณการผลผลิต — ใช้เทียบ yield กับของจริงที่รับเข้าคลังภายหลัง · ต้องมีอย่างน้อย 1 รายการ และทุกแถวต้องครบ สินค้า · หน่วยนับ · จำนวนที่วางแผน")}
           </p>
           <div className={styles.materialsList}>
             {outputRows.map((row, index) => (
@@ -996,25 +1000,25 @@ export default function ProductionOrderCreatePage() {
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-              ของเสีย (ถ้ามี) ({wasteRows.length} รายการ)
+              {t("ของเสีย (ถ้ามี) ({n} รายการ)", { n: wasteRows.length })}
             </h2>
             <Button
               icon={<PlusOutlined />}
               className={styles.secondaryBtn}
               onClick={() => setWasteRows((prev) => [...prev, emptyPlanRow()])}
             >
-              เพิ่มของเสีย
+              {t("เพิ่มของเสีย")}
             </Button>
           </div>
           <p className={styles.sectionHint}>
-            ของเสียไม่เข้าสต๊อก — บันทึกจำนวนจริงตอนยืนยันเสร็จสิ้นการผลิต
+            {t("ของเสียไม่เข้าสต๊อก — บันทึกจำนวนจริงตอนยืนยันเสร็จสิ้นการผลิต")}
           </p>
           <div className={styles.materialsList}>
             {wasteRows.length === 0 ? (
               <Alert
                 type="info"
                 showIcon
-                title="ไม่มีของเสียในรอบนี้ — กดปุ่ม “เพิ่มของเสีย” ถ้าต้องการวางแผน"
+                title={t("ไม่มีของเสียในรอบนี้ — กดปุ่ม “เพิ่มของเสีย” ถ้าต้องการวางแผน")}
               />
             ) : (
               wasteRows.map((row, index) => (
@@ -1041,8 +1045,8 @@ export default function ProductionOrderCreatePage() {
               type="info"
               showIcon
               style={{ marginTop: 16 }}
-              title="เลือกสูตรไว้ แต่ยังไม่ได้กด “ใช้ค่านี้เป็นแผน”"
-              description="ใบนี้จะถูกบันทึกเป็นใบที่กรอกเอง ไม่ได้จำว่ามาจากสูตรไหน — ถ้าอยากให้ใบจำสูตรไว้ ให้กดปุ่มในกล่องวางแผนก่อนสร้าง · ถ้าตั้งใจกรอกเองก็สร้างต่อได้เลย"
+              title={t("เลือกสูตรไว้ แต่ยังไม่ได้กด “ใช้ค่านี้เป็นแผน”")}
+              description={t("ใบนี้จะถูกบันทึกเป็นใบที่กรอกเอง ไม่ได้จำว่ามาจากสูตรไหน — ถ้าอยากให้ใบจำสูตรไว้ ให้กดปุ่มในกล่องวางแผนก่อนสร้าง · ถ้าตั้งใจกรอกเองก็สร้างต่อได้เลย")}
             />
           ) : null}
 
@@ -1051,7 +1055,7 @@ export default function ProductionOrderCreatePage() {
               type="warning"
               showIcon
               style={{ marginTop: 16 }}
-              title="ยังกรอกไม่ครบ — เติมให้ครบก่อนถึงจะสร้างใบสั่งผลิตได้"
+              title={t("ยังกรอกไม่ครบ — เติมให้ครบก่อนถึงจะสร้างใบสั่งผลิตได้")}
               description={
                 <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
                   {missingFields.map((text) => (
@@ -1067,11 +1071,11 @@ export default function ProductionOrderCreatePage() {
               className={styles.secondaryBtn}
               onClick={() => router.push("/production/production-orders")}
             >
-              ยกเลิก
+              {t("ยกเลิก")}
             </Button>
             <Tooltip
               title={
-                canSubmit ? "" : "ยังกรอกไม่ครบ — ดูรายการที่ขาดด้านบน"
+                canSubmit ? "" : t("ยังกรอกไม่ครบ — ดูรายการที่ขาดด้านบน")
               }
             >
               <span>
@@ -1082,7 +1086,7 @@ export default function ProductionOrderCreatePage() {
                   loading={createMutation.isPending}
                   onClick={handleSubmit}
                 >
-                  สร้างใบสั่งผลิต
+                  {t("สร้างใบสั่งผลิต")}
                 </Button>
               </span>
             </Tooltip>

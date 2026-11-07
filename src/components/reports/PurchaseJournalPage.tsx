@@ -13,6 +13,7 @@ import JournalAccountDetailPanel, {
   journalMasterDetailStyles as mdStyles,
 } from "@/components/reports/JournalAccountDetailPanel";
 import {
+  expressSentLabel,
   ExportCountTag,
   ExportHistoryDrawer,
   ExpressExportDialog,
@@ -33,6 +34,7 @@ import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-ac
 import { getAccessToken } from "@/lib/auth/token";
 import {
   JOURNAL_DOC_TYPE_LABEL,
+  journalDocTypeLabel,
   type JournalDocRef,
   type JournalDocType,
   type JournalExpressStatus,
@@ -41,6 +43,8 @@ import {
 } from "@/types/purchase-journal";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import PageHeader from "@/components/common/PageHeader";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PURCHASES";
 const PAGE_SIZE = 10;
@@ -67,10 +71,11 @@ function taxGroupLabel(line: JournalLine): string {
 }
 
 function RefLinks({ label, list, basePath }: { label: string; list: JournalDocRef[]; basePath: string }) {
+  const t = useT();
   if (list.length === 0) return null;
   return (
     <div>
-      <Typography.Text type="secondary">{label}: </Typography.Text>
+      <Typography.Text type="secondary">{t(label)}: </Typography.Text>
       <Space size={[6, 0]} wrap>
         {list.map((ref) => (
           <Link key={ref.id} href={`${basePath}/${ref.id}`}>
@@ -86,6 +91,8 @@ function RefLinks({ label, list, basePath }: { label: string; list: JournalDocRe
 const defaultRange = (): [Dayjs, Dayjs] => [dayjs().startOf("month"), dayjs().endOf("month")];
 
 export default function PurchaseJournalPage() {
+  const t = useT();
+  const lang = useLanguage();
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   // ตัวกรองที่กำลังกรอก (draft) — ใช้จริงเมื่อกด "ค้นหา" เท่านั้น
@@ -231,7 +238,7 @@ export default function PurchaseJournalPage() {
         ],
       });
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "ส่งออกสมุดรายวันซื้อไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("ส่งออกสมุดรายวันซื้อไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -256,7 +263,7 @@ export default function PurchaseJournalPage() {
         reexport,
       });
       if (count === 0) {
-        message.info("ไม่มีรายการที่ต้องส่งออก");
+        message.info(t("ไม่มีรายการที่ต้องส่งออก"));
         return;
       }
       const url = URL.createObjectURL(blob);
@@ -266,18 +273,20 @@ export default function PurchaseJournalPage() {
       link.click();
       URL.revokeObjectURL(url);
       message.success(
-        `สร้างไฟล์ Express ${count.toLocaleString("th-TH")} เอกสารแล้ว${reexport ? " (รวมส่งซ้ำ)" : ""}`,
+        (reexport
+          ? t("สร้างไฟล์ Express {count} เอกสารแล้ว (รวมส่งซ้ำ)", { count: count.toLocaleString("th-TH") })
+          : t("สร้างไฟล์ Express {count} เอกสารแล้ว", { count: count.toLocaleString("th-TH") })),
       );
       if (mode === "selected") setSelectedKeys([]);
       await queryClient.invalidateQueries({ queryKey: purchaseJournalQueryKey });
     } catch (error) {
       modal.error({
-        title: "ส่งออกไป Express ไม่สำเร็จ",
+        title: t("ส่งออกไป Express ไม่สำเร็จ"),
         content: (
           <div>
-            <div>{error instanceof Error ? error.message : "ส่งออกไป Express ไม่สำเร็จ"}</div>
-            <div>ไม่มีการบันทึกว่าส่งออกสำเร็จ — แก้ไขแล้วลองใหม่ได้</div>
-            <Link href="/masters/gl-accounts">ไปหน้าผังบัญชีและการผูกบัญชี</Link>
+            <div>{error instanceof Error ? error.message : t("ส่งออกไป Express ไม่สำเร็จ")}</div>
+            <div>{t("ไม่มีการบันทึกว่าส่งออกสำเร็จ — แก้ไขแล้วลองใหม่ได้")}</div>
+            <Link href="/masters/gl-accounts">{t("ไปหน้าผังบัญชีและการผูกบัญชี")}</Link>
           </div>
         ),
       });
@@ -289,22 +298,22 @@ export default function PurchaseJournalPage() {
 
   const pending = data?.pendingExpressCount ?? 0;
   const expressDisabledReason = !canExport
-    ? "ไม่มีสิทธิ์ส่งออก (ต้องมีสิทธิ์ EXPORT ของสมุดรายวันซื้อ)"
+    ? t("ไม่มีสิทธิ์ส่งออก (ต้องมีสิทธิ์ EXPORT ของสมุดรายวันซื้อ)")
     : !range
-      ? "เลือกช่วงวันที่เอกสารก่อน"
+      ? t("เลือกช่วงวันที่เอกสารก่อน")
       : null;
 
   const columns: ColumnsType<PurchaseJournalItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
-    { title: "วันที่เอกสาร", dataIndex: "docDate", width: 110, render: formatDate },
+    { title: t("วันที่เอกสาร"), dataIndex: "docDate", width: 110, render: formatDate },
     {
-      title: "เลขที่เอกสาร",
+      title: t("เลขที่เอกสาร"),
       key: "doc",
       width: 190,
       render: (_, row) => (
@@ -312,15 +321,15 @@ export default function PurchaseJournalPage() {
           <Link href={`/reports/journals/purchases/${row.id}`}>{row.docNo}</Link>
           <Space size={4}>
             <Tag color={DOC_TYPE_COLOR[row.docType]} style={{ marginInlineEnd: 0 }}>
-              {JOURNAL_DOC_TYPE_LABEL[row.docType]}
+              {journalDocTypeLabel(row.docType, lang)}
             </Tag>
-            {!row.balanced ? <Tag color="red">เดบิต ≠ เครดิต</Tag> : null}
+            {!row.balanced ? <Tag color="red">{t("เดบิต ≠ เครดิต")}</Tag> : null}
           </Space>
         </Space>
       ),
     },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       width: 230,
       render: (_, row) => (
@@ -332,7 +341,7 @@ export default function PurchaseJournalPage() {
       ),
     },
     {
-      title: "รายการสินค้า",
+      title: t("รายการสินค้า"),
       key: "items",
       width: 220,
       render: (_, row) =>
@@ -345,7 +354,7 @@ export default function PurchaseJournalPage() {
         ),
     },
     {
-      title: "ใบกำกับภาษี",
+      title: t("ใบกำกับภาษี"),
       key: "tax",
       width: 150,
       render: (_, row) =>
@@ -359,7 +368,7 @@ export default function PurchaseJournalPage() {
         ),
     },
     {
-      title: "เอกสารที่เกี่ยวข้อง",
+      title: t("เอกสารที่เกี่ยวข้อง"),
       key: "related",
       render: (_, row) => (
         <div style={{ fontSize: 13 }} onClick={(event) => event.stopPropagation()}>
@@ -374,7 +383,7 @@ export default function PurchaseJournalPage() {
           <RefLinks label="ใบสำคัญจ่าย" list={row.paymentVouchers} basePath="/finance/payables/payment-vouchers" />
           {row.reference ? (
             <div>
-              <Typography.Text type="secondary">อ้างอิง: </Typography.Text>
+              <Typography.Text type="secondary">{t("อ้างอิง")}: </Typography.Text>
               <Link href={`${AP_BASE_PATH[row.reference.docType as JournalDocType]}/${row.reference.id}`}>
                 {row.reference.no}
               </Link>
@@ -387,7 +396,7 @@ export default function PurchaseJournalPage() {
       ),
     },
     {
-      title: "ยอดรวม (สุทธิ)",
+      title: t("ยอดรวม (สุทธิ)"),
       dataIndex: "totalAmount",
       width: 140,
       align: "right",
@@ -416,8 +425,8 @@ export default function PurchaseJournalPage() {
       <PageHeader
         eyebrow="REPORTS · JOURNALS"
         icon={<FileTextOutlined />}
-        title="สมุดรายวันซื้อ"
-        subtitle="ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ที่อนุมัติแล้ว แตกเป็นบรรทัดบัญชีเดบิต/เครดิต"
+        title={t("สมุดรายวันซื้อ")}
+        subtitle={t("ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ที่อนุมัติแล้ว แตกเป็นบรรทัดบัญชีเดบิต/เครดิต")}
         actions={
           <>
 <ReportExportButtons
@@ -432,31 +441,31 @@ export default function PurchaseJournalPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>มูลค่าก่อนภาษี</span>
+          <span className={styles.statLabel}>{t("มูลค่าก่อนภาษี")}</span>
           <span className={styles.statValue}>{money.format(data?.summary.subtotalAmount ?? 0)}</span>
-          <span className={styles.statHint}>สุทธิหลังหักใบลดหนี้ (บาท)</span>
+          <span className={styles.statHint}>{t("สุทธิหลังหักใบลดหนี้ (บาท)")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ภาษีซื้อ</span>
+          <span className={styles.statLabel}>{t("ภาษีซื้อ")}</span>
           <span className={styles.statValue}>{money.format(data?.summary.vatAmount ?? 0)}</span>
-          <span className={styles.statHint}>สุทธิหลังหักใบลดหนี้ (บาท)</span>
+          <span className={styles.statHint}>{t("สุทธิหลังหักใบลดหนี้ (บาท)")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดรวมเจ้าหนี้</span>
+          <span className={styles.statLabel}>{t("ยอดรวมเจ้าหนี้")}</span>
           <span className={styles.statValue}>{money.format(data?.summary.totalAmount ?? 0)}</span>
-          <span className={styles.statHint}>หักใบลดหนี้แล้ว (บาท)</span>
+          <span className={styles.statHint}>{t("หักใบลดหนี้แล้ว (บาท)")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยังไม่ส่ง Express</span>
+          <span className={styles.statLabel}>{t("ยังไม่ส่ง Express")}</span>
           <span className={styles.statValue}>{pending.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>เอกสาร</span>
+          <span className={styles.statHint}>{t("เอกสาร")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterRow}>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่เอกสาร</label>
+            <label>{t("ช่วงวันที่เอกสาร")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
@@ -467,50 +476,50 @@ export default function PurchaseJournalPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ประเภทเอกสาร</label>
+            <label>{t("ประเภทเอกสาร")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dDocType}
               onChange={setDDocType}
               options={(Object.keys(JOURNAL_DOC_TYPE_LABEL) as JournalDocType[]).map((value) => ({
                 value,
-                label: JOURNAL_DOC_TYPE_LABEL[value],
+                label: journalDocTypeLabel(value, lang),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ Express</label>
+            <label>{t("สถานะ Express")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dExpress}
               onChange={setDExpress}
               options={[
-                { value: "PENDING", label: "ยังไม่ส่ง" },
-                { value: "EXPORTED", label: "ส่งแล้ว" },
+                { value: "PENDING", label: expressSentLabel(false, lang) },
+                { value: "EXPORTED", label: expressSentLabel(true, lang) },
               ]}
             />
           </div>
           <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="เลขที่เอกสาร / ใบกำกับภาษี / PO / GRN / ผู้ขาย"
+              placeholder={t("เลขที่เอกสาร / ใบกำกับภาษี / PO / GRN / ผู้ขาย")}
               value={dSearch}
               onChange={(event) => setDSearch(event.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button
               type="primary"
               className={styles.searchBtn}
               icon={<SearchOutlined />}
               onClick={applySearch}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -522,19 +531,19 @@ export default function PurchaseJournalPage() {
         <div className={`${masterStyles.tableCard} ${mdStyles.tablePane}`}>
           <div className={masterStyles.tableHeader}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>รายการซื้อรายวัน</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t("รายการซื้อรายวัน")}</h3>
             </div>
             <Space>
-              <span className={masterStyles.tableCount}>{data?.total ?? 0} เอกสาร</span>
+              <span className={masterStyles.tableCount}>{t("{n} เอกสาร", { n: data?.total ?? 0 })}</span>
               <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
-                ประวัติการส่งออก
+                {t("ประวัติการส่งออก")}
               </Button>
               {expressDisabledReason ? (
                 <Tooltip title={expressDisabledReason}>
                   <span>
                     <Button icon={<SendOutlined />} disabled>
-                      ส่งออกไป Express ({pending})
+                      {t("ส่งออกไป Express ({pending})", { pending })}
                     </Button>
                   </span>
                 </Tooltip>
@@ -542,11 +551,11 @@ export default function PurchaseJournalPage() {
                 <>
                   {selectedKeys.length > 0 ? (
                     <Button icon={<SendOutlined />} onClick={() => setExportMode("selected")}>
-                      ส่งออกที่เลือก ({selectedKeys.length})
+                      {t("ส่งออกที่เลือก ({n})", { n: selectedKeys.length })}
                     </Button>
                   ) : null}
                   <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => setExportMode("range")}>
-                    ส่งออกไป Express ({pending})
+                    {t("ส่งออกไป Express ({pending})", { pending })}
                   </Button>
                 </>
               )}
@@ -591,9 +600,9 @@ export default function PurchaseJournalPage() {
                 setSelectedId(null);
               },
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} เอกสาร`,
+              showTotal: (total) => t("ทั้งหมด {n} เอกสาร", { n: total.toLocaleString("th-TH") }),
             }}
-            locale={{ emptyText: "ไม่มีรายการซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
+            locale={{ emptyText: t("ไม่มีรายการซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก") }}
           />
         </div>
 
@@ -603,15 +612,15 @@ export default function PurchaseJournalPage() {
             typeTag={
               <>
                 <Tag color={DOC_TYPE_COLOR[selected.docType]}>
-                  {JOURNAL_DOC_TYPE_LABEL[selected.docType]}
+                  {journalDocTypeLabel(selected.docType, lang)}
                 </Tag>
-                {!selected.balanced ? <Tag color="red">เดบิต ≠ เครดิต</Tag> : null}
+                {!selected.balanced ? <Tag color="red">{t("เดบิต ≠ เครดิต")}</Tag> : null}
               </>
             }
             meta={[
-              { label: "วันที่เอกสาร", value: formatDate(selected.docDate) },
+              { label: t("วันที่เอกสาร"), value: formatDate(selected.docDate) },
               {
-                label: "ผู้ขาย",
+                label: t("ผู้ขาย"),
                 value: (
                   <Link href={`/finance/payables/creditors/${selected.creditorId}`}>
                     {selected.creditorCode} {selected.creditorName}
@@ -619,12 +628,12 @@ export default function PurchaseJournalPage() {
                 ),
               },
               {
-                label: "รายการสินค้า",
+                label: t("รายการสินค้า"),
                 value:
                   selected.itemNames.length > 0 ? selected.itemNames.join(", ") : "—",
               },
               {
-                label: "ยอดรวมสุทธิ",
+                label: t("ยอดรวมสุทธิ"),
                 value: (
                   <strong
                     style={
@@ -636,7 +645,7 @@ export default function PurchaseJournalPage() {
                 ),
               },
               {
-                label: "ใบกำกับภาษี",
+                label: t("ใบกำกับภาษี"),
                 value: selected.taxInvoiceNo
                   ? `${selected.taxInvoiceNo} · ${formatDate(selected.taxInvoiceDate)}`
                   : "—",
@@ -663,7 +672,7 @@ export default function PurchaseJournalPage() {
                 />
                 {selected.reference ? (
                   <div>
-                    <Typography.Text type="secondary">อ้างอิง: </Typography.Text>
+                    <Typography.Text type="secondary">{t("อ้างอิง")}: </Typography.Text>
                     <Link
                       href={`${AP_BASE_PATH[selected.reference.docType as JournalDocType]}/${selected.reference.id}`}
                     >
@@ -689,12 +698,12 @@ export default function PurchaseJournalPage() {
       </div>
       <ExpressExportDialog
         open={exportMode !== null}
-        title="ส่งออกสมุดรายวันซื้อไป Express"
+        title={t("ส่งออกสมุดรายวันซื้อไป Express")}
         unit="เอกสาร"
         scopeLabel={
           exportMode === "selected"
-            ? `เอกสารที่เลือก ${selectedKeys.length.toLocaleString("th-TH")} รายการ`
-            : `ช่วงวันที่เอกสาร ${formatDate(filters.dateFrom)} - ${formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี)`
+            ? t("เอกสารที่เลือก {n} รายการ", { n: selectedKeys.length.toLocaleString("th-TH") })
+            : t("ช่วงวันที่เอกสาร {from} - {to} (หนึ่งแถวต่อบรรทัดบัญชี)", { from: formatDate(filters.dateFrom), to: formatDate(filters.dateTo) })
         }
         previewKey={JSON.stringify(exportScope(exportMode ?? "range"))}
         loadPreview={() =>
@@ -707,7 +716,7 @@ export default function PurchaseJournalPage() {
       />
       <ExportHistoryDrawer
         open={historyOpen}
-        title="ประวัติการส่งออกสมุดรายวันซื้อไป Express"
+        title={t("ประวัติการส่งออกสมุดรายวันซื้อไป Express")}
         onClose={() => setHistoryOpen(false)}
         loadHistory={(p) =>
           getPurchaseJournalExportHistory(getAccessToken(), { page: p, limit: 20 }).then((res) => res.data)

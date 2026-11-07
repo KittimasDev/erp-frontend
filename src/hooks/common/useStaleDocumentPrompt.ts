@@ -7,6 +7,7 @@ import {
   isStaleDocumentConflict,
   staleDocumentMessage,
 } from "@/lib/api/conflict";
+import { tNow } from "@/lib/i18n/useT";
 
 /**
  * กล่องแจ้ง "เอกสารถูกแก้ไขโดยผู้ใช้อื่น"
@@ -28,10 +29,10 @@ export function useStaleDocumentPrompt() {
         return false;
       }
       modal.confirm({
-        title: "เอกสารถูกแก้ไขโดยผู้ใช้อื่น",
+        title: tNow("เอกสารถูกแก้ไขโดยผู้ใช้อื่น"),
         content: staleDocumentMessage(error),
-        okText: "โหลดข้อมูลใหม่",
-        cancelText: "ปิด",
+        okText: tNow("โหลดข้อมูลใหม่"),
+        cancelText: tNow("ปิด"),
         onOk: () => onReload(),
       });
       return true;

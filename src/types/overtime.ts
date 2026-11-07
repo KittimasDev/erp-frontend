@@ -150,3 +150,17 @@ export type CreateMyOvertimeRequest = {
 export type OvertimeRequestApiResponse = ApiEnvelope<OvertimeRequest>;
 export type OvertimeRequestListApiResponse = ApiEnvelope<OvertimeRequest[]>;
 export type OvertimeSummaryApiResponse = ApiEnvelope<OvertimeSummary>;
+
+/** ป้ายสถานะคำขอ OT ตามภาษา — คีย์ "ปฏิเสธ"/"ยกเลิก" ชนกับปุ่ม Reject/Cancel จึงไม่ผ่าน dictionary */
+export function overtimeStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = {
+      DRAFT: "Pending approval",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      CANCELLED: "Cancelled",
+    };
+    return en[status] ?? status;
+  }
+  return OVERTIME_STATUS_LABEL[status] ?? status;
+}

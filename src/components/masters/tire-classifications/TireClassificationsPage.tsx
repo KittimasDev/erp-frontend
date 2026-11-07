@@ -38,6 +38,8 @@ import type {
 import TireClassificationFormModal from "./TireClassificationFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 type TireClassificationFilterFormValues = {
   code?: string;
@@ -114,6 +116,8 @@ function buildSearchFromForm(
 }
 
 export default function TireClassificationsPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -212,7 +216,7 @@ export default function TireClassificationsPage() {
 
   const columns: ColumnsType<TireClassification> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -223,7 +227,7 @@ export default function TireClassificationsPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "classificationCode",
       key: "classificationCode",
       width: 150,
@@ -232,7 +236,7 @@ export default function TireClassificationsPage() {
       ),
     },
     {
-      title: "ชื่อ",
+      title: t("ชื่อ"),
       dataIndex: "classificationName",
       key: "classificationName",
       render: (value: string) => (
@@ -242,7 +246,7 @@ export default function TireClassificationsPage() {
       ),
     },
     {
-      title: "สินค้าคลัง",
+      title: t("สินค้าคลัง"),
       key: "item",
       width: 200,
       render: (_value, record) =>
@@ -254,11 +258,11 @@ export default function TireClassificationsPage() {
             </div>
           </div>
         ) : (
-          <Typography.Text type="danger">ยังไม่ผูก</Typography.Text>
+          <Typography.Text type="danger">{t("ยังไม่ผูก")}</Typography.Text>
         ),
     },
     {
-      title: "รายละเอียด",
+      title: t("รายละเอียด"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
@@ -267,7 +271,7 @@ export default function TireClassificationsPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -276,53 +280,53 @@ export default function TireClassificationsPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.classificationCode}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.classificationCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบประเภท/กลุ่มยาง",
-                content: `ต้องการลบ "${record.classificationCode}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบประเภท/กลุ่มยาง"),
+                content: t("ต้องการลบ \"{code}\" หรือไม่?", { code: record.classificationCode }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -336,8 +340,8 @@ export default function TireClassificationsPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="ประเภท/กลุ่มยาง"
-        subtitle="จัดการประเภทยาง เช่น ยางนั่ง กระบะ บรรทุก — ราคาตั้งที่กฎราคารับซื้อยาง"
+        title={t("ประเภท/กลุ่มยาง")}
+        subtitle={t("จัดการประเภทยาง เช่น ยางนั่ง กระบะ บรรทุก — ราคาตั้งที่กฎราคารับซื้อยาง")}
         actions={
           <>
 <Button
@@ -347,7 +351,7 @@ export default function TireClassificationsPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มประเภท/กลุ่มยาง
+          {t("เพิ่มประเภท/กลุ่มยาง")}
         </Button>
           </>
         }
@@ -358,7 +362,7 @@ export default function TireClassificationsPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "ประเภททั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("ประเภททั้งหมด")}
             </span>
             <strong>{classifications.length}</strong>
           </div>
@@ -367,7 +371,7 @@ export default function TireClassificationsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -375,7 +379,7 @@ export default function TireClassificationsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -385,13 +389,13 @@ export default function TireClassificationsPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาประเภท/กลุ่มยาง</h3>
-            <p>กรองด้วยรหัส ชื่อ รายละเอียด และสถานะ</p>
+            <h3>{t("ค้นหาประเภท/กลุ่มยาง")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ รายละเอียด และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -405,35 +409,35 @@ export default function TireClassificationsPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัส">
+              <Form.Item name="code" label={t("รหัส")}>
                 <Input
                   allowClear
-                  placeholder="เช่น PASS"
+                  placeholder={t("เช่น PASS")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อ">
-                <Input allowClear placeholder="เช่น นั่ง" />
+              <Form.Item name="name" label={t("ชื่อ")}>
+                <Input allowClear placeholder={t("เช่น นั่ง")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="description" label="รายละเอียด">
-                <Input allowClear placeholder="เช่น รถยนต์" />
+              <Form.Item name="description" label={t("รายละเอียด")}>
+                <Input allowClear placeholder={t("เช่น รถยนต์")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -448,7 +452,7 @@ export default function TireClassificationsPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -456,7 +460,7 @@ export default function TireClassificationsPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -471,16 +475,16 @@ export default function TireClassificationsPage() {
             <div className={styles.tableEyebrow}>
               TIRE CLASSIFICATION MANAGEMENT
             </div>
-            <h3>รายการประเภท/กลุ่มยาง</h3>
+            <h3>{t("รายการประเภท/กลุ่มยาง")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลประเภท/กลุ่มยางทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลประเภท/กลุ่มยางทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
           <div className={styles.tableCount}>
-            {classifications.length} รายการ
+            {t("{n} รายการ", { n: classifications.length })}
           </div>
         </div>
 
@@ -489,7 +493,7 @@ export default function TireClassificationsPage() {
             <Typography.Text type="danger">
               {classificationsQuery.error instanceof Error
                 ? classificationsQuery.error.message
-                : "โหลดข้อมูลประเภท/กลุ่มยางไม่สำเร็จ"}
+                : t("โหลดข้อมูลประเภท/กลุ่มยางไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -505,14 +509,14 @@ export default function TireClassificationsPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1010 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบประเภท/กลุ่มยางตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลประเภท/กลุ่มยาง",
+                ? t("ไม่พบประเภท/กลุ่มยางตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลประเภท/กลุ่มยาง"),
             }}
           />
         )}

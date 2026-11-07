@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { updateStockAdjustmentType } from "@/lib/api/stock-adjustment-types";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -17,6 +19,7 @@ type UpdateStockAdjustmentTypePayload = {
 export function useUpdateStockAdjustmentTypeMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "stock-adjustment-types", "update"],
@@ -27,14 +30,14 @@ export function useUpdateStockAdjustmentTypeMutation() {
         queryKey: stockAdjustmentTypesQueryKey,
       });
       message.success(
-        response.message || "แก้ไขประเภทใบปรับปรุงสต๊อกสำเร็จแล้ว",
+        response.message || t("แก้ไขประเภทใบปรับปรุงสต๊อกสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "แก้ไขประเภทใบปรับปรุงสต๊อกไม่สำเร็จ",
+          : t("แก้ไขประเภทใบปรับปรุงสต๊อกไม่สำเร็จ"),
       );
     },
   });

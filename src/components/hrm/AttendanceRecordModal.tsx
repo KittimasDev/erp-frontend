@@ -17,6 +17,7 @@ import {
   useCreateAttendanceRecordMutation,
   useUpdateAttendanceRecordMutation,
 } from "@/hooks/attendance/useAttendanceRecordMutations";
+import { useT } from "@/lib/i18n/useT";
 import { useUsersQuery } from "@/hooks/users/useUsersQuery";
 import {
   ATTENDANCE_EDITABLE_STATUS_OPTIONS,
@@ -55,6 +56,7 @@ export default function AttendanceRecordModal({
   record,
   onClose,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const isEdit = Boolean(record);
 
@@ -136,9 +138,9 @@ export default function AttendanceRecordModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? "แก้ไขบันทึกเวลา" : "บันทึกเวลาย้อนหลัง"}
-      okText={isEdit ? "บันทึกการแก้ไข" : "บันทึก"}
-      cancelText="ยกเลิก"
+      title={isEdit ? t("แก้ไขบันทึกเวลา") : t("บันทึกเวลาย้อนหลัง")}
+      okText={isEdit ? t("บันทึกการแก้ไข") : t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={isPending}
       onCancel={onClose}
       onOk={() => form.submit()}
@@ -151,7 +153,7 @@ export default function AttendanceRecordModal({
           showIcon
           style={{ marginBottom: 16 }}
           title={`${record?.displayName ?? "-"}${record?.employeeCode ? ` (${record.employeeCode})` : ""}`}
-          description={`วันที่ ${record ? dayjs(record.attendanceDate).format("DD/MM/YYYY") : "-"} — การแก้ไขจะถูกบันทึกว่าใครแก้และแก้เมื่อไหร่`}
+          description={t("วันที่ {date} — การแก้ไขจะถูกบันทึกว่าใครแก้และแก้เมื่อไหร่", { date: record ? dayjs(record.attendanceDate).format("DD/MM/YYYY") : "-" })}
         />
       ) : null}
 
@@ -164,13 +166,13 @@ export default function AttendanceRecordModal({
         {!isEdit ? (
           <Form.Item
             name="userId"
-            label="พนักงาน"
-            rules={[{ required: true, message: "เลือกพนักงาน" }]}
+            label={t("พนักงาน")}
+            rules={[{ required: true, message: t("เลือกพนักงาน") }]}
           >
             <Select
               showSearch
               optionFilterProp="label"
-              placeholder="ค้นหาชื่อหรือรหัสพนักงาน"
+              placeholder={t("ค้นหาชื่อหรือรหัสพนักงาน")}
               loading={usersQuery.isLoading}
               options={userOptions}
             />
@@ -179,8 +181,8 @@ export default function AttendanceRecordModal({
 
         <Form.Item
           name="attendanceDate"
-          label="วันที่"
-          rules={[{ required: true, message: "เลือกวันที่" }]}
+          label={t("วันที่")}
+          rules={[{ required: true, message: t("เลือกวันที่") }]}
         >
           <DatePicker
             format="DD/MM/YYYY"
@@ -191,15 +193,15 @@ export default function AttendanceRecordModal({
 
         <Form.Item
           name="checkInTime"
-          label="เวลาเข้างาน"
-          rules={[{ required: true, message: "ระบุเวลาเข้างาน" }]}
+          label={t("เวลาเข้างาน")}
+          rules={[{ required: true, message: t("ระบุเวลาเข้างาน") }]}
         >
           <TimePicker format="HH:mm" minuteStep={5} style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
           name="stillWorking"
-          label="ยังไม่ออกงาน (กะที่ยังไม่ปิด)"
+          label={t("ยังไม่ออกงาน (กะที่ยังไม่ปิด)")}
           valuePropName="checked"
         >
           <Switch />
@@ -208,8 +210,8 @@ export default function AttendanceRecordModal({
         {!stillWorking ? (
           <Form.Item
             name="checkOutTime"
-            label="เวลาออกงาน"
-            rules={[{ required: true, message: "ระบุเวลาออกงาน" }]}
+            label={t("เวลาออกงาน")}
+            rules={[{ required: true, message: t("ระบุเวลาออกงาน") }]}
           >
             <TimePicker
               format="HH:mm"
@@ -221,18 +223,18 @@ export default function AttendanceRecordModal({
 
         <Form.Item
           name="status"
-          label="สถานะ"
-          extra="ไม่เลือก = คำนวณจากเวลาเข้างานให้อัตโนมัติ"
+          label={t("สถานะ")}
+          extra={t("ไม่เลือก = คำนวณจากเวลาเข้างานให้อัตโนมัติ")}
         >
           <Select
             allowClear
-            placeholder="คำนวณอัตโนมัติ"
-            options={ATTENDANCE_EDITABLE_STATUS_OPTIONS}
+            placeholder={t("คำนวณอัตโนมัติ")}
+            options={ATTENDANCE_EDITABLE_STATUS_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
           />
         </Form.Item>
 
-        <Form.Item name="remark" label="หมายเหตุ">
-          <Input.TextArea rows={2} placeholder="เช่น ลืมกดออกงาน" />
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
+          <Input.TextArea rows={2} placeholder={t("เช่น ลืมกดออกงาน")} />
         </Form.Item>
       </Form>
     </Modal>

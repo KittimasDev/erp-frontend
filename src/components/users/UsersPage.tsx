@@ -30,6 +30,8 @@ import dayjs from "dayjs";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { getStoredUser, isAdministrator } from "@/lib/auth/session";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import {
   useActivateUserMutation,
   useCreateUserMutation,
@@ -111,6 +113,8 @@ function initials(name: string) {
 }
 
 export default function UsersPage({ embedded = false }: UsersPageProps) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -197,14 +201,14 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
 
   const columns: ColumnsType<AppUser> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 56,
       align: "center",
       render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
     },
     {
-      title: "ผู้ใช้งาน",
+      title: t("ผู้ใช้งาน"),
       key: "user",
       render: (_, record) => (
         <div className={styles.userCell}>
@@ -223,7 +227,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
       ),
     },
     {
-      title: "รหัส / แผนก",
+      title: t("รหัส / แผนก"),
       key: "hr",
       width: 220,
       render: (_, record) => (
@@ -232,19 +236,19 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
             {record.employeeCode?.trim() || "—"}
           </span>
           <span className={styles.contactSecondary}>
-            {record.departmentName?.trim() || "ไม่ระบุแผนก"}
+            {record.departmentName?.trim() || t("ไม่ระบุแผนก")}
             {record.sectionName ? ` › ${record.sectionName}` : ""}
           </span>
           {record.supervisorName ? (
             <span className={styles.contactSecondary}>
-              หัวหน้า: {record.supervisorName}
+              {t("หัวหน้า:")} {record.supervisorName}
             </span>
           ) : null}
         </div>
       ),
     },
     {
-      title: "ตำแหน่ง / ประเภทจ้าง",
+      title: t("ตำแหน่ง / ประเภทจ้าง"),
       key: "positionType",
       width: 190,
       render: (_, record) => (
@@ -254,14 +258,14 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           </span>
           <span className={styles.contactSecondary}>
             {record.employmentType
-              ? EMPLOYMENT_TYPE_LABEL[record.employmentType] ?? record.employmentType
-              : "ไม่ระบุประเภทจ้าง"}
+              ? t(EMPLOYMENT_TYPE_LABEL[record.employmentType] ?? record.employmentType)
+              : t("ไม่ระบุประเภทจ้าง")}
           </span>
         </div>
       ),
     },
     {
-      title: "ติดต่อ",
+      title: t("ติดต่อ"),
       key: "contact",
       width: 200,
       render: (_, record) => (
@@ -270,7 +274,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
             {record.email?.trim() || "—"}
           </span>
           <span className={styles.contactSecondary}>
-            {record.phone?.trim() || "ไม่มีเบอร์โทร"}
+            {record.phone?.trim() || t("ไม่มีเบอร์โทร")}
           </span>
         </div>
       ),
@@ -281,17 +285,17 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
       width: 100,
       render: (_, record) =>
         record.canLogin ? (
-          <Tag color="blue">เปิด</Tag>
+          <Tag color="blue">{lang === "en" ? "On" : "เปิด"}</Tag>
         ) : (
-          <Tag>ปิด</Tag>
+          <Tag>{lang === "en" ? "Off" : "ปิด"}</Tag>
         ),
     },
     {
-      title: "บทบาท",
+      title: t("บทบาท"),
       key: "roles",
       render: (_, record) =>
         record.roles.length === 0 ? (
-          <span className={styles.roleEmpty}>ยังไม่มีบทบาท</span>
+          <span className={styles.roleEmpty}>{t("ยังไม่มีบทบาท")}</span>
         ) : (
           <div className={styles.roleList}>
             {record.roles.map((role) => (
@@ -303,7 +307,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
         ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -328,32 +332,32 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
               className={`${masterStyles.statusTag} ${masterStyles.statusActive}`}
             >
               <span className={masterStyles.statusDot} />
-              ใช้งาน
+              {t("ใช้งาน")}
             </Tag>
           ) : (
             <Tag
               className={`${masterStyles.statusTag} ${masterStyles.statusInactive}`}
             >
               <span className={masterStyles.statusDot} />
-              ปิด
+              {lang === "en" ? "Off" : "ปิด"}
             </Tag>
           )}
         </Space>
       ),
     },
     {
-      title: "เข้าสู่ระบบล่าสุด",
+      title: t("เข้าสู่ระบบล่าสุด"),
       dataIndex: "lastLoginAt",
       key: "lastLoginAt",
       width: 170,
       render: (value?: string) => (
         <span className={masterStyles.updatedText}>
-          {value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "ยังไม่เคยเข้า"}
+          {value ? dayjs(value).format("DD/MM/YYYY HH:mm") : t("ยังไม่เคยเข้า")}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
@@ -361,12 +365,12 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
         const isSelf = Boolean(currentUserId && record.id === currentUserId);
         return (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ @${record.username}`}
+            ariaLabel={t("เมนูจัดการ @{username}", { username: record.username })}
             actions={[
               {
                 key: "edit",
                 icon: <EditOutlined />,
-                label: "แก้ไข",
+                label: t("แก้ไข"),
                 onClick: () => {
                   setModalMode("edit");
                   setEditingUser(record);
@@ -376,23 +380,23 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
               {
                 key: "reset",
                 icon: <KeyOutlined />,
-                label: "ตั้งรหัสผ่านใหม่",
+                label: t("ตั้งรหัสผ่านใหม่"),
                 onClick: () => setResetUser(record),
               },
               "divider",
               {
                 key: "delete",
                 icon: <DeleteOutlined />,
-                label: "ลบผู้ใช้งาน",
+                label: t("ลบผู้ใช้งาน"),
                 danger: true,
                 disabled: isSelf,
-                disabledReason: "ลบบัญชีของตัวเองไม่ได้",
+                disabledReason: t("ลบบัญชีของตัวเองไม่ได้"),
                 onClick: () => deleteMutation.mutate(record.id),
                 confirm: {
-                  title: "ลบผู้ใช้งาน?",
-                  content: `ลบ "@${record.username}" ถาวร — กู้คืนไม่ได้`,
-                  okText: "ลบ",
-                  cancelText: "ยกเลิก",
+                  title: t("ลบผู้ใช้งาน?"),
+                  content: t('ลบ "@{username}" ถาวร — กู้คืนไม่ได้', { username: record.username }),
+                  okText: t("ลบ"),
+                  cancelText: t("ยกเลิก"),
                 },
               },
             ]}
@@ -411,8 +415,8 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           <PageHeader
             eyebrow="SECURITY"
             icon={<TeamOutlined />}
-            title="จัดการผู้ใช้งาน"
-            subtitle="สร้างบัญชี กำหนด Role รีเซ็ตรหัสผ่าน และเปิด/ปิดการใช้งาน"
+            title={t("จัดการผู้ใช้งาน")}
+            subtitle={t("สร้างบัญชี กำหนด Role รีเซ็ตรหัสผ่าน และเปิด/ปิดการใช้งาน")}
             actions={
               <>
 <Button
@@ -426,7 +430,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                 setModalOpen(true);
               }}
             >
-              เพิ่มผู้ใช้งาน
+              {t("เพิ่มผู้ใช้งาน")}
             </Button>
               </>
             }
@@ -440,7 +444,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
             <div className={masterStyles.summaryIcon}>Σ</div>
             <div>
               <span className={masterStyles.summaryLabel}>
-                {hasFilters ? "ผลค้นหา" : "ผู้ใช้ทั้งหมด"}
+                {hasFilters ? t("ผลค้นหา") : t("ผู้ใช้ทั้งหมด")}
               </span>
               <strong>{users.length}</strong>
             </div>
@@ -451,7 +455,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           >
             <div className={masterStyles.summaryIcon}>✓</div>
             <div>
-              <span className={masterStyles.summaryLabel}>เปิดใช้งาน</span>
+              <span className={masterStyles.summaryLabel}>{lang === "en" ? "Active" : "เปิดใช้งาน"}</span>
               <strong>{activeUsers}</strong>
             </div>
           </div>
@@ -461,7 +465,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           >
             <div className={masterStyles.summaryIcon}>—</div>
             <div>
-              <span className={masterStyles.summaryLabel}>ปิดใช้งาน</span>
+              <span className={masterStyles.summaryLabel}>{t("ปิดใช้งาน")}</span>
               <strong>{inactiveUsers}</strong>
             </div>
           </div>
@@ -471,12 +475,12 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           <div className={masterStyles.filterHeader}>
             <div>
               <div className={masterStyles.filterEyebrow}>SEARCH</div>
-              <h3>ค้นหาผู้ใช้งาน</h3>
-              <p>กรองด้วยชื่อ บทบาท หรือสถานะบัญชี</p>
+              <h3>{t("ค้นหาผู้ใช้งาน")}</h3>
+              <p>{t("กรองด้วยชื่อ บทบาท หรือสถานะบัญชี")}</p>
             </div>
             {hasFilters ? (
               <Tag className={masterStyles.filterActiveTag} color="green">
-                มีตัวกรอง
+                {t("มีตัวกรอง")}
               </Tag>
             ) : null}
           </div>
@@ -496,21 +500,21 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           >
             <Row gutter={[14, 0]}>
               <Col xs={24} md={8}>
-                <Form.Item name="q" label="ค้นหา">
+                <Form.Item name="q" label={t("ค้นหา")}>
                   <Input
                     allowClear
                     prefix={<SearchOutlined />}
-                    placeholder="username / ชื่อ / อีเมล"
+                    placeholder={t("username / ชื่อ / อีเมล")}
                   />
                 </Form.Item>
               </Col>
               <Col xs={24} md={6}>
-                <Form.Item name="roleId" label="บทบาท">
+                <Form.Item name="roleId" label={t("บทบาท")}>
                   <Select
                     allowClear
                     showSearch
                     optionFilterProp="label"
-                    placeholder="ทั้งหมด"
+                    placeholder={t("ทั้งหมด")}
                     listHeight={360}
                     options={roles.map((role) => ({
                       value: role.id,
@@ -520,12 +524,12 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                 </Form.Item>
               </Col>
               <Col xs={24} md={6}>
-                <Form.Item name="positionId" label="ตำแหน่ง">
+                <Form.Item name="positionId" label={lang === "en" ? "Position" : "ตำแหน่ง"}>
                   <Select
                     allowClear
                     showSearch
                     optionFilterProp="label"
-                    placeholder="ทั้งหมด"
+                    placeholder={t("ทั้งหมด")}
                     options={positions.map((item) => ({
                       value: item.id,
                       label: item.nameTh,
@@ -534,22 +538,22 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                 </Form.Item>
               </Col>
               <Col xs={24} md={6}>
-                <Form.Item name="employmentType" label="ประเภทการจ้าง">
+                <Form.Item name="employmentType" label={t("ประเภทการจ้าง")}>
                   <Select
                     allowClear
-                    placeholder="ทั้งหมด"
-                    options={EMPLOYMENT_TYPE_OPTIONS}
+                    placeholder={t("ทั้งหมด")}
+                    options={EMPLOYMENT_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
                   />
                 </Form.Item>
               </Col>
               <Col xs={24} md={5}>
-                <Form.Item name="isActive" label="สถานะ">
+                <Form.Item name="isActive" label={t("สถานะ")}>
                   <Select
                     allowClear
-                    placeholder="ทั้งหมด"
+                    placeholder={t("ทั้งหมด")}
                     options={[
-                      { value: true, label: "เปิดใช้งาน" },
-                      { value: false, label: "ปิดใช้งาน" },
+                      { value: true, label: lang === "en" ? "Active" : "เปิดใช้งาน" },
+                      { value: false, label: t("ปิดใช้งาน") },
                     ]}
                   />
                 </Form.Item>
@@ -562,7 +566,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                       htmlType="submit"
                       className={masterStyles.filterSearchButton}
                     >
-                      ค้นหา
+                      {t("ค้นหา")}
                     </Button>
                     <Button
                       icon={<ClearOutlined />}
@@ -571,7 +575,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                         setPage(1);
                       }}
                     >
-                      ล้าง
+                      {t("ล้าง")}
                     </Button>
                   </Space>
                 </Form.Item>
@@ -584,8 +588,8 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           <div className={masterStyles.tableHeader}>
             <div>
               <div className={masterStyles.tableEyebrow}>DIRECTORY</div>
-              <h3>รายชื่อผู้ใช้งาน</h3>
-              <p>กดแก้ไขเพื่อเปลี่ยนข้อมูลหรือบทบาท</p>
+              <h3>{t("รายชื่อผู้ใช้งาน")}</h3>
+              <p>{t("กดแก้ไขเพื่อเปลี่ยนข้อมูลหรือบทบาท")}</p>
             </div>
             <Space>
               {embedded ? (
@@ -599,19 +603,19 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                     setModalOpen(true);
                   }}
                 >
-                  เพิ่มผู้ใช้งาน
+                  {t("เพิ่มผู้ใช้งาน")}
                 </Button>
               ) : null}
-              <div className={masterStyles.tableCount}>{users.length} คน</div>
+              <div className={masterStyles.tableCount}>{t("{n} คน", { n: users.length })}</div>
             </Space>
           </div>
 
           {usersQuery.isError ? (
             <Typography.Text type="danger">
-              โหลดรายชื่อไม่สำเร็จ:{" "}
+              {t("โหลดรายชื่อไม่สำเร็จ:")}{" "}
               {usersQuery.error instanceof Error
                 ? usersQuery.error.message
-                : "เกิดข้อผิดพลาด"}
+                : t("เกิดข้อผิดพลาด")}
             </Typography.Text>
           ) : (
             <Table

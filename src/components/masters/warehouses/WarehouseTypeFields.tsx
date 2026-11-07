@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import Link from "next/link";
 import { Form, Select, Switch } from "antd";
@@ -16,6 +17,7 @@ export default function WarehouseTypeFields({
   /** ประเภทเดิมของคลังที่แก้ — ให้ยังเห็นในตัวเลือกแม้ถูกปิดใช้งานไปแล้ว */
   currentTypeCode?: string;
 }) {
+  const t = useT();
   const form = Form.useFormInstance();
   const selectedCode = Form.useWatch<string | undefined>("warehouseGroup", form);
   const typesQuery = useWarehouseTypesQuery();
@@ -27,12 +29,12 @@ export default function WarehouseTypeFields({
       value: type.code,
       label: type.isActive
         ? `${type.name} (${type.code})`
-        : `${type.name} (${type.code}) — ปิดใช้งาน`,
+        : `${type.name} (${type.code}) — ${t("ปิดใช้งาน")}`,
     }));
   if (currentTypeCode && !options.some((o) => o.value === currentTypeCode)) {
     options.push({
       value: currentTypeCode,
-      label: `${currentTypeCode} — ไม่มีในข้อมูลหลัก`,
+      label: `${currentTypeCode} — ${t("ไม่มีในข้อมูลหลัก")}`,
     });
   }
 
@@ -42,13 +44,13 @@ export default function WarehouseTypeFields({
   return (
     <>
       <Form.Item
-        label="ประเภทคลัง"
+        label={t("ประเภทคลัง")}
         name="warehouseGroup"
-        rules={[{ required: true, message: "กรุณาเลือกประเภทคลัง" }]}
+        rules={[{ required: true, message: t("กรุณาเลือกประเภทคลัง") }]}
         extra={
           <span>
-            เพิ่ม/แก้ชื่อประเภทได้ที่{" "}
-            <Link href="/masters/warehouse-types">ข้อมูลหลัก &gt; ประเภทคลัง</Link>
+            {t("เพิ่ม/แก้ชื่อประเภทได้ที่")}{" "}
+            <Link href="/masters/warehouse-types">{t("ข้อมูลหลัก > ประเภทคลัง")}</Link>
           </span>
         }
       >
@@ -56,11 +58,11 @@ export default function WarehouseTypeFields({
           size="large"
           showSearch
           optionFilterProp="label"
-          placeholder="เลือกประเภทคลัง"
+          placeholder={t("เลือกประเภทคลัง")}
           loading={typesQuery.isLoading}
           options={options}
           notFoundContent={
-            typesQuery.isError ? "โหลดประเภทคลังไม่สำเร็จ" : "ไม่มีประเภทคลัง"
+            typesQuery.isError ? t("โหลดประเภทคลังไม่สำเร็จ") : t("ไม่มีประเภทคลัง")
           }
           onChange={(code: string) => {
             const next = types.find((type) => type.code === code);
@@ -76,9 +78,9 @@ export default function WarehouseTypeFields({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>คลังรอตรวจของคืนตั้งต้น</strong>
+              <strong>{t("คลังรอตรวจของคืนตั้งต้น")}</strong>
               <span>
-                ใบรับคืนที่ไม่ได้เลือกคลังจะเข้าที่นี่ — มีได้คลังเดียว ตั้งแล้วคลังอื่นจะถูกปลด
+                {t("ใบรับคืนที่ไม่ได้เลือกคลังจะเข้าที่นี่ — มีได้คลังเดียว ตั้งแล้วคลังอื่นจะถูกปลด")}
               </span>
             </div>
           </div>
@@ -87,7 +89,7 @@ export default function WarehouseTypeFields({
             valuePropName="checked"
             noStyle
           >
-            <Switch checkedChildren="ใช่" unCheckedChildren="ไม่" />
+            <Switch checkedChildren={t("ใช่")} unCheckedChildren={t("ไม่")} />
           </Form.Item>
         </div>
       ) : null}

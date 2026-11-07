@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 
@@ -37,6 +38,7 @@ export default function TaxRateFormModal({
   onCancel,
   onSubmit,
 }: TaxRateFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<TaxRateFormValues>();
 
   useEffect(() => {
@@ -86,8 +88,8 @@ export default function TaxRateFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={560}
       centered
@@ -103,13 +105,13 @@ export default function TaxRateFormModal({
           </div>
 
           <h2>
-            {isCreateMode ? "เพิ่มอัตราภาษี" : "แก้ไขอัตราภาษี"}
+            {isCreateMode ? t("เพิ่มอัตราภาษี") : t("แก้ไขอัตราภาษี")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กรอกอัตราภาษีใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ"
-              : "แก้ไขรายละเอียดอัตราภาษีและสถานะการใช้งาน"}
+              ? t("กรอกอัตราภาษีใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ")
+              : t("แก้ไขรายละเอียดอัตราภาษีและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -123,50 +125,50 @@ export default function TaxRateFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลอัตราภาษี</strong>
-            <span>ระบุรหัส ชื่อ อัตรา และประเภทภาษี</span>
+            <strong>{t("ข้อมูลอัตราภาษี")}</strong>
+            <span>{t("ระบุรหัส ชื่อ อัตรา และประเภทภาษี")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="รหัสภาษี"
+          label={t("รหัสภาษี")}
           name="code"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสภาษี" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกรหัสภาษี") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น VAT7, NOVAT"
+            placeholder={t("เช่น VAT7, NOVAT")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อภาษี"
+          label={t("ชื่อภาษี")}
           name="name"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อภาษี" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อภาษี") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น ภาษีมูลค่าเพิ่ม 7%"
+            placeholder={t("เช่น ภาษีมูลค่าเพิ่ม 7%")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="อัตรา (%)"
+          label={t("อัตรา (%)")}
           name="rate"
           rules={[
-            { required: true, message: "กรุณากรอกอัตราภาษี" },
+            { required: true, message: t("กรุณากรอกอัตราภาษี") },
             {
               type: "number",
               min: 0,
-              message: "อัตราภาษีต้องไม่ติดลบ",
+              message: t("อัตราภาษีต้องไม่ติดลบ"),
             },
           ]}
         >
@@ -176,15 +178,15 @@ export default function TaxRateFormModal({
             max={100}
             step={0.01}
             style={{ width: "100%" }}
-            placeholder="เช่น 7"
+            placeholder={t("เช่น 7")}
           />
         </Form.Item>
 
-        <Form.Item label="ประเภทภาษี" name="taxType">
+        <Form.Item label={t("ประเภทภาษี")} name="taxType">
           <Select
             allowClear
             size="large"
-            placeholder="เลือกประเภท"
+            placeholder={t("เลือกประเภท")}
             options={TAX_TYPE_OPTIONS}
           />
         </Form.Item>
@@ -193,13 +195,13 @@ export default function TaxRateFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกอัตราภาษีนี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกอัตราภาษีนี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

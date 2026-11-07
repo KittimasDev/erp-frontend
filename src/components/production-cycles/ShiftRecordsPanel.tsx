@@ -38,8 +38,10 @@ import {
   useUnconfirmShiftRecordMutation,
   useUpdateShiftRecordMutation,
 } from "@/hooks/production-cycles/useProductionCycles";
+import { tNow, useT } from "@/lib/i18n/useT";
 import {
   MACHINE_FORECAST_STATUS_LABEL,
+  cycleNumLocale,
   type MachineForecast,
   type ShiftRecord,
 } from "@/types/production-cycle";
@@ -68,7 +70,7 @@ dayjs.extend(customParseFormat);
 const n = (v?: number | null, d = 1) =>
   v === undefined || v === null
     ? "—"
-    : v.toLocaleString("th-TH", { maximumFractionDigits: d });
+    : v.toLocaleString(cycleNumLocale(), { maximumFractionDigits: d });
 
 function parseShiftClock(raw?: string) {
   if (!raw) return undefined;
@@ -79,8 +81,8 @@ function parseShiftClock(raw?: string) {
 function unitAddon(unitLabel?: string) {
   if (!unitLabel) return undefined;
   const lower = unitLabel.toLowerCase();
-  if (lower.includes("กก") || lower === "kg") return "กิโลกรัม";
-  if (lower.includes("ลิตร") || lower === "l" || lower === "liter") return "ลิตร";
+  if (lower.includes("กก") || lower === "kg") return tNow("กิโลกรัม");
+  if (lower.includes("ลิตร") || lower === "l" || lower === "liter") return tNow("ลิตร");
   return unitLabel;
 }
 
@@ -139,9 +141,9 @@ function Control({
 /** ป้ายบทบาทใต้ชื่อฟิลด์ — TRACKING โชว์แบบ Input ตาม mock ฟอร์มบันทึกกะ */
 function fieldRoleSubtitle(field: RecordingFieldDef) {
   if (field.resultRole === "TRACKING" || field.resultRole === "INPUT") {
-    return RECORDING_RESULT_ROLE_LABEL.INPUT;
+    return tNow(RECORDING_RESULT_ROLE_LABEL.INPUT);
   }
-  return RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole;
+  return tNow(RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole);
 }
 
 function BomFieldControls({
@@ -160,11 +162,12 @@ function BomFieldControls({
   const addon = unitAddon(field.unitLabel);
 
   const req = Boolean(field.required);
+  const t = useT();
 
   if (field.calcType === "METER_DELTA") {
     return (
       <div className={modalStyles.bomControlsWide}>
-        <Control label="ต้นกะ (มิเตอร์)" required={req}>
+        <Control label={t("ต้นกะ (มิเตอร์)")} required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -173,7 +176,7 @@ function BomFieldControls({
             onChange={(meterStart) => patch({ meterStart })}
           />
         </Control>
-        <Control label="ปลายกะ (มิเตอร์)" required={req}>
+        <Control label={t("ปลายกะ (มิเตอร์)")} required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -189,17 +192,17 @@ function BomFieldControls({
   if (field.calcType === "HOURS_TIMES_RATE") {
     return (
       <div className={modalStyles.bomControls}>
-        <Control label="ปริมาณ" required={req}>
+        <Control label={t("ปริมาณ")} required={req}>
           <InputNumber
             readOnly
             precision={3}
             style={{ width: "100%" }}
             value={liveResult ?? undefined}
             addonAfter={addon}
-            placeholder="คำนวณอัตโนมัติ"
+            placeholder={t("คำนวณอัตโนมัติ")}
           />
         </Control>
-        <Control label="ชั่วโมง" required={req}>
+        <Control label={t("ชั่วโมง")} required={req}>
           <InputNumber
             min={0}
             max={24}
@@ -209,7 +212,7 @@ function BomFieldControls({
             onChange={(hours) => patch({ hours })}
           />
         </Control>
-        <Control label="อัตรา" required={req}>
+        <Control label={t("อัตรา")} required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -225,7 +228,7 @@ function BomFieldControls({
   if (field.calcType === "QTY_TIMES_UNIT_WEIGHT") {
     return (
       <div className={modalStyles.bomControls}>
-        <Control label="ปริมาณ" required={req}>
+        <Control label={t("ปริมาณ")} required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -235,7 +238,7 @@ function BomFieldControls({
             addonAfter={addon}
           />
         </Control>
-        <Control label="ชั่วโมง" required={req}>
+        <Control label={t("ชั่วโมง")} required={req}>
           <InputNumber
             min={0}
             max={24}
@@ -245,7 +248,7 @@ function BomFieldControls({
             onChange={(hours) => patch({ hours })}
           />
         </Control>
-        <Control label="อัตรา" required={req}>
+        <Control label={t("อัตรา")} required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -260,7 +263,7 @@ function BomFieldControls({
 
   return (
     <div className={modalStyles.bomControls}>
-      <Control label="ปริมาณ" required={req}>
+      <Control label={t("ปริมาณ")} required={req}>
         <InputNumber
           min={0}
           precision={3}
@@ -270,7 +273,7 @@ function BomFieldControls({
           addonAfter={addon}
         />
       </Control>
-      <Control label="ชั่วโมง" required={req}>
+      <Control label={t("ชั่วโมง")} required={req}>
         <InputNumber
           min={0}
           max={24}
@@ -280,7 +283,7 @@ function BomFieldControls({
           onChange={(hours) => patch({ hours })}
         />
       </Control>
-      <Control label="อัตรา" required={req}>
+      <Control label={t("อัตรา")} required={req}>
         <InputNumber
           min={0}
           precision={3}
@@ -304,7 +307,8 @@ function InfoFieldControls({
 }) {
   const v = value ?? {};
   const patch = (partial: RecordingFieldValue) => onChange({ ...v, ...partial });
-  const placeholder = `ระบุค่า ${field.label || field.code}`;
+  const t = useT();
+  const placeholder = t("ระบุค่า {name}", { name: field.label || field.code });
 
   // RPM / ข้อความ / QC ใน mock เป็นช่องพิมพ์ข้อความเต็มความกว้าง
   if (
@@ -436,28 +440,29 @@ function InfoFieldRow({ field }: { field: RecordingFieldDef }) {
 const fmtNum = (v: number | null | undefined, digits = 2) =>
   v == null
     ? "—"
-    : v.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: digits });
+    : v.toLocaleString(cycleNumLocale(), { minimumFractionDigits: 0, maximumFractionDigits: digits });
 
 /** สรุปผลคาดการณ์เทียบผลจริงของเครื่องหนึ่ง (ใช้ทั้งในโมดัลแก้ไขและตารางสรุป) */
 function ForecastLine({ forecast }: { forecast?: MachineForecast }) {
+  const t = useT();
   if (!forecast) return null;
   if (forecast.status !== "OK") {
     return (
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        เปรียบเทียบกำลังผลิตไม่ได้: {MACHINE_FORECAST_STATUS_LABEL[forecast.status]}
-        {forecast.forecast != null ? ` (คาดการณ์ ${fmtNum(forecast.forecast)} ${forecast.capacityUnitLabel ?? ""})` : ""}
+        {t("เปรียบเทียบกำลังผลิตไม่ได้:")} {t(MACHINE_FORECAST_STATUS_LABEL[forecast.status])}
+        {forecast.forecast != null ? ` (${t("คาดการณ์")} ${fmtNum(forecast.forecast)} ${forecast.capacityUnitLabel ?? ""})` : ""}
       </Typography.Text>
     );
   }
   return (
     <Space size={[8, 4]} wrap>
-      <Tag>คาดการณ์ {fmtNum(forecast.forecast)} {forecast.capacityUnitLabel}</Tag>
-      <Tag color="blue">ผลจริง {fmtNum(forecast.actual)}</Tag>
+      <Tag>{t("คาดการณ์")} {fmtNum(forecast.forecast)} {forecast.capacityUnitLabel}</Tag>
+      <Tag color="blue">{t("ผลจริง")} {fmtNum(forecast.actual)}</Tag>
       <Tag color={(forecast.diff ?? 0) >= 0 ? "green" : "orange"}>
-        ส่วนต่าง {(forecast.diff ?? 0) > 0 ? "+" : ""}
+        {t("ส่วนต่าง")} {(forecast.diff ?? 0) > 0 ? "+" : ""}
         {fmtNum(forecast.diff)}
       </Tag>
-      <Tag color="geekblue">{fmtNum(forecast.pctOfCapacity)}% ของกำลังผลิต</Tag>
+      <Tag color="geekblue">{fmtNum(forecast.pctOfCapacity)}% {t("ของกำลังผลิต")}</Tag>
     </Space>
   );
 }
@@ -479,6 +484,7 @@ function DynamicRecordModal({
   readOnly?: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<DynamicFormValues>();
   const lookups = useProductionOrderLookupsQuery();
   const create = useCreateShiftRecordMutation();
@@ -551,7 +557,7 @@ function DynamicRecordModal({
         form.setFields([
           {
             name: ["values", missing[0]!.id],
-            errors: [`กรุณากรอก ${missing[0]!.label || missing[0]!.code}`],
+            errors: [t("กรุณากรอก {name}", { name: missing[0]!.label || missing[0]!.code })],
           },
         ]);
         return Promise.reject();
@@ -592,11 +598,11 @@ function DynamicRecordModal({
       className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
-          ? `${readOnly ? "ดู" : "แก้"}บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
-          : "บันทึกการผลิตรายกะ"
+          ? t(readOnly ? "ดูบันทึกรายกะ — {shift} {date}" : "แก้บันทึกรายกะ — {shift} {date}", { shift: record.shiftName, date: dayjs(record.recordDate).format("DD/MM/YYYY") })
+          : t("บันทึกการผลิตรายกะ")
       }
-      okText="บันทึก"
-      cancelText={readOnly ? "ปิด" : "ยกเลิก"}
+      okText={t("บันทึก")}
+      cancelText={readOnly ? t("ปิด") : t("ยกเลิก")}
       okButtonProps={{ className: modalStyles.saveButton }}
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
@@ -604,7 +610,7 @@ function DynamicRecordModal({
       onOk={save}
       footer={
         readOnly ? (
-          <Button onClick={onClose}>ปิด</Button>
+          <Button onClick={onClose}>{t("ปิด")}</Button>
         ) : undefined
       }
     >
@@ -631,12 +637,12 @@ function DynamicRecordModal({
         }}
       >
         <div className={modalStyles.modalBody}>
-          <ModalSection icon={<CalendarOutlined />} title="ข้อมูลกะการผลิต">
+          <ModalSection icon={<CalendarOutlined />} title={t("ข้อมูลกะการผลิต")}>
             <div className={modalStyles.fieldGrid2}>
               <Form.Item
                 name="recordDate"
-                label="วันที่ของกะ"
-                rules={[{ required: true, message: "เลือกวันที่" }]}
+                label={t("วันที่ของกะ")}
+                rules={[{ required: true, message: t("เลือกวันที่") }]}
               >
                 <DatePicker
                   style={{ width: "100%" }}
@@ -647,11 +653,11 @@ function DynamicRecordModal({
               </Form.Item>
               <Form.Item
                 name="shiftId"
-                label="กะ"
-                rules={[{ required: true, message: "เลือกกะ" }]}
+                label={t("กะ")}
+                rules={[{ required: true, message: t("เลือกกะ") }]}
               >
                 <Select
-                  placeholder="เลือกกะ"
+                  placeholder={t("เลือกกะ")}
                   disabled={Boolean(record)}
                   loading={lookups.isLoading}
                   options={shifts.map((s) => ({
@@ -663,25 +669,25 @@ function DynamicRecordModal({
               </Form.Item>
               <Form.Item
                 name="shiftStartTime"
-                label="ต้นกะ"
-                rules={[{ required: true, message: "ระบุต้นกะ" }]}
+                label={t("ต้นกะ")}
+                rules={[{ required: true, message: t("ระบุต้นกะ") }]}
               >
                 <TimePicker
                   style={{ width: "100%" }}
                   format="HH:mm"
-                  placeholder="เลือกเวลา"
+                  placeholder={t("เลือกเวลา")}
                   needConfirm={false}
                 />
               </Form.Item>
               <Form.Item
                 name="shiftEndTime"
-                label="ปลายกะ"
-                rules={[{ required: true, message: "ระบุปลายกะ" }]}
+                label={t("ปลายกะ")}
+                rules={[{ required: true, message: t("ระบุปลายกะ") }]}
               >
                 <TimePicker
                   style={{ width: "100%" }}
                   format="HH:mm"
-                  placeholder="เลือกเวลา"
+                  placeholder={t("เลือกเวลา")}
                   needConfirm={false}
                 />
               </Form.Item>
@@ -707,25 +713,25 @@ function DynamicRecordModal({
                 <Space size={[8, 4]} wrap style={{ marginBottom: 8 }}>
                   {machine.equipmentTypeName ? <Tag>{machine.equipmentTypeName}</Tag> : null}
                   <Tag color="geekblue">
-                    กำลังผลิต{" "}
+                    {t("กำลังผลิต")}{" "}
                     {machine.capacity != null
-                      ? `${fmtNum(machine.capacity)} ${machine.capacityUnitLabel ?? ""}/ชม.`
-                      : "ยังไม่ตั้ง"}
+                      ? `${fmtNum(machine.capacity)} ${machine.capacityUnitLabel ?? ""}/${t("ชม.")}`
+                      : t("ยังไม่ตั้ง")}
                   </Tag>
                   {machine.formulaEquipmentId !== machine.equipmentId ? (
-                    <Tag color="orange">สลับจากเครื่องในสูตร</Tag>
+                    <Tag color="orange">{t("สลับจากเครื่องในสูตร")}</Tag>
                   ) : null}
                 </Space>
                 <Form.Item
                   name={["machineHours", machine.equipmentId]}
-                  label="ชั่วโมงเดินเครื่องจริงของเครื่องนี้"
+                  label={t("ชั่วโมงเดินเครื่องจริงของเครื่องนี้")}
                   extra={
                     livePreview != null
-                      ? `ผลคาดการณ์ = ${fmtNum(machine.capacity)} × ${fmtNum(Number(hours))} ชม. = ${fmtNum(livePreview, 3)} ${machine.capacityUnitLabel ?? ""} (เทียบผลจริงหลังบันทึก)`
-                      : "ไม่บังคับ — ไม่กรอก = ไม่คำนวณผลคาดการณ์ของเครื่องนี้"
+                      ? t("ผลคาดการณ์ = {cap} × {hours} ชม. = {result} {unit} (เทียบผลจริงหลังบันทึก)", { cap: fmtNum(machine.capacity), hours: fmtNum(Number(hours)), result: fmtNum(livePreview, 3), unit: machine.capacityUnitLabel ?? "" })
+                      : t("ไม่บังคับ — ไม่กรอก = ไม่คำนวณผลคาดการณ์ของเครื่องนี้")
                   }
                 >
-                  <InputNumber min={0} max={24} precision={2} style={{ width: 200 }} addonAfter="ชม." />
+                  <InputNumber min={0} max={24} precision={2} style={{ width: 200 }} addonAfter={t("ชม.")} />
                 </Form.Item>
                 <div className={modalStyles.fieldBlock}>
                   {machineFields.map((field) =>
@@ -742,7 +748,7 @@ function DynamicRecordModal({
           })}
 
           {inputFields.length > 0 ? (
-            <ModalSection icon={<InboxOutlined />} title="วัตถุดิบเข้า">
+            <ModalSection icon={<InboxOutlined />} title={t("วัตถุดิบเข้า")}>
               <div className={modalStyles.fieldBlock}>
                 {inputFields.map((field) => (
                   <BomFieldRow
@@ -758,7 +764,7 @@ function DynamicRecordModal({
           {outputFields.length > 0 || infoFields.length > 0 ? (
             <ModalSection
               icon={<SettingOutlined />}
-              title="ผลผลิต / ข้อมูลเครื่อง"
+              title={t("ผลผลิต / ข้อมูลเครื่อง")}
             >
               <div className={modalStyles.fieldBlock}>
                 {outputFields.map((field) => (
@@ -777,15 +783,15 @@ function DynamicRecordModal({
 
           <ModalSection
             icon={<FileTextOutlined />}
-            title="ผู้ปฏิบัติงานและหมายเหตุ"
+            title={t("ผู้ปฏิบัติงานและหมายเหตุ")}
           >
-            <Form.Item name="operatorIds" label="ผู้ปฏิบัติงานของกะ">
+            <Form.Item name="operatorIds" label={t("ผู้ปฏิบัติงานของกะ")}>
               <Select
                 mode="multiple"
                 allowClear
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกได้หลายคน"
+                placeholder={t("เลือกได้หลายคน")}
                 loading={lookups.isLoading}
                 options={(lookups.data?.data.operators ?? []).map((o) => ({
                   value: o.id,
@@ -793,11 +799,11 @@ function DynamicRecordModal({
                 }))}
               />
             </Form.Item>
-            <Form.Item name="remark" label="หมายเหตุ" style={{ marginBottom: 0 }}>
+            <Form.Item name="remark" label={t("หมายเหตุ")} style={{ marginBottom: 0 }}>
               <Input.TextArea
                 rows={3}
                 maxLength={2000}
-                placeholder="ระบุหมายเหตุ (ถ้ามี)"
+                placeholder={t("ระบุหมายเหตุ (ถ้ามี)")}
               />
             </Form.Item>
           </ModalSection>
@@ -818,6 +824,7 @@ function LegacyRecordModal({
   readOnly?: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<LegacyValues>();
   const lookups = useProductionOrderLookupsQuery();
   const create = useCreateShiftRecordMutation();
@@ -845,16 +852,16 @@ function LegacyRecordModal({
       className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
-          ? `${readOnly ? "ดู" : "แก้"}บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
-          : "บันทึกการผลิตรายกะ"
+          ? t(readOnly ? "ดูบันทึกรายกะ — {shift} {date}" : "แก้บันทึกรายกะ — {shift} {date}", { shift: record.shiftName, date: dayjs(record.recordDate).format("DD/MM/YYYY") })
+          : t("บันทึกการผลิตรายกะ")
       }
-      okText="บันทึก"
-      cancelText={readOnly ? "ปิด" : "ยกเลิก"}
+      okText={t("บันทึก")}
+      cancelText={readOnly ? t("ปิด") : t("ยกเลิก")}
       okButtonProps={{ className: modalStyles.saveButton }}
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
       destroyOnHidden
-      footer={readOnly ? <Button onClick={onClose}>ปิด</Button> : undefined}
+      footer={readOnly ? <Button onClick={onClose}>{t("ปิด")}</Button> : undefined}
       onOk={() =>
         void form.validateFields().then((v) => {
           const common = {
@@ -901,12 +908,12 @@ function LegacyRecordModal({
         }}
       >
         <div className={modalStyles.modalBody}>
-          <ModalSection icon={<CalendarOutlined />} title="ข้อมูลกะการผลิต">
+          <ModalSection icon={<CalendarOutlined />} title={t("ข้อมูลกะการผลิต")}>
             <div className={modalStyles.fieldGrid2}>
               <Form.Item
                 name="recordDate"
-                label="วันที่ของกะ"
-                rules={[{ required: true, message: "เลือกวันที่" }]}
+                label={t("วันที่ของกะ")}
+                rules={[{ required: true, message: t("เลือกวันที่") }]}
               >
                 <DatePicker
                   style={{ width: "100%" }}
@@ -917,11 +924,11 @@ function LegacyRecordModal({
               </Form.Item>
               <Form.Item
                 name="shiftId"
-                label="กะ"
-                rules={[{ required: true, message: "เลือกกะ" }]}
+                label={t("กะ")}
+                rules={[{ required: true, message: t("เลือกกะ") }]}
               >
                 <Select
-                  placeholder="เลือกกะ"
+                  placeholder={t("เลือกกะ")}
                   disabled={Boolean(record)}
                   loading={lookups.isLoading}
                   options={shifts.map((s) => ({
@@ -939,71 +946,71 @@ function LegacyRecordModal({
               </Form.Item>
               <Form.Item
                 name="shiftStartTime"
-                label="ต้นกะ"
-                rules={[{ required: true, message: "ระบุต้นกะ" }]}
+                label={t("ต้นกะ")}
+                rules={[{ required: true, message: t("ระบุต้นกะ") }]}
               >
                 <TimePicker
                   style={{ width: "100%" }}
                   format="HH:mm"
-                  placeholder="เลือกเวลา"
+                  placeholder={t("เลือกเวลา")}
                   needConfirm={false}
                 />
               </Form.Item>
               <Form.Item
                 name="shiftEndTime"
-                label="ปลายกะ"
-                rules={[{ required: true, message: "ระบุปลายกะ" }]}
+                label={t("ปลายกะ")}
+                rules={[{ required: true, message: t("ระบุปลายกะ") }]}
               >
                 <TimePicker
                   style={{ width: "100%" }}
                   format="HH:mm"
-                  placeholder="เลือกเวลา"
+                  placeholder={t("เลือกเวลา")}
                   needConfirm={false}
                 />
               </Form.Item>
             </div>
           </ModalSection>
 
-          <ModalSection icon={<InboxOutlined />} title="วัตถุดิบเข้า">
+          <ModalSection icon={<InboxOutlined />} title={t("วัตถุดิบเข้า")}>
             <div className={modalStyles.bomRow}>
               <div className={modalStyles.bomLabel}>
                 <span className={`${modalStyles.bomTitle} ${modalStyles.bomTitleRequired}`}>
-                  ยางที่ป้อนเข้าเตา
+                  {t("ยางที่ป้อนเข้าเตา")}
                 </span>
-                <span className={modalStyles.bomSub}>Input — วัตถุดิบใน BOM</span>
+                <span className={modalStyles.bomSub}>{t("Input — วัตถุดิบใน BOM")}</span>
               </div>
               <div className={modalStyles.bomControls}>
-                <Control label="ปริมาณ" required>
+                <Control label={t("ปริมาณ")} required>
                   <Form.Item
                     name="inputTireKg"
-                    rules={[{ required: true, message: "ใส่จำนวน" }]}
+                    rules={[{ required: true, message: t("ใส่จำนวน") }]}
                     style={{ marginBottom: 0 }}
                   >
                     <InputNumber
                       min={0}
                       precision={3}
                       style={{ width: "100%" }}
-                      addonAfter="กิโลกรัม"
+                      addonAfter={t("กิโลกรัม")}
                     />
                   </Form.Item>
                 </Control>
-                <Control label="ชั่วโมง" required>
+                <Control label={t("ชั่วโมง")} required>
                   <Form.Item
                     name="operatingHours"
-                    rules={[{ required: true, message: "ใส่ชั่วโมง" }]}
+                    rules={[{ required: true, message: t("ใส่ชั่วโมง") }]}
                     style={{ marginBottom: 0 }}
                   >
                     <InputNumber min={0} max={24} precision={2} style={{ width: "100%" }} />
                   </Form.Item>
                 </Control>
-                <Control label="อัตรา">
+                <Control label={t("อัตรา")}>
                   <Form.Item
                     name="feedRateKgH"
                     style={{ marginBottom: 0 }}
                     extra={
                       calc !== null
-                        ? `เว้นว่าง = ${n(calc)}`
-                        : "เว้นว่างให้ระบบคำนวณ"
+                        ? t("เว้นว่าง = {v}", { v: n(calc) })
+                        : t("เว้นว่างให้ระบบคำนวณ")
                     }
                   >
                     <InputNumber min={0} precision={3} style={{ width: "100%" }} />
@@ -1015,15 +1022,15 @@ function LegacyRecordModal({
 
           <ModalSection
             icon={<FileTextOutlined />}
-            title="ผู้ปฏิบัติงานและหมายเหตุ"
+            title={t("ผู้ปฏิบัติงานและหมายเหตุ")}
           >
-            <Form.Item name="operatorIds" label="ผู้ปฏิบัติงานของกะ">
+            <Form.Item name="operatorIds" label={t("ผู้ปฏิบัติงานของกะ")}>
               <Select
                 mode="multiple"
                 allowClear
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกได้หลายคน"
+                placeholder={t("เลือกได้หลายคน")}
                 loading={lookups.isLoading}
                 options={(lookups.data?.data.operators ?? []).map((o) => ({
                   value: o.id,
@@ -1031,11 +1038,11 @@ function LegacyRecordModal({
                 }))}
               />
             </Form.Item>
-            <Form.Item name="remark" label="หมายเหตุ" style={{ marginBottom: 0 }}>
+            <Form.Item name="remark" label={t("หมายเหตุ")} style={{ marginBottom: 0 }}>
               <Input.TextArea
                 rows={3}
                 maxLength={2000}
-                placeholder="ระบุหมายเหตุ (ถ้ามี)"
+                placeholder={t("ระบุหมายเหตุ (ถ้ามี)")}
               />
             </Form.Item>
           </ModalSection>
@@ -1076,6 +1083,7 @@ export default function ShiftRecordsPanel({
   inputStockMode?: string;
   inputItems?: ProductionOrderInputItem[];
 }) {
+  const t = useT();
   const query = useShiftRecordsQuery({ productionOrderId: orderId });
   const remove = useDeleteShiftRecordMutation();
   const unconfirm = useUnconfirmShiftRecordMutation();
@@ -1139,28 +1147,28 @@ export default function ShiftRecordsPanel({
   const columns: ColumnsType<ShiftRecord> = useMemo(() => {
     const base: ColumnsType<ShiftRecord> = [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_: unknown, __: unknown, index: number) => index + 1,
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "recordDate",
         width: 110,
         render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
       },
-      { title: "กะ", dataIndex: "shiftName", width: 110 },
+      { title: t("กะ"), dataIndex: "shiftName", width: 110 },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 110,
         render: (v: string) =>
           v === "CONFIRMED" ? (
-            <Tag color="success">ยืนยันแล้ว</Tag>
+            <Tag color="success">{t("ยืนยันแล้ว")}</Tag>
           ) : (
-            <Tag>ร่าง</Tag>
+            <Tag>{t("ร่าง")}</Tag>
           ),
       },
     ];
@@ -1186,26 +1194,26 @@ export default function ShiftRecordsPanel({
     } else {
       base.push(
         {
-          title: "ยางป้อน (กก.)",
+          title: t("ยางป้อน (กก.)"),
           dataIndex: "inputTireKg",
           align: "right",
           render: (v: number) => n(v),
         },
         {
-          title: "ชม.เดินเครื่อง",
+          title: t("ชม.เดินเครื่อง"),
           dataIndex: "operatingHours",
           align: "right",
           render: (v: number) => n(v, 2),
         },
         {
-          title: "Feed Rate (กก./ชม.)",
+          title: t("Feed Rate (กก./ชม.)"),
           key: "fr",
           align: "right",
           render: (_v, r) => (
             <span>
               {n(r.feedRateKgH)}
               {r.feedRateCalculated ? (
-                <Tag style={{ marginLeft: 4 }}>คำนวณ</Tag>
+                <Tag style={{ marginLeft: 4 }}>{t("คำนวณ")}</Tag>
               ) : null}
             </span>
           ),
@@ -1214,7 +1222,7 @@ export default function ShiftRecordsPanel({
     }
 
     base.push({
-      title: "ผู้ปฏิบัติงาน",
+      title: t("ผู้ปฏิบัติงาน"),
       key: "ops",
       render: (_v, r) =>
         r.operators.length
@@ -1224,7 +1232,7 @@ export default function ShiftRecordsPanel({
 
     {
       base.push({
-        title: "การจัดการ",
+        title: t("การจัดการ"),
         key: "act",
         width: canEdit ? (cutOnConfirm ? 300 : 180) : 80,
         render: (_v, r) => {
@@ -1232,11 +1240,11 @@ export default function ShiftRecordsPanel({
           return (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <Button size="small" icon={<EyeOutlined />} onClick={() => setViewing(r)}>
-                ดู
+                {t("ดู")}
               </Button>
               {!canEdit ? null : !confirmed ? (
                 <Button size="small" onClick={() => setEditing(r)}>
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
               ) : null}
               {canEdit && cutOnConfirm && !confirmed ? (
@@ -1245,28 +1253,28 @@ export default function ShiftRecordsPanel({
                   type="primary"
                   onClick={() => setConfirming(r)}
                 >
-                  ยืนยัน/ตัดสต๊อก
+                  {t("ยืนยัน/ตัดสต๊อก")}
                 </Button>
               ) : null}
               {canEdit && cutOnConfirm && confirmed ? (
                 <Popconfirm
-                  title="ยกเลิกยืนยันและคืนสต๊อก?"
-                  okText="ยกเลิกยืนยัน"
-                  cancelText="ปิด"
+                  title={t("ยกเลิกยืนยันและคืนสต๊อก?")}
+                  okText={t("ยกเลิกยืนยัน")}
+                  cancelText={t("ปิด")}
                   onConfirm={() => unconfirm.mutate(r.id)}
                 >
-                  <Button size="small">ยกเลิกยืนยัน</Button>
+                  <Button size="small">{t("ยกเลิกยืนยัน")}</Button>
                 </Popconfirm>
               ) : null}
               {canEdit && !confirmed ? (
                 <Popconfirm
-                  title="ลบบันทึกนี้?"
-                  okText="ลบ"
-                  cancelText="ยกเลิก"
+                  title={t("ลบบันทึกนี้?")}
+                  okText={t("ลบ")}
+                  cancelText={t("ยกเลิก")}
                   onConfirm={() => remove.mutate(r.id)}
                 >
                   <Button size="small" danger>
-                    ลบ
+                    {t("ลบ")}
                   </Button>
                 </Popconfirm>
               ) : null}
@@ -1284,6 +1292,7 @@ export default function ShiftRecordsPanel({
     hasAnyDynamic,
     recordingConfigSnapshot,
     remove,
+    t,
     unconfirm,
   ]);
 
@@ -1320,8 +1329,8 @@ export default function ShiftRecordsPanel({
       <FileTextOutlined style={{ fontSize: 40, opacity: 0.45 }} />
       <div style={{ textAlign: "center", maxWidth: 420 }}>
         {started
-          ? "ยังไม่มีบันทึกการผลิตรายกะ กดปุ่ม '+ เพิ่มบันทึก' เพื่อบันทึกข้อมูล"
-          : "เริ่มผลิตแล้วจึงบันทึกรายกะได้"}
+          ? t("ยังไม่มีบันทึกการผลิตรายกะ กดปุ่ม '+ เพิ่มบันทึก' เพื่อบันทึกข้อมูล")
+          : t("เริ่มผลิตแล้วจึงบันทึกรายกะได้")}
       </div>
     </div>
   );
@@ -1339,13 +1348,13 @@ export default function ShiftRecordsPanel({
       >
         <div>
           <Typography.Title level={5} style={{ margin: 0 }}>
-            บันทึกการผลิตรายกะ
+            {t("บันทึกการผลิตรายกะ")}
           </Typography.Title>
           <Typography.Paragraph
             type="secondary"
             style={{ margin: "4px 0 0", maxWidth: 560 }}
           >
-            บันทึกข้อมูลการผลิตของแต่ละกะ ตามฟอร์มที่ตั้งค่าในสูตรการผลิต
+            {t("บันทึกข้อมูลการผลิตของแต่ละกะ ตามฟอร์มที่ตั้งค่าในสูตรการผลิต")}
           </Typography.Paragraph>
         </div>
         {canEdit && started ? (
@@ -1355,7 +1364,7 @@ export default function ShiftRecordsPanel({
             icon={<PlusOutlined />}
             onClick={() => setEditing("new")}
           >
-            เพิ่มบันทึก
+            {t("เพิ่มบันทึก")}
           </Button>
         ) : null}
       </div>
@@ -1365,8 +1374,8 @@ export default function ShiftRecordsPanel({
           style={{ marginBottom: 12 }}
           type="info"
           showIcon
-          title="ยังไม่มีฟอร์มบันทึกตามสูตร"
-          description="ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — รายการใหม่จะใช้ฟอร์มล่าสุด"
+          title={t("ยังไม่มีฟอร์มบันทึกตามสูตร")}
+          description={t("ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — รายการใหม่จะใช้ฟอร์มล่าสุด")}
         />
       ) : null}
 
@@ -1392,7 +1401,7 @@ export default function ShiftRecordsPanel({
             return (
               <Table.Summary.Row>
                 <Table.Summary.Cell index={0} colSpan={3}>
-                  <strong>รวม {rows.length} กะ</strong>
+                  <strong>{t("รวม {n} กะ", { n: rows.length })}</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={3} align="right">
                   <strong>{n(legacyTotals.totalInput)}</strong>
@@ -1414,7 +1423,7 @@ export default function ShiftRecordsPanel({
           return (
             <Table.Summary.Row>
               <Table.Summary.Cell index={0} colSpan={3}>
-                <strong>รวม {rows.length} กะ</strong>
+                <strong>{t("รวม {n} กะ", { n: rows.length })}</strong>
               </Table.Summary.Cell>
               <Table.Summary.Cell index={3} colSpan={99} />
             </Table.Summary.Row>
@@ -1424,10 +1433,9 @@ export default function ShiftRecordsPanel({
 
       {machines.length > 0 ? (
         <div style={{ marginTop: 16 }}>
-          <Typography.Text strong>ผลคาดการณ์เทียบผลจริงรายเครื่อง</Typography.Text>
+          <Typography.Text strong>{t("ผลคาดการณ์เทียบผลจริงรายเครื่อง")}</Typography.Text>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
-            คาดการณ์ = กำลังผลิต × ชั่วโมงเดินเครื่องจริง รวมเฉพาะกะที่กรอกชั่วโมงและผลจริงครบ ·
-            เทียบเฉพาะหน่วยที่ตรงกัน · ไม่รวมกำลังผลิตข้ามเครื่อง (เครื่องที่ทำงานต่อเนื่องกันจะนับซ้ำ)
+            {t("คาดการณ์ = กำลังผลิต × ชั่วโมงเดินเครื่องจริง รวมเฉพาะกะที่กรอกชั่วโมงและผลจริงครบ · เทียบเฉพาะหน่วยที่ตรงกัน · ไม่รวมกำลังผลิตข้ามเครื่อง (เครื่องที่ทำงานต่อเนื่องกันจะนับซ้ำ)")}
           </Typography.Paragraph>
           <Table<MachineForecast>
             size="small"
@@ -1435,52 +1443,52 @@ export default function ShiftRecordsPanel({
             pagination={false}
             loading={machineSummary.isFetching}
             dataSource={machineSummary.data?.data ?? []}
-            locale={{ emptyText: "ยังไม่มีบันทึกกะ" }}
+            locale={{ emptyText: t("ยังไม่มีบันทึกกะ") }}
             scroll={{ x: "max-content" }}
             columns={[
               {
-                title: "เครื่องจักร",
+                title: t("เครื่องจักร"),
                 key: "machine",
                 render: (_: unknown, f: MachineForecast) => `${f.equipmentCode} — ${f.equipmentName}`,
               },
               {
-                title: "กำลังผลิต/ชม.",
+                title: t("กำลังผลิต/ชม."),
                 key: "capacity",
                 align: "right",
                 render: (_: unknown, f: MachineForecast) =>
                   f.capacity != null ? `${fmtNum(f.capacity)} ${f.capacityUnitLabel ?? ""}` : "—",
               },
-              { title: "ชั่วโมงเดินเครื่อง", dataIndex: "hours", align: "right", render: (v?: number | null) => fmtNum(v) },
+              { title: t("ชั่วโมงเดินเครื่อง"), dataIndex: "hours", align: "right", render: (v?: number | null) => fmtNum(v) },
               {
-                title: "ผลคาดการณ์",
+                title: t("ผลคาดการณ์"),
                 dataIndex: "forecast",
                 align: "right",
                 render: (v?: number | null) => fmtNum(v, 3),
               },
               {
-                title: "ผลจริง",
+                title: t("ผลจริง"),
                 dataIndex: "actual",
                 align: "right",
                 render: (v?: number | null, f?: MachineForecast) =>
                   f?.status === "OK" ? fmtNum(v, 3) : "—",
               },
               {
-                title: "ส่วนต่าง",
+                title: t("ส่วนต่าง"),
                 dataIndex: "diff",
                 align: "right",
                 render: (v?: number | null) => (v == null ? "—" : `${v > 0 ? "+" : ""}${fmtNum(v, 3)}`),
               },
               {
-                title: "% ของกำลังผลิต",
+                title: t("% ของกำลังผลิต"),
                 dataIndex: "pctOfCapacity",
                 align: "right",
                 render: (v?: number | null) => (v == null ? "—" : `${fmtNum(v)}%`),
               },
               {
-                title: "สถานะ",
+                title: t("สถานะ"),
                 dataIndex: "status",
                 render: (s: MachineForecast["status"]) =>
-                  s === "OK" ? <Tag color="green">คำนวณได้</Tag> : <Tag>{MACHINE_FORECAST_STATUS_LABEL[s]}</Tag>,
+                  s === "OK" ? <Tag color="green">{t("คำนวณได้")}</Tag> : <Tag>{t(MACHINE_FORECAST_STATUS_LABEL[s])}</Tag>,
               },
             ]}
           />
@@ -1490,7 +1498,7 @@ export default function ShiftRecordsPanel({
       {accumulated.length > 0 ? (
         <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
           <Typography.Text type="secondary">
-            ยอดสะสมจากกะ{cutOnConfirm ? " (เฉพาะกะที่ยืนยันแล้ว)" : ""}:
+            {t("ยอดสะสมจากกะ")}{cutOnConfirm ? ` ${t("(เฉพาะกะที่ยืนยันแล้ว)")}` : ""}:
           </Typography.Text>
           {accumulated.map((row) => (
             <Tag key={row.key} color={roleColor(row.resultRole)}>

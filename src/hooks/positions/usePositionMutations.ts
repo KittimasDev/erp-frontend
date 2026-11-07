@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   createPosition,
@@ -33,43 +35,46 @@ function errorText(error: Error, fallback: string) {
 export function useCreatePositionMutation() {
   const refresh = useRefresh();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationKey: ["master-data", "positions", "create"],
     mutationFn: (payload: CreatePositionRequest) =>
       createPosition(getAccessToken(), payload),
     onSuccess: async (response) => {
       await refresh();
-      message.success(response.message || "สร้างตำแหน่งสำเร็จแล้ว");
+      message.success(response.message || t("สร้างตำแหน่งสำเร็จแล้ว"));
     },
-    onError: (error: Error) => message.error(errorText(error, "สร้างตำแหน่งไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, t("สร้างตำแหน่งไม่สำเร็จ"))),
   });
 }
 
 export function useUpdatePositionMutation() {
   const refresh = useRefresh();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationKey: ["master-data", "positions", "update"],
     mutationFn: ({ id, body }: { id: string; body: UpdatePositionRequest }) =>
       updatePosition(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await refresh();
-      message.success(response.message || "แก้ไขตำแหน่งสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขตำแหน่งสำเร็จแล้ว"));
     },
-    onError: (error: Error) => message.error(errorText(error, "แก้ไขตำแหน่งไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, t("แก้ไขตำแหน่งไม่สำเร็จ"))),
   });
 }
 
 export function useDeletePositionMutation() {
   const refresh = useRefresh();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationKey: ["master-data", "positions", "delete"],
     mutationFn: (id: string) => deletePosition(getAccessToken(), id),
     onSuccess: async (response) => {
       await refresh();
-      message.success(response.message || "ลบตำแหน่งสำเร็จแล้ว");
+      message.success(response.message || t("ลบตำแหน่งสำเร็จแล้ว"));
     },
-    onError: (error: Error) => message.error(errorText(error, "ลบตำแหน่งไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, t("ลบตำแหน่งไม่สำเร็จ"))),
   });
 }

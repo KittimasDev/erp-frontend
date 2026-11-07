@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { createStockAdjustmentType } from "@/lib/api/stock-adjustment-types";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -12,6 +14,7 @@ import { stockAdjustmentTypesQueryKey } from "./useStockAdjustmentTypesQuery";
 export function useCreateStockAdjustmentTypeMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "stock-adjustment-types", "create"],
@@ -22,14 +25,14 @@ export function useCreateStockAdjustmentTypeMutation() {
         queryKey: stockAdjustmentTypesQueryKey,
       });
       message.success(
-        response.message || "สร้างประเภทใบปรับปรุงสต๊อกสำเร็จแล้ว",
+        response.message || t("สร้างประเภทใบปรับปรุงสต๊อกสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างประเภทใบปรับปรุงสต๊อกไม่สำเร็จ",
+          : t("สร้างประเภทใบปรับปรุงสต๊อกไม่สำเร็จ"),
       );
     },
   });

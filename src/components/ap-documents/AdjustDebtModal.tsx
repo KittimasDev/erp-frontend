@@ -10,6 +10,7 @@ import {
   useApplySupplierCreditsMutation,
   useSupplierCreditCandidatesQuery,
 } from "@/hooks/ap-documents/useApDocuments";
+import { useT } from "@/lib/i18n/useT";
 import type { ApAdjustmentCandidate, ApInvoiceDetail, ApSupplierCreditCandidate } from "@/types/ap-documents";
 
 import { formatThaiDate, money } from "./apDocumentConfig";
@@ -31,6 +32,7 @@ export default function AdjustDebtModal({
   detail: ApInvoiceDetail;
   onClose: () => void;
 }) {
+  const t = useT();
   const { message } = App.useApp();
   const candidates = useAdjustmentCandidatesQuery(detail.id, open);
   const action = useApInvoiceActionMutation(detail.id);
@@ -68,52 +70,52 @@ export default function AdjustDebtModal({
       if (creditChosen.length > 0) {
         await creditAction.mutateAsync(creditChosen.map((c) => ({ noteId: c.note.id, amount: c.amount })));
       }
-      message.success("ปรับหนี้แล้ว");
+      message.success(t("ปรับหนี้แล้ว"));
       close();
     } catch (e) {
-      message.error(e instanceof Error ? e.message : "ปรับหนี้ไม่สำเร็จ");
+      message.error(e instanceof Error ? e.message : t("ปรับหนี้ไม่สำเร็จ"));
     }
   };
 
   const creditColumns: ColumnsType<ApSupplierCreditCandidate> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ใบลดหนี้ (เครดิตผู้ขาย)",
+      title: t("ใบลดหนี้ (เครดิตผู้ขาย)"),
       dataIndex: "docNo",
       width: 190,
       render: (v: string) => <Typography.Text strong>{v}</Typography.Text>,
     },
-    { title: "วันที่เอกสาร", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
-    { title: "เหตุผล", dataIndex: "reason", render: (v: string | null) => v ?? "—" },
+    { title: t("วันที่เอกสาร"), dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("เหตุผล"), dataIndex: "reason", render: (v: string | null) => v ?? "—" },
     {
-      title: "ยอดใบลดหนี้",
+      title: t("ยอดใบลดหนี้"),
       dataIndex: "totalAmount",
       align: "right",
       width: 120,
       render: (v: number) => money.format(v),
     },
     {
-      title: "ใช้ไปแล้ว",
+      title: t("ใช้ไปแล้ว"),
       dataIndex: "usedAmount",
       align: "right",
       width: 110,
       render: (v: number) => money.format(v),
     },
     {
-      title: "เครดิตคงเหลือ",
+      title: t("เครดิตคงเหลือ"),
       dataIndex: "remainingAmount",
       align: "right",
       width: 130,
       render: (v: number) => money.format(v),
     },
     {
-      title: "ยอดที่ใช้กับ AP นี้",
+      title: t("ยอดที่ใช้กับ AP นี้"),
       key: "use",
       width: 170,
       render: (_v, r) => (
@@ -126,7 +128,7 @@ export default function AdjustDebtModal({
           placeholder="0.00"
           onChange={(value) => setCreditAmounts((prev) => ({ ...prev, [r.id]: value ?? 0 }))}
           addonAfter={
-            <a onClick={() => setCreditAmounts((prev) => ({ ...prev, [r.id]: r.remainingAmount }))}>ทั้งหมด</a>
+            <a onClick={() => setCreditAmounts((prev) => ({ ...prev, [r.id]: r.remainingAmount }))}>{t("ทั้งหมด")}</a>
           }
         />
       ),
@@ -135,34 +137,34 @@ export default function AdjustDebtModal({
 
   const columns: ColumnsType<ApAdjustmentCandidate> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่เอกสาร",
+      title: t("เลขที่เอกสาร"),
       dataIndex: "docNo",
       width: 150,
       render: (v: string) => <Typography.Text strong>{v}</Typography.Text>,
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "docType",
       width: 100,
-      render: (v: string) => <Tag color={v === "CREDIT_NOTE" ? "green" : "orange"}>{TYPE_LABEL[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={v === "CREDIT_NOTE" ? "green" : "orange"}>{t(TYPE_LABEL[v] ?? v)}</Tag>,
     },
-    { title: "วันที่เอกสาร", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่เอกสาร"), dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (r.creditorName ? `${r.creditorCode ?? ""} ${r.creditorName}` : "—"),
     },
-    { title: "AP อ้างอิง", dataIndex: "referenceDocumentNo", width: 160, render: (v?: string) => v ?? "—" },
-    { title: "เหตุผล", dataIndex: "reason", render: (v?: string) => v ?? "—" },
+    { title: t("AP อ้างอิง"), dataIndex: "referenceDocumentNo", width: 160, render: (v?: string) => v ?? "—" },
+    { title: t("เหตุผล"), dataIndex: "reason", render: (v?: string) => v ?? "—" },
     {
-      title: "จำนวนเงิน",
+      title: t("จำนวนเงิน"),
       dataIndex: "signedAmount",
       align: "right",
       width: 130,
@@ -174,15 +176,15 @@ export default function AdjustDebtModal({
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 170,
       render: (_v, r) =>
         r.selectable ? (
-          <Tag color="green">อนุมัติแล้ว</Tag>
+          <Tag color="green">{t("อนุมัติแล้ว")}</Tag>
         ) : (
           <Tooltip title={r.unselectableReason}>
-            <Tag>เอกสารที่เกี่ยวข้อง (ไม่หัก AP)</Tag>
+            <Tag>{t("เอกสารที่เกี่ยวข้อง (ไม่หัก AP)")}</Tag>
           </Tooltip>
         ),
     },
@@ -191,11 +193,11 @@ export default function AdjustDebtModal({
   return (
     <Modal
       open={open}
-      title="เลือกเอกสารปรับหนี้"
+      title={t("เลือกเอกสารปรับหนี้")}
       width={1100}
-      okText="ยืนยันการปรับหนี้"
+      okText={t("ยืนยันการปรับหนี้")}
       okButtonProps={{ disabled: !hasSelection || after < -0.004 || creditOver }}
-      cancelText="ปิด"
+      cancelText={t("ปิด")}
       confirmLoading={action.isPending || creditAction.isPending}
       onOk={() => void submit()}
       onCancel={close}
@@ -205,7 +207,10 @@ export default function AdjustDebtModal({
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title={`ใบตั้งหนี้ ${detail.docNo} — แสดงเฉพาะใบเพิ่มหนี้/ใบลดหนี้ที่อนุมัติแล้ว อ้างอิง AP ใบนี้ ผู้ขายเดียวกัน และยังไม่ถูกนำไปใช้ปรับหนี้ · ยอด AP เปลี่ยนเมื่อยืนยันที่นี่เท่านั้น สถานะ AP ยังเป็นอนุมัติแล้ว`}
+        title={t(
+          "ใบตั้งหนี้ {docNo} — แสดงเฉพาะใบเพิ่มหนี้/ใบลดหนี้ที่อนุมัติแล้ว อ้างอิง AP ใบนี้ ผู้ขายเดียวกัน และยังไม่ถูกนำไปใช้ปรับหนี้ · ยอด AP เปลี่ยนเมื่อยืนยันที่นี่เท่านั้น สถานะ AP ยังเป็นอนุมัติแล้ว",
+          { docNo: detail.docNo },
+        )}
       />
       <Table
         size="small"
@@ -220,12 +225,12 @@ export default function AdjustDebtModal({
           onChange: (keys) => setSelected(keys as string[]),
           getCheckboxProps: (r) => ({ disabled: !r.selectable }),
         }}
-        locale={{ emptyText: "ไม่มีเอกสารปรับหนี้ที่นำมาใช้กับ AP ใบนี้ได้" }}
+        locale={{ emptyText: t("ไม่มีเอกสารปรับหนี้ที่นำมาใช้กับ AP ใบนี้ได้") }}
       />
       {creditRows.length > 0 ? (
         <>
           <Typography.Title level={5} style={{ marginTop: 16 }}>
-            ใช้เครดิตผู้ขาย (จากใบลดหนี้ที่เก็บเป็นเครดิต)
+            {t("ใช้เครดิตผู้ขาย (จากใบลดหนี้ที่เก็บเป็นเครดิต)")}
           </Typography.Title>
           <Table
             size="small"
@@ -241,18 +246,18 @@ export default function AdjustDebtModal({
               type="error"
               showIcon
               style={{ marginTop: 8 }}
-              title="ยอดที่ใช้เกินเครดิตคงเหลือของใบลดหนี้บางใบ"
+              title={t("ยอดที่ใช้เกินเครดิตคงเหลือของใบลดหนี้บางใบ")}
             />
           ) : null}
         </>
       ) : null}
       <Descriptions bordered size="small" column={{ xs: 1, md: 3 }} style={{ marginTop: 12 }}>
-        <Descriptions.Item label="ยอดเจ้าหนี้คงเหลือก่อนปรับ">{money.format(before)}</Descriptions.Item>
-        <Descriptions.Item label="ปรับหนี้ / ใช้เครดิตที่เลือก">
+        <Descriptions.Item label={t("ยอดเจ้าหนี้คงเหลือก่อนปรับ")}>{money.format(before)}</Descriptions.Item>
+        <Descriptions.Item label={t("ปรับหนี้ / ใช้เครดิตที่เลือก")}>
           {delta >= 0 ? "+" : "−"}
           {money.format(Math.abs(delta))}
         </Descriptions.Item>
-        <Descriptions.Item label="ยอดเจ้าหนี้คงเหลือหลังปรับ">
+        <Descriptions.Item label={t("ยอดเจ้าหนี้คงเหลือหลังปรับ")}>
           <Typography.Text strong type={after < 0 ? "danger" : undefined}>
             {money.format(after)}
           </Typography.Text>
@@ -263,11 +268,14 @@ export default function AdjustDebtModal({
           type="warning"
           showIcon
           style={{ marginTop: 12 }}
-          title={`ยอดหลังปรับ (${money.format(after)}) ต่ำกว่ายอดที่มี PV ค้างดำเนินการ (${money.format(detail.pvOpenAmount)}) — ต้องจัดการส่วนต่างที่ใบสำคัญจ่าย/รายการรอสร้าง PV ก่อน ระบบจะตรวจซ้ำตอนยืนยัน`}
+          title={t(
+            "ยอดหลังปรับ ({after}) ต่ำกว่ายอดที่มี PV ค้างดำเนินการ ({open}) — ต้องจัดการส่วนต่างที่ใบสำคัญจ่าย/รายการรอสร้าง PV ก่อน ระบบจะตรวจซ้ำตอนยืนยัน",
+            { after: money.format(after), open: money.format(detail.pvOpenAmount) },
+          )}
         />
       ) : null}
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        ยอดเจ้าหนี้คงเหลือ = ยอดตั้งหนี้ + เพิ่มหนี้ − ลดหนี้ − มัดจำ − ยอดจ่ายจริง · ใบลดหนี้ที่รับเงินคืน/เก็บเป็นเครดิตผู้ขายไม่นำมาหักซ้ำ
+        {t("ยอดเจ้าหนี้คงเหลือ = ยอดตั้งหนี้ + เพิ่มหนี้ − ลดหนี้ − มัดจำ − ยอดจ่ายจริง · ใบลดหนี้ที่รับเงินคืน/เก็บเป็นเครดิตผู้ขายไม่นำมาหักซ้ำ")}
       </Typography.Text>
     </Modal>
   );

@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { usePartyLabels } from "@/lib/i18n/partyLabels";
+
 import { useEffect } from "react";
 import { Col, Form, Input, Modal, Row, Select, Switch } from "antd";
 
@@ -51,6 +54,8 @@ export default function SellerFormModal({
   onCancel,
   onSubmit,
 }: SellerFormModalProps) {
+  const t = useT();
+  const partyLabels = usePartyLabels();
   const [form] = Form.useForm<SellerFormValues>();
 
   useEffect(() => {
@@ -118,8 +123,8 @@ export default function SellerFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={720}
       centered
@@ -132,12 +137,12 @@ export default function SellerFormModal({
             {isCreateMode ? "CREATE SELLER" : "EDIT SELLER"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มผู้ขายยาง" : "แก้ไขผู้ขายยาง"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มผู้ขายยาง") : t("แก้ไขผู้ขายยาง")}</h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลผู้ขายยางรถยนต์ใช้แล้ว"
-              : "แก้ไขรายละเอียดผู้ขายและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลผู้ขายยางรถยนต์ใช้แล้ว")
+              : t("แก้ไขรายละเอียดผู้ขายและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -151,37 +156,37 @@ export default function SellerFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลผู้ขาย</strong>
-            <span>ระบุรหัส ชื่อ ประเภท และช่องทางติดต่อ</span>
+            <strong>{t("ข้อมูลผู้ขาย")}</strong>
+            <span>{t("ระบุรหัส ชื่อ ประเภท และช่องทางติดต่อ")}</span>
           </div>
         </div>
 
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item
-              label="รหัสผู้ขาย"
+              label={t("รหัสผู้ขาย")}
               name="code"
               rules={[
-                { required: true, message: "กรุณากรอกรหัสผู้ขาย" },
-                { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกรหัสผู้ขาย") },
+                { max: 100, message: t("รหัสต้องไม่เกิน 100 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น SELL-001"
+                placeholder={t("เช่น SELL-001")}
                 autoComplete="off"
               />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
-            <Form.Item label="ประเภทผู้ขาย" name="sellerTypeId">
+            <Form.Item label={t("ประเภทผู้ขาย")} name="sellerTypeId">
               <Select
                 allowClear
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกประเภท"
+                placeholder={t("เลือกประเภท")}
                 loading={sellerTypesLoading}
                 options={sellerTypeOptions}
               />
@@ -190,16 +195,16 @@ export default function SellerFormModal({
 
           <Col xs={24}>
             <Form.Item
-              label="ชื่อผู้ขาย"
+              label={t("ชื่อผู้ขาย")}
               name="name"
               rules={[
-                { required: true, message: "กรุณากรอกชื่อผู้ขาย" },
-                { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกชื่อผู้ขาย") },
+                { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น หจก. รับซื้อยาง ABC"
+                placeholder={t("เช่น หจก. รับซื้อยาง ABC")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -207,70 +212,70 @@ export default function SellerFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="เลขประจำตัวผู้เสียภาษี"
+              label={t("เลขประจำตัวผู้เสียภาษี")}
               name="taxId"
-              rules={[{ max: 50, message: "ต้องไม่เกิน 50 ตัวอักษร" }]}
+              rules={[{ max: 50, message: t("ต้องไม่เกิน 50 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น 1234567890123" />
+              <Input size="large" placeholder={t("เช่น 1234567890123")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ชื่อผู้ติดต่อ"
+              label={t("ชื่อผู้ติดต่อ")}
               name="contactName"
-              rules={[{ max: 255, message: "ต้องไม่เกิน 255 ตัวอักษร" }]}
+              rules={[{ max: 255, message: t("ต้องไม่เกิน 255 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น คุณสมชาย" />
+              <Input size="large" placeholder={t("เช่น คุณสมชาย")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="เบอร์โทรศัพท์"
+              label={t("เบอร์โทรศัพท์")}
               name="phone"
-              rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+              rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น 0812345678" />
+              <Input size="large" placeholder={t("เช่น 0812345678")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="อีเมล"
+              label={t("อีเมล")}
               name="email"
               rules={[
-                { type: "email", message: "รูปแบบอีเมลไม่ถูกต้อง" },
-                { max: 255, message: "ต้องไม่เกิน 255 ตัวอักษร" },
+                { type: "email", message: t("รูปแบบอีเมลไม่ถูกต้อง") },
+                { max: 255, message: t("ต้องไม่เกิน 255 ตัวอักษร") },
               ]}
             >
-              <Input size="large" placeholder="เช่น seller@example.com" />
+              <Input size="large" placeholder={t("เช่น seller@example.com")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
-            <Form.Item label="วิธีชำระเงิน" name="paymentMethod">
+            <Form.Item label={t("วิธีชำระเงิน")} name="paymentMethod">
               <Select
                 allowClear
                 size="large"
-                placeholder="เลือกวิธีชำระเงิน"
+                placeholder={t("เลือกวิธีชำระเงิน")}
                 options={PAYMENT_METHOD_OPTIONS}
               />
             </Form.Item>
           </Col>
 
           <Col xs={24}>
-            <Form.Item label="ที่อยู่" name="address">
+            <Form.Item label={t("ที่อยู่")} name="address">
               <Input.TextArea
                 rows={2}
-                placeholder="เช่น 123 หมู่ 4 ต.บางเมือง อ.เมือง"
+                placeholder={t("เช่น 123 หมู่ 4 ต.บางเมือง อ.เมือง")}
               />
             </Form.Item>
           </Col>
 
           <Col xs={24}>
-            <Form.Item label="หมายเหตุ" name="remark">
-              <Input.TextArea rows={2} placeholder="เช่น ลูกค้ารายประจำ" />
+            <Form.Item label={t("หมายเหตุ")} name="remark">
+              <Input.TextArea rows={2} placeholder={t("เช่น ลูกค้ารายประจำ")} />
             </Form.Item>
           </Col>
         </Row>
@@ -279,13 +284,13 @@ export default function SellerFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกผู้ขายนี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกผู้ขายนี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={partyLabels.on} unCheckedChildren={partyLabels.off} />
           </Form.Item>
         </div>
       </Form>

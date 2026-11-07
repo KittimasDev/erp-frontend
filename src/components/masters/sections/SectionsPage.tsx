@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useState } from "react";
 import { Button, Col, Form, Input, Row, Select, Space, Table, Tag, Typography } from "antd";
 import {
@@ -32,6 +33,7 @@ type FilterValues = { name?: string; departmentId?: string; isActive?: boolean |
 
 /** แท็บ "แผนกย่อย" ใต้ /users — ใช้สิทธิ์ USERS เดียวกับแผนก */
 export default function SectionsPage() {
+  const t = useT();
   const [form] = Form.useForm<FilterValues>();
   const [filters, setFilters] = useState<SectionQueryParams>({});
   const [modalOpen, setModalOpen] = useState(false);
@@ -97,7 +99,7 @@ export default function SectionsPage() {
 
   const columns: ColumnsType<Section> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -106,14 +108,14 @@ export default function SectionsPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 160,
       render: (value: string) => <span className={styles.codeBadge}>{value}</span>,
     },
     {
-      title: "ชื่อแผนกย่อย",
+      title: t("ชื่อแผนกย่อย"),
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
@@ -123,14 +125,14 @@ export default function SectionsPage() {
       ),
     },
     {
-      title: "แผนก",
+      title: t("แผนก"),
       dataIndex: "departmentName",
       key: "departmentName",
       width: 220,
       render: (value?: string) => value || "—",
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -139,37 +141,37 @@ export default function SectionsPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.code}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.code })}
           actions={[
-            { key: "edit", icon: <EditOutlined />, label: "แก้ไข", onClick: () => openEdit(record) },
+            { key: "edit", icon: <EditOutlined />, label: t("แก้ไข"), onClick: () => openEdit(record) },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบแผนกย่อย",
-                content: `ต้องการลบ "${record.nameTh}" หรือไม่? (ลบไม่ได้ถ้ายังมีพนักงานสังกัดอยู่)`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบแผนกย่อย"),
+                content: t('ต้องการลบ "{name}" หรือไม่? (ลบไม่ได้ถ้ายังมีพนักงานสังกัดอยู่)', { name: record.nameTh }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -184,21 +186,21 @@ export default function SectionsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
           <div className={styles.summaryIcon}>Σ</div>
           <div>
-            <span className={styles.summaryLabel}>{hasFilters ? "ผลค้นหา" : "แผนกย่อยทั้งหมด"}</span>
+            <span className={styles.summaryLabel}>{hasFilters ? t("ผลค้นหา") : t("แผนกย่อยทั้งหมด")}</span>
             <strong>{sections.length}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{sections.length - activeCount}</strong>
           </div>
         </div>
@@ -208,29 +210,29 @@ export default function SectionsPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาแผนกย่อย</h3>
-            <p>กรองด้วยชื่อ แผนก และสถานะ</p>
+            <h3>{t("ค้นหาแผนกย่อย")}</h3>
+            <p>{t("กรองด้วยชื่อ แผนก และสถานะ")}</p>
           </div>
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
         <Form form={form} layout="vertical" className={styles.filterForm} onFinish={handleSearch}>
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={8}>
-              <Form.Item name="name" label="ชื่อแผนกย่อย">
-                <Input allowClear placeholder="เช่น ส่วนเตรียมยาง" prefix={<SearchOutlined />} />
+              <Form.Item name="name" label={t("ชื่อแผนกย่อย")}>
+                <Input allowClear placeholder={t("เช่น ส่วนเตรียมยาง")} prefix={<SearchOutlined />} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12} lg={8}>
-              <Form.Item name="departmentId" label="แผนก">
+              <Form.Item name="departmentId" label={t("แผนก")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={departments.map((dept) => ({
                     value: dept.id,
                     label: `${dept.code} — ${dept.nameTh}`,
@@ -239,13 +241,13 @@ export default function SectionsPage() {
               </Form.Item>
             </Col>
             <Col xs={24} sm={12} lg={8}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -259,10 +261,10 @@ export default function SectionsPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
                   <Button icon={<ClearOutlined />} onClick={handleClear} disabled={!hasFilters}>
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -275,8 +277,8 @@ export default function SectionsPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>SECTION MANAGEMENT</div>
-            <h3>รายการแผนกย่อย</h3>
-            <p>แผนกย่อยภายใต้แต่ละแผนก เลือกได้ในข้อมูลพนักงาน</p>
+            <h3>{t("รายการแผนกย่อย")}</h3>
+            <p>{t("แผนกย่อยภายใต้แต่ละแผนก เลือกได้ในข้อมูลพนักงาน")}</p>
           </div>
           <Space>
             <Button
@@ -285,9 +287,9 @@ export default function SectionsPage() {
               className={styles.createButton}
               onClick={openCreate}
             >
-              เพิ่มแผนกย่อย
+              {t("เพิ่มแผนกย่อย")}
             </Button>
-            <div className={styles.tableCount}>{sections.length} รายการ</div>
+            <div className={styles.tableCount}>{t("{n} รายการ", { n: sections.length })}</div>
           </Space>
         </div>
 
@@ -296,7 +298,7 @@ export default function SectionsPage() {
             <Typography.Text type="danger">
               {sectionsQuery.error instanceof Error
                 ? sectionsQuery.error.message
-                : "โหลดข้อมูลแผนกย่อยไม่สำเร็จ"}
+                : t("โหลดข้อมูลแผนกย่อยไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -311,7 +313,7 @@ export default function SectionsPage() {
               pageSize,
               showSizeChanger: true,
               pageSizeOptions: [20, 50, 100],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: (nextPage, nextSize) => {
                 setPage(nextPage);
                 if (nextSize && nextSize !== pageSize) {
@@ -322,7 +324,7 @@ export default function SectionsPage() {
             }}
             scroll={{ x: 810 }}
             locale={{
-              emptyText: hasFilters ? "ไม่พบแผนกย่อยตามเงื่อนไขที่ค้นหา" : "ยังไม่มีข้อมูลแผนกย่อย",
+              emptyText: hasFilters ? t("ไม่พบแผนกย่อยตามเงื่อนไขที่ค้นหา") : t("ยังไม่มีข้อมูลแผนกย่อย"),
             }}
           />
         )}

@@ -34,6 +34,9 @@ import type {
 } from "@/types/production-dashboard";
 import styles from "./ProductionDashboardPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tProductionStatus } from "@/types/production-request";
+import { tNow, useT } from "@/lib/i18n/useT";
 
 /** ชุดสีเดียวกับ ProcurementDashboardPage ซึ่งเป็น dashboard ที่ทำเสร็จจริงหน้าเดียวในโปรเจกต */
 const GREEN = "#739816";
@@ -48,23 +51,24 @@ const OUTPUT_BAR_COLORS = [GREEN, "#2F6FDE", AMBER, "#595959", "#95DE64", "#13C2
 function yieldLabel(kpi?: ProductionDashboardKpi) {
   if (!kpi || kpi.completedOrders === 0) return "—";
   if (kpi.averageYieldPercent === null || kpi.averageYieldPercent === undefined) {
-    return "ไม่สามารถเปรียบเทียบได้";
+    return tNow("ไม่สามารถเปรียบเทียบได้");
   }
   return `${fmt(kpi.averageYieldPercent)}%`;
 }
 
 function fmt(value?: number | null, digits = 2) {
   if (value === null || value === undefined) return "—";
-  return value.toLocaleString("th-TH", { maximumFractionDigits: digits });
+  return value.toLocaleString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", { maximumFractionDigits: digits });
 }
 
 function fmtHours(value?: number | null) {
   if (value === null || value === undefined) return "—";
-  return `${fmt(value, 1)} ชม.`;
+  return `${fmt(value, 1)} ${tNow("ชม.")}`;
 }
 
 export default function ProductionDashboardPage() {
   const router = useRouter();
+  const t = useT();
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
     // 30 วันไม่ใช่ 7 — รอบเตา 48 ชั่วโมง 7 วันได้แค่ ~3 จุดข้อมูล วาดแนวโน้มไม่ได้
     dayjs().subtract(30, "day"),
@@ -137,12 +141,12 @@ export default function ProductionDashboardPage() {
   );
 
   const chartNote = !outputLines.length
-    ? "ยังไม่มีผลผลิตที่รับเข้าคลังในช่วงนี้"
+    ? t("ยังไม่มีผลผลิตที่รับเข้าคลังในช่วงนี้")
     : outputUnits.length > 1
-      ? "ไม่สามารถเปรียบเทียบได้ — ผลผลิตคนละหน่วย ไม่รวมเป็นยอดเดียว"
+      ? t("ไม่สามารถเปรียบเทียบได้ — ผลผลิตคนละหน่วย ไม่รวมเป็นยอดเดียว")
       : outputSeries.length > 1
-        ? `แยกตามสินค้า หน่วย ${outputUnits[0]} · ไม่คิด Yield รวมข้ามสินค้า`
-        : `แท่ง = ผลผลิต (${outputUnits[0] ?? ""}) · เส้น = Yield`;
+        ? t("แยกตามสินค้า หน่วย {unit} · ไม่คิด Yield รวมข้ามสินค้า", { unit: outputUnits[0] })
+        : t("แท่ง = ผลผลิต ({unit}) · เส้น = Yield", { unit: outputUnits[0] ?? "" });
 
   const downtimeData = useMemo(
     () =>
@@ -167,14 +171,14 @@ export default function ProductionDashboardPage() {
 
   const wipColumns: ColumnsType<ProductionWorkInProgressRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ใบสั่งผลิต",
+      title: t("ใบสั่งผลิต"),
       dataIndex: "orderNo",
       key: "orderNo",
       render: (value: string, row) => (
@@ -193,18 +197,18 @@ export default function ProductionDashboardPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       render: (_v, row) =>
         row.isPaused ? (
-          <Tag color="warning">หยุดชั่วคราว</Tag>
+          <Tag color="warning">{t("หยุดชั่วคราว")}</Tag>
         ) : (
-          <Tag color="processing">กำลังผลิต</Tag>
+          <Tag color="processing">{tProductionStatus("กำลังผลิต")}</Tag>
         ),
     },
     {
-      title: "เวลาที่ใช้ / เป้าหมาย",
+      title: t("เวลาที่ใช้ / เป้าหมาย"),
       key: "progress",
       width: 220,
       render: (_v, row) => (
@@ -215,32 +219,32 @@ export default function ProductionDashboardPage() {
             strokeColor={row.isOverdue ? RED : row.isPaused ? AMBER : GREEN}
             format={() =>
               row.cycleTargetHours
-                ? `${fmt(row.elapsedHours, 1)}/${row.cycleTargetHours} ชม.`
+                ? `${fmt(row.elapsedHours, 1)}/${row.cycleTargetHours} ${t("ชม.")}`
                 : fmtHours(row.elapsedHours)
             }
           />
           {row.isOverdue ? (
-            <span className={styles.overdueText}>เลยเป้าหมายแล้ว</span>
+            <span className={styles.overdueText}>{t("เลยเป้าหมายแล้ว")}</span>
           ) : null}
         </div>
       ),
     },
     {
-      title: "เดินเครื่องจริง",
+      title: t("เดินเครื่องจริง"),
       dataIndex: "netRunHours",
       key: "netRunHours",
       align: "right",
       render: (value: number) => fmtHours(value),
     },
     {
-      title: "หยุดสะสม",
+      title: t("หยุดสะสม"),
       dataIndex: "downtimeHours",
       key: "downtimeHours",
       align: "right",
       render: (value: number) => fmtHours(value),
     },
     {
-      title: "กำลังหยุดเพราะ",
+      title: t("กำลังหยุดเพราะ"),
       dataIndex: "openDowntimeReason",
       key: "openDowntimeReason",
       render: (value?: string) =>
@@ -255,13 +259,13 @@ export default function ProductionDashboardPage() {
       <section className={styles.page}>
         <PageHeader
           eyebrow="Production Dashboard"
-          title="แดชบอร์ดการผลิต"
-          subtitle="ผลผลิตจริง · Yield · เวลาหยุดเดินเครื่อง · งานอยู่ขั้นไหน"
+          title={t("แดชบอร์ดการผลิต")}
+          subtitle={t("ผลผลิตจริง · Yield · เวลาหยุดเดินเครื่อง · งานอยู่ขั้นไหน")}
         />
 
         <div className={styles.toolbar}>
           <div className={styles.filterField}>
-            <span>ช่วงวันที่ (กว้างสุด 90 วัน)</span>
+            <span>{t("ช่วงวันที่ (กว้างสุด 90 วัน)")}</span>
             <RangePicker
               value={range}
               allowClear={false}
@@ -272,16 +276,16 @@ export default function ProductionDashboardPage() {
             />
           </div>
           <div className={styles.filterField}>
-            <span>ความละเอียด</span>
+            <span>{t("ความละเอียด")}</span>
             <Segmented
               value={bucket}
               onChange={(value) =>
                 setBucket(value as ProductionDashboardBucket)
               }
               options={[
-                { label: "รายวัน", value: "DAY" },
-                { label: "รายสัปดาห์", value: "WEEK" },
-                { label: "รายเดือน", value: "MONTH" },
+                { label: t("รายวัน"), value: "DAY" },
+                { label: t("รายสัปดาห์"), value: "WEEK" },
+                { label: t("รายเดือน"), value: "MONTH" },
               ]}
             />
           </div>
@@ -289,21 +293,21 @@ export default function ProductionDashboardPage() {
 
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}>
-            <span>ปิดงานในช่วงนี้</span>
+            <span>{t("ปิดงานในช่วงนี้")}</span>
             <strong>{fmt(kpi?.completedOrders, 0)}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>กำลังผลิตอยู่</span>
+            <span>{t("กำลังผลิตอยู่")}</span>
             <strong>{fmt(kpi?.inProgressOrders, 0)}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>หยุดชั่วคราวอยู่</span>
+            <span>{t("หยุดชั่วคราวอยู่")}</span>
             <strong className={kpi?.pausedOrders ? styles.warnValue : undefined}>
               {fmt(kpi?.pausedOrders, 0)}
             </strong>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>Yield เฉลี่ย</span>
+            <span>{t("Yield เฉลี่ย")}</span>
             <strong
               className={
                 kpi && kpi.completedOrders > 0 && kpi.averageYieldPercent == null
@@ -315,7 +319,7 @@ export default function ProductionDashboardPage() {
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>เวลาหยุดรวม</span>
+            <span>{t("เวลาหยุดรวม")}</span>
             <strong>{fmtHours(kpi?.totalDowntimeHours)}</strong>
           </div>
         </div>
@@ -328,21 +332,19 @@ export default function ProductionDashboardPage() {
           <Alert
             type={kpi.yieldImpossibleOrders > 0 ? "warning" : "info"}
             showIcon
-            title={`Yield เฉลี่ยไม่ได้นับใบสั่งผลิต ${kpi.yieldExcludedOrders} ใบ`}
+            title={t("Yield เฉลี่ยไม่ได้นับใบสั่งผลิต {n} ใบ", { n: kpi.yieldExcludedOrders })}
             description={
               <>
                 <p style={{ margin: 0 }}>
-                  ใบที่มีผลผลิตหลายสินค้า หรือวัตถุดิบกับผลผลิตคนละหน่วย
-                  ไม่ถูกบวกเป็นยอดเดียว และไม่ถูกเอาไปเฉลี่ย Yield
+                  {t("ใบที่มีผลผลิตหลายสินค้า หรือวัตถุดิบกับผลผลิตคนละหน่วย ไม่ถูกบวกเป็นยอดเดียว และไม่ถูกเอาไปเฉลี่ย Yield")}
                 </p>
                 {/* ต่างจากผสมหน่วยตรงที่อันนี้แก้ได้ และต้องแก้ */}
                 {kpi.yieldImpossibleOrders > 0 ? (
                   <p style={{ margin: "6px 0 0" }}>
                     <strong>
-                      ในจำนวนนี้ {kpi.yieldImpossibleOrders} ใบมีผลผลิตมากกว่าวัตถุดิบที่ใส่เข้าไป
+                      {t("ในจำนวนนี้ {n} ใบมีผลผลิตมากกว่าวัตถุดิบที่ใส่เข้าไป", { n: kpi.yieldImpossibleOrders })}
                     </strong>{" "}
-                    ซึ่งเป็นไปไม่ได้ทางกายภาพ — มีคนกรอกจำนวนผิด
-                    เปิดหน้ารายละเอียดใบนั้นจะเห็นคำเตือนพร้อมตัวเลขที่ขัดกัน
+                    {t("ซึ่งเป็นไปไม่ได้ทางกายภาพ — มีคนกรอกจำนวนผิด เปิดหน้ารายละเอียดใบนั้นจะเห็นคำเตือนพร้อมตัวเลขที่ขัดกัน")}
                   </p>
                 ) : null}
               </>
@@ -352,14 +354,14 @@ export default function ProductionDashboardPage() {
 
         <div className={styles.chartCard}>
           <div className={styles.chartHeader}>
-            <h3>ผลผลิตและ Yield ตามช่วงเวลา</h3>
+            <h3>{t("ผลผลิตและ Yield ตามช่วงเวลา")}</h3>
             <p>{chartNote}</p>
           </div>
           {outputLines.length > 0 ? (
             <ul className={styles.reasonList}>
               {outputLines.map((line) => (
                 <li key={`${line.itemId}-${line.unitId}`}>
-                  <span>{line.itemNameTh || line.itemCode || "สินค้า"}</span>
+                  <span>{line.itemNameTh || line.itemCode || t("สินค้า")}</span>
                   <strong>
                     {fmt(line.quantity)} {line.unitCode ?? ""}
                   </strong>
@@ -370,7 +372,7 @@ export default function ProductionDashboardPage() {
           <div className={styles.chartBody}>
             {trendData.length === 0 ? (
               <div className={styles.emptyState}>
-                ยังไม่มีใบสั่งผลิตที่ปิดงานในช่วงนี้
+                {t("ยังไม่มีใบสั่งผลิตที่ปิดงานในช่วงนี้")}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -394,7 +396,7 @@ export default function ProductionDashboardPage() {
                   <Tooltip
                     formatter={(value, name) => [
                       value === null || value === undefined
-                        ? "ไม่สามารถเปรียบเทียบได้"
+                        ? t("ไม่สามารถเปรียบเทียบได้")
                         : fmt(Number(value)),
                       name,
                     ]}
@@ -406,7 +408,7 @@ export default function ProductionDashboardPage() {
                           key={series.itemId}
                           yAxisId="qty"
                           dataKey={series.itemId}
-                          name={`${series.itemNameTh || series.itemCode || "ผลผลิต"} (${outputUnits[0]})`}
+                          name={`${series.itemNameTh || series.itemCode || t("ผลผลิต")} (${outputUnits[0]})`}
                           fill={OUTPUT_BAR_COLORS[index % OUTPUT_BAR_COLORS.length]}
                           radius={[4, 4, 0, 0]}
                         />
@@ -416,7 +418,7 @@ export default function ProductionDashboardPage() {
                     yAxisId="pct"
                     type="monotone"
                     dataKey="yieldPercent"
-                    name="Yield จริง"
+                    name={t("Yield จริง")}
                     stroke={GREEN_DARK}
                     strokeWidth={2}
                     connectNulls={false}
@@ -425,7 +427,7 @@ export default function ProductionDashboardPage() {
                     yAxisId="pct"
                     type="monotone"
                     dataKey="plannedYieldPercent"
-                    name="Yield ตามแผน"
+                    name={t("Yield ตามแผน")}
                     stroke={MUTED}
                     strokeDasharray="5 4"
                     strokeWidth={2}
@@ -439,11 +441,11 @@ export default function ProductionDashboardPage() {
 
         <div className={styles.tableCard}>
           <div className={styles.chartHeader}>
-            <h3>งานที่กำลังเดินอยู่</h3>
+            <h3>{t("งานที่กำลังเดินอยู่")}</h3>
             <p>
-              อัปเดตอัตโนมัติทุก 30 วินาที
+              {t("อัปเดตอัตโนมัติทุก 30 วินาที")}
               {wip?.asOf
-                ? ` · ข้อมูล ณ ${dayjs(wip.asOf).format("HH:mm:ss")}`
+                ? ` · ${t("ข้อมูล ณ {time}", { time: dayjs(wip.asOf).format("HH:mm:ss") })}`
                 : ""}
             </p>
           </div>
@@ -457,8 +459,9 @@ export default function ProductionDashboardPage() {
             // แถวที่หยุดอยู่ต้องอ่านออกโดยไม่ต้องไล่หาคอลัมน์สถานะ
             rowClassName={(row) => (row.isPaused ? styles.pausedRow : "")}
             locale={{
-              emptyText:
+              emptyText: t(
                 "ยังไม่มีใบสั่งผลิตที่กำลังเดินอยู่ — กระดานนี้จะว่างจนกว่าจะมีใบที่กดเริ่มผลิตจริง",
+              ),
             }}
           />
         </div>
@@ -466,16 +469,15 @@ export default function ProductionDashboardPage() {
         <div className={styles.chartsGrid}>
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>สาเหตุการหยุดเดินเครื่อง</h3>
+              <h3>{t("สาเหตุการหยุดเดินเครื่อง")}</h3>
               <p>
-                รวม {fmtHours(downtime?.totalHours)} ในช่วงที่เลือก · เรียงจาก
-                กินเวลามากที่สุด
+                {t("รวม {hours} ในช่วงที่เลือก · เรียงจากกินเวลามากที่สุด", { hours: fmtHours(downtime?.totalHours) })}
               </p>
             </div>
             <div className={styles.chartBody}>
               {downtimeData.length === 0 ? (
                 <div className={styles.emptyState}>
-                  ไม่มีการหยุดเดินเครื่องในช่วงนี้
+                  {t("ไม่มีการหยุดเดินเครื่องในช่วงนี้")}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -485,7 +487,7 @@ export default function ProductionDashboardPage() {
                     <XAxis
                       type="number"
                       tick={{ fill: MUTED, fontSize: 12 }}
-                      unit=" ชม."
+                      unit={` ${t("ชม.")}`}
                     />
                     <YAxis
                       type="category"
@@ -494,7 +496,7 @@ export default function ProductionDashboardPage() {
                       tick={{ fill: MUTED, fontSize: 12 }}
                     />
                     <Tooltip
-                      formatter={(value) => [`${fmt(Number(value), 1)} ชม.`, "เวลาหยุด"]}
+                      formatter={(value) => [`${fmt(Number(value), 1)} ${t("ชม.")}`, t("เวลาหยุด")]}
                     />
                     <Bar dataKey="hours" fill={AMBER} radius={[0, 4, 4, 0]} />
                   </BarChart>
@@ -507,7 +509,7 @@ export default function ProductionDashboardPage() {
                   <li key={reason.reason}>
                     <span>{reason.reason}</span>
                     <strong>
-                      {fmt(reason.hours, 1)} ชม. ({reason.occurrences} ครั้ง)
+                      {fmt(reason.hours, 1)} {t("ชม.")} ({t("{n} ครั้ง", { n: reason.occurrences })})
                     </strong>
                   </li>
                 ))}
@@ -517,13 +519,13 @@ export default function ProductionDashboardPage() {
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>Batch อยู่ขั้นไหน</h3>
-              <p>ขั้นตอนล่าสุดที่บันทึกไว้ของแต่ละ Batch</p>
+              <h3>{t("Batch อยู่ขั้นไหน")}</h3>
+              <p>{t("ขั้นตอนล่าสุดที่บันทึกไว้ของแต่ละ Batch")}</p>
             </div>
             <ul className={styles.batchList}>
               {(stageProgress?.batches ?? []).length === 0 ? (
                 <li className={styles.emptyState}>
-                  ยังไม่มีรอบงานขั้นตอนย่อยในช่วงนี้
+                  {t("ยังไม่มีรอบงานขั้นตอนย่อยในช่วงนี้")}
                 </li>
               ) : (
                 stageProgress?.batches.map((batch) => (
@@ -544,10 +546,9 @@ export default function ProductionDashboardPage() {
 
         <div className={styles.chartCard}>
           <div className={styles.chartHeader}>
-            <h3>ความคืบหน้าตามขั้นตอน</h3>
+            <h3>{t("ความคืบหน้าตามขั้นตอน")}</h3>
             <p>
-              เฉพาะขั้นตอนที่เปิดใช้งานในเส้นทางแปรสภาพ — ขั้นที่ไม่มีงานเลยก็แสดงไว้
-              เพราะช่องว่างคือสัญญาณ
+              {t("เฉพาะขั้นตอนที่เปิดใช้งานในเส้นทางแปรสภาพ — ขั้นที่ไม่มีงานเลยก็แสดงไว้ เพราะช่องว่างคือสัญญาณ")}
             </p>
           </div>
           <div className={styles.stageChartBody}>
@@ -569,19 +570,19 @@ export default function ProductionDashboardPage() {
                 <Legend />
                 <Bar
                   dataKey="completedRuns"
-                  name="เสร็จแล้ว"
+                  name={t("เสร็จแล้ว")}
                   stackId="runs"
                   fill={GREEN}
                 />
                 <Bar
                   dataKey="inProgressRuns"
-                  name="กำลังทำ"
+                  name={t("กำลังทำ")}
                   stackId="runs"
                   fill={AMBER}
                 />
                 <Bar
                   dataKey="draftRuns"
-                  name="รอเริ่ม"
+                  name={t("รอเริ่ม")}
                   stackId="runs"
                   fill={MUTED}
                 />

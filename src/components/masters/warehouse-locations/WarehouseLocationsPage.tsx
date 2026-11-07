@@ -1,4 +1,7 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
+import { tLoc } from "@/types/warehouse-locations";
+import { useLanguage } from "@/lib/i18n/language";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -135,6 +138,8 @@ function buildSearchFromForm(
 }
 
 export default function WarehouseLocationsPage() {
+  const t = useT();
+  const language = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -235,7 +240,7 @@ export default function WarehouseLocationsPage() {
 
   const columns: ColumnsType<WarehouseLocation> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -246,7 +251,7 @@ export default function WarehouseLocationsPage() {
       ),
     },
     {
-      title: "คลังสินค้า",
+      title: t("คลังสินค้า"),
       dataIndex: "warehouseId",
       key: "warehouseId",
       width: 220,
@@ -257,7 +262,7 @@ export default function WarehouseLocationsPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "locationCode",
       key: "locationCode",
       width: 140,
@@ -266,7 +271,7 @@ export default function WarehouseLocationsPage() {
       ),
     },
     {
-      title: "ชื่อตำแหน่ง",
+      title: tLoc("ชื่อตำแหน่ง"),
       dataIndex: "locationName",
       key: "locationName",
       render: (value: string) => (
@@ -276,7 +281,7 @@ export default function WarehouseLocationsPage() {
       ),
     },
     {
-      title: "รายละเอียด",
+      title: t("รายละเอียด"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
@@ -285,7 +290,7 @@ export default function WarehouseLocationsPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -294,39 +299,39 @@ export default function WarehouseLocationsPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(language === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.locationCode}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.locationCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () =>
                 router.push(`/warehouse-locations/${record.id}/edit`),
             },
@@ -335,20 +340,20 @@ export default function WarehouseLocationsPage() {
               ? {
                   key: "deactivate",
                   icon: <StopOutlined />,
-                  label: "ปิดการใช้งาน",
+                  label: t("ปิดการใช้งาน"),
                   danger: true,
                   onClick: () => deactivateMutation.mutate(record.id),
                   confirm: {
-                    title: "ปิดใช้งานตำแหน่งจัดเก็บ",
-                    content: `ต้องการปิดใช้งาน "${record.locationCode}" หรือไม่?`,
-                    okText: "ปิดใช้งาน",
-                    cancelText: "ยกเลิก",
+                    title: t("ปิดใช้งานตำแหน่งจัดเก็บ"),
+                    content: t("ต้องการปิดใช้งาน \"{code}\" หรือไม่?", { code: record.locationCode }),
+                    okText: t("ปิดใช้งาน"),
+                    cancelText: t("ยกเลิก"),
                   },
                 }
               : {
                   key: "activate",
                   icon: <CheckCircleOutlined />,
-                  label: "เปิดใช้งาน",
+                  label: t("เปิดใช้งาน"),
                   onClick: () => activateMutation.mutate(record.id),
                 },
           ]}
@@ -362,8 +367,8 @@ export default function WarehouseLocationsPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="ตำแหน่งจัดเก็บ"
-        subtitle="จัดการตำแหน่งย่อยภายในคลังสินค้า เช่น DEFAULT, YARD-A"
+        title={t("ตำแหน่งจัดเก็บ")}
+        subtitle={t("จัดการตำแหน่งย่อยภายในคลังสินค้า เช่น DEFAULT, YARD-A")}
         actions={
           <>
 <Button
@@ -373,7 +378,7 @@ export default function WarehouseLocationsPage() {
           icon={<PlusOutlined />}
           onClick={() => setCreateOpen(true)}
         >
-          เพิ่มตำแหน่งจัดเก็บ
+          {t("เพิ่มตำแหน่งจัดเก็บ")}
         </Button>
           </>
         }
@@ -384,7 +389,7 @@ export default function WarehouseLocationsPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "ตำแหน่งทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : tLoc("ตำแหน่งทั้งหมด")}
             </span>
             <strong>{locations.length}</strong>
           </div>
@@ -393,7 +398,7 @@ export default function WarehouseLocationsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -401,7 +406,7 @@ export default function WarehouseLocationsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -411,13 +416,13 @@ export default function WarehouseLocationsPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาตำแหน่งจัดเก็บ</h3>
-            <p>กรองด้วยคลัง รหัส ชื่อ รายละเอียด และสถานะ</p>
+            <h3>{t("ค้นหาตำแหน่งจัดเก็บ")}</h3>
+            <p>{t("กรองด้วยคลัง รหัส ชื่อ รายละเอียด และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -431,12 +436,12 @@ export default function WarehouseLocationsPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="warehouseId" label="คลังสินค้า">
+              <Form.Item name="warehouseId" label={t("คลังสินค้า")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   loading={warehousesQuery.isLoading}
                   options={warehouseOptions}
                 />
@@ -444,35 +449,35 @@ export default function WarehouseLocationsPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสตำแหน่ง">
+              <Form.Item name="code" label={tLoc("รหัสตำแหน่ง")}>
                 <Input
                   allowClear
-                  placeholder="เช่น RAW"
+                  placeholder={t("เช่น RAW")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อตำแหน่ง">
-                <Input allowClear placeholder="เช่น โซน A" />
+              <Form.Item name="name" label={tLoc("ชื่อตำแหน่ง")}>
+                <Input allowClear placeholder={t("เช่น โซน A")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="description" label="รายละเอียด">
-                <Input allowClear placeholder="เช่น ยางดิบ" />
+              <Form.Item name="description" label={t("รายละเอียด")}>
+                <Input allowClear placeholder={t("เช่น ยางดิบ")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -487,7 +492,7 @@ export default function WarehouseLocationsPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -495,7 +500,7 @@ export default function WarehouseLocationsPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -508,15 +513,15 @@ export default function WarehouseLocationsPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>LOCATION MANAGEMENT</div>
-            <h3>รายการตำแหน่งจัดเก็บ</h3>
+            <h3>{t("รายการตำแหน่งจัดเก็บ")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลตำแหน่งจัดเก็บทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลตำแหน่งจัดเก็บทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{locations.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: locations.length })}</div>
         </div>
 
         {locationsQuery.isError ? (
@@ -524,7 +529,7 @@ export default function WarehouseLocationsPage() {
             <Typography.Text type="danger">
               {locationsQuery.error instanceof Error
                 ? locationsQuery.error.message
-                : "โหลดข้อมูลตำแหน่งจัดเก็บไม่สำเร็จ"}
+                : t("โหลดข้อมูลตำแหน่งจัดเก็บไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -538,14 +543,14 @@ export default function WarehouseLocationsPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1110 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบตำแหน่งจัดเก็บตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลตำแหน่งจัดเก็บ",
+                ? t("ไม่พบตำแหน่งจัดเก็บตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลตำแหน่งจัดเก็บ"),
             }}
           />
         )}

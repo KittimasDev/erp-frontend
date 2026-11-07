@@ -4,6 +4,7 @@ import { Modal, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import { useTempCaseSummaryQuery } from "@/hooks/temp-cases/useTempCaseSummaryQuery";
+import { useT } from "@/lib/i18n/useT";
 import type { TempCaseCategorySummary } from "@/types/temp-cases";
 import styles from "@/components/masters/shared/master-page.module.css";
 
@@ -16,31 +17,32 @@ export default function CaseDashboardModal({
   open,
   onClose,
 }: CaseDashboardModalProps) {
+  const t = useT();
   const summaryQuery = useTempCaseSummaryQuery(open);
   const summary = summaryQuery.data?.data;
 
   const columns: ColumnsType<TempCaseCategorySummary> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "หมวด",
+      title: t("หมวด"),
       dataIndex: "categoryNameTh",
       key: "categoryNameTh",
     },
     {
-      title: "ทั้งหมด",
+      title: t("ทั้งหมด"),
       dataIndex: "total",
       key: "total",
       align: "center",
       width: 90,
     },
     {
-      title: "ยังไม่ทำ",
+      title: t("ยังไม่ทำ"),
       dataIndex: "open",
       key: "open",
       align: "center",
@@ -48,7 +50,7 @@ export default function CaseDashboardModal({
       render: (value: number) => <Tag color="orange">{value}</Tag>,
     },
     {
-      title: "ทำแล้ว",
+      title: t("ทำแล้ว"),
       dataIndex: "done",
       key: "done",
       align: "center",
@@ -72,8 +74,8 @@ export default function CaseDashboardModal({
         <div className={styles.modalIcon}>Σ</div>
         <div className={styles.modalHeaderContent}>
           <div className={styles.eyebrow}>CASE DASHBOARD</div>
-          <h2>สรุปเคสทั้งหมด</h2>
-          <p>ภาพรวมสถานะและจำนวนเคสแยกตามหมวด</p>
+          <h2>{t("สรุปเคสทั้งหมด")}</h2>
+          <p>{t("ภาพรวมสถานะและจำนวนเคสแยกตามหมวด")}</p>
         </div>
       </div>
 
@@ -81,35 +83,35 @@ export default function CaseDashboardModal({
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
           <div className={styles.summaryIcon}>Σ</div>
           <div>
-            <span className={styles.summaryLabel}>ทั้งหมด</span>
+            <span className={styles.summaryLabel}>{t("ทั้งหมด")}</span>
             <strong>{summary?.total ?? 0}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>○</div>
           <div>
-            <span className={styles.summaryLabel}>ยังไม่ทำ</span>
+            <span className={styles.summaryLabel}>{t("ยังไม่ทำ")}</span>
             <strong>{summary?.open ?? 0}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>ทำแล้ว</span>
+            <span className={styles.summaryLabel}>{t("ทำแล้ว")}</span>
             <strong>{summary?.done ?? 0}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
           <div className={styles.summaryIcon}>#</div>
           <div>
-            <span className={styles.summaryLabel}>มีรูปแนบ</span>
+            <span className={styles.summaryLabel}>{t("มีรูปแนบ")}</span>
             <strong>{summary?.withImages ?? 0}</strong>
           </div>
         </div>
       </div>
 
       <Typography.Title level={5} style={{ marginTop: 0 }}>
-        แยกตามหมวด
+        {t("แยกตามหมวด")}
       </Typography.Title>
 
       <Table<TempCaseCategorySummary>
@@ -119,7 +121,7 @@ export default function CaseDashboardModal({
         loading={summaryQuery.isLoading || summaryQuery.isFetching}
         pagination={false}
         size="middle"
-        locale={{ emptyText: "ยังไม่มีข้อมูลเคส" }}
+        locale={{ emptyText: t("ยังไม่มีข้อมูลเคส") }}
       />
     </Modal>
   );

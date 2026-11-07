@@ -16,9 +16,11 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import ChemicalProfileModal from "./ChemicalProfileModal";
 import HazardMatrixTab from "./HazardMatrixTab";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 /** หน้า /masters/chemicals — ข้อมูลสารเคมี (ผู้ผลิต/CAS/Hazard Class/SDS) + ตารางห้ามเก็บรวม */
 export default function ChemicalsPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState("");
@@ -33,37 +35,37 @@ export default function ChemicalsPage() {
 
   const columns: ColumnsType<ChemicalRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "สารเคมี",
+      title: t("สารเคมี"),
       key: "item",
       render: (_v, r) => (
         <div>
           <strong>{r.itemCode}</strong> — {r.itemNameTh}
-          {!r.isActive ? <Tag style={{ marginLeft: 6 }}>ปิดใช้งาน</Tag> : null}
+          {!r.isActive ? <Tag style={{ marginLeft: 6 }}>{t("ปิดใช้งาน")}</Tag> : null}
         </div>
       ),
     },
-    { title: "ผู้ผลิต", key: "manufacturer", width: 180, render: (_v, r) => r.manufacturer ?? "—" },
-    { title: "เลข CAS", key: "cas", width: 130, render: (_v, r) => r.casNo ?? "—" },
+    { title: t("ผู้ผลิต"), key: "manufacturer", width: 180, render: (_v, r) => r.manufacturer ?? "—" },
+    { title: t("เลข CAS"), key: "cas", width: 130, render: (_v, r) => r.casNo ?? "—" },
     {
       title: "Hazard Class",
       key: "hazard",
       width: 160,
       render: (_v, r) =>
-        r.hazardClassName ? <Tag color="volcano">{r.hazardClassName}</Tag> : <Tag>ยังไม่กำหนด</Tag>,
+        r.hazardClassName ? <Tag color="volcano">{r.hazardClassName}</Tag> : <Tag>{t("ยังไม่กำหนด")}</Tag>,
     },
     {
       title: "SDS",
       key: "sds",
       width: 110,
       render: (_v, r) =>
-        r.sdsCount > 0 ? <Tag color="green">{r.sdsCount} ไฟล์</Tag> : <Tag color="orange">ยังไม่แนบ</Tag>,
+        r.sdsCount > 0 ? <Tag color="green">{t("{n} ไฟล์", { n: r.sdsCount })}</Tag> : <Tag color="orange">{t("ยังไม่แนบ")}</Tag>,
     },
     {
       title: "",
@@ -71,7 +73,7 @@ export default function ChemicalsPage() {
       width: 100,
       render: (_v, r) => (
         <Button size="small" onClick={() => setEditing(r)}>
-          {canEdit ? "แก้ไข / SDS" : "ดูข้อมูล"}
+          {canEdit ? t("แก้ไข / SDS") : t("ดูข้อมูล")}
         </Button>
       ),
     },
@@ -83,8 +85,8 @@ export default function ChemicalsPage() {
         <PageHeader
           eyebrow="MASTER · CHEMICAL"
           icon={<ExperimentOutlined />}
-          title="สารเคมี"
-          subtitle="ผู้ผลิต เลข CAS Hazard Class และ Safety Data Sheet ของสินค้าประเภทสารเคมี · ตารางห้ามเก็บรวมใช้เตือนตอนรับของ/โอนย้าย"
+          title={t("สารเคมี")}
+          subtitle={t("ผู้ผลิต เลข CAS Hazard Class และ Safety Data Sheet ของสินค้าประเภทสารเคมี · ตารางห้ามเก็บรวมใช้เตือนตอนรับของ/โอนย้าย")}
         />
 
         <div className={styles.tableCard}>
@@ -92,18 +94,18 @@ export default function ChemicalsPage() {
             items={[
               {
                 key: "chemicals",
-                label: "สารเคมี",
+                label: t("สารเคมี"),
                 children: (
                   <>
                     <Alert
                       type="info"
                       showIcon
                       style={{ marginBottom: 12 }}
-                      title={"รายการนี้คือสินค้าที่ตั้งประเภทเป็น “สารเคมี”"}
+                      title={t("รายการนี้คือสินค้าที่ตั้งประเภทเป็น “สารเคมี”")}
                       description={
                         <span>
-                          ต้องการเพิ่มสารเคมีใหม่ → สร้างสินค้าที่ <Link href="/masters/items">สินค้า / วัตถุดิบ</Link>{" "}
-                          เลือกประเภทสินค้า &quot;สารเคมี&quot; แล้วกลับมากรอกข้อมูลที่หน้านี้
+                          {t("ต้องการเพิ่มสารเคมีใหม่ → สร้างสินค้าที่")} <Link href="/masters/items">{t("สินค้า / วัตถุดิบ")}</Link>{" "}
+                          {t("เลือกประเภทสินค้า \"สารเคมี\" แล้วกลับมากรอกข้อมูลที่หน้านี้")}
                         </span>
                       }
                     />
@@ -112,7 +114,7 @@ export default function ChemicalsPage() {
                         allowClear
                         style={{ width: 280 }}
                         prefix={<SearchOutlined />}
-                        placeholder="ค้นรหัส / ชื่อ / CAS / ผู้ผลิต"
+                        placeholder={t("ค้นรหัส / ชื่อ / CAS / ผู้ผลิต")}
                         value={keyword}
                         onChange={(e) => setKeyword(e.target.value)}
                         onPressEnter={() => setApplied(keyword)}
@@ -121,7 +123,7 @@ export default function ChemicalsPage() {
                       <Select
                         allowClear
                         style={{ width: 200 }}
-                        placeholder="ทุก Hazard Class"
+                        placeholder={t("ทุก Hazard Class")}
                         value={hazardFilter}
                         onChange={setHazardFilter}
                         options={(hazardsQuery.data?.data ?? []).map((h) => ({ value: h.id, label: h.nameTh }))}
@@ -133,16 +135,16 @@ export default function ChemicalsPage() {
                       columns={columns}
                       dataSource={rows}
                       loading={query.isFetching}
-                      pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} รายการ` }}
+                      pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }) }}
                       scroll={{ x: 900 }}
-                      locale={{ emptyText: "ยังไม่มีสินค้าประเภทสารเคมี" }}
+                      locale={{ emptyText: t("ยังไม่มีสินค้าประเภทสารเคมี") }}
                     />
                   </>
                 ),
               },
               {
                 key: "hazard",
-                label: "Hazard Class / ห้ามเก็บรวม",
+                label: t("Hazard Class / ห้ามเก็บรวม"),
                 children: <HazardMatrixTab canEdit={canEdit} />,
               },
             ]}

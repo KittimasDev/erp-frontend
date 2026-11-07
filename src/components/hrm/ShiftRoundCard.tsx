@@ -17,6 +17,7 @@ import {
   useSetShiftScheduleMembersMutation,
 } from "@/hooks/shifts/useShiftMutations";
 import { useShiftScheduleQuery } from "@/hooks/shifts/useShiftQueries";
+import { useT } from "@/lib/i18n/useT";
 import { useUsersQuery } from "@/hooks/users/useUsersQuery";
 import type { ShiftSchedule } from "@/types/shifts";
 
@@ -32,6 +33,7 @@ type Props = {
  * (ปฏิทินส่งมาแค่จำนวนคน ไม่ได้ส่งรายชื่อมาด้วย)
  */
 export default function ShiftRoundCard({ schedule, onEdit }: Props) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
   const [pickedUserIds, setPickedUserIds] = useState<string[]>([]);
@@ -91,12 +93,12 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
         <div className={styles.roundTitle}>
           <strong>{schedule.shiftName}</strong>
           <span>
-            {schedule.startTime} - {schedule.endTime} น.
-            {schedule.isOvernight ? " (ข้ามคืน)" : ""}
+            {schedule.startTime} - {schedule.endTime} {t("น.")}
+            {schedule.isOvernight ? ` ${t("(ข้ามคืน)")}` : ""}
           </span>
         </div>
         <Space size={4}>
-          <Tooltip title="แก้เวลา / ย้ายวัน / สลับกะ">
+          <Tooltip title={t("แก้เวลา / ย้ายวัน / สลับกะ")}>
             <Button
               size="small"
               icon={<EditOutlined />}
@@ -104,10 +106,10 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
             />
           </Tooltip>
           <Popconfirm
-            title="ลบรอบกะนี้?"
-            description="รายชื่อพนักงานในรอบนี้จะถูกลบไปด้วย"
-            okText="ลบ"
-            cancelText="ยกเลิก"
+            title={t("ลบรอบกะนี้?")}
+            description={t("รายชื่อพนักงานในรอบนี้จะถูกลบไปด้วย")}
+            okText={t("ลบ")}
+            cancelText={t("ยกเลิก")}
             okButtonProps={{ danger: true }}
             onConfirm={() => deleteMutation.mutateAsync(schedule.id)}
           >
@@ -128,8 +130,8 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
         <TeamOutlined />
         <span>
           {schedule.memberCount > 0
-            ? `ดูรายชื่อในกะ (${schedule.memberCount} คน)`
-            : "ยังไม่มีคนในกะนี้ — กดเพื่อเพิ่ม"}
+            ? t("ดูรายชื่อในกะ ({n} คน)", { n: schedule.memberCount })
+            : t("ยังไม่มีคนในกะนี้ — กดเพื่อเพิ่ม")}
         </span>
         {expanded ? <UpOutlined /> : <DownOutlined />}
       </button>
@@ -143,7 +145,7 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
           ) : members.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="ยังไม่มีพนักงานในรอบกะนี้"
+              description={t("ยังไม่มีพนักงานในรอบกะนี้")}
             />
           ) : (
             <ul className={styles.memberList}>
@@ -152,14 +154,14 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
                   <div className={styles.memberName}>
                     <strong>{member.displayName ?? "—"}</strong>
                     <span>
-                      {member.employeeCode ?? "ไม่มีรหัส"}
+                      {member.employeeCode ?? t("ไม่มีรหัส")}
                       {member.departmentName ? ` · ${member.departmentName}` : ""}
                     </span>
                   </div>
                   <Popconfirm
-                    title="เอาออกจากกะนี้?"
-                    okText="เอาออก"
-                    cancelText="ยกเลิก"
+                    title={t("เอาออกจากกะนี้?")}
+                    okText={t("เอาออก")}
+                    cancelText={t("ยกเลิก")}
                     okButtonProps={{ danger: true }}
                     onConfirm={() =>
                       removeMemberMutation.mutateAsync({
@@ -169,7 +171,7 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
                     }
                   >
                     <Button size="small" type="text" danger>
-                      เอาออก
+                      {t("เอาออก")}
                     </Button>
                   </Popconfirm>
                 </li>
@@ -184,7 +186,7 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
                 showSearch
                 autoFocus
                 optionFilterProp="label"
-                placeholder="ค้นหาชื่อหรือรหัสพนักงาน"
+                placeholder={t("ค้นหาชื่อหรือรหัสพนักงาน")}
                 loading={usersQuery.isLoading}
                 options={availableOptions}
                 value={pickedUserIds}
@@ -197,7 +199,7 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
                 loading={setMembersMutation.isPending}
                 onClick={() => void handleAddMembers()}
               >
-                เพิ่ม
+                {t("เพิ่ม")}
               </Button>
               <Button
                 onClick={() => {
@@ -205,7 +207,7 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
                   setAdding(false);
                 }}
               >
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
             </div>
           ) : (
@@ -214,7 +216,7 @@ export default function ShiftRoundCard({ schedule, onEdit }: Props) {
               icon={<PlusOutlined />}
               onClick={() => setAdding(true)}
             >
-              เพิ่มพนักงานเข้ากะ
+              {t("เพิ่มพนักงานเข้ากะ")}
             </Button>
           )}
         </div>

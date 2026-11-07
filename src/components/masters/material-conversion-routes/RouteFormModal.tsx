@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useEffect } from "react";
 import { Alert, Form, Input, InputNumber, Modal, Switch } from "antd";
@@ -28,6 +29,7 @@ export default function RouteFormModal({
   onCancel: () => void;
   onSubmit: (values: FormValues) => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const isEdit = Boolean(route);
 
@@ -51,9 +53,9 @@ export default function RouteFormModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? "แก้ไขเส้นทางแปรสภาพวัตถุดิบ" : "สร้างเส้นทางแปรสภาพวัตถุดิบ"}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={isEdit ? t("แก้ไขเส้นทางแปรสภาพวัตถุดิบ") : t("สร้างเส้นทางแปรสภาพวัตถุดิบ")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       onCancel={onCancel}
       onOk={() => form.submit()}
@@ -64,59 +66,59 @@ export default function RouteFormModal({
           style={{ marginBottom: 14 }}
           type="info"
           showIcon
-          title="เส้นทางตั้งต้นของระบบ"
-          description="แก้ชื่อและคำอธิบายได้ แต่ลบไม่ได้ — ปิดใช้งานแทนได้ เพราะมีเอกสารเก่าอ้างอิงอยู่"
+          title={t("เส้นทางตั้งต้นของระบบ")}
+          description={t("แก้ชื่อและคำอธิบายได้ แต่ลบไม่ได้ — ปิดใช้งานแทนได้ เพราะมีเอกสารเก่าอ้างอิงอยู่")}
         />
       ) : null}
 
       <Form form={form} layout="vertical" onFinish={onSubmit}>
         <Form.Item
           name="routeCode"
-          label="รหัสเส้นทาง"
+          label={t("รหัสเส้นทาง")}
           rules={[
-            { required: true, message: "กรอกรหัสเส้นทาง" },
+            { required: true, message: t("กรอกรหัสเส้นทาง") },
             {
               pattern: /^[A-Z][A-Z0-9_]{2,29}$/,
               message:
-                "ตัวอักษรภาษาอังกฤษตัวใหญ่ ตัวเลข หรือขีดล่าง ยาว 3-30 ตัว และเริ่มด้วยตัวอักษร",
+                t("ตัวอักษรภาษาอังกฤษตัวใหญ่ ตัวเลข หรือขีดล่าง ยาว 3-30 ตัว และเริ่มด้วยตัวอักษร"),
             },
           ]}
-          extra={isEdit ? "รหัสแก้ไม่ได้ เพราะเอกสารอ้างอิงค่านี้ไว้" : undefined}
+          extra={isEdit ? t("รหัสแก้ไม่ได้ เพราะเอกสารอ้างอิงค่านี้ไว้") : undefined}
         >
-          <Input placeholder="เช่น PLASTIC_PREP" disabled={isEdit} />
+          <Input placeholder={t("เช่น PLASTIC_PREP")} disabled={isEdit} />
         </Form.Item>
         <Form.Item
           name="nameTh"
-          label="ชื่อเส้นทาง (ภาษาไทย)"
-          rules={[{ required: true, message: "กรอกชื่อเส้นทาง" }]}
+          label={t("ชื่อเส้นทาง (ภาษาไทย)")}
+          rules={[{ required: true, message: t("กรอกชื่อเส้นทาง") }]}
         >
-          <Input placeholder="เช่น ขั้นตอนเตรียมพลาสติก" maxLength={150} />
+          <Input placeholder={t("เช่น ขั้นตอนเตรียมพลาสติก")} maxLength={150} />
         </Form.Item>
-        <Form.Item name="description" label="คำอธิบาย">
+        <Form.Item name="description" label={t("คำอธิบาย")}>
           <Input.TextArea
             rows={2}
             maxLength={2000}
             showCount
-            placeholder="เช่น พลาสติกรีไซเคิลต้องบดและล้างก่อนเข้าเตา"
+            placeholder={t("เช่น พลาสติกรีไซเคิลต้องบดและล้างก่อนเข้าเตา")}
           />
         </Form.Item>
         <Form.Item
           name="runNoPrefix"
-          label="คำนำหน้าเลขที่เอกสาร"
+          label={t("คำนำหน้าเลขที่เอกสาร")}
           rules={[
             {
               pattern: /^[A-Z][A-Z0-9-]{1,9}$/,
-              message: "ตัวอักษรตัวใหญ่หรือตัวเลข ยาวไม่เกิน 10 ตัว",
+              message: t("ตัวอักษรตัวใหญ่หรือตัวเลข ยาวไม่เกิน 10 ตัว"),
             },
           ]}
-          extra="ระบบต่อท้ายด้วย YYYYMMDD-NNN ให้เอง · เปลี่ยนได้ ไม่กระทบเอกสารที่ออกไปแล้ว"
+          extra={t("ระบบต่อท้ายด้วย YYYYMMDD-NNN ให้เอง · เปลี่ยนได้ ไม่กระทบเอกสารที่ออกไปแล้ว")}
         >
-          <Input placeholder="เช่น PLP-" maxLength={10} />
+          <Input placeholder={t("เช่น PLP-")} maxLength={10} />
         </Form.Item>
-        <Form.Item name="sortOrder" label="ลำดับการแสดง">
+        <Form.Item name="sortOrder" label={t("ลำดับการแสดง")}>
           <InputNumber style={{ width: "100%" }} min={0} precision={0} />
         </Form.Item>
-        <Form.Item name="isActive" label="เปิดใช้งาน" valuePropName="checked">
+        <Form.Item name="isActive" label={t("เปิดใช้งาน")} valuePropName="checked">
           <Switch />
         </Form.Item>
       </Form>

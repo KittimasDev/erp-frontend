@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
@@ -14,6 +15,7 @@ import { warehouseLocationsQueryKey } from "./useWarehouseLocationsQuery";
 export function useActivateWarehouseLocationMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["warehouse-locations", "activate"],
@@ -24,14 +26,14 @@ export function useActivateWarehouseLocationMutation() {
         queryKey: warehouseLocationsQueryKey,
       });
       message.success(
-        response.message || "เปิดใช้งานตำแหน่งจัดเก็บสำเร็จแล้ว",
+        response.message || t("เปิดใช้งานตำแหน่งจัดเก็บสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "เปิดใช้งานตำแหน่งจัดเก็บไม่สำเร็จ",
+          : t("เปิดใช้งานตำแหน่งจัดเก็บไม่สำเร็จ"),
       );
     },
   });
@@ -40,6 +42,7 @@ export function useActivateWarehouseLocationMutation() {
 export function useDeactivateWarehouseLocationMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["warehouse-locations", "deactivate"],
@@ -50,14 +53,14 @@ export function useDeactivateWarehouseLocationMutation() {
         queryKey: warehouseLocationsQueryKey,
       });
       message.success(
-        response.message || "ปิดใช้งานตำแหน่งจัดเก็บสำเร็จแล้ว",
+        response.message || t("ปิดใช้งานตำแหน่งจัดเก็บสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ปิดใช้งานตำแหน่งจัดเก็บไม่สำเร็จ",
+          : t("ปิดใช้งานตำแหน่งจัดเก็บไม่สำเร็จ"),
       );
     },
   });

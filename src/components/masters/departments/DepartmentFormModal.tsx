@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useEffect } from "react";
 import { Form, Input, Modal, Switch } from "antd";
 
@@ -32,6 +33,7 @@ export default function DepartmentFormModal({
   onCancel,
   onSubmit,
 }: DepartmentFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<DepartmentFormValues>();
 
   useEffect(() => {
@@ -75,8 +77,8 @@ export default function DepartmentFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={560}
       centered
@@ -91,12 +93,12 @@ export default function DepartmentFormModal({
             {isCreateMode ? "CREATE DEPARTMENT" : "EDIT DEPARTMENT"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มแผนก" : "แก้ไขแผนก"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มแผนก") : t("แก้ไขแผนก")}</h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลแผนกใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ"
-              : "แก้ไขรายละเอียดแผนกและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลแผนกใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ")
+              : t("แก้ไขรายละเอียดแผนกและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -111,37 +113,37 @@ export default function DepartmentFormModal({
           <span className={styles.sectionLine} />
 
           <div>
-            <strong>ข้อมูลแผนก</strong>
-            <span>ระบุรหัสและชื่อแผนกที่ใช้ในระบบ</span>
+            <strong>{t("ข้อมูลแผนก")}</strong>
+            <span>{t("ระบุรหัสและชื่อแผนกที่ใช้ในระบบ")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="รหัสแผนก"
+          label={t("รหัสแผนก")}
           name="code"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสแผนก" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกรหัสแผนก") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น PURCHASE, WAREHOUSE"
+            placeholder={t("เช่น PURCHASE, WAREHOUSE")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อแผนก"
+          label={t("ชื่อแผนก")}
           name="name"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อแผนก" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อแผนก") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น ฝ่ายจัดซื้อ"
+            placeholder={t("เช่น ฝ่ายจัดซื้อ")}
             autoComplete="off"
           />
         </Form.Item>
@@ -151,15 +153,15 @@ export default function DepartmentFormModal({
             <div className={styles.statusIcon}>●</div>
 
             <div>
-              <strong>สถานะใช้งาน</strong>
+              <strong>{t("สถานะใช้งาน")}</strong>
               <span>
-                เปิดใช้งานเพื่อให้สามารถเลือกแผนกนี้ในเอกสารต่าง ๆ ได้
+                {t("เปิดใช้งานเพื่อให้สามารถเลือกแผนกนี้ในเอกสารต่าง ๆ ได้")}
               </span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

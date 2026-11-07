@@ -34,6 +34,9 @@ import {
 } from "./StageRunActionModals";
 import styles from "./StageRunPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { tConvStatusLabel } from "@/types/material-conversion";
 
 const GREEN = "#739816";
 const AMBER = "#F9BB0C";
@@ -57,6 +60,8 @@ export default function StageRunDetailPage({
   config: StageModuleConfig;
   runId: string;
 }) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const actions = useScreenActionPermissions(config.screenCode);
   const runQuery = useStageRunQuery(config, runId);
@@ -135,7 +140,7 @@ export default function StageRunDetailPage({
           eyebrow={config.eyebrow}
           title={<>{run.runNo}{" "}
               <Tag color={STAGE_RUN_STATUS_COLOR[run.status] ?? "default"}>
-                {STAGE_RUN_STATUS_LABEL[run.status] ?? run.status}
+                {tConvStatusLabel(STAGE_RUN_STATUS_LABEL[run.status] ?? run.status)}
               </Tag></>}
           subtitle={<>{stageTypeLabel(config, run.stageType)} ·{" "}
               {dayjs(run.runDate).format("DD/MM/YYYY")}</>}
@@ -145,7 +150,7 @@ export default function StageRunDetailPage({
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(config.routeBase)}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
             </>
           }
@@ -154,17 +159,20 @@ export default function StageRunDetailPage({
         <div className={styles.actionBar}>
           {isDraft && canOperate ? (
             <Popconfirm
-              title="เริ่มงานและตัดสต๊อกจริง?"
+              title={t("เริ่มงานและตัดสต๊อกจริง?")}
               description={
-                `จะตัด ${fmtQty(run.inputQty)} ${inputUnit} ` +
-                `ออกจาก ${warehouseName.get(run.inputWarehouseId) ?? "คลัง"} · ย้อนกลับไม่ได้`
+                t("จะตัด {qty} {unit} ออกจาก {warehouse} · ย้อนกลับไม่ได้", {
+                  qty: fmtQty(run.inputQty),
+                  unit: inputUnit,
+                  warehouse: warehouseName.get(run.inputWarehouseId) ?? t("คลัง"),
+                })
               }
-              okText="เริ่มงาน"
-              cancelText="ยกเลิก"
+              okText={lang === "en" ? "Start work" : "เริ่มงาน"}
+              cancelText={t("ยกเลิก")}
               onConfirm={() => startMutation.mutate(run.id)}
             >
               <Button type="primary" icon={<PlayCircleOutlined />} loading={busy}>
-                เริ่มงาน (ตัดสต๊อก)
+                {t("เริ่มงาน (ตัดสต๊อก)")}
               </Button>
             </Popconfirm>
           ) : null}
@@ -176,7 +184,7 @@ export default function StageRunDetailPage({
               loading={busy}
               onClick={() => setCompleteOpen(true)}
             >
-              ยืนยันเสร็จงาน (รับเข้าคลัง)
+              {t("ยืนยันเสร็จงาน (รับเข้าคลัง)")}
             </Button>
           ) : null}
 
@@ -189,7 +197,7 @@ export default function StageRunDetailPage({
               loading={busy}
               onClick={() => setCancelOpen(true)}
             >
-              {isInProgress ? "ยกเลิกกลางคัน" : "ยกเลิกรอบ"}
+              {isInProgress ? t("ยกเลิกกลางคัน") : t("ยกเลิกรอบ")}
             </Button>
           ) : null}
         </div>
@@ -200,7 +208,7 @@ export default function StageRunDetailPage({
           loading={completeMutation.isPending}
           inputUnit={inputUnit}
           outputUnit={outputUnit}
-          warehouseName={warehouseName.get(run.outputWarehouseId) ?? "คลัง"}
+          warehouseName={warehouseName.get(run.outputWarehouseId) ?? t("คลัง")}
           onCancel={() => setCompleteOpen(false)}
           onConfirm={(body) =>
             completeMutation.mutate(
@@ -228,7 +236,7 @@ export default function StageRunDetailPage({
           <Alert
             type="warning"
             showIcon
-            title="รอบนี้ถูกยกเลิก"
+            title={t("รอบนี้ถูกยกเลิก")}
             description={run.cancelReason}
           />
         ) : null}
@@ -243,47 +251,46 @@ export default function StageRunDetailPage({
               format={() => <span>{run.yieldPercent}%</span>}
             />
           ) : (
-            <Tooltip title="หน่วยของวัตถุดิบกับผลผลิตต่างกัน (เช่น เส้น → กิโลกรัม) จึงคิดเป็นเปอร์เซ็นต์ไม่ได้">
+            <Tooltip title={t("หน่วยของวัตถุดิบกับผลผลิตต่างกัน (เช่น เส้น → กิโลกรัม) จึงคิดเป็นเปอร์เซ็นต์ไม่ได้")}>
               <Progress
                 type="dashboard"
                 size={130}
                 percent={0}
                 strokeColor="#d9d9d9"
-                format={() => <span style={{ fontSize: 12 }}>เทียบไม่ได้</span>}
+                format={() => <span style={{ fontSize: 12 }}>{t("เทียบไม่ได้")}</span>}
               />
             </Tooltip>
           )}
           <div className={styles.yieldCardBody}>
             <span className={styles.yieldCardLabel}>
-              {isPlannedYield ? "Yield ตามแผน (ยังไม่ปิดงาน)" : "Yield จริง"}
+              {isPlannedYield ? t("Yield ตามแผน (ยังไม่ปิดงาน)") : t("Yield จริง")}
             </span>
             <span>
-              วัตถุดิบ {fmtQty(run.inputQty)} {inputUnit}
+              {t("วัตถุดิบ")} {fmtQty(run.inputQty)} {inputUnit}
               {Number(run.inputActualQty) > 0
-                ? ` · ตัดจริง ${fmtQty(run.inputActualQty)} ${inputUnit}`
+                ? ` · ${t("ตัดจริง")} ${fmtQty(run.inputActualQty)} ${inputUnit}`
                 : ""}
             </span>
             <span>
-              ผลผลิตตามแผน {fmtQty(run.outputQty)} {outputUnit}
+              {t("ผลผลิตตามแผน")} {fmtQty(run.outputQty)} {outputUnit}
               {run.outputActualQty
-                ? ` · รับเข้าคลังจริง ${fmtQty(run.outputActualQty)} ${outputUnit}`
+                ? ` · ${t("รับเข้าคลังจริง")} ${fmtQty(run.outputActualQty)} ${outputUnit}`
                 : ""}
               {run.outputLotNo ? ` · Lot ${run.outputLotNo}` : ""}
             </span>
             {run.byproductQty ? (
               <span className={styles.yieldCardLabel}>
-                {config.byproductLabel} {fmtQty(run.byproductQty)} — บันทึกอ้างอิง
-                ไม่ได้เข้าสต๊อก
+                {t(config.byproductLabel)} {fmtQty(run.byproductQty)} — {t("บันทึกอ้างอิง ไม่ได้เข้าสต๊อก")}
               </span>
             ) : null}
           </div>
         </div>
 
         <div className={styles.detailSection}>
-          <h3>วัตถุดิบเข้า</h3>
+          <h3>{t("วัตถุดิบเข้า")}</h3>
           <div className={styles.infoGrid}>
             <Info
-              label="สินค้า"
+              label={t("สินค้า")}
               value={
                 run.inputItemCode
                   ? `${run.inputItemCode} — ${run.inputItemNameTh ?? ""}`
@@ -291,30 +298,30 @@ export default function StageRunDetailPage({
               }
             />
             <Info
-              label="คลัง"
+              label={t("คลัง")}
               value={warehouseName.get(run.inputWarehouseId) ?? "-"}
             />
             <Info
-              label="ตำแหน่ง"
+              label={t("ตำแหน่ง")}
               value={locationName.get(run.inputLocationId) ?? "-"}
             />
-            <Info label="จำนวนตามแผน" value={`${fmtQty(run.inputQty)} ${inputUnit}`} />
+            <Info label={t("จำนวนตามแผน")} value={`${fmtQty(run.inputQty)} ${inputUnit}`} />
             <Info
-              label="ตัดสต๊อกจริง"
+              label={t("ตัดสต๊อกจริง")}
               value={
                 Number(run.inputActualQty) > 0
                   ? `${fmtQty(run.inputActualQty)} ${inputUnit}`
-                  : "ยังไม่เริ่มงาน"
+                  : t("ยังไม่เริ่มงาน")
               }
             />
           </div>
         </div>
 
         <div className={styles.detailSection}>
-          <h3>ผลผลิตออก</h3>
+          <h3>{t("ผลผลิตออก")}</h3>
           <div className={styles.infoGrid}>
             <Info
-              label="สินค้า"
+              label={t("สินค้า")}
               value={
                 run.outputItemCode
                   ? `${run.outputItemCode} — ${run.outputItemNameTh ?? ""}`
@@ -322,31 +329,31 @@ export default function StageRunDetailPage({
               }
             />
             <Info
-              label="คลัง"
+              label={t("คลัง")}
               value={warehouseName.get(run.outputWarehouseId) ?? "-"}
             />
             <Info
-              label="ตำแหน่ง"
+              label={t("ตำแหน่ง")}
               value={locationName.get(run.outputLocationId) ?? "-"}
             />
-            <Info label="จำนวน" value={`${fmtQty(run.outputQty)} ${outputUnit}`} />
-            <Info label="Lot ที่ได้" value={run.outputLotNo ?? "ยังไม่เสร็จงาน"} />
+            <Info label={t("จำนวน")} value={`${fmtQty(run.outputQty)} ${outputUnit}`} />
+            <Info label={t("Lot ที่ได้")} value={run.outputLotNo ?? t("ยังไม่เสร็จงาน")} />
           </div>
         </div>
 
         <div className={styles.detailSection}>
-          <h3>ผู้ดำเนินการ</h3>
+          <h3>{t("ผู้ดำเนินการ")}</h3>
           <div className={styles.infoGrid}>
-            <Info label="ผู้สร้าง" value={run.requestedBy?.displayName ?? "-"} />
+            <Info label={t("ผู้สร้าง")} value={run.requestedBy?.displayName ?? "-"} />
             <Info
-              label="เริ่มงาน"
+              label={t("เริ่มงาน")}
               value={run.startedAt ? fmtDateTime(run.startedAt) : "-"}
             />
             <Info
-              label="เสร็จงาน"
+              label={t("เสร็จงาน")}
               value={run.completedAt ? fmtDateTime(run.completedAt) : "-"}
             />
-            <Info label="หมายเหตุ" value={run.remark || "-"} />
+            <Info label={t("หมายเหตุ")} value={run.remark || "-"} />
           </div>
         </div>
       </section>

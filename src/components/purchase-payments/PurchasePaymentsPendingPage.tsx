@@ -13,6 +13,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
 import { usePendingPurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import type { PendingSupplierPaymentPo } from "@/types/purchase-payments";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
@@ -35,6 +36,7 @@ function formatMoney(value?: string | number) {
 
 export default function PurchasePaymentsPendingPage() {
   const router = useRouter();
+  const t = useT();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [poNo, setPoNo] = useState("");
@@ -93,13 +95,13 @@ export default function PurchasePaymentsPendingPage() {
   const columns: ColumnsType<PendingSupplierPaymentPo> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ PO",
+        title: t("เลขที่ PO"),
         dataIndex: "poNo",
         render: (value: string) => (
           <DocNoWithFlowBadge
@@ -109,13 +111,13 @@ export default function PurchasePaymentsPendingPage() {
         ),
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "poDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         key: "creditor",
         render: (_v, row) =>
           row.creditor ? (
@@ -130,16 +132,16 @@ export default function PurchasePaymentsPendingPage() {
           ),
       },
       {
-        title: "เงื่อนไขชำระ",
+        title: t("เงื่อนไขชำระ"),
         key: "paymentTerm",
         render: (_v, row) => (
           <span className={styles.termCell}>
-            {row.paymentTerm?.name ?? "ไม่ระบุ"}
+            {row.paymentTerm?.name ?? t("ไม่ระบุ")}
           </span>
         ),
       },
       {
-        title: "ยอดจ่าย",
+        title: t("ยอดจ่าย"),
         dataIndex: "totalAmount",
         align: "right",
         render: (value: string) => (
@@ -147,7 +149,7 @@ export default function PurchasePaymentsPendingPage() {
         ),
       },
       {
-        title: "GR ยืนยัน",
+        title: t("GR ยืนยัน"),
         dataIndex: "confirmedGrCount",
         align: "center",
         width: 100,
@@ -156,13 +158,13 @@ export default function PurchasePaymentsPendingPage() {
         ),
       },
       {
-        title: "สถานะจ่าย",
+        title: t("สถานะจ่าย"),
         dataIndex: "paymentStatus",
         width: 120,
         render: () => (
           <span className={styles.statusPill}>
             <span className={styles.statusDot} aria-hidden />
-            รอจ่าย
+            {t("รอจ่าย")}
           </span>
         ),
       },
@@ -174,7 +176,7 @@ export default function PurchasePaymentsPendingPage() {
           <button
             type="button"
             className={styles.actionBtn}
-            title="ดูใบสั่งซื้อ"
+            title={t("ดูใบสั่งซื้อ")}
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/purchase-orders/${row.id}`);
@@ -185,7 +187,7 @@ export default function PurchasePaymentsPendingPage() {
         ),
       },
     ],
-    [limit, page, router],
+    [limit, page, router, t],
   );
 
   return (
@@ -193,18 +195,18 @@ export default function PurchasePaymentsPendingPage() {
       <PageHeader
         eyebrow="Accounting · Supplier Payments"
         icon={<DollarOutlined />}
-        title="PO รอจ่ายเงิน"
-        subtitle="Flow จ่ายจากใบสั่งซื้อโดยตรงปิดแล้ว — ใช้เมนูการเงินแทน"
+        title={t("PO รอจ่ายเงิน")}
+        subtitle={t("Flow จ่ายจากใบสั่งซื้อโดยตรงปิดแล้ว — ใช้เมนูการเงินแทน")}
         actions={
           <>
 <Link href="/finance/payables/payment-vouchers">
             <Button type="primary" icon={<DollarOutlined />}>
-              ไปใบสำคัญจ่าย
+              {t("ไปใบสำคัญจ่าย")}
             </Button>
           </Link>
           <Link href="/purchase-payments">
             <Button className={styles.secondaryBtn} icon={<HistoryOutlined />}>
-              ประวัติการจ่าย
+              {t("ประวัติการจ่าย")}
             </Button>
           </Link>
           </>
@@ -215,66 +217,68 @@ export default function PurchasePaymentsPendingPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        title="การสร้างใบสำคัญจ่ายจาก PO เดิมปิดใช้งานแล้ว"
-        description="สร้าง/อนุมัติใบสำคัญจ่ายและบันทึกจ่ายเงินจริงที่เมนูการเงิน · หน้านี้คงไว้เพื่อลิงก์เก่าและจะไม่แสดงรายการรอจ่ายจาก Flow เดิม"
+        title={t("การสร้างใบสำคัญจ่ายจาก PO เดิมปิดใช้งานแล้ว")}
+        description={t(
+          "สร้าง/อนุมัติใบสำคัญจ่ายและบันทึกจ่ายเงินจริงที่เมนูการเงิน · หน้านี้คงไว้เพื่อลิงก์เก่าและจะไม่แสดงรายการรอจ่ายจาก Flow เดิม",
+        )}
         action={
           <Link href="/finance/payables/payment-records">
-            <Button size="small">บันทึกจ่ายเงิน</Button>
+            <Button size="small">{t("บันทึกจ่ายเงิน")}</Button>
           </Link>
         }
       />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>รอจ่ายทั้งหมด</span>
+          <span className={styles.statLabel}>{t("รอจ่ายทั้งหมด")}</span>
           <span className={styles.statValue}>{total}</span>
-          <span className={styles.statHint}>ใบสั่งซื้อค้างจ่าย</span>
+          <span className={styles.statHint}>{t("ใบสั่งซื้อค้างจ่าย")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดในหน้านี้</span>
+          <span className={styles.statLabel}>{t("ยอดในหน้านี้")}</span>
           <span className={`${styles.statValue} ${styles.statValueAccent}`}>
             {formatMoney(pageAmount)}
           </span>
-          <span className={styles.statHint}>บาท · ตามผลที่แสดง</span>
+          <span className={styles.statHint}>{t("บาท · ตามผลที่แสดง")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>GR ที่ยืนยัน</span>
+          <span className={styles.statLabel}>{t("GR ที่ยืนยัน")}</span>
           <span className={styles.statValue}>{grCount}</span>
-          <span className={styles.statHint}>ใบรับของอ้างอิงในหน้านี้</span>
+          <span className={styles.statHint}>{t("ใบรับของอ้างอิงในหน้านี้")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ PO</label>
+            <label>{t("เลขที่ PO")}</label>
             <Input
               allowClear
-              placeholder="เช่น PO-20260718-001"
+              placeholder={t("เช่น PO-20260718-001")}
               value={poNo}
               onChange={(e) => setPoNo(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ผู้ขาย</label>
+            <label>{t("ผู้ขาย")}</label>
             <Input
               allowClear
-              placeholder="ชื่อหรือรหัสผู้ขาย"
+              placeholder={t("ชื่อหรือรหัสผู้ขาย")}
               value={vendor}
               onChange={(e) => setVendor(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button
               type="primary"
               className={styles.primaryBtn}
               icon={<SearchOutlined />}
               onClick={applySearch}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -283,16 +287,16 @@ export default function PurchasePaymentsPendingPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
             {applied.poNo || applied.vendor ? (
               <>
                 {" "}
-                · แสดงในหน้านี้ <strong>{filteredRows.length}</strong>
+                · {t("แสดงในหน้านี้")} <strong>{filteredRows.length}</strong>
               </>
             ) : null}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -307,7 +311,7 @@ export default function PurchasePaymentsPendingPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -324,8 +328,8 @@ export default function PurchasePaymentsPendingPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>Flow จ่ายจาก PO เดิมปิดแล้ว</strong>
-                ใช้เมนูใบสำคัญจ่าย / บันทึกจ่ายเงินในระบบการเงินแทน
+                <strong>{t("Flow จ่ายจาก PO เดิมปิดแล้ว")}</strong>
+                {t("ใช้เมนูใบสำคัญจ่าย / บันทึกจ่ายเงินในระบบการเงินแทน")}
               </div>
             ),
           }}
@@ -333,8 +337,8 @@ export default function PurchasePaymentsPendingPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง")} {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} {t("จาก")} {total}
           </div>
           <Pagination
             size="small"

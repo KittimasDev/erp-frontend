@@ -1,3 +1,23 @@
+import { getStoredLanguage } from "@/lib/i18n/language";
+
+/** ป้ายสถานะ (ใบขอผลิต/ใบสั่งผลิต) ตามภาษา — ไทยคืนข้อความเดิม · "ยกเลิก" ที่นี่คือสถานะ Cancelled ไม่ใช่ปุ่ม Cancel */
+const PRODUCTION_STATUS_EN: Record<string, string> = {
+  "รอเปิดใบสั่งผลิต": "Pending production order",
+  "อยู่ในระหว่างการผลิต": "In production",
+  "ผลิตครบแล้ว": "Fully produced",
+  "มีใบสั่งผลิตที่ยังไม่เสร็จ": "Has unfinished production orders",
+  "ยังไม่เริ่มผลิต": "Not started",
+  "กำลังผลิต": "In progress",
+  "หยุดชั่วคราว": "Paused",
+  "เสร็จสิ้น": "Completed",
+  "ยกเลิก": "Cancelled",
+};
+
+export function tProductionStatus(thai: string): string {
+  if (getStoredLanguage() !== "en") return thai;
+  return PRODUCTION_STATUS_EN[thai] ?? thai;
+}
+
 export const ProductionRequestStatus = {
   PENDING: "PENDING",
   IN_PRODUCTION: "IN_PRODUCTION",

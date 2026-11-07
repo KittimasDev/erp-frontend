@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Alert, Empty, Segmented, Spin, Tooltip } from "antd";
 import dayjs from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { tNow, useT } from "@/lib/i18n/useT";
 import { useShiftRosterQuery } from "@/hooks/shifts/useShiftQueries";
 import { LEAVE_TYPE_LABEL } from "@/types/leave";
 import type {
@@ -17,6 +19,7 @@ import { SHIFT_ROSTER_STATUS_LABEL } from "@/types/shifts";
 import styles from "./ShiftRosterGrid.module.css";
 
 const THAI_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const EN_WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 /** สัญลักษณ์ในช่อง — สั้นที่สุดเท่าที่ยังอ่านออก เพราะช่องแคบมากเมื่อดูทั้งเดือน */
 const CELL_MARK: Record<ShiftRosterStatus, string> = {
@@ -31,8 +34,11 @@ const CELL_MARK: Record<ShiftRosterStatus, string> = {
  * ช่องเข้ากะใส่อักษรแรกของชื่อกะ (ช/บ/ด) — แยกกะได้โดยไม่ต้องพึ่งสีอย่างเดียว
  * คนตาบอดสีและการพิมพ์ขาวดำยังอ่านออก
  */
-function cellMark(cell: ShiftRosterCell): string {
+function cellMark(cell: ShiftRosterCell, lang: "th" | "en"): string {
   if (cell.status !== "SHIFT") {
+    if (cell.status === "LEAVE" && lang === "en") {
+      return "L";
+    }
     return CELL_MARK[cell.status];
   }
   return cell.shiftName?.trim().charAt(0) ?? "✓";
@@ -65,20 +71,22 @@ function cellTooltip(row: ShiftRosterRow, cell: ShiftRosterCell): string {
   const who = row.displayName;
   switch (cell.status) {
     case "SHIFT":
-      return `${who} · ${date} — ${cell.shiftName ?? "เข้ากะ"} ${cell.startTime ?? ""}-${cell.endTime ?? ""}`;
+      return `${who} · ${date} — ${cell.shiftName ?? tNow("เข้ากะ")} ${cell.startTime ?? ""}-${cell.endTime ?? ""}`;
     case "LEAVE": {
       const type = cell.leaveType
-        ? (LEAVE_TYPE_LABEL[cell.leaveType] ?? cell.leaveType)
-        : "ลา";
-      const onShift = cell.shiftName ? ` (ติดกะ ${cell.shiftName} — ต้องหาคนแทน)` : "";
+        ? LEAVE_TYPE_LABEL[cell.leaveType]
+          ? tNow(LEAVE_TYPE_LABEL[cell.leaveType])
+          : cell.leaveType
+        : tNow("ลา");
+      const onShift = cell.shiftName ? ` ${tNow("(ติดกะ {name} — ต้องหาคนแทน)", { name: cell.shiftName })}` : "";
       return `${who} · ${date} — ${type}${onShift}`;
     }
     case "HOLIDAY":
-      return `${date} — ${cell.holidayName ?? "วันหยุดบริษัท"}`;
+      return `${date} — ${cell.holidayName ?? tNow("วันหยุดบริษัท")}`;
     case "OFF":
-      return `${who} · ${date} — หยุด (วันนี้จัดกะแล้วแต่ไม่มีชื่อเขา)`;
+      return `${who} · ${date} — ${tNow("หยุด (วันนี้จัดกะแล้วแต่ไม่มีชื่อเขา)")}`;
     default:
-      return `${date} — ยังไม่จัดกะ`;
+      return `${date} — ${tNow("ยังไม่จัดกะ")}`;
   }
 }
 
@@ -93,6 +101,8 @@ export default function ShiftRosterGrid({
 }: {
   params: ShiftAssignmentParams;
 }) {
+  const t = useT();
+  const lang = useLanguage();
   const [filter, setFilter] = useState<FilterMode>("all");
   const query = useShiftRosterQuery(params);
   const data = query.data?.data;
@@ -115,7 +125,7 @@ export default function ShiftRosterGrid({
   }
 
   if (!data || days.length === 0) {
-    return <Empty description="ไม่มีข้อมูลในช่วงที่เลือก" />;
+    return <Empty description={t("ไม่มีข้อมูลในช่วงที่เลือก")} />;
   }
 
   return (
@@ -125,29 +135,30 @@ export default function ShiftRosterGrid({
           value={filter}
           onChange={(value) => setFilter(value as FilterMode)}
           options={[
-            { label: `ทุกคน (${data.totalEmployees})`, value: "all" },
-            { label: "เฉพาะคนที่หยุด/ลา", value: "off" },
+            { label: t("ทุกคน ({n})", { n: data.totalEmployees }), value: "all" },
+            { label: t("เฉพาะคนที่หยุด/ลา"), value: "off" },
           ]}
         />
         <div className={styles.legend}>
           <span className={styles.legendItem}>
             <span className={`${styles.swatch} ${styles.swatchShift}`} />
-            เข้ากะ
+            {t("เข้ากะ")}
           </span>
           <span className={styles.legendItem}>
-            <span className={`${styles.swatch} ${styles.swatchLeave}`} />ลา
+            <span className={`${styles.swatch} ${styles.swatchLeave}`} />
+            {t("ลา")}
           </span>
           <span className={styles.legendItem}>
             <span className={`${styles.swatch} ${styles.swatchOff}`} />
-            หยุด
+            {t("หยุด")}
           </span>
           <span className={styles.legendItem}>
             <span className={`${styles.swatch} ${styles.swatchHoliday}`} />
-            วันหยุดบริษัท
+            {t("วันหยุดบริษัท")}
           </span>
           <span className={styles.legendItem}>
             <span className={`${styles.swatch} ${styles.swatchUnplanned}`} />
-            ยังไม่จัดกะ
+            {t("ยังไม่จัดกะ")}
           </span>
         </div>
       </div>
@@ -157,8 +168,8 @@ export default function ShiftRosterGrid({
           type="info"
           showIcon
           className={styles.notice}
-          title={`มี ${data.unplannedDays} วันที่ยังไม่ได้จัดกะเลย`}
-          description="วันเหล่านั้นแสดงเป็น “ยังไม่จัดกะ” ไม่ใช่ “หยุด” — ตัวเลขวันหยุดของช่วงนี้จะครบก็ต่อเมื่อจัดกะครบทุกวันแล้ว"
+          title={t("มี {n} วันที่ยังไม่ได้จัดกะเลย", { n: data.unplannedDays })}
+          description={t("วันเหล่านั้นแสดงเป็น “ยังไม่จัดกะ” ไม่ใช่ “หยุด” — ตัวเลขวันหยุดของช่วงนี้จะครบก็ต่อเมื่อจัดกะครบทุกวันแล้ว")}
         />
       ) : null}
 
@@ -167,7 +178,7 @@ export default function ShiftRosterGrid({
           <thead>
             <tr>
               <th className={`${styles.nameCell} ${styles.headCell}`}>
-                พนักงาน
+                {t("พนักงาน")}
               </th>
               {days.map((day) => {
                 const date = dayjs(day.date);
@@ -181,24 +192,24 @@ export default function ShiftRosterGrid({
                     <Tooltip
                       title={
                         day.isHoliday
-                          ? `${date.format("D/M/YYYY")} — ${day.holidayName ?? "วันหยุด"}`
+                          ? `${date.format("D/M/YYYY")} — ${day.holidayName ?? t("วันหยุด")}`
                           : day.hasRounds
-                            ? `${date.format("D/M/YYYY")} — เข้ากะ ${day.workingCount} · ลา ${day.leaveCount} · หยุด ${day.offCount}`
-                            : `${date.format("D/M/YYYY")} — ยังไม่จัดกะ`
+                            ? `${date.format("D/M/YYYY")} — ${t("เข้ากะ {w} · ลา {l} · หยุด {o}", { w: day.workingCount, l: day.leaveCount, o: day.offCount })}`
+                            : `${date.format("D/M/YYYY")} — ${t("ยังไม่จัดกะ")}`
                       }
                     >
                       <span className={styles.dayHeadInner}>
                         <span className={styles.dayNum}>{date.date()}</span>
                         <span className={styles.dayDow}>
-                          {THAI_WEEKDAYS[day.weekday]}
+                          {(lang === "en" ? EN_WEEKDAYS : THAI_WEEKDAYS)[day.weekday]}
                         </span>
                       </span>
                     </Tooltip>
                   </th>
                 );
               })}
-              <th className={styles.totalHead}>หยุด</th>
-              <th className={styles.totalHead}>ลา</th>
+              <th className={styles.totalHead}>{t("หยุด")}</th>
+              <th className={styles.totalHead}>{t("ลา")}</th>
             </tr>
           </thead>
           <tbody>
@@ -224,9 +235,9 @@ export default function ShiftRosterGrid({
                     <Tooltip title={cellTooltip(row, cell)}>
                       <span
                         className={styles.cellInner}
-                        aria-label={`${row.displayName} ${dayjs(cell.date).format("D/M")} ${SHIFT_ROSTER_STATUS_LABEL[cell.status]}${cell.shiftName ? ` ${cell.shiftName}` : ""}`}
+                        aria-label={`${row.displayName} ${dayjs(cell.date).format("D/M")} ${t(SHIFT_ROSTER_STATUS_LABEL[cell.status])}${cell.shiftName ? ` ${cell.shiftName}` : ""}`}
                       >
-                        {cellMark(cell)}
+                        {cellMark(cell, lang)}
                       </span>
                     </Tooltip>
                   </td>
@@ -250,7 +261,7 @@ export default function ShiftRosterGrid({
                 <td colSpan={days.length + 3} className={styles.emptyRow}>
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="ไม่มีคนหยุดหรือลาในช่วงนี้"
+                    description={t("ไม่มีคนหยุดหรือลาในช่วงนี้")}
                   />
                 </td>
               </tr>

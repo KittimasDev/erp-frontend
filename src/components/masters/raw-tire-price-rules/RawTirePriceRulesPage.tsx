@@ -41,6 +41,8 @@ import type {
 import RawTirePriceRuleFormModal from "./RawTirePriceRuleFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 type PriceRuleFilterFormValues = {
   code?: string;
@@ -132,6 +134,8 @@ function formatDate(value?: string) {
 }
 
 export default function RawTirePriceRulesPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -196,7 +200,7 @@ export default function RawTirePriceRulesPage() {
         return [...active, current].map((item) => ({
           value: item.id,
           label: `${item.classificationCode} — ${item.classificationName}${
-            item.isActive ? "" : " (ปิดใช้งาน)"
+            item.isActive ? "" : ` (${t("ปิดใช้งาน")})`
           }`,
         }));
       }
@@ -205,7 +209,7 @@ export default function RawTirePriceRulesPage() {
       value: item.id,
       label: `${item.classificationCode} — ${item.classificationName}`,
     }));
-  }, [classifications, modalMode, editingRule]);
+  }, [classifications, modalMode, editingRule, t]);
 
   const classificationLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -279,7 +283,7 @@ export default function RawTirePriceRulesPage() {
 
   const columns: ColumnsType<RawTirePriceRule> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -290,7 +294,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "ruleCode",
       key: "ruleCode",
       width: 160,
@@ -299,7 +303,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "ประเภทสินค้า",
+      title: lang === "en" ? "Item type" : "ประเภทสินค้า",
       dataIndex: "tireClassificationId",
       key: "tireClassificationId",
       width: 200,
@@ -310,7 +314,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "ราคา/กก.",
+      title: t("ราคา/กก."),
       dataIndex: "pricePerKg",
       key: "pricePerKg",
       width: 110,
@@ -322,7 +326,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "เริ่มมีผล",
+      title: t("เริ่มมีผล"),
       dataIndex: "effectiveFrom",
       key: "effectiveFrom",
       width: 120,
@@ -331,7 +335,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "สิ้นสุดผล",
+      title: t("สิ้นสุดผล"),
       dataIndex: "effectiveTo",
       key: "effectiveTo",
       width: 120,
@@ -340,7 +344,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -349,53 +353,53 @@ export default function RawTirePriceRulesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 170,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.ruleCode}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.ruleCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบกฎราคา",
-                content: `ต้องการลบ "${record.ruleCode}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบกฎราคา"),
+                content: t("ต้องการลบ \"{code}\" หรือไม่?", { code: record.ruleCode }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -409,8 +413,8 @@ export default function RawTirePriceRulesPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="กฎราคาซื้อยาง"
-        subtitle="จัดการราคารับซื้อยางตามประเภทและช่วงวันที่มีผล"
+        title={t("กฎราคาซื้อยาง")}
+        subtitle={t("จัดการราคารับซื้อยางตามประเภทและช่วงวันที่มีผล")}
         actions={
           <>
 <Button
@@ -420,7 +424,7 @@ export default function RawTirePriceRulesPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มกฎราคา
+          {t("เพิ่มกฎราคา")}
         </Button>
           </>
         }
@@ -431,7 +435,7 @@ export default function RawTirePriceRulesPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "กฎทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("กฎทั้งหมด")}
             </span>
             <strong>{rules.length}</strong>
           </div>
@@ -440,7 +444,7 @@ export default function RawTirePriceRulesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -448,7 +452,7 @@ export default function RawTirePriceRulesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -458,13 +462,13 @@ export default function RawTirePriceRulesPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหากฎราคาซื้อยาง</h3>
-            <p>กรองด้วยรหัส ประเภทสินค้า วันที่มีผล และสถานะ</p>
+            <h3>{t("ค้นหากฎราคาซื้อยาง")}</h3>
+            <p>{t("กรองด้วยรหัส ประเภทสินค้า วันที่มีผล และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -478,22 +482,22 @@ export default function RawTirePriceRulesPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสกฎ">
+              <Form.Item name="code" label={t("รหัสกฎ")}>
                 <Input
                   allowClear
-                  placeholder="เช่น PRULE"
+                  placeholder={t("เช่น PRULE")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="tireClassificationId" label="ประเภท/กลุ่มสินค้า">
+              <Form.Item name="tireClassificationId" label={t("ประเภท/กลุ่มสินค้า")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   loading={classificationsQuery.isLoading}
                   options={classificationOptions}
                 />
@@ -501,24 +505,24 @@ export default function RawTirePriceRulesPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="effectiveOn" label="วันที่มีผล">
+              <Form.Item name="effectiveOn" label={t("วันที่มีผล")}>
                 <DatePicker
                   allowClear
                   style={{ width: "100%" }}
                   format="YYYY-MM-DD"
-                  placeholder="เลือกวัน"
+                  placeholder={t("เลือกวัน")}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -533,7 +537,7 @@ export default function RawTirePriceRulesPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -541,7 +545,7 @@ export default function RawTirePriceRulesPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -554,15 +558,15 @@ export default function RawTirePriceRulesPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>PRICE RULE MANAGEMENT</div>
-            <h3>รายการกฎราคาซื้อยาง</h3>
+            <h3>{t("รายการกฎราคาซื้อยาง")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลกฎราคาซื้อยางทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลกฎราคาซื้อยางทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{rules.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: rules.length })}</div>
         </div>
 
         {rulesQuery.isError ? (
@@ -570,7 +574,7 @@ export default function RawTirePriceRulesPage() {
             <Typography.Text type="danger">
               {rulesQuery.error instanceof Error
                 ? rulesQuery.error.message
-                : "โหลดข้อมูลกฎราคาไม่สำเร็จ"}
+                : t("โหลดข้อมูลกฎราคาไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -584,14 +588,14 @@ export default function RawTirePriceRulesPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1210 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบกฎราคาตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลกฎราคา",
+                ? t("ไม่พบกฎราคาตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลกฎราคา"),
             }}
           />
         )}

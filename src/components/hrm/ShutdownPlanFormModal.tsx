@@ -5,6 +5,8 @@ import { Button, DatePicker, Form, Input, InputNumber, Modal, Select } from "ant
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
 import { useShiftsQuery } from "@/hooks/shifts/useShiftQueries";
 import type {
@@ -38,6 +40,8 @@ export default function ShutdownPlanFormModal({
   onCancel,
   onSubmit,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const positionsQuery = usePositionsQuery({ isActive: true });
   const shiftsQuery = useShiftsQuery(false, open);
@@ -88,9 +92,9 @@ export default function ShutdownPlanFormModal({
   return (
     <Modal
       open={open}
-      title={plan ? "แก้ไขแผน Shutdown" : "สร้างแผน Shutdown"}
-      okText={plan ? "อัปเดต" : "สร้างแผน"}
-      cancelText="ยกเลิก"
+      title={plan ? t("แก้ไขแผน Shutdown") : t("สร้างแผน Shutdown")}
+      okText={plan ? t("อัปเดต") : t("สร้างแผน")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={confirmLoading}
       onOk={handleOk}
       onCancel={onCancel}
@@ -100,23 +104,25 @@ export default function ShutdownPlanFormModal({
     >
       <Form form={form} layout="vertical" requiredMark={false}>
         <Form.Item
-          label="ชื่อแผน"
+          label={t("ชื่อแผน")}
           name="name"
-          rules={[{ required: true, message: "กรุณากรอกชื่อแผน" }, { max: 200 }]}
+          rules={[{ required: true, message: t("กรุณากรอกชื่อแผน") }, { max: 200 }]}
         >
-          <Input placeholder="เช่น Shutdown ประจำปี 2569" />
+          <Input placeholder={t("เช่น Shutdown ประจำปี 2569")} />
         </Form.Item>
 
         <Form.Item
-          label="ช่วงวันที่ Shutdown"
+          label={t("ช่วงวันที่ Shutdown")}
           name="range"
-          extra={'ยาวไม่เกิน 31 วัน · ระบบลงวัน "วันซ่อมเครื่อง" ในปฏิทินให้ ตัวจัดกะปกติจะข้ามช่วงนี้และไม่คิดสาย'}
-          rules={[{ required: true, message: "กรุณาเลือกช่วงวันที่" }]}
+          extra={t(
+            "ยาวไม่เกิน 31 วัน · ระบบลงวัน \"วันซ่อมเครื่อง\" ในปฏิทินให้ ตัวจัดกะปกติจะข้ามช่วงนี้และไม่คิดสาย",
+          )}
+          rules={[{ required: true, message: t("กรุณาเลือกช่วงวันที่") }]}
         >
           <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
 
-        <Form.Item label="กำลังคนที่ต้องการต่อวัน (ตำแหน่ง × กะ)">
+        <Form.Item label={t("กำลังคนที่ต้องการต่อวัน (ตำแหน่ง × กะ)")}>
           <Form.List name="demands">
             {(fields, { add, remove }) => (
               <div style={{ display: "grid", gap: 8 }}>
@@ -129,14 +135,14 @@ export default function ShutdownPlanFormModal({
                       <Select
                         showSearch
                         optionFilterProp="label"
-                        placeholder="ตำแหน่ง"
+                        placeholder={lang === "en" ? "Position" : "ตำแหน่ง"}
                         loading={positionsQuery.isLoading}
                         options={positions.map((p) => ({ value: p.nameTh, label: p.nameTh }))}
                       />
                     </Form.Item>
                     <Form.Item name={[field.name, "shiftId"]} noStyle>
                       <Select
-                        placeholder="กะ"
+                        placeholder={t("กะ")}
                         loading={shiftsQuery.isLoading}
                         options={shifts.map((s) => ({
                           value: s.id,
@@ -145,24 +151,24 @@ export default function ShutdownPlanFormModal({
                       />
                     </Form.Item>
                     <Form.Item name={[field.name, "headcount"]} noStyle>
-                      <InputNumber min={1} max={500} placeholder="คน" style={{ width: "100%" }} />
+                      <InputNumber min={1} max={500} placeholder={t("คน")} style={{ width: "100%" }} />
                     </Form.Item>
                     <Button
-                      aria-label="ลบแถว"
+                      aria-label={t("ลบแถว")}
                       icon={<DeleteOutlined />}
                       onClick={() => remove(field.name)}
                     />
                   </div>
                 ))}
                 <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({})}>
-                  เพิ่มความต้องการ
+                  {t("เพิ่มความต้องการ")}
                 </Button>
               </div>
             )}
           </Form.List>
         </Form.Item>
 
-        <Form.Item label="หมายเหตุ" name="note">
+        <Form.Item label={t("หมายเหตุ")} name="note">
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
       </Form>

@@ -4,6 +4,8 @@ import { Fragment, useMemo, useState } from "react";
 import { Alert, Segmented, Tooltip } from "antd";
 import dayjs from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type {
   Shift,
   ShiftAutoPlan,
@@ -15,6 +17,7 @@ import type {
 import styles from "./ShiftAutoPlanPreview.module.css";
 
 const THAI_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const EN_WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 const WARNING_TONE: Record<
   ShiftAutoPlanWarning["code"],
@@ -109,6 +112,8 @@ export default function ShiftAutoPlanPreview({
   plan: ShiftAutoPlan;
   shifts: Shift[];
 }) {
+  const t = useT();
+  const lang = useLanguage();
   // ขาดคนต้องเห็นก่อน จึงเริ่มที่มุมมองรายช่องกะเมื่อมีช่องขาด
   const [view, setView] = useState<ViewMode>(
     plan.understaffedSlots > 0 ? "slots" : "people",
@@ -129,13 +134,13 @@ export default function ShiftAutoPlanPreview({
       <Tooltip
         title={
           day.skipped
-            ? `${dayjs(day.date).format("D/M/YYYY")} — ${day.holidayName ?? "วันหยุด"} (ไม่จัดกะ)`
+            ? `${dayjs(day.date).format("D/M/YYYY")} — ${day.holidayName ?? t("วันหยุด")} ${t("(ไม่จัดกะ)")}`
             : dayjs(day.date).format("D/M/YYYY")
         }
       >
         <span className={styles.dayHeadInner}>
           <span className={styles.dayNum}>{dayjs(day.date).date()}</span>
-          <span className={styles.dayDow}>{THAI_WEEKDAYS[day.weekday]}</span>
+          <span className={styles.dayDow}>{(lang === "en" ? EN_WEEKDAYS : THAI_WEEKDAYS)[day.weekday]}</span>
         </span>
       </Tooltip>
     </th>
@@ -146,19 +151,19 @@ export default function ShiftAutoPlanPreview({
       {/* ---------- สรุปยอด ---------- */}
       <div className={styles.summaryGrid}>
         <div className={styles.summaryCard}>
-          <span>กะทั้งช่วง (ตามปฏิทิน)</span>
+          <span>{t("กะทั้งช่วง (ตามปฏิทิน)")}</span>
           <strong>{plan.totalSlots}</strong>
         </div>
         <div className={styles.summaryCard}>
-          <span>ช่องที่ต้องจัด</span>
+          <span>{t("ช่องที่ต้องจัด")}</span>
           <strong>{plan.scheduledSlots}</strong>
         </div>
         <div className={styles.summaryCard}>
-          <span>จัดได้</span>
+          <span>{t("จัดได้")}</span>
           <strong className={styles.okValue}>{plan.filledSlots}</strong>
         </div>
         <div className={styles.summaryCard}>
-          <span>ขาดคน</span>
+          <span>{t("ขาดคน")}</span>
           <strong
             className={
               plan.understaffedSlots > 0 ? styles.shortValue : styles.okValue
@@ -168,7 +173,7 @@ export default function ShiftAutoPlanPreview({
           </strong>
         </div>
         <div className={styles.summaryCard}>
-          <span>วันทำงาน / วันในช่วง</span>
+          <span>{t("วันทำงาน / วันในช่วง")}</span>
           <strong>
             {plan.workingDays} / {plan.dayCount ?? plan.daysInMonth}
           </strong>
@@ -181,8 +186,8 @@ export default function ShiftAutoPlanPreview({
             }
           >
             {plan.coverage.pass
-              ? "ผ่าน"
-              : `ขาด ${plan.coverage.shortageSlots}`}
+              ? t("ผ่าน")
+              : t("ขาด {n}", { n: plan.coverage.shortageSlots })}
           </strong>
         </div>
         <div className={styles.summaryCard}>
@@ -193,8 +198,8 @@ export default function ShiftAutoPlanPreview({
             }
           >
             {plan.workload.pass
-              ? "ใกล้เคียง"
-              : `ต่าง ${plan.workload.maxSpread} วัน`}
+              ? t("ใกล้เคียง")
+              : t("ต่าง {n} วัน", { n: plan.workload.maxSpread })}
           </strong>
         </div>
       </div>
@@ -203,20 +208,23 @@ export default function ShiftAutoPlanPreview({
         <Alert
           type="error"
           showIcon
-          title="Coverage ยังไม่ผ่าน"
-          description={`จัดได้ ${plan.coverage.assignedSlots} จากที่ต้องใช้ ${plan.coverage.requiredSlots} ช่อง — ต้องยืนยันบังคับบันทึกถ้าต้องการลงตารางนี้`}
+          title={t("Coverage ยังไม่ผ่าน")}
+          description={t("จัดได้ {a} จากที่ต้องใช้ {r} ช่อง — ต้องยืนยันบังคับบันทึกถ้าต้องการลงตารางนี้", {
+            a: plan.coverage.assignedSlots,
+            r: plan.coverage.requiredSlots,
+          })}
         />
       ) : null}
       {!plan.workload.pass ? (
         <Alert
           type="warning"
           showIcon
-          title="จำนวนวันทำงานยังไม่ใกล้เคียงกัน"
+          title={t("จำนวนวันทำงานยังไม่ใกล้เคียงกัน")}
           description={plan.workload.groups
             .filter((group) => group.spread > 2)
             .map(
               (group) =>
-                `${group.position} · ${group.shiftName}: ${group.minDays}–${group.maxDays} วัน (ต่าง ${group.spread})`,
+                `${group.position} · ${group.shiftName}: ${t("{min}–{max} วัน (ต่าง {spread})", { min: group.minDays, max: group.maxDays, spread: group.spread })}`,
             )
             .join(" · ")}
         />
@@ -233,31 +241,31 @@ export default function ShiftAutoPlanPreview({
             >
               <span className={styles.positionName}>{group.position}</span>
               <span className={styles.positionRow}>
-                <span>ต้องใช้ต่อวัน</span>
-                <span>{group.dailyHeadcount} คน</span>
+                <span>{t("ต้องใช้ต่อวัน")}</span>
+                <span>{t("{n} คน", { n: group.dailyHeadcount })}</span>
               </span>
               <span className={styles.positionRow}>
-                <span>คนขั้นต่ำที่ควรมี</span>
-                <span>{group.minimumEmployees} คน</span>
+                <span>{t("คนขั้นต่ำที่ควรมี")}</span>
+                <span>{t("{n} คน", { n: group.minimumEmployees })}</span>
               </span>
               <span className={styles.positionRow}>
-                <span>มีพนักงาน</span>
+                <span>{t("มีพนักงาน")}</span>
                 <span className={short ? styles.shortValue : undefined}>
-                  {group.availableEmployees} คน
+                  {t("{n} คน", { n: group.availableEmployees })}
                 </span>
               </span>
               <span className={styles.positionRow}>
-                <span>กะทั้งช่วง</span>
-                <span>{group.totalSlots} ช่อง</span>
+                <span>{t("กะทั้งช่วง")}</span>
+                <span>{t("{n} ช่อง", { n: group.totalSlots })}</span>
               </span>
               <span className={styles.positionRow}>
-                <span>ขาดคน</span>
+                <span>{t("ขาดคน")}</span>
                 <span
                   className={
                     group.understaffedSlots > 0 ? styles.shortValue : undefined
                   }
                 >
-                  {group.understaffedSlots} ช่อง
+                  {t("{n} ช่อง", { n: group.understaffedSlots })}
                 </span>
               </span>
             </div>
@@ -271,7 +279,7 @@ export default function ShiftAutoPlanPreview({
           key={`${warning.code}-${index}`}
           type={WARNING_TONE[warning.code] ?? "info"}
           showIcon
-          title={WARNING_LABEL[warning.code] ?? warning.code}
+          title={WARNING_LABEL[warning.code] ? t(WARNING_LABEL[warning.code]) : warning.code}
           description={warning.message}
         />
       ))}
@@ -282,30 +290,30 @@ export default function ShiftAutoPlanPreview({
           value={view}
           onChange={setView}
           options={[
-            { label: "รายช่องกะ", value: "slots" },
-            { label: "รายคน", value: "people" },
+            { label: t("รายช่องกะ"), value: "slots" },
+            { label: t("รายคน"), value: "people" },
           ]}
         />
         <div className={styles.legend}>
           <span className={styles.legendItem}>
             <i className={styles.swatch} style={{ background: "#8ab933" }} />
-            เข้ากะ
+            {t("เข้ากะ")}
           </span>
           <span className={styles.legendItem}>
             <i className={`${styles.swatch} ${styles.swatchShort}`} />
-            ขาดคน
+            {t("ขาดคน")}
           </span>
           <span className={styles.legendItem}>
             <i className={`${styles.swatch} ${styles.swatchOff}`} />
-            หยุดประจำสัปดาห์
+            {t("หยุดประจำสัปดาห์")}
           </span>
           <span className={styles.legendItem}>
             <i className={`${styles.swatch} ${styles.swatchHoliday}`} />
-            วันหยุดบริษัท
+            {t("วันหยุดบริษัท")}
           </span>
           <span className={styles.legendItem}>
             <i className={`${styles.swatch} ${styles.swatchLeave}`} />
-            มีใบลาอนุมัติแล้ว
+            {t("มีใบลาอนุมัติแล้ว")}
           </span>
         </div>
       </div>
@@ -315,9 +323,9 @@ export default function ShiftAutoPlanPreview({
           <table className={styles.grid}>
             <thead>
               <tr>
-                <th className={`${styles.rowHead}`}>ช่องกะ</th>
+                <th className={`${styles.rowHead}`}>{t("ช่องกะ")}</th>
                 {dayHeads}
-                <th className={styles.totalHead}>ขาด</th>
+                <th className={styles.totalHead}>{t("ขาด")}</th>
               </tr>
             </thead>
             <tbody>
@@ -349,7 +357,7 @@ export default function ShiftAutoPlanPreview({
                         return (
                           <Tooltip
                             key={day.date}
-                            title={`${dayjs(day.date).format("D/M")} — ${row.shiftName} (${row.position}) ไม่มีคนลง`}
+                            title={`${dayjs(day.date).format("D/M")} — ${row.shiftName} (${row.position}) ${t("ไม่มีคนลง")}`}
                           >
                             <td className={`${styles.cell} ${styles.cellShort}`}>
                               <span className={styles.cellInner}>!</span>
@@ -361,7 +369,7 @@ export default function ShiftAutoPlanPreview({
                       return (
                         <Tooltip
                           key={day.date}
-                          title={`${dayjs(day.date).format("D/M")} — ${slot.displayName} (${slot.source === "REFILL" ? "คนเสริม" : "คนหลัก"})${slot.onApprovedLeave ? " · มีใบลาอนุมัติแล้ว" : ""}`}
+                          title={`${dayjs(day.date).format("D/M")} — ${slot.displayName} (${slot.source === "REFILL" ? t("คนเสริม") : t("คนหลัก")})${slot.onApprovedLeave ? ` · ${t("มีใบลาอนุมัติแล้ว")}` : ""}`}
                         >
                           <td
                             className={`${styles.cell} ${styles.cellFilled} ${
@@ -390,9 +398,9 @@ export default function ShiftAutoPlanPreview({
           <table className={styles.grid}>
             <thead>
               <tr>
-                <th className={styles.rowHead}>พนักงาน</th>
+                <th className={styles.rowHead}>{t("พนักงาน")}</th>
                 {dayHeads}
-                <th className={styles.totalHead}>วันเข้ากะ</th>
+                <th className={styles.totalHead}>{t("วันเข้ากะ")}</th>
               </tr>
             </thead>
             <tbody>
@@ -400,11 +408,11 @@ export default function ShiftAutoPlanPreview({
                 <Fragment key={group.position}>
                   <tr className={styles.groupRow}>
                     <td colSpan={plan.days.length + 2}>
-                      {group.position} · คนหลัก{" "}
+                      {group.position} · {t("คนหลัก")}{" "}
                       {
                         group.employees.filter((e) => e.role === "MAIN").length
                       }{" "}
-                      · คนเสริม{" "}
+                      · {t("คนเสริม")}{" "}
                       {group.employees.filter((e) => e.role === "REFILL").length}
                     </td>
                   </tr>
@@ -431,12 +439,12 @@ export default function ShiftAutoPlanPreview({
                           </span>
                           <span className={styles.rowMeta}>
                             {employee.role === "MAIN"
-                              ? `คนหลัก · ${employee.primaryShiftName ?? "-"}`
-                              : "คนเสริม"}{" "}
+                              ? `${t("คนหลัก")} · ${employee.primaryShiftName ?? "-"}`
+                              : t("คนเสริม")}{" "}
                             ·{" "}
                             {employee.dayOffWeekday < 0
-                              ? "ไม่มีวันหยุดประจำสัปดาห์"
-                              : `หยุด${employee.dayOffLabel}`}
+                              ? t("ไม่มีวันหยุดประจำสัปดาห์")
+                              : t("หยุด{day}", { day: employee.dayOffLabel })}
                           </span>
                         </th>
                         {plan.days.map((day) => {
@@ -456,7 +464,7 @@ export default function ShiftAutoPlanPreview({
                               <Tooltip
                                 key={day.date}
                                 title={`${dayjs(day.date).format("D/M")} — ${
-                                  isDayOff ? "วันหยุดประจำสัปดาห์" : "ไม่ได้ลงกะ"
+                                  isDayOff ? t("วันหยุดประจำสัปดาห์") : t("ไม่ได้ลงกะ")
                                 }`}
                               >
                                 <td className={`${styles.cell} ${styles.cellOff}`}>
@@ -470,7 +478,7 @@ export default function ShiftAutoPlanPreview({
                           return (
                             <Tooltip
                               key={day.date}
-                              title={`${dayjs(day.date).format("D/M")} — ${slot.shiftName}${slot.onApprovedLeave ? " · มีใบลาอนุมัติแล้ว" : ""}`}
+                              title={`${dayjs(day.date).format("D/M")} — ${slot.shiftName}${slot.onApprovedLeave ? ` · ${t("มีใบลาอนุมัติแล้ว")}` : ""}`}
                             >
                               <td
                                 className={`${styles.cell} ${styles.cellFilled} ${
@@ -501,8 +509,7 @@ export default function ShiftAutoPlanPreview({
       </div>
 
       <p className={styles.footnote}>
-        กะที่ข้ามคืนของวันสุดท้ายจะคาบไปถึงเช้าวันถัดจากช่วงที่จัด —
-        รอบกะยังบันทึกไว้ที่วันที่เริ่มกะเหมือนเดิม
+        {t("กะที่ข้ามคืนของวันสุดท้ายจะคาบไปถึงเช้าวันถัดจากช่วงที่จัด — รอบกะยังบันทึกไว้ที่วันที่เริ่มกะเหมือนเดิม")}
       </p>
     </div>
   );

@@ -27,8 +27,12 @@ import type { CreateUnitRequest, Unit } from "@/types/units";
 import UnitFormModal from "./UnitFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 export default function UnitsPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -99,7 +103,7 @@ export default function UnitsPage() {
 
   const columns: ColumnsType<Unit> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       dataIndex: "sortOrder",
       key: "sortOrder",
       width: 90,
@@ -111,7 +115,7 @@ export default function UnitsPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 130,
@@ -122,7 +126,7 @@ export default function UnitsPage() {
       ),
     },
     {
-      title: "ชื่อหน่วยนับ",
+      title: t("ชื่อหน่วยนับ"),
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
@@ -136,7 +140,7 @@ export default function UnitsPage() {
       ),
     },
     {
-      title: "สัญลักษณ์",
+      title: t("สัญลักษณ์"),
       dataIndex: "nameEn",
       key: "nameEn",
       render: (value?: string) => (
@@ -146,7 +150,7 @@ export default function UnitsPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -157,19 +161,19 @@ export default function UnitsPage() {
             className={`${styles.statusTag} ${styles.statusActive}`}
           >
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag
             className={`${styles.statusTag} ${styles.statusInactive}`}
           >
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 190,
@@ -177,31 +181,31 @@ export default function UnitsPage() {
         <span className={styles.updatedText}>
           {value
             ? new Date(value).toLocaleString(
-                "th-TH",
+                lang === "en" ? "en-GB" : "th-TH",
               )
             : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.code}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.code })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             canAccessScreen("MASTERS_UNIT_CONVERSIONS") && {
               key: "unit-conversions",
               icon: <SwapOutlined />,
-              label: "กฎแปลงหน่วย",
+              label: t("กฎแปลงหน่วย"),
               onClick: () =>
                 router.push(`/masters/unit-conversions?unitId=${record.id}`),
             },
@@ -209,14 +213,14 @@ export default function UnitsPage() {
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบหน่วยนับ",
-                content: `ต้องการลบ "${record.code}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบหน่วยนับ"),
+                content: t("ต้องการลบ \"{code}\" หรือไม่?", { code: record.code }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -230,8 +234,8 @@ export default function UnitsPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="หน่วยนับ"
-        subtitle="จัดการข้อมูลหน่วยนับสำหรับระบบจัดซื้อ และคลังสินค้า"
+        title={t("หน่วยนับ")}
+        subtitle={t("จัดการข้อมูลหน่วยนับสำหรับระบบจัดซื้อ และคลังสินค้า")}
         actions={
           <>
 <Button
@@ -244,7 +248,7 @@ export default function UnitsPage() {
             +
           </span>
 
-          เพิ่มหน่วยนับ
+          {t("เพิ่มหน่วยนับ")}
         </Button>
           </>
         }
@@ -260,7 +264,7 @@ export default function UnitsPage() {
 
           <div>
             <span className={styles.summaryLabel}>
-              หน่วยนับทั้งหมด
+              {t("หน่วยนับทั้งหมด")}
             </span>
 
             <strong>{units.length}</strong>
@@ -276,7 +280,7 @@ export default function UnitsPage() {
 
           <div>
             <span className={styles.summaryLabel}>
-              สถานะใช้งาน
+              {t("สถานะใช้งาน")}
             </span>
 
             <strong>{activeUnits}</strong>
@@ -292,7 +296,7 @@ export default function UnitsPage() {
 
           <div>
             <span className={styles.summaryLabel}>
-              ปิดใช้งาน
+              {t("ปิดใช้งาน")}
             </span>
 
             <strong>{inactiveUnits}</strong>
@@ -307,15 +311,15 @@ export default function UnitsPage() {
               UNIT MANAGEMENT
             </div>
 
-            <h3>รายการหน่วยนับ</h3>
+            <h3>{t("รายการหน่วยนับ")}</h3>
 
             <p>
-              ข้อมูลหน่วยนับทั้งหมดที่ใช้ภายในระบบ
+              {t("ข้อมูลหน่วยนับทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
           <div className={styles.tableCount}>
-            {units.length} รายการ
+            {t("{n} รายการ", { n: units.length })}
           </div>
         </div>
 
@@ -324,7 +328,7 @@ export default function UnitsPage() {
             <Typography.Text type="danger">
               {unitsQuery.error instanceof Error
                 ? unitsQuery.error.message
-                : "โหลดข้อมูลหน่วยนับไม่สำเร็จ"}
+                : t("โหลดข้อมูลหน่วยนับไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (

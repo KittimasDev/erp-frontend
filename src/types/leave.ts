@@ -160,3 +160,17 @@ export type CreateMyLeaveRequest = {
 export type LeaveRequestApiResponse = ApiEnvelope<LeaveRequest>;
 export type LeaveRequestListApiResponse = ApiEnvelope<LeaveRequest[]>;
 export type LeaveSummaryApiResponse = ApiEnvelope<LeaveSummary>;
+
+/** ป้ายสถานะคำขอลาตามภาษา — คีย์ "ปฏิเสธ"/"ยกเลิก" ชนกับปุ่ม Reject/Cancel จึงไม่ผ่าน dictionary */
+export function leaveStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = {
+      DRAFT: "Pending approval",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      CANCELLED: "Cancelled",
+    };
+    return en[status] ?? status;
+  }
+  return LEAVE_STATUS_LABEL[status] ?? status;
+}

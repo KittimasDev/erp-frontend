@@ -11,6 +11,9 @@ import type {
 } from "@/types/production-order";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionOrderStartModal.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 /**
  * ยืนยันวัตถุดิบที่ใช้จริงก่อนกดเริ่มผลิต
@@ -37,7 +40,7 @@ function fmt(value?: string | number | null) {
   const num = Number(value);
   return Number.isNaN(num)
     ? String(value)
-    : num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+    : formatNumber(num, getStoredLanguage(), 3);
 }
 
 type StartModalProps = {
@@ -54,6 +57,7 @@ type StartModalProps = {
  * ซึ่งเป็นวิธีที่ทำให้สิ่งที่ผู้ใช้กำลังพิมพ์ไม่ถูกล้างเมื่อข้อมูลเบื้องหลัง refetch
  */
 export default function ProductionOrderStartModal(props: StartModalProps) {
+  const t = useT();
   const deferred =
     props.order.inputStockMode === "ON_SHIFT_CONFIRM";
   return (
@@ -61,8 +65,8 @@ export default function ProductionOrderStartModal(props: StartModalProps) {
       open={props.open}
       title={
         deferred
-          ? "เริ่มผลิต"
-          : "เริ่มผลิต — ยืนยันวัตถุดิบที่ใช้จริง"
+          ? t("เริ่มผลิต")
+          : t("เริ่มผลิต — ยืนยันวัตถุดิบที่ใช้จริง")
       }
       width={deferred ? 560 : 880}
       footer={null}
@@ -84,23 +88,24 @@ function DeferredStartBody({
   onCancel,
   onConfirm,
 }: StartModalProps) {
+  const t = useT();
   return (
     <>
       <Alert
         type="info"
         showIcon
         className={styles.notice}
-        title="เริ่มผลิตโดยยังไม่ตัดสต๊อกวัตถุดิบ"
-        description="ระบบจะตัดสต๊อกเมื่อยืนยันบันทึกผลรายกะ และเลือกคลัง/Lot ตอนนั้น"
+        title={t("เริ่มผลิตโดยยังไม่ตัดสต๊อกวัตถุดิบ")}
+        description={t("ระบบจะตัดสต๊อกเมื่อยืนยันบันทึกผลรายกะ และเลือกคลัง/Lot ตอนนั้น")}
       />
       <div className={styles.footer}>
-        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button onClick={onCancel}>{t("ยกเลิก")}</Button>
         <Button
           type="primary"
           loading={loading}
           onClick={() => onConfirm({})}
         >
-          เริ่มผลิต
+          {t("เริ่มผลิต")}
         </Button>
       </div>
     </>
@@ -113,6 +118,7 @@ function StartModalBody({
   onCancel,
   onConfirm,
 }: StartModalProps) {
+  const t = useT();
   const [lines, setLines] = useState<DraftLine[]>(() =>
     (order.inputItems ?? []).map((item) => ({
       item,
@@ -172,14 +178,14 @@ function StartModalBody({
 
   const columns: ColumnsType<DraftLine> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "วัตถุดิบ",
+      title: t("วัตถุดิบ"),
       key: "item",
       render: (_v, row) => (
         <div className={styles.cellStack}>
@@ -196,7 +202,7 @@ function StartModalBody({
       ),
     },
     {
-      title: "แผน",
+      title: t("แผน"),
       key: "planned",
       align: "right",
       width: 130,
@@ -204,7 +210,7 @@ function StartModalBody({
         `${fmt(row.item.plannedQty)} ${row.item.unitCode ?? ""}`,
     },
     {
-      title: "ใช้จริง",
+      title: t("ใช้จริง"),
       key: "actual",
       align: "right",
       width: 170,
@@ -230,7 +236,7 @@ function StartModalBody({
       ),
     },
     {
-      title: "ผลต่าง",
+      title: t("ผลต่าง"),
       key: "variance",
       align: "right",
       width: 150,
@@ -239,7 +245,7 @@ function StartModalBody({
         const actual = row.actualQty ?? 0;
         const diff = actual - planned;
         if (Math.abs(diff) < 0.0005) {
-          return <span className={styles.cellMuted}>ตรงตามแผน</span>;
+          return <span className={styles.cellMuted}>{t("ตรงตามแผน")}</span>;
         }
         const percent = planned > 0 ? (diff / planned) * 100 : 0;
         const tone =
@@ -274,8 +280,8 @@ function StartModalBody({
         type="info"
         showIcon
         className={styles.notice}
-        title="การเริ่มผลิตจะตัดสต๊อกตามจำนวนด้านล่างทันที และย้อนกลับไม่ได้"
-        description="ใส่ 0 ได้ถ้าวางแผนไว้แต่ไม่ได้ใช้บรรทัดนั้น — ระบบจะข้ามการตัดสต๊อกให้"
+        title={t("การเริ่มผลิตจะตัดสต๊อกตามจำนวนด้านล่างทันที และย้อนกลับไม่ได้")}
+        description={t("ใส่ 0 ได้ถ้าวางแผนไว้แต่ไม่ได้ใช้บรรทัดนั้น — ระบบจะข้ามการตัดสต๊อกให้")}
       />
 
       <Table
@@ -289,12 +295,12 @@ function StartModalBody({
 
 
       <div className={styles.totals}>
-        <Total label="รวมตามแผน" value={fmt(totals.planned)} />
-        <Total label="รวมที่จะใช้จริง" value={fmt(totals.actual)} />
+        <Total label={t("รวมตามแผน")} value={fmt(totals.planned)} />
+        <Total label={t("รวมที่จะใช้จริง")} value={fmt(totals.actual)} />
         <Total
-          label="Yield คาดการณ์"
+          label={t("Yield คาดการณ์")}
           value={projectedYield !== null ? `${projectedYield}%` : "-"}
-          hint={plannedYield !== null ? `แผน ${plannedYield}%` : undefined}
+          hint={plannedYield !== null ? t("แผน {n}%", { n: plannedYield }) : undefined}
         />
       </div>
 
@@ -306,14 +312,14 @@ function StartModalBody({
             className={styles.notice}
             title={
               isDanger
-                ? "ต่างจากแผนมาก — ตรวจตัวเลขอีกครั้งก่อนกด"
-                : `มีรายการที่ใช้จริงต่างจากแผนเกิน ${REASON_REQUIRED_PERCENT}% กรุณาระบุเหตุผล`
+                ? t("ต่างจากแผนมาก — ตรวจตัวเลขอีกครั้งก่อนกด")
+                : t("มีรายการที่ใช้จริงต่างจากแผนเกิน {n}% กรุณาระบุเหตุผล", { n: REASON_REQUIRED_PERCENT })
             }
           />
           <Input.TextArea
             rows={2}
             maxLength={500}
-            placeholder="เหตุผลที่ใช้จริงต่างจากแผน เช่น ยางชื้นกว่าปกติ ต้องเพิ่มปริมาณ"
+            placeholder={t("เหตุผลที่ใช้จริงต่างจากแผน เช่น ยางชื้นกว่าปกติ ต้องเพิ่มปริมาณ")}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
@@ -321,7 +327,7 @@ function StartModalBody({
       ) : null}
 
       <div className={styles.footer}>
-        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button onClick={onCancel}>{t("ยกเลิก")}</Button>
         <Button
           type="primary"
           danger={isDanger}
@@ -329,7 +335,7 @@ function StartModalBody({
           loading={loading}
           onClick={submit}
         >
-          เริ่มผลิตและตัดสต๊อก
+          {t("เริ่มผลิตและตัดสต๊อก")}
         </Button>
       </div>
     </>

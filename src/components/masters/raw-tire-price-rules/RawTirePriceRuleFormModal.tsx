@@ -19,6 +19,7 @@ import type {
   RawTirePriceRule,
 } from "@/types/raw-tire-price-rules";
 import styles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type ClassificationOption = {
   value: string;
@@ -55,6 +56,7 @@ export default function RawTirePriceRuleFormModal({
   onCancel,
   onSubmit,
 }: RawTirePriceRuleFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<RawTirePriceRuleFormValues>();
 
   useEffect(() => {
@@ -111,8 +113,8 @@ export default function RawTirePriceRuleFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={640}
       centered
@@ -126,13 +128,13 @@ export default function RawTirePriceRuleFormModal({
           </div>
 
           <h2>
-            {isCreateMode ? "เพิ่มกฎราคาซื้อยาง" : "แก้ไขกฎราคาซื้อยาง"}
+            {isCreateMode ? t("เพิ่มกฎราคาซื้อยาง") : t("แก้ไขกฎราคาซื้อยาง")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กำหนดราคารับซื้อตามประเภทยางและช่วงวันที่มีผล"
-              : "แก้ไขราคา ช่วงวันที่มีผล และสถานะ"}
+              ? t("กำหนดราคารับซื้อตามประเภทยางและช่วงวันที่มีผล")
+              : t("แก้ไขราคา ช่วงวันที่มีผล และสถานะ")}
           </p>
         </div>
       </div>
@@ -146,24 +148,24 @@ export default function RawTirePriceRuleFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลกฎราคา</strong>
-            <span>ระบุรหัส ประเภทยาง ราคา และช่วงวัน</span>
+            <strong>{t("ข้อมูลกฎราคา")}</strong>
+            <span>{t("ระบุรหัส ประเภทยาง ราคา และช่วงวัน")}</span>
           </div>
         </div>
 
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item
-              label="รหัสกฎ"
+              label={t("รหัสกฎ")}
               name="code"
               rules={[
-                { required: true, message: "กรุณากรอกรหัสกฎ" },
-                { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกรหัสกฎ") },
+                { max: 100, message: t("รหัสต้องไม่เกิน 100 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น PRULE-PASS-2026"
+                placeholder={t("เช่น PRULE-PASS-2026")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -171,15 +173,15 @@ export default function RawTirePriceRuleFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ประเภท/กลุ่มยาง"
+              label={t("ประเภท/กลุ่มยาง")}
               name="tireClassificationId"
-              rules={[{ required: true, message: "กรุณาเลือกประเภท/กลุ่มยาง" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกประเภท/กลุ่มยาง") }]}
             >
               <Select
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกประเภท"
+                placeholder={t("เลือกประเภท")}
                 loading={classificationsLoading}
                 options={classificationOptions}
               />
@@ -188,14 +190,14 @@ export default function RawTirePriceRuleFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ราคาต่อกก."
+              label={t("ราคาต่อกก.")}
               name="pricePerKg"
               rules={[
-                { required: true, message: "กรุณากรอกราคาต่อกก." },
+                { required: true, message: t("กรุณากรอกราคาต่อกก.") },
                 {
                   type: "number",
                   min: 0,
-                  message: "ราคาต้องไม่ติดลบ",
+                  message: t("ราคาต้องไม่ติดลบ"),
                 },
               ]}
             >
@@ -204,16 +206,16 @@ export default function RawTirePriceRuleFormModal({
                 min={0}
                 step={0.0001}
                 style={{ width: "100%" }}
-                placeholder="เช่น 12.5"
+                placeholder={t("เช่น 12.5")}
               />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="เริ่มมีผล"
+              label={t("เริ่มมีผล")}
               name="effectiveFrom"
-              rules={[{ required: true, message: "กรุณาเลือกวันที่เริ่มมีผล" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกวันที่เริ่มมีผล") }]}
             >
               <DatePicker
                 size="large"
@@ -224,13 +226,13 @@ export default function RawTirePriceRuleFormModal({
           </Col>
 
           <Col xs={24} sm={12}>
-            <Form.Item label="สิ้นสุดผล" name="effectiveTo">
+            <Form.Item label={t("สิ้นสุดผล")} name="effectiveTo">
               <DatePicker
                 size="large"
                 style={{ width: "100%" }}
                 format="YYYY-MM-DD"
                 allowClear
-                placeholder="ไม่ระบุ = ใช้ต่อ"
+                placeholder={t("ไม่ระบุ = ใช้ต่อ")}
               />
             </Form.Item>
           </Col>
@@ -240,13 +242,13 @@ export default function RawTirePriceRuleFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อใช้กฎราคานี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อใช้กฎราคานี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

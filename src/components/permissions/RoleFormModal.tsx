@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useT } from "@/lib/i18n/useT";
 import { Form, Input, Modal } from "antd";
 
 import type { CreateRoleRequest } from "@/types/users";
@@ -19,6 +20,7 @@ export default function RoleFormModal({
   onCancel,
   onSubmit,
 }: RoleFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<CreateRoleRequest>();
 
   useEffect(() => {
@@ -45,8 +47,8 @@ export default function RoleFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={520}
       centered
@@ -55,42 +57,42 @@ export default function RoleFormModal({
         <div className={styles.modalIcon}>+</div>
         <div className={styles.modalHeaderContent}>
           <div className={styles.eyebrow}>CREATE ROLE</div>
-          <h2>สร้างบทบาทใหม่</h2>
-          <p>ตั้งชื่อและรหัสบทบาท แล้วค่อยกำหนดสิทธิ์ในตารางด้านล่าง</p>
+          <h2>{t("สร้างบทบาทใหม่")}</h2>
+          <p>{t("ตั้งชื่อและรหัสบทบาท แล้วค่อยกำหนดสิทธิ์ในตารางด้านล่าง")}</p>
         </div>
       </div>
 
       <Form form={form} layout="vertical" requiredMark={false}>
         <Form.Item
-          label="รหัสบทบาท"
+          label={t("รหัสบทบาท")}
           name="roleCode"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสบทบาท" },
+            { required: true, message: t("กรุณากรอกรหัสบทบาท") },
             { max: 100 },
             {
               pattern: /^[A-Za-z0-9_]+$/,
-              message: "ใช้ตัวอักษร A-Z, ตัวเลข และ _ เท่านั้น",
+              message: t("ใช้ตัวอักษร A-Z, ตัวเลข และ _ เท่านั้น"),
             },
           ]}
         >
-          <Input placeholder="เช่น QUALITY_INSPECTOR" />
+          <Input placeholder={t("เช่น QUALITY_INSPECTOR")} />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อบทบาท"
+          label={t("ชื่อบทบาท")}
           name="roleName"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อบทบาท" },
+            { required: true, message: t("กรุณากรอกชื่อบทบาท") },
             { max: 255 },
           ]}
         >
-          <Input placeholder="เช่น ผู้ตรวจสอบคุณภาพ" />
+          <Input placeholder={t("เช่น ผู้ตรวจสอบคุณภาพ")} />
         </Form.Item>
 
-        <Form.Item label="คำอธิบาย" name="description">
+        <Form.Item label={t("คำอธิบาย")} name="description">
           <Input.TextArea
             rows={3}
-            placeholder="อธิบายหน้าที่ของบทบาทนี้ (ไม่บังคับ)"
+            placeholder={t("อธิบายหน้าที่ของบทบาทนี้ (ไม่บังคับ)")}
           />
         </Form.Item>
       </Form>

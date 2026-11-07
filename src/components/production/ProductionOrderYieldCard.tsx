@@ -17,6 +17,9 @@ import {
 import type { ProductionOrderSummary } from "@/types/production-order";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionOrderYieldCard.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 /**
  * สรุป Yield / Mass Balance ของใบสั่งผลิต
@@ -37,7 +40,7 @@ function fmt(value?: string | number) {
   const num = Number(value);
   return Number.isNaN(num)
     ? String(value)
-    : num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+    : formatNumber(num, getStoredLanguage(), 3);
 }
 
 export default function ProductionOrderYieldCard({
@@ -45,6 +48,7 @@ export default function ProductionOrderYieldCard({
 }: {
   summary: ProductionOrderSummary;
 }) {
+  const t = useT();
   /*
     recharts ไม่รับ decimal string จาก API — ส่งเข้าไปตรง ๆ กราฟจะว่างเปล่า
     โดยไม่มี error ต้องแปลงเป็น number ก่อนเสมอ
@@ -68,7 +72,7 @@ export default function ProductionOrderYieldCard({
   return (
     <div className={styles.section}>
       <div className={styles.sectionHead}>
-        <h3>เปรียบเทียบ Yield / Mass Balance</h3>
+        <h3>{t("เปรียบเทียบ Yield / Mass Balance")}</h3>
       </div>
 
       {/*
@@ -81,20 +85,19 @@ export default function ProductionOrderYieldCard({
           type="info"
           showIcon
           className={styles.unitWarning}
-          title="ไม่คำนวณ Yield รวม — มีหลายสินค้า"
-          description="ยอดผลผลิตแยกตามสินค้าด้านล่าง ไม่ได้บวกข้ามรายการแม้หน่วยจะเหมือนกัน"
+          title={t("ไม่คำนวณ Yield รวม — มีหลายสินค้า")}
+          description={t("ยอดผลผลิตแยกตามสินค้าด้านล่าง ไม่ได้บวกข้ามรายการแม้หน่วยจะเหมือนกัน")}
         />
       ) : summary.quantitiesComparable ? null : (
         <Alert
           type="warning"
           showIcon
           className={styles.unitWarning}
-          title="ตัวเลข Yield เทียบไม่ได้ — ใบนี้มีหลายหน่วย"
-          description={
-            `พบหน่วย ${summary.unitCodes.join(" · ")} ในใบเดียวกัน ` +
-            "ยอดรวมและเปอร์เซ็นต์ด้านล่างเกิดจากการบวกข้ามหน่วย ใช้ดูแนวโน้มได้แต่อย่าใช้ตัดสินใจ " +
-            "ให้ดูตัวเลขรายสินค้าในตารางแทน"
-          }
+          title={t("ตัวเลข Yield เทียบไม่ได้ — ใบนี้มีหลายหน่วย")}
+          description={t(
+            "พบหน่วย {units} ในใบเดียวกัน ยอดรวมและเปอร์เซ็นต์ด้านล่างเกิดจากการบวกข้ามหน่วย ใช้ดูแนวโน้มได้แต่อย่าใช้ตัดสินใจ ให้ดูตัวเลขรายสินค้าในตารางแทน",
+            { units: summary.unitCodes.join(" · ") },
+          )}
         />
       )}
 
@@ -109,7 +112,7 @@ export default function ProductionOrderYieldCard({
           type="error"
           showIcon
           className={styles.unitWarning}
-          title="ตัวเลขเป็นไปไม่ได้ — ผลผลิตมากกว่าวัตถุดิบ"
+          title={t("ตัวเลขเป็นไปไม่ได้ — ผลผลิตมากกว่าวัตถุดิบ")}
           description={summary.massBalanceWarning}
         />
       ) : null}
@@ -120,8 +123,8 @@ export default function ProductionOrderYieldCard({
           <Tooltip
             title={
               hasOutput
-                ? "ผลผลิตที่รับเข้าคลังแล้ว ÷ วัตถุดิบที่ตัดเข้าผลิตจริง"
-                : "ยังไม่มีผลผลิตเข้าคลัง — ไม่ใช่ yield 0% แต่คือของยังอยู่หน้างาน"
+                ? t("ผลผลิตที่รับเข้าคลังแล้ว ÷ วัตถุดิบที่ตัดเข้าผลิตจริง")
+                : t("ยังไม่มีผลผลิตเข้าคลัง — ไม่ใช่ yield 0% แต่คือของยังอยู่หน้างาน")
             }
           >
             <Progress
@@ -135,43 +138,43 @@ export default function ProductionOrderYieldCard({
                     {summary.yieldPercent}%
                   </span>
                 ) : (
-                  <span className={styles.gaugeEmpty}>ยังไม่มีผลผลิต</span>
+                  <span className={styles.gaugeEmpty}>{t("ยังไม่มีผลผลิต")}</span>
                 )
               }
             />
           </Tooltip>
           <div className={styles.gaugeCaption}>
-            Yield จริง · แผน {summary.plannedYieldPercent}%
+            {t("Yield จริง · แผน {n}%", { n: summary.plannedYieldPercent })}
           </div>
         </div>
         )}
 
         <div className={styles.yieldGrid}>
-          <Metric label="วัตถุดิบ (แผน)" value={fmt(summary.totalPlannedInputQty)} />
-          <Metric label="วัตถุดิบ (ตัดจริง)" value={fmt(summary.totalInputQty)} />
+          <Metric label={t("วัตถุดิบ (แผน)")} value={fmt(summary.totalPlannedInputQty)} />
+          <Metric label={t("วัตถุดิบ (ตัดจริง)")} value={fmt(summary.totalInputQty)} />
           {multiOutput ? null : (
-            <Metric label="ผลผลิต (แผน)" value={fmt(summary.totalPlannedOutputQty)} />
+            <Metric label={t("ผลผลิต (แผน)")} value={fmt(summary.totalPlannedOutputQty)} />
           )}
           {multiOutput ? null : (
             <Metric
-              label="ผลผลิต (เข้าคลังแล้ว)"
+              label={t("ผลผลิต (เข้าคลังแล้ว)")}
               value={fmt(summary.totalOutputQty)}
             />
           )}
-          <Metric label="ของเสีย (แผน)" value={fmt(summary.totalPlannedWasteQty)} />
+          <Metric label={t("ของเสีย (แผน)")} value={fmt(summary.totalPlannedWasteQty)} />
           <Metric
-            label="ของเสีย (จริง · ไม่เข้าคลัง)"
+            label={t("ของเสีย (จริง · ไม่เข้าคลัง)")}
             value={fmt(summary.totalActualWasteQty)}
           />
           {multiOutput ? null : (
-            <Metric label="Mass balance" value={fmt(summary.massBalanceDiff)} />
+            <Metric label={t("Mass balance")} value={fmt(summary.massBalanceDiff)} />
           )}
           <Metric
-            label="Downtime รวม"
-            value={`${summary.totalDowntimeHours} ชม.`}
+            label={t("Downtime รวม")}
+            value={t("{n} ชม.", { n: summary.totalDowntimeHours })}
             hint={
               summary.openDowntimeCount > 0
-                ? `กำลังหยุดอยู่ ${summary.openDowntimeHours} ชม.`
+                ? t("กำลังหยุดอยู่ {n} ชม.", { n: summary.openDowntimeHours })
                 : undefined
             }
           />
@@ -208,13 +211,13 @@ export default function ProductionOrderYieldCard({
               <Legend />
               <Bar
                 dataKey="plannedQty"
-                name="แผน"
+                name={t("แผน")}
                 fill={GREEN_SOFT}
                 radius={[0, 4, 4, 0]}
               />
               <Bar
                 dataKey="actualQty"
-                name="จริง (เข้าคลัง)"
+                name={t("จริง (เข้าคลัง)")}
                 fill={GREEN_DARK}
                 radius={[0, 4, 4, 0]}
               >
@@ -241,7 +244,7 @@ export default function ProductionOrderYieldCard({
           dataSource={summary.yieldCompareByItem}
           columns={[
             {
-              title: "ผลผลิต",
+              title: t("ผลผลิต"),
               key: "item",
               render: (_, row) =>
                 row.itemCode
@@ -249,26 +252,26 @@ export default function ProductionOrderYieldCard({
                   : row.itemId,
             },
             {
-              title: "แผน",
+              title: t("แผน"),
               key: "planned",
               align: "right",
               render: (_, row) => `${fmt(row.plannedQty)} ${row.unitCode ?? ""}`,
             },
             {
-              title: "จริง (เข้าคลัง)",
+              title: t("จริง (เข้าคลัง)"),
               key: "actual",
               align: "right",
               render: (_, row) => `${fmt(row.actualQty)} ${row.unitCode ?? ""}`,
             },
             {
-              title: "Yield แผน",
+              title: t("Yield แผน"),
               dataIndex: "plannedYieldPercent",
               key: "plannedYieldPercent",
               align: "right",
               render: (v: number) => `${v}%`,
             },
             {
-              title: "Yield จริง",
+              title: t("Yield จริง"),
               dataIndex: "actualYieldPercent",
               key: "actualYieldPercent",
               align: "right",

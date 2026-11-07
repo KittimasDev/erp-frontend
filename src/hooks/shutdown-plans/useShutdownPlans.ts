@@ -14,6 +14,7 @@ import {
   updateShutdownPlan,
 } from "@/lib/api/shutdown-plans";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow } from "@/lib/i18n/useT";
 import type {
   CreateShutdownPlanRequest,
   ShutdownMemberInput,
@@ -59,10 +60,10 @@ export function useCreateShutdownPlanMutation() {
     mutationFn: (body: CreateShutdownPlanRequest) =>
       createShutdownPlan(getAccessToken(), body),
     onSuccess: (res) => {
-      message.success(res.message || "สร้างแผน Shutdown แล้ว");
+      message.success(res.message || tNow("สร้างแผน Shutdown แล้ว"));
       refresh();
     },
-    onError: (error: Error) => message.error(errorText(error, "สร้างแผนไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, tNow("สร้างแผนไม่สำเร็จ"))),
   });
 }
 
@@ -73,10 +74,10 @@ export function useUpdateShutdownPlanMutation() {
     mutationFn: ({ id, body }: { id: string; body: UpdateShutdownPlanRequest }) =>
       updateShutdownPlan(getAccessToken(), id, body),
     onSuccess: (res) => {
-      message.success(res.message || "แก้ไขแผนแล้ว");
+      message.success(res.message || tNow("แก้ไขแผนแล้ว"));
       refresh();
     },
-    onError: (error: Error) => message.error(errorText(error, "แก้ไขแผนไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, tNow("แก้ไขแผนไม่สำเร็จ"))),
   });
 }
 
@@ -87,10 +88,10 @@ export function useSetShutdownMembersMutation() {
     mutationFn: ({ id, members }: { id: string; members: ShutdownMemberInput[] }) =>
       setShutdownPlanMembers(getAccessToken(), id, members),
     onSuccess: (res) => {
-      message.success(res.message || "บันทึกรายชื่อแล้ว");
+      message.success(res.message || tNow("บันทึกรายชื่อแล้ว"));
       refresh();
     },
-    onError: (error: Error) => message.error(errorText(error, "บันทึกรายชื่อไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, tNow("บันทึกรายชื่อไม่สำเร็จ"))),
   });
 }
 
@@ -98,7 +99,7 @@ export function useSuggestShutdownMembersMutation() {
   const { message } = App.useApp();
   return useMutation({
     mutationFn: (id: string) => suggestShutdownPlanMembers(getAccessToken(), id),
-    onError: (error: Error) => message.error(errorText(error, "แนะนำรายชื่อไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, tNow("แนะนำรายชื่อไม่สำเร็จ"))),
   });
 }
 
@@ -109,9 +110,9 @@ export function useCancelShutdownPlanMutation() {
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       cancelShutdownPlan(getAccessToken(), id, reason),
     onSuccess: (res) => {
-      message.success(res.message || "ยกเลิกแผนแล้ว");
+      message.success(res.message || tNow("ยกเลิกแผนแล้ว"));
       refresh();
     },
-    onError: (error: Error) => message.error(errorText(error, "ยกเลิกแผนไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, tNow("ยกเลิกแผนไม่สำเร็จ"))),
   });
 }

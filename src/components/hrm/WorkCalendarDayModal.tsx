@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Form, Input, Modal, Select } from "antd";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
 import { useMarkHolidayMutation } from "@/hooks/shifts/useShiftMutations";
 import {
   WORK_CALENDAR_DAY_TYPE_OPTIONS,
@@ -31,6 +32,7 @@ export default function WorkCalendarDayModal({
   holiday,
   onClose,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const markMutation = useMarkHolidayMutation();
 
@@ -63,9 +65,9 @@ export default function WorkCalendarDayModal({
   return (
     <Modal
       open={open}
-      title={`${holiday ? "แก้ไขวันหยุด" : "กดหยุดวันนี้"} — ${dayjs(date).format("DD/MM/YYYY")}`}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={`${holiday ? t("แก้ไขวันหยุด") : t("กดหยุดวันนี้")} — ${dayjs(date).format("DD/MM/YYYY")}`}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={markMutation.isPending}
       onCancel={onClose}
       onOk={() => form.submit()}
@@ -80,26 +82,28 @@ export default function WorkCalendarDayModal({
       >
         <Form.Item
           name="dayType"
-          label="ประเภท"
-          rules={[{ required: true, message: "เลือกประเภท" }]}
+          label={t("ประเภท")}
+          rules={[{ required: true, message: t("เลือกประเภท") }]}
         >
-          <Select options={WORK_CALENDAR_DAY_TYPE_OPTIONS} />
+          <Select
+            options={WORK_CALENDAR_DAY_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+          />
         </Form.Item>
 
         <Form.Item
           name="name"
-          label="เหตุผล"
-          rules={[{ required: true, message: "ระบุเหตุผลที่หยุด" }]}
+          label={t("เหตุผล")}
+          rules={[{ required: true, message: t("ระบุเหตุผลที่หยุด") }]}
         >
-          <Input placeholder="เช่น หยุดซ่อมเครื่องอัดรีด" maxLength={200} />
+          <Input placeholder={t("เช่น หยุดซ่อมเครื่องอัดรีด")} maxLength={200} />
         </Form.Item>
 
         <Form.Item
           name="note"
-          label="หมายเหตุ"
-          extra="วันที่กดหยุดไว้จะไม่คิดสายให้พนักงาน แต่ยังกดเข้า-ออกงานได้ปกติ"
+          label={t("หมายเหตุ")}
+          extra={t("วันที่กดหยุดไว้จะไม่คิดสายให้พนักงาน แต่ยังกดเข้า-ออกงานได้ปกติ")}
         >
-          <Input.TextArea rows={2} placeholder="เช่น ทีมซ่อมบำรุงเข้าปกติ" />
+          <Input.TextArea rows={2} placeholder={t("เช่น ทีมซ่อมบำรุงเข้าปกติ")} />
         </Form.Item>
       </Form>
     </Modal>

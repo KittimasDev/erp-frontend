@@ -12,6 +12,9 @@ import {
   useUpdateEquipmentMutation,
 } from "@/hooks/maintenance/useMaintenance";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
+import { formatNumber } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { EQUIPMENT_STATUS_LABEL, type Equipment } from "@/types/maintenance";
 import styles from "@/components/masters/shared/master-page.module.css";
 
@@ -20,13 +23,15 @@ import DowntimeSummaryTab from "./DowntimeSummaryTab";
 import { useEquipmentTypesQuery } from "@/hooks/equipment-types/useEquipmentTypes";
 import EquipmentFormModal from "./EquipmentFormModal";
 import EquipmentHistoryDrawer from "./EquipmentHistoryDrawer";
-import { fmtDate } from "./maintenance-format";
+import { equipmentStatusLabel, fmtDate } from "./maintenance-format";
 import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_COLOR: Record<string, string> = { ACTIVE: "green", UNDER_MAINTENANCE: "orange", RETIRED: "default" };
 
 /** หน้า /maintenance/equipment — ข้อมูลเครื่องจักร + แจ้งเสีย + ประวัติ + สรุป Downtime */
 export default function EquipmentPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState("");
   const [applied, setApplied] = useState("");
@@ -47,14 +52,14 @@ export default function EquipmentPage() {
 
   const columns: ColumnsType<Equipment> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "เครื่องจักร",
+      title: t("เครื่องจักร"),
       key: "name",
       render: (_v, e) => (
         <div>
@@ -62,7 +67,7 @@ export default function EquipmentPage() {
           <div style={{ fontSize: 12, color: "#8a94a6" }}>
             {[
               e.equipmentTypeName ?? e.category,
-              e.capacity != null ? `${e.capacity.toLocaleString("th-TH")} ${e.capacityUnitLabel ?? ""}/ชม.` : null,
+              e.capacity != null ? `${formatNumber(e.capacity, lang)} ${e.capacityUnitLabel ?? ""}/${t("ชม.")}` : null,
               e.manufacturer,
               e.model,
             ]
@@ -73,26 +78,26 @@ export default function EquipmentPage() {
       ),
     },
     { title: "Serial", key: "sn", width: 140, render: (_v, e) => e.serialNumber ?? "—" },
-    { title: "ตำแหน่ง", key: "loc", width: 110, render: (_v, e) => e.locationCode ?? "—" },
+    { title: t("ตำแหน่ง"), key: "loc", width: 110, render: (_v, e) => e.locationCode ?? "—" },
     {
-      title: "ประกัน",
+      title: t("ประกัน"),
       key: "warranty",
       width: 160,
       render: (_v, e) =>
         e.warrantyExpiryDate ? (
           <Tag color={e.underWarranty ? "green" : "default"}>
-            {e.underWarranty ? "ในประกัน" : "หมดประกัน"} · {fmtDate(e.warrantyExpiryDate)}
+            {e.underWarranty ? t("ในประกัน") : t("หมดประกัน")} · {fmtDate(e.warrantyExpiryDate)}
           </Tag>
         ) : (
           "—"
         ),
     },
-    { title: "ชม.เดินเครื่อง", key: "rh", width: 120, align: "right", render: (_v, e) => e.runningHours ?? "—" },
+    { title: t("ชม.เดินเครื่อง"), key: "rh", width: 120, align: "right", render: (_v, e) => e.runningHours ?? "—" },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 110,
-      render: (_v, e) => <Tag color={STATUS_COLOR[e.status]}>{EQUIPMENT_STATUS_LABEL[e.status] ?? e.status}</Tag>,
+      render: (_v, e) => <Tag color={STATUS_COLOR[e.status]}>{equipmentStatusLabel(e.status, lang)}</Tag>,
     },
     {
       title: "",
@@ -100,11 +105,11 @@ export default function EquipmentPage() {
       width: 260,
       render: (_v, e) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" onClick={() => setHistoryOf(e)}>ประวัติ</Button>
+          <Button size="small" onClick={() => setHistoryOf(e)}>{t("ประวัติ")}</Button>
           {e.status !== "RETIRED" ? (
-            <Button size="small" danger icon={<WarningOutlined />} onClick={() => setBreakdownFor(e.id)}>แจ้งเสีย</Button>
+            <Button size="small" danger icon={<WarningOutlined />} onClick={() => setBreakdownFor(e.id)}>{t("แจ้งเสีย")}</Button>
           ) : null}
-          {canEdit ? <Button size="small" onClick={() => setEditing(e)}>แก้ไข</Button> : null}
+          {canEdit ? <Button size="small" onClick={() => setEditing(e)}>{t("แก้ไข")}</Button> : null}
         </div>
       ),
     },
@@ -116,17 +121,17 @@ export default function EquipmentPage() {
         <PageHeader
           eyebrow="MAINTENANCE · EQUIPMENT"
           icon={<ToolOutlined />}
-          title="เครื่องจักร / อุปกรณ์"
-          subtitle="ข้อมูลเครื่อง หมวด Serial ประกัน · แจ้งเสีย · ประวัติซ่อมบำรุง · สรุป Downtime"
+          title={t("เครื่องจักร / อุปกรณ์")}
+          subtitle={t("ข้อมูลเครื่อง หมวด Serial ประกัน · แจ้งเสีย · ประวัติซ่อมบำรุง · สรุป Downtime")}
           actions={
             <>
 <div style={{ display: "flex", gap: 8 }}>
             <Button size="large" danger icon={<WarningOutlined />} onClick={() => setBreakdownFor("any")}>
-              แจ้งเสีย
+              {t("แจ้งเสีย")}
             </Button>
             {canAdd ? (
               <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>
-                เพิ่มเครื่องจักร
+                {t("เพิ่มเครื่องจักร")}
               </Button>
             ) : null}
           </div>
@@ -140,7 +145,7 @@ export default function EquipmentPage() {
             items={[
               {
                 key: "list",
-                label: "เครื่องจักร",
+                label: t("เครื่องจักร"),
                 children: (
                   <>
                     <div
@@ -160,7 +165,7 @@ export default function EquipmentPage() {
                           allowClear
                           style={{ width: 280 }}
                           prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                          placeholder="ค้นหารหัส / ชื่อ / Serial / หมวด..."
+                          placeholder={t("ค้นหารหัส / ชื่อ / Serial / หมวด...")}
                           value={keyword}
                           onChange={(e) => setKeyword(e.target.value)}
                           onPressEnter={() => setApplied(keyword)}
@@ -168,30 +173,30 @@ export default function EquipmentPage() {
                         />
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                            ประเภท:
+                            {t("ประเภท")}:
                           </span>
                           <Select
                             allowClear
                             showSearch
                             optionFilterProp="label"
-                            placeholder="ทุกประเภท"
+                            placeholder={t("ทุกประเภท")}
                             style={{ width: 180 }}
                             value={equipmentTypeId}
                             onChange={setEquipmentTypeId}
-                            options={(typesQuery.data ?? []).map((t) => ({ value: t.id, label: t.nameTh }))}
+                            options={(typesQuery.data ?? []).map((ty) => ({ value: ty.id, label: ty.nameTh }))}
                           />
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                            สถานะ:
+                            {t("สถานะ")}:
                           </span>
                           <Select
                             allowClear
-                            placeholder="ทุกสถานะ"
+                            placeholder={t("ทุกสถานะ")}
                             style={{ width: 150 }}
                             value={status}
                             onChange={setStatus}
-                            options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+                            options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value]) => ({ value, label: equipmentStatusLabel(value, lang) }))}
                           />
                         </div>
                         {(keyword || applied || equipmentTypeId || status) && (
@@ -206,13 +211,13 @@ export default function EquipmentPage() {
                             }}
                             style={{ color: "#64748b" }}
                           >
-                            ล้างตัวกรอง
+                            {t("ล้างตัวกรอง")}
                           </Button>
                         )}
                       </div>
 
                       <div style={{ fontSize: 13, color: "#64748b" }}>
-                        แสดง <strong style={{ color: "#1e293b" }}>{rows.length}</strong> จาก {allQuery.data?.data?.length ?? rows.length} เครื่อง
+                        {t("แสดง")} <strong style={{ color: "#1e293b" }}>{rows.length}</strong> {t("จาก {n} เครื่อง", { n: allQuery.data?.data?.length ?? rows.length })}
                       </div>
                     </div>
                     <Table
@@ -221,16 +226,16 @@ export default function EquipmentPage() {
                       columns={columns}
                       dataSource={rows}
                       loading={query.isFetching}
-                      pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} เครื่อง` }}
+                      pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} เครื่อง", { n: total }) }}
                       scroll={{ x: 1000 }}
-                      locale={{ emptyText: "ยังไม่มีข้อมูลเครื่องจักร" }}
+                      locale={{ emptyText: t("ยังไม่มีข้อมูลเครื่องจักร") }}
                     />
                   </>
                 ),
               },
               {
                 key: "downtime",
-                label: "สรุป Downtime",
+                label: t("สรุป Downtime"),
                 children: (
                   <div style={{ padding: 20 }}>
                     <DowntimeSummaryTab />

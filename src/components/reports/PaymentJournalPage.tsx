@@ -13,6 +13,7 @@ import JournalAccountDetailPanel, {
   journalMasterDetailStyles as mdStyles,
 } from "@/components/reports/JournalAccountDetailPanel";
 import {
+  expressSentLabel,
   ExportCountTag,
   ExportHistoryDrawer,
   ExpressExportDialog,
@@ -41,6 +42,8 @@ import {
 } from "@/types/payment-journal";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import PageHeader from "@/components/common/PageHeader";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PAYMENTS";
 const PAGE_SIZE = 10;
@@ -59,13 +62,22 @@ const formatDate = (value?: string) => (value ? dayjs(value).format("DD/MM/YYYY"
 const moneyOrBlank = (value: number) => (value > 0 ? money.format(value) : "");
 
 /** วิธีจ่ายพร้อมรายละเอียด เช่น "โอนเงิน · กสิกรไทย 123-4-56789-0" */
-function methodText(item: PaymentJournalItem): string {
-  const label = PAYMENT_METHOD_LABEL[item.paymentMethod] ?? item.paymentMethod;
+function methodText(item: PaymentJournalItem, t?: TFunction): string {
+  const rawLabel = PAYMENT_METHOD_LABEL[item.paymentMethod];
+  const label = rawLabel ? (t ? t(rawLabel) : rawLabel) : item.paymentMethod;
   const bank = [item.bankName, item.bankAccountNumber].filter(Boolean).join(" ");
   return bank ? `${label} · ${bank}` : label;
 }
 
+/** ประเภทการจ่าย — แปลตามภาษา ถ้าไม่รู้จักใช้ข้อความจาก backend */
+function kindText(item: PaymentJournalItem, t: TFunction): string {
+  const raw = PAYMENT_KIND_LABEL[item.kind];
+  return raw ? t(raw) : item.kindLabel;
+}
+
 export default function PaymentJournalPage() {
+  const t = useT();
+  const lang = useLanguage();
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   // ตัวกรองที่กำลังกรอก (draft) — ใช้จริงเมื่อกด "ค้นหา" เท่านั้น
@@ -217,7 +229,7 @@ export default function PaymentJournalPage() {
         ],
       });
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "ส่งออกสมุดรายวันจ่ายไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("ส่งออกสมุดรายวันจ่ายไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -243,7 +255,7 @@ export default function PaymentJournalPage() {
         reexport,
       });
       if (count === 0) {
-        message.info("ไม่มีรายการที่ต้องส่งออก");
+        message.info(t("ไม่มีรายการที่ต้องส่งออก"));
         return;
       }
       const url = URL.createObjectURL(blob);
@@ -253,20 +265,22 @@ export default function PaymentJournalPage() {
       link.click();
       URL.revokeObjectURL(url);
       message.success(
-        `สร้างไฟล์ Express ${count.toLocaleString("th-TH")} รายการแล้ว${reexport ? " (รวมส่งซ้ำ)" : ""}`,
+        (reexport
+          ? t("สร้างไฟล์ Express {count} รายการแล้ว (รวมส่งซ้ำ)", { count: count.toLocaleString("th-TH") })
+          : t("สร้างไฟล์ Express {count} รายการแล้ว", { count: count.toLocaleString("th-TH") })),
       );
       if (mode === "selected") setSelectedKeys([]);
       await queryClient.invalidateQueries({ queryKey: paymentJournalQueryKey });
     } catch (error) {
       modal.error({
-        title: "ส่งออกไป Express ไม่สำเร็จ",
+        title: t("ส่งออกไป Express ไม่สำเร็จ"),
         content: (
           <div>
-            <div>{error instanceof Error ? error.message : "ส่งออกไป Express ไม่สำเร็จ"}</div>
-            <div>ไม่มีการบันทึกว่าส่งออกสำเร็จ — แก้ไขแล้วลองใหม่ได้</div>
+            <div>{error instanceof Error ? error.message : t("ส่งออกไป Express ไม่สำเร็จ")}</div>
+            <div>{t("ไม่มีการบันทึกว่าส่งออกสำเร็จ — แก้ไขแล้วลองใหม่ได้")}</div>
             <Space orientation="vertical" size={0}>
-              <Link href="/masters/gl-accounts">ไปหน้าผังบัญชีและการผูกบัญชี</Link>
-              <Link href="/masters/company-profile">ไปหน้าข้อมูลบริษัท (บัญชีธนาคาร)</Link>
+              <Link href="/masters/gl-accounts">{t("ไปหน้าผังบัญชีและการผูกบัญชี")}</Link>
+              <Link href="/masters/company-profile">{t("ไปหน้าข้อมูลบริษัท (บัญชีธนาคาร)")}</Link>
             </Space>
           </div>
         ),
@@ -279,22 +293,22 @@ export default function PaymentJournalPage() {
 
   const pending = data?.pendingExpressCount ?? 0;
   const expressDisabledReason = !canExport
-    ? "ไม่มีสิทธิ์ส่งออก (ต้องมีสิทธิ์ EXPORT ของสมุดรายวันจ่าย)"
+    ? t("ไม่มีสิทธิ์ส่งออก (ต้องมีสิทธิ์ EXPORT ของสมุดรายวันจ่าย)")
     : !range
-      ? "เลือกช่วงวันที่จ่ายเงินก่อน"
+      ? t("เลือกช่วงวันที่จ่ายเงินก่อน")
       : null;
 
   const columns: ColumnsType<PaymentJournalItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
-    { title: "วันที่จ่ายเงิน", dataIndex: "paymentDate", width: 110, render: formatDate },
+    { title: t("วันที่จ่ายเงิน"), dataIndex: "paymentDate", width: 110, render: formatDate },
     {
-      title: "เลขที่รายการจ่าย",
+      title: t("เลขที่รายการจ่าย"),
       key: "payment",
       width: 200,
       render: (_, row) => (
@@ -302,15 +316,15 @@ export default function PaymentJournalPage() {
           <Link href={`/reports/journals/payments/${row.id}`}>{row.paymentNo ?? "—"}</Link>
           <Space size={4}>
             <Tag color={KIND_COLOR[row.kind]} style={{ marginInlineEnd: 0 }}>
-              {row.kindLabel}
+              {kindText(row, t)}
             </Tag>
-            {!row.balanced ? <Tag color="red">เดบิต ≠ เครดิต</Tag> : null}
+            {!row.balanced ? <Tag color="red">{t("เดบิต ≠ เครดิต")}</Tag> : null}
           </Space>
         </Space>
       ),
     },
     {
-      title: "ใบสำคัญจ่าย",
+      title: t("ใบสำคัญจ่าย"),
       key: "voucher",
       width: 170,
       render: (_, row) => (
@@ -320,12 +334,12 @@ export default function PaymentJournalPage() {
           onClick={(event) => event.stopPropagation()}
         >
           <Link href={`/finance/payables/payment-vouchers/${row.voucher.id}`}>{row.voucher.no}</Link>
-          <span style={{ fontSize: 12, opacity: 0.65 }}>วันที่ {formatDate(row.voucherDate)}</span>
+          <span style={{ fontSize: 12, opacity: 0.65 }}>{t("วันที่ {date}", { date: formatDate(row.voucherDate) })}</span>
         </Space>
       ),
     },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       width: 220,
       render: (_, row) => (
@@ -337,27 +351,27 @@ export default function PaymentJournalPage() {
       ),
     },
     {
-      title: "วิธีจ่าย",
+      title: t("วิธีจ่าย"),
       key: "method",
       width: 230,
       render: (_, row) => (
         <Space orientation="vertical" size={0}>
-          <span>{methodText(row)}</span>
+          <span>{methodText(row, t)}</span>
           {row.transactionRef ? (
-            <span style={{ fontSize: 12, opacity: 0.65 }}>อ้างอิง {row.transactionRef}</span>
+            <span style={{ fontSize: 12, opacity: 0.65 }}>{t("อ้างอิง {ref}", { ref: row.transactionRef })}</span>
           ) : null}
-          {row.chequeNo ? <span style={{ fontSize: 12, opacity: 0.65 }}>เช็คเลขที่ {row.chequeNo}</span> : null}
+          {row.chequeNo ? <span style={{ fontSize: 12, opacity: 0.65 }}>{t("เช็คเลขที่ {no}", { no: row.chequeNo })}</span> : null}
         </Space>
       ),
     },
     {
-      title: "เอกสารที่เกี่ยวข้อง",
+      title: t("เอกสารที่เกี่ยวข้อง"),
       key: "related",
       render: (_, row) => (
         <div style={{ fontSize: 13 }} onClick={(event) => event.stopPropagation()}>
           {row.advanceRequest ? (
             <div>
-              <Typography.Text type="secondary">ใบขอจ่ายล่วงหน้า: </Typography.Text>
+              <Typography.Text type="secondary">{t("ใบขอจ่ายล่วงหน้า")}: </Typography.Text>
               <Link href={`/finance/payables/advance-requests/${row.advanceRequest.id}`}>{row.advanceRequest.no}</Link>
             </div>
           ) : null}
@@ -384,15 +398,15 @@ export default function PaymentJournalPage() {
       ),
     },
     {
-      title: "ยอดรวม / WHT / จ่ายจริง",
+      title: t("ยอดรวม / WHT / จ่ายจริง"),
       key: "amounts",
       width: 190,
       align: "right",
       render: (_, row) => (
         <Space orientation="vertical" size={0} style={{ textAlign: "right" }}>
-          <span style={{ fontSize: 12, opacity: 0.65 }}>ยอดรวม {money.format(row.grossAmount)}</span>
+          <span style={{ fontSize: 12, opacity: 0.65 }}>{t("ยอดรวม {amount}", { amount: money.format(row.grossAmount) })}</span>
           {row.whtAmount > 0 ? (
-            <span style={{ fontSize: 12, opacity: 0.65 }}>หัก ณ ที่จ่าย {money.format(row.whtAmount)}</span>
+            <span style={{ fontSize: 12, opacity: 0.65 }}>{t("หัก ณ ที่จ่าย {amount}", { amount: money.format(row.whtAmount) })}</span>
           ) : null}
           <strong>{money.format(row.netAmount)}</strong>
         </Space>
@@ -421,8 +435,8 @@ export default function PaymentJournalPage() {
       <PageHeader
         eyebrow="REPORTS · JOURNALS"
         icon={<FileTextOutlined />}
-        title="สมุดรายวันจ่าย"
-        subtitle="อ้างอิงใบสำคัญจ่ายและการบันทึกจ่ายเงินจริง แตกเป็นบรรทัดบัญชีเดบิต/เครดิต — ชำระหนี้ AP, จ่ายล่วงหน้า, จ่ายมัดจำ"
+        title={t("สมุดรายวันจ่าย")}
+        subtitle={t("อ้างอิงใบสำคัญจ่ายและการบันทึกจ่ายเงินจริง แตกเป็นบรรทัดบัญชีเดบิต/เครดิต — ชำระหนี้ AP, จ่ายล่วงหน้า, จ่ายมัดจำ")}
         actions={
           <>
 <ReportExportButtons
@@ -437,31 +451,31 @@ export default function PaymentJournalPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดรวมก่อนหัก ณ ที่จ่าย</span>
+          <span className={styles.statLabel}>{t("ยอดรวมก่อนหัก ณ ที่จ่าย")}</span>
           <span className={styles.statValue}>{money.format(data?.summary.grossAmount ?? 0)}</span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ภาษีหัก ณ ที่จ่าย</span>
+          <span className={styles.statLabel}>{t("ภาษีหัก ณ ที่จ่าย")}</span>
           <span className={styles.statValue}>{money.format(data?.summary.whtAmount ?? 0)}</span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>จ่ายจริง (โอน/เช็ค/เงินสด)</span>
+          <span className={styles.statLabel}>{t("จ่ายจริง (โอน/เช็ค/เงินสด)")}</span>
           <span className={styles.statValue}>{money.format(data?.summary.netAmount ?? 0)}</span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยังไม่ส่ง Express</span>
+          <span className={styles.statLabel}>{t("ยังไม่ส่ง Express")}</span>
           <span className={styles.statValue}>{pending.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterRow}>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่จ่าย</label>
+            <label>{t("ช่วงวันที่จ่าย")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
@@ -472,58 +486,58 @@ export default function PaymentJournalPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ประเภทการจ่าย</label>
+            <label>{t("ประเภทการจ่าย")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dKind}
               onChange={setDKind}
               options={(Object.keys(PAYMENT_KIND_LABEL) as PaymentJournalKind[]).map((value) => ({
                 value,
-                label: PAYMENT_KIND_LABEL[value],
+                label: t(PAYMENT_KIND_LABEL[value]),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วิธีจ่าย</label>
+            <label>{t("วิธีจ่าย")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dMethod}
               onChange={setDMethod}
               options={(["TRANSFER", "CHEQUE", "CASH"] as PaymentJournalMethod[]).map((value) => ({
                 value,
-                label: PAYMENT_METHOD_LABEL[value],
+                label: t(PAYMENT_METHOD_LABEL[value]),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ Express</label>
+            <label>{t("สถานะ Express")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dExpress}
               onChange={setDExpress}
               options={[
-                { value: "PENDING", label: "ยังไม่ส่ง" },
-                { value: "EXPORTED", label: "ส่งแล้ว" },
+                { value: "PENDING", label: expressSentLabel(false, lang) },
+                { value: "EXPORTED", label: expressSentLabel(true, lang) },
               ]}
             />
           </div>
           <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="เลขที่รายการจ่าย / ใบสำคัญจ่าย / AP / เลขอ้างอิง / ผู้ขาย"
+              placeholder={t("เลขที่รายการจ่าย / ใบสำคัญจ่าย / AP / เลขอ้างอิง / ผู้ขาย")}
               value={dSearch}
               onChange={(event) => setDSearch(event.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -535,19 +549,19 @@ export default function PaymentJournalPage() {
         <div className={`${masterStyles.tableCard} ${mdStyles.tablePane}`}>
           <div className={masterStyles.tableHeader}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>รายการจ่ายเงิน</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t("รายการจ่ายเงิน")}</h3>
             </div>
             <Space>
-              <span className={masterStyles.tableCount}>{data?.total ?? 0} รายการ</span>
+              <span className={masterStyles.tableCount}>{t("{n} รายการ", { n: data?.total ?? 0 })}</span>
               <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
-                ประวัติการส่งออก
+                {t("ประวัติการส่งออก")}
               </Button>
               {expressDisabledReason ? (
                 <Tooltip title={expressDisabledReason}>
                   <span>
                     <Button icon={<SendOutlined />} disabled>
-                      ส่งออกไป Express ({pending})
+                      {t("ส่งออกไป Express ({pending})", { pending })}
                     </Button>
                   </span>
                 </Tooltip>
@@ -555,11 +569,11 @@ export default function PaymentJournalPage() {
                 <>
                   {selectedKeys.length > 0 ? (
                     <Button icon={<SendOutlined />} onClick={() => setExportMode("selected")}>
-                      ส่งออกที่เลือก ({selectedKeys.length})
+                      {t("ส่งออกที่เลือก ({n})", { n: selectedKeys.length })}
                     </Button>
                   ) : null}
                   <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => setExportMode("range")}>
-                    ส่งออกไป Express ({pending})
+                    {t("ส่งออกไป Express ({pending})", { pending })}
                   </Button>
                 </>
               )}
@@ -604,9 +618,9 @@ export default function PaymentJournalPage() {
                 setSelectedId(null);
               },
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total.toLocaleString("th-TH") }),
             }}
-            locale={{ emptyText: "ไม่มีรายการจ่ายเงินตามเงื่อนไขที่เลือก" }}
+            locale={{ emptyText: t("ไม่มีรายการจ่ายเงินตามเงื่อนไขที่เลือก") }}
           />
         </div>
 
@@ -615,23 +629,23 @@ export default function PaymentJournalPage() {
             docNo={selected.paymentNo ?? "—"}
             typeTag={
               <>
-                <Tag color={KIND_COLOR[selected.kind]}>{selected.kindLabel}</Tag>
-                {!selected.balanced ? <Tag color="red">เดบิต ≠ เครดิต</Tag> : null}
+                <Tag color={KIND_COLOR[selected.kind]}>{kindText(selected, t)}</Tag>
+                {!selected.balanced ? <Tag color="red">{t("เดบิต ≠ เครดิต")}</Tag> : null}
               </>
             }
             meta={[
-              { label: "วันที่จ่าย", value: formatDate(selected.paymentDate) },
+              { label: t("วันที่จ่าย"), value: formatDate(selected.paymentDate) },
               {
-                label: "ผู้ขาย",
+                label: t("ผู้ขาย"),
                 value: (
                   <Link href={`/finance/payables/creditors/${selected.creditorId}`}>
                     {selected.creditorCode} {selected.creditorName}
                   </Link>
                 ),
               },
-              { label: "วิธีจ่าย", value: methodText(selected) },
+              { label: t("วิธีจ่าย"), value: methodText(selected, t) },
               {
-                label: "ใบสำคัญจ่าย",
+                label: t("ใบสำคัญจ่าย"),
                 value: (
                   <Link href={`/finance/payables/payment-vouchers/${selected.voucher.id}`}>
                     {selected.voucher.no}
@@ -639,13 +653,13 @@ export default function PaymentJournalPage() {
                 ),
               },
               {
-                label: "ยอดรวม / จ่ายจริง",
+                label: t("ยอดรวม / จ่ายจริง"),
                 value: (
                   <Space orientation="vertical" size={0}>
                     <span style={{ fontSize: 12, opacity: 0.7 }}>
-                      ยอดรวม {money.format(selected.grossAmount)}
+                      {t("ยอดรวม {amount}", { amount: money.format(selected.grossAmount) })}
                       {selected.whtAmount > 0
-                        ? ` · หัก ณ ที่จ่าย ${money.format(selected.whtAmount)}`
+                        ? ` · ${t("หัก ณ ที่จ่าย {amount}", { amount: money.format(selected.whtAmount) })}`
                         : ""}
                     </span>
                     <strong>{money.format(selected.netAmount)}</strong>
@@ -657,7 +671,7 @@ export default function PaymentJournalPage() {
               <div style={{ fontSize: 13 }}>
                 {selected.advanceRequest ? (
                   <div>
-                    <Typography.Text type="secondary">ใบขอจ่ายล่วงหน้า: </Typography.Text>
+                    <Typography.Text type="secondary">{t("ใบขอจ่ายล่วงหน้า")}: </Typography.Text>
                     <Link
                       href={`/finance/payables/advance-requests/${selected.advanceRequest.id}`}
                     >
@@ -697,14 +711,14 @@ export default function PaymentJournalPage() {
       </div>
       <ExpressExportDialog
         open={exportMode !== null}
-        title="ส่งออกสมุดรายวันจ่ายไป Express"
+        title={t("ส่งออกสมุดรายวันจ่ายไป Express")}
         unit="รายการ"
         scopeLabel={
           exportMode === "selected"
-            ? `รายการจ่ายที่เลือก ${selectedKeys.length.toLocaleString("th-TH")} รายการ`
-            : `ช่วงวันที่จ่าย ${formatDate(filters.dateFrom)} - ${formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี)`
+            ? t("รายการจ่ายที่เลือก {n} รายการ", { n: selectedKeys.length.toLocaleString("th-TH") })
+            : t("ช่วงวันที่จ่าย {from} - {to} (หนึ่งแถวต่อบรรทัดบัญชี)", { from: formatDate(filters.dateFrom), to: formatDate(filters.dateTo) })
         }
-        extraNote="สมุดรายวันจ่ายคำนวณบรรทัดบัญชีสดจากผังบัญชีและบัญชีธนาคารปัจจุบัน — ถ้าตั้งค่าเปลี่ยนไปจากตอนส่งครั้งก่อน ไฟล์ซ้ำอาจต่างจากไฟล์เดิม"
+        extraNote={t("สมุดรายวันจ่ายคำนวณบรรทัดบัญชีสดจากผังบัญชีและบัญชีธนาคารปัจจุบัน — ถ้าตั้งค่าเปลี่ยนไปจากตอนส่งครั้งก่อน ไฟล์ซ้ำอาจต่างจากไฟล์เดิม")}
         previewKey={JSON.stringify(exportScope(exportMode ?? "range"))}
         loadPreview={() =>
           previewPaymentJournalExpress(getAccessToken(), exportScope(exportMode ?? "range")).then(
@@ -716,7 +730,7 @@ export default function PaymentJournalPage() {
       />
       <ExportHistoryDrawer
         open={historyOpen}
-        title="ประวัติการส่งออกสมุดรายวันจ่ายไป Express"
+        title={t("ประวัติการส่งออกสมุดรายวันจ่ายไป Express")}
         onClose={() => setHistoryOpen(false)}
         loadHistory={(p) =>
           getPaymentJournalExportHistory(getAccessToken(), { page: p, limit: 20 }).then((res) => res.data)

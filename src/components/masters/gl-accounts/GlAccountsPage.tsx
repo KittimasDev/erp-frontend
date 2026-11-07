@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useState, type ReactNode } from "react";
 import {
   App,
@@ -64,6 +65,7 @@ const SETTING_GROUPS: Array<{ title: string; icon: ReactNode; keys: string[] }> 
  * รหัสบัญชีต้องตรงกับ Express — สมุดรายวันซื้อใช้บัญชีเหล่านี้สร้างบรรทัดเดบิต/เครดิตและไฟล์ส่งออก
  */
 export default function GlAccountsPage() {
+  const t = useT();
   const { message } = App.useApp();
   const { token } = theme.useToken();
   const perms = useScreenActionPermissions(SCREEN_CODE);
@@ -95,7 +97,7 @@ export default function GlAccountsPage() {
     const byKey = new Map<string, (typeof settings)[number]>(settings.map((s) => [s.settingKey, s]));
     const used = new Set<string>();
     const groups = SETTING_GROUPS.map((group) => ({
-      title: group.title,
+      title: t(group.title),
       icon: group.icon,
       items: group.keys.flatMap((key) => {
         const found = byKey.get(key);
@@ -105,7 +107,7 @@ export default function GlAccountsPage() {
       }),
     }));
     const rest = settings.filter((s) => !used.has(s.settingKey));
-    if (rest.length > 0) groups.push({ title: "อื่น ๆ", icon: null, items: rest });
+    if (rest.length > 0) groups.push({ title: t("อื่น ๆ"), icon: null, items: rest });
     return groups.filter((group) => group.items.length > 0);
   })();
 
@@ -137,22 +139,22 @@ export default function GlAccountsPage() {
 
   const columns: ColumnsType<GlAccount> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: "รหัสบัญชี", dataIndex: "code", width: 160, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
-    { title: "ชื่อบัญชี", dataIndex: "nameTh" },
+    { title: t("รหัสบัญชี"), dataIndex: "code", width: 160, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
+    { title: t("ชื่อบัญชี"), dataIndex: "nameTh" },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       width: 110,
-      render: (v: boolean) => (v ? <Tag color="green">ใช้งาน</Tag> : <Tag>ปิดใช้งาน</Tag>),
+      render: (v: boolean) => (v ? <Tag color="green">{t("ใช้งาน")}</Tag> : <Tag>{t("ปิดใช้งาน")}</Tag>),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "action",
       width: 140,
       align: "center",
@@ -161,10 +163,10 @@ export default function GlAccountsPage() {
           {perms.canEdit ? <Button size="small" icon={<EditOutlined />} onClick={() => openForm(row)} /> : null}
           {perms.canDelete ? (
             <Popconfirm
-              title="ลบบัญชีนี้?"
-              description="ลบไม่ได้ถ้าถูกผูกอยู่กับการตั้งค่าหรือหมวดสินค้า"
-              okText="ลบ"
-              cancelText="ยกเลิก"
+              title={t("ลบบัญชีนี้?")}
+              description={t("ลบไม่ได้ถ้าถูกผูกอยู่กับการตั้งค่าหรือหมวดสินค้า")}
+              okText={t("ลบ")}
+              cancelText={t("ยกเลิก")}
               onConfirm={() => deleteAccount.mutate(row.id)}
             >
               <Button size="small" danger icon={<DeleteOutlined />} />
@@ -178,12 +180,12 @@ export default function GlAccountsPage() {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title="ผังบัญชีและการผูกบัญชี"
-        subtitle="ตั้งค่าบัญชีหลักของสมุดรายวันซื้อ และจัดการผังบัญชีสำหรับส่งออก Express"
+        title={t("ผังบัญชีและการผูกบัญชี")}
+        subtitle={t("ตั้งค่าบัญชีหลักของสมุดรายวันซื้อ และจัดการผังบัญชีสำหรับส่งออก Express")}
       />
 
       <Card
-        title="การผูกบัญชีหลักของสมุดรายวันซื้อ"
+        title={t("การผูกบัญชีหลักของสมุดรายวันซื้อ")}
         extra={
           perms.canEdit ? (
             <Button
@@ -193,16 +195,13 @@ export default function GlAccountsPage() {
               loading={saveSettings.isPending}
               onClick={handleSaveSettings}
             >
-              บันทึกการผูกบัญชี
+              {t("บันทึกการผูกบัญชี")}
             </Button>
           ) : null
         }
       >
         <Typography.Paragraph type="secondary">
-          ใช้สร้างบรรทัดเดบิต/เครดิตและไฟล์ส่งออก Express — บัญชีซื้อของหมวดสินค้าแต่ละหมวดตั้งได้ที่หน้าหมวดหมู่สินค้า
-          (ไม่ตั้ง = ใช้บัญชีซื้อสินค้าค่าเริ่มต้น) · บัญชีค่าขนส่ง/ค่าบริการ/ค่าใช้จ่ายอื่นต้องผูกให้ครบ
-          ค่าใช้จ่ายเพิ่มเติมจะแสดงเป็นบัญชีของตัวเองแยกบรรทัด ไม่รวมในซื้อสินค้า ·
-          ถ้าบัญชีที่ใช้ยังไม่ผูก ระบบจะไม่ยอมส่งออกไป Express
+          {t("ใช้สร้างบรรทัดเดบิต/เครดิตและไฟล์ส่งออก Express — บัญชีซื้อของหมวดสินค้าแต่ละหมวดตั้งได้ที่หน้าหมวดหมู่สินค้า (ไม่ตั้ง = ใช้บัญชีซื้อสินค้าค่าเริ่มต้น) · บัญชีค่าขนส่ง/ค่าบริการ/ค่าใช้จ่ายอื่นต้องผูกให้ครบ ค่าใช้จ่ายเพิ่มเติมจะแสดงเป็นบัญชีของตัวเองแยกบรรทัด ไม่รวมในซื้อสินค้า · ถ้าบัญชีที่ใช้ยังไม่ผูก ระบบจะไม่ยอมส่งออกไป Express")}
         </Typography.Paragraph>
         <Form layout="vertical" requiredMark={false}>
           <Row gutter={[12, 12]}>
@@ -228,7 +227,7 @@ export default function GlAccountsPage() {
                             allowClear
                             showSearch
                             optionFilterProp="label"
-                            placeholder="ยังไม่ผูกบัญชี"
+                            placeholder={t("ยังไม่ผูกบัญชี")}
                             disabled={!perms.canEdit}
                             value={valueOf(s.settingKey, s.glAccountId) ?? undefined}
                             options={accountOptions}
@@ -246,18 +245,18 @@ export default function GlAccountsPage() {
       </Card>
 
       <Card
-        title="ผังบัญชี"
+        title={t("ผังบัญชี")}
         extra={
           perms.canAdd ? (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm("new")}>
-              เพิ่มบัญชี
+              {t("เพิ่มบัญชี")}
             </Button>
           ) : null
         }
       >
         <Input.Search
           allowClear
-          placeholder="ค้นรหัสหรือชื่อบัญชี"
+          placeholder={t("ค้นรหัสหรือชื่อบัญชี")}
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           onSearch={(value) => {
@@ -279,39 +278,39 @@ export default function GlAccountsPage() {
 
       <Modal
         open={editing !== null}
-        title={editing === "new" ? "เพิ่มบัญชี" : "แก้ไขบัญชี"}
-        okText="บันทึก"
-        cancelText="ยกเลิก"
+        title={editing === "new" ? t("เพิ่มบัญชี") : t("แก้ไขบัญชี")}
+        okText={t("บันทึก")}
+        cancelText={t("ยกเลิก")}
         confirmLoading={saveAccount.isPending}
-        onOk={() => void handleOk().catch(() => message.warning("กรอกข้อมูลให้ครบ"))}
+        onOk={() => void handleOk().catch(() => message.warning(t("กรอกข้อมูลให้ครบ")))}
         onCancel={() => setEditing(null)}
         destroyOnHidden
         forceRender
       >
         <Form form={form} layout="vertical" requiredMark="optional">
           <Form.Item
-            label="รหัสบัญชี"
+            label={t("รหัสบัญชี")}
             name="code"
             rules={[
-              { required: true, message: "กรุณากรอกรหัสบัญชี" },
-              { max: 30, message: "รหัสต้องไม่เกิน 30 ตัวอักษร" },
+              { required: true, message: t("กรุณากรอกรหัสบัญชี") },
+              { max: 30, message: t("รหัสต้องไม่เกิน 30 ตัวอักษร") },
             ]}
-            extra="ต้องตรงกับรหัสในโปรแกรมบัญชี Express"
+            extra={t("ต้องตรงกับรหัสในโปรแกรมบัญชี Express")}
           >
-            <Input placeholder="เช่น 51111.01" autoComplete="off" />
+            <Input placeholder={t("เช่น 51111.01")} autoComplete="off" />
           </Form.Item>
           <Form.Item
-            label="ชื่อบัญชี"
+            label={t("ชื่อบัญชี")}
             name="name"
             rules={[
-              { required: true, message: "กรุณากรอกชื่อบัญชี" },
-              { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+              { required: true, message: t("กรุณากรอกชื่อบัญชี") },
+              { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
             ]}
           >
-            <Input placeholder="เช่น ซื้อสินค้า" autoComplete="off" />
+            <Input placeholder={t("เช่น ซื้อสินค้า")} autoComplete="off" />
           </Form.Item>
-          <Form.Item label="ใช้งาน" name="isActive" valuePropName="checked">
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+          <Form.Item label={t("ใช้งาน")} name="isActive" valuePropName="checked">
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </Form>
       </Modal>

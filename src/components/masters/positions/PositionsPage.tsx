@@ -1,5 +1,8 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useState } from "react";
 import { Button, Col, Form, Input, Row, Select, Space, Table, Tag, Typography } from "antd";
 import {
@@ -31,6 +34,8 @@ type FilterValues = { name?: string; isActive?: boolean | null };
 
 /** แท็บ "ตำแหน่ง" ใต้ /users — ใช้สิทธิ์ USERS เดียวกับแผนก */
 export default function PositionsPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FilterValues>();
   const [filters, setFilters] = useState<PositionQueryParams>({});
   const [modalOpen, setModalOpen] = useState(false);
@@ -90,7 +95,7 @@ export default function PositionsPage() {
 
   const columns: ColumnsType<Position> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -99,14 +104,14 @@ export default function PositionsPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 160,
       render: (value: string) => <span className={styles.codeBadge}>{value}</span>,
     },
     {
-      title: "ชื่อตำแหน่ง",
+      title: t("ชื่อตำแหน่ง"),
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
@@ -116,7 +121,7 @@ export default function PositionsPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -125,48 +130,48 @@ export default function PositionsPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {formatDateTime(value, lang)}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.code}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.code })}
           actions={[
-            { key: "edit", icon: <EditOutlined />, label: "แก้ไข", onClick: () => openEdit(record) },
+            { key: "edit", icon: <EditOutlined />, label: t("แก้ไข"), onClick: () => openEdit(record) },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบตำแหน่ง",
-                content: `ต้องการลบ "${record.nameTh}" หรือไม่? (ลบไม่ได้ถ้ายังมีพนักงานใช้อยู่)`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบตำแหน่ง"),
+                content: t('ต้องการลบ "{name}" หรือไม่? (ลบไม่ได้ถ้ายังมีพนักงานใช้อยู่)', { name: record.nameTh }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -181,21 +186,21 @@ export default function PositionsPage() {
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
           <div className={styles.summaryIcon}>Σ</div>
           <div>
-            <span className={styles.summaryLabel}>{hasFilters ? "ผลค้นหา" : "ตำแหน่งทั้งหมด"}</span>
+            <span className={styles.summaryLabel}>{hasFilters ? t("ผลค้นหา") : t("ตำแหน่งทั้งหมด")}</span>
             <strong>{positions.length}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{positions.length - activeCount}</strong>
           </div>
         </div>
@@ -205,30 +210,30 @@ export default function PositionsPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาตำแหน่ง</h3>
-            <p>กรองด้วยชื่อตำแหน่งและสถานะ</p>
+            <h3>{t("ค้นหาตำแหน่ง")}</h3>
+            <p>{t("กรองด้วยชื่อตำแหน่งและสถานะ")}</p>
           </div>
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
         <Form form={form} layout="vertical" className={styles.filterForm} onFinish={handleSearch}>
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={12}>
-              <Form.Item name="name" label="ชื่อตำแหน่ง">
-                <Input allowClear placeholder="เช่น ช่างเทคนิค" prefix={<SearchOutlined />} />
+              <Form.Item name="name" label={t("ชื่อตำแหน่ง")}>
+                <Input allowClear placeholder={t("เช่น ช่างเทคนิค")} prefix={<SearchOutlined />} />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12} lg={12}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -242,10 +247,10 @@ export default function PositionsPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
                   <Button icon={<ClearOutlined />} onClick={handleClear} disabled={!hasFilters}>
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -258,8 +263,8 @@ export default function PositionsPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>POSITION MANAGEMENT</div>
-            <h3>รายการตำแหน่ง</h3>
-            <p>ตำแหน่งงานที่เลือกได้ในข้อมูลพนักงาน และใช้จัดกลุ่มในตัวจัดกะอัตโนมัติ</p>
+            <h3>{t("รายการตำแหน่ง")}</h3>
+            <p>{t("ตำแหน่งงานที่เลือกได้ในข้อมูลพนักงาน และใช้จัดกลุ่มในตัวจัดกะอัตโนมัติ")}</p>
           </div>
           <Space>
             <Button
@@ -268,9 +273,9 @@ export default function PositionsPage() {
               className={styles.createButton}
               onClick={openCreate}
             >
-              เพิ่มตำแหน่ง
+              {t("เพิ่มตำแหน่ง")}
             </Button>
-            <div className={styles.tableCount}>{positions.length} รายการ</div>
+            <div className={styles.tableCount}>{t("{n} รายการ", { n: positions.length })}</div>
           </Space>
         </div>
 
@@ -279,7 +284,7 @@ export default function PositionsPage() {
             <Typography.Text type="danger">
               {positionsQuery.error instanceof Error
                 ? positionsQuery.error.message
-                : "โหลดข้อมูลตำแหน่งไม่สำเร็จ"}
+                : t("โหลดข้อมูลตำแหน่งไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -294,7 +299,7 @@ export default function PositionsPage() {
               pageSize,
               showSizeChanger: true,
               pageSizeOptions: [20, 50, 100],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: (nextPage, nextSize) => {
                 setPage(nextPage);
                 if (nextSize && nextSize !== pageSize) {
@@ -305,7 +310,7 @@ export default function PositionsPage() {
             }}
             scroll={{ x: 810 }}
             locale={{
-              emptyText: hasFilters ? "ไม่พบตำแหน่งตามเงื่อนไขที่ค้นหา" : "ยังไม่มีข้อมูลตำแหน่ง",
+              emptyText: hasFilters ? t("ไม่พบตำแหน่งตามเงื่อนไขที่ค้นหา") : t("ยังไม่มีข้อมูลตำแหน่ง"),
             }}
           />
         )}

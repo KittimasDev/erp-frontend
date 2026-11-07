@@ -6,6 +6,8 @@ import { DownloadOutlined, UploadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import type { CsvImportResult, CsvImportRowError } from "@/types/csv-import";
 
 export const ITEM_CSV_TEMPLATE = [
@@ -65,6 +67,8 @@ export default function CsvImportModal({
   acceptExtensions = DEFAULT_ACCEPT_EXTENSIONS,
   onDownloadExcelTemplate,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const { message, notification } = App.useApp();
   const [downloadingExcel, setDownloadingExcel] = useState(false);
   const acceptsExcel = acceptExtensions.includes(".xlsx");
@@ -89,14 +93,14 @@ export default function CsvImportModal({
       .length ?? 0;
 
   const columns: ColumnsType<CsvImportRowError> = [
-    { title: "แถว", dataIndex: "row", width: 72 },
+    { title: lang === "en" ? "Row" : "แถว", dataIndex: "row", width: 72 },
     {
-      title: "รายละเอียด",
+      title: t("รายละเอียด"),
       dataIndex: "message",
       render: (text: string) =>
         text.includes(DUPLICATE_MARK) ? (
           <span>
-            <Tag color="orange">รหัสซ้ำ</Tag>
+            <Tag color="orange">{t("รหัสซ้ำ")}</Tag>
             {text}
           </span>
         ) : (
@@ -107,12 +111,14 @@ export default function CsvImportModal({
 
   const handleImport = async () => {
     if (!file) {
-      message.warning(`เลือกไฟล์ ${fileKindLabel} ก่อน`);
+      message.warning(t("เลือกไฟล์ {kind} ก่อน", { kind: fileKindLabel }));
       return;
     }
     const fileName = file.name.toLowerCase();
     if (!acceptExtensions.some((ext) => fileName.endsWith(ext))) {
-      message.error(`รองรับเฉพาะไฟล์ ${acceptExtensions.join(" / ")}`);
+      message.error(
+        t("รองรับเฉพาะไฟล์ {exts}", { exts: acceptExtensions.join(" / ") }),
+      );
       return;
     }
     try {
@@ -120,26 +126,33 @@ export default function CsvImportModal({
       setResult(data);
       if (data.errorCount === 0) {
         notification.success({
-          title: "นำเข้าสำเร็จ",
-          description: `บันทึก ${data.successCount.toLocaleString("th-TH")} รายการ`,
+          title: t("นำเข้าสำเร็จ"),
+          description: t("บันทึก {n} รายการ", {
+            n: data.successCount.toLocaleString("th-TH"),
+          }),
         });
         onClose();
         return;
       }
       if (data.successCount > 0) {
         notification.warning({
-          title: "นำเข้าได้บางรายการ",
-          description: `บันทึกแล้ว ${data.successCount.toLocaleString("th-TH")} รายการ · ไม่เข้า ${data.errorCount.toLocaleString("th-TH")} รายการ`,
+          title: t("นำเข้าได้บางรายการ"),
+          description: t("บันทึกแล้ว {ok} รายการ · ไม่เข้า {bad} รายการ", {
+            ok: data.successCount.toLocaleString("th-TH"),
+            bad: data.errorCount.toLocaleString("th-TH"),
+          }),
         });
         return;
       }
       notification.error({
-        title: "ไม่มีการบันทึก",
-        description: `ทั้ง ${data.totalRows.toLocaleString("th-TH")} แถวไม่ผ่าน`,
+        title: t("ไม่มีการบันทึก"),
+        description: t("ทั้ง {n} แถวไม่ผ่าน", {
+          n: data.totalRows.toLocaleString("th-TH"),
+        }),
       });
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "นำเข้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("นำเข้าไม่สำเร็จ"),
       );
     }
   };
@@ -153,7 +166,7 @@ export default function CsvImportModal({
       await onDownloadExcelTemplate();
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ดาวน์โหลดเทมเพลตไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ดาวน์โหลดเทมเพลตไม่สำเร็จ"),
       );
     } finally {
       setDownloadingExcel(false);
@@ -165,14 +178,14 @@ export default function CsvImportModal({
       open={open}
       title={title}
       destroyOnHidden
-      okText="นำเข้า"
-      cancelText="ปิด"
+      okText={t("นำเข้า")}
+      cancelText={t("ปิด")}
       confirmLoading={importing}
       onOk={() => void handleImport()}
       onCancel={onClose}
       width={720}
     >
-      <p style={{ marginTop: 0, color: "#64748b" }}>{hint}</p>
+      <p style={{ marginTop: 0, color: "#64748b" }}>{t(hint)}</p>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         {onDownloadExcelTemplate ? (
           <Button
@@ -182,14 +195,16 @@ export default function CsvImportModal({
             loading={downloadingExcel}
             onClick={() => void handleDownloadExcel()}
           >
-            ดาวน์โหลดเทมเพลต Excel
+            {t("ดาวน์โหลดเทมเพลต Excel")}
           </Button>
         ) : null}
         <Button
           icon={<DownloadOutlined />}
           onClick={() => downloadTemplate(templateFileName, templateCsv)}
         >
-          {onDownloadExcelTemplate ? "ดาวน์โหลดเทมเพลต CSV" : "ดาวน์โหลดเทมเพลต"}
+          {onDownloadExcelTemplate
+            ? t("ดาวน์โหลดเทมเพลต CSV")
+            : t("ดาวน์โหลดเทมเพลต")}
         </Button>
         <Upload
           accept={acceptAttr}
@@ -209,7 +224,9 @@ export default function CsvImportModal({
               : []
           }
         >
-          <Button icon={<UploadOutlined />}>เลือกไฟล์ {fileKindLabel}</Button>
+          <Button icon={<UploadOutlined />}>
+            {t("เลือกไฟล์ {kind}", { kind: fileKindLabel })}
+          </Button>
         </Upload>
       </div>
 
@@ -223,20 +240,25 @@ export default function CsvImportModal({
               marginBottom: 12,
             }}
           >
-            <Statistic title="ทั้งหมด" value={result.totalRows} />
-            <Statistic title="สำเร็จ" value={result.successCount} />
-            <Statistic title="ผิดพลาด" value={result.errorCount} />
+            <Statistic title={t("ทั้งหมด")} value={result.totalRows} />
+            <Statistic title={t("สำเร็จ")} value={result.successCount} />
+            <Statistic title={t("ผิดพลาด")} value={result.errorCount} />
           </div>
           {result.successCount > 0 && result.errorCount > 0 ? (
             <Alert
               type="warning"
               showIcon
               style={{ marginBottom: 12 }}
-              title="นำเข้าได้บางรายการ"
+              title={t("นำเข้าได้บางรายการ")}
               description={
                 duplicateCount > 0
-                  ? `แถวที่ผ่านถูกบันทึกแล้ว ${result.successCount.toLocaleString("th-TH")} รายการ แถวที่ผิดยังไม่เข้า ในนั้นมีรหัสซ้ำ ${duplicateCount.toLocaleString("th-TH")} แถว`
-                  : `แถวที่ผ่านถูกบันทึกแล้ว ${result.successCount.toLocaleString("th-TH")} รายการ แถวที่ผิดยังไม่เข้า`
+                  ? t("แถวที่ผ่านถูกบันทึกแล้ว {ok} รายการ แถวที่ผิดยังไม่เข้า ในนั้นมีรหัสซ้ำ {dup} แถว", {
+                      ok: result.successCount.toLocaleString("th-TH"),
+                      dup: duplicateCount.toLocaleString("th-TH"),
+                    })
+                  : t("แถวที่ผ่านถูกบันทึกแล้ว {ok} รายการ แถวที่ผิดยังไม่เข้า", {
+                      ok: result.successCount.toLocaleString("th-TH"),
+                    })
               }
             />
           ) : null}
@@ -245,11 +267,13 @@ export default function CsvImportModal({
               type="error"
               showIcon
               style={{ marginBottom: 12 }}
-              title="ไม่มีการบันทึก"
+              title={t("ไม่มีการบันทึก")}
               description={
                 duplicateCount > 0
-                  ? `ไม่มีแถวที่เข้าได้ มีรหัสซ้ำ ${duplicateCount.toLocaleString("th-TH")} แถว`
-                  : "ไม่มีแถวที่เข้าได้"
+                  ? t("ไม่มีแถวที่เข้าได้ มีรหัสซ้ำ {dup} แถว", {
+                      dup: duplicateCount.toLocaleString("th-TH"),
+                    })
+                  : t("ไม่มีแถวที่เข้าได้")
               }
             />
           ) : null}
@@ -259,7 +283,7 @@ export default function CsvImportModal({
             columns={columns}
             dataSource={result.errors}
             pagination={{ pageSize: 8, hideOnSinglePage: true }}
-            locale={{ emptyText: "ไม่มีแถวที่ผิดพลาด" }}
+            locale={{ emptyText: t("ไม่มีแถวที่ผิดพลาด") }}
           />
         </>
       ) : null}

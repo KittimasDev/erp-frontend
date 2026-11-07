@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -112,6 +115,8 @@ function buildSearchFromForm(
 }
 
 export default function SellerTypesPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -210,7 +215,7 @@ export default function SellerTypesPage() {
 
   const columns: ColumnsType<SellerType> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -221,7 +226,7 @@ export default function SellerTypesPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "sellerTypeCode",
       key: "sellerTypeCode",
       width: 160,
@@ -230,7 +235,7 @@ export default function SellerTypesPage() {
       ),
     },
     {
-      title: "ชื่อประเภท",
+      title: t("ชื่อประเภท"),
       dataIndex: "sellerTypeName",
       key: "sellerTypeName",
       render: (value: string) => (
@@ -240,7 +245,7 @@ export default function SellerTypesPage() {
       ),
     },
     {
-      title: "รายละเอียด",
+      title: t("รายละเอียด"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
@@ -249,7 +254,7 @@ export default function SellerTypesPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -258,53 +263,53 @@ export default function SellerTypesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.sellerTypeCode}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.sellerTypeCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบประเภทผู้ขาย",
-                content: `ต้องการลบ "${record.sellerTypeCode}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบประเภทผู้ขาย"),
+                content: t('ต้องการลบ "{code}" หรือไม่?', { code: record.sellerTypeCode }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -318,8 +323,8 @@ export default function SellerTypesPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="ประเภทผู้ขาย"
-        subtitle="จัดการประเภทผู้ขายยาง เช่น บุคคลทั่วไป ร้านรับซื้อ ผู้รวบรวม"
+        title={t("ประเภทผู้ขาย")}
+        subtitle={t("จัดการประเภทผู้ขายยาง เช่น บุคคลทั่วไป ร้านรับซื้อ ผู้รวบรวม")}
         actions={
           <>
 <Button
@@ -329,7 +334,7 @@ export default function SellerTypesPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มประเภทผู้ขาย
+          {t("เพิ่มประเภทผู้ขาย")}
         </Button>
           </>
         }
@@ -340,7 +345,7 @@ export default function SellerTypesPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "ประเภททั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("ประเภททั้งหมด")}
             </span>
             <strong>{sellerTypes.length}</strong>
           </div>
@@ -349,7 +354,7 @@ export default function SellerTypesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -357,7 +362,7 @@ export default function SellerTypesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -367,13 +372,13 @@ export default function SellerTypesPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาประเภทผู้ขาย</h3>
-            <p>กรองด้วยรหัส ชื่อ รายละเอียด และสถานะ</p>
+            <h3>{t("ค้นหาประเภทผู้ขาย")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ รายละเอียด และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -387,35 +392,35 @@ export default function SellerTypesPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสประเภท">
+              <Form.Item name="code" label={t("รหัสประเภท")}>
                 <Input
                   allowClear
-                  placeholder="เช่น INDIV"
+                  placeholder={t("เช่น INDIV")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อประเภท">
-                <Input allowClear placeholder="เช่น บุคคล" />
+              <Form.Item name="name" label={t("ชื่อประเภท")}>
+                <Input allowClear placeholder={t("เช่น บุคคล")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="description" label="รายละเอียด">
-                <Input allowClear placeholder="เช่น ยาง" />
+              <Form.Item name="description" label={t("รายละเอียด")}>
+                <Input allowClear placeholder={t("เช่น ยาง")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -430,7 +435,7 @@ export default function SellerTypesPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -438,7 +443,7 @@ export default function SellerTypesPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -451,15 +456,15 @@ export default function SellerTypesPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>SELLER TYPE MANAGEMENT</div>
-            <h3>รายการประเภทผู้ขาย</h3>
+            <h3>{t("รายการประเภทผู้ขาย")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลประเภทผู้ขายทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลประเภทผู้ขายทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{sellerTypes.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: sellerTypes.length })}</div>
         </div>
 
         {sellerTypesQuery.isError ? (
@@ -467,7 +472,7 @@ export default function SellerTypesPage() {
             <Typography.Text type="danger">
               {sellerTypesQuery.error instanceof Error
                 ? sellerTypesQuery.error.message
-                : "โหลดข้อมูลประเภทผู้ขายไม่สำเร็จ"}
+                : t("โหลดข้อมูลประเภทผู้ขายไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -481,14 +486,14 @@ export default function SellerTypesPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {total} รายการ", { total }),
               onChange: setPage,
             }}
             scroll={{ x: 960 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบประเภทผู้ขายตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลประเภทผู้ขาย",
+                ? t("ไม่พบประเภทผู้ขายตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลประเภทผู้ขาย"),
             }}
           />
         )}

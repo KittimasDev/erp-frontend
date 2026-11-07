@@ -7,6 +7,19 @@ export const JOURNAL_DOC_TYPE_LABEL: Record<JournalDocType, string> = {
   CREDIT_NOTE: "ใบลดหนี้",
 };
 
+/** ชื่อประเภทเอกสารตามภาษา (เอกพจน์) — lang ไม่ส่ง = ไทย */
+export function journalDocTypeLabel(type: JournalDocType, lang: "th" | "en" = "th"): string {
+  if (lang === "en") {
+    const en: Record<JournalDocType, string> = {
+      AP_INVOICE: "AP invoice",
+      DEBIT_NOTE: "Debit note",
+      CREDIT_NOTE: "Credit note",
+    };
+    return en[type] ?? type;
+  }
+  return JOURNAL_DOC_TYPE_LABEL[type] ?? type;
+}
+
 export type JournalDocRef = { id: string; no: string };
 
 export type JournalTaxGroup = "VAT" | "NON_VAT" | "TAX" | "PAYABLE";

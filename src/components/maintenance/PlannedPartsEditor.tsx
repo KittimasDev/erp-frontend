@@ -5,6 +5,7 @@ import type { FormInstance } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = {
   /** ชื่อฟิลด์ Form.List (ค่าเริ่มต้น plannedParts) */
@@ -15,11 +16,12 @@ type Props = {
 
 /** รายการอะไหล่ที่ต้องเตรียม (เลือกสินค้าในคลังได้ หรือพิมพ์ชื่อเอง) */
 export default function PlannedPartsEditor({ name = "plannedParts", form, label = "อะไหล่ที่ต้องเตรียม" }: Props) {
+  const t = useT();
   const itemsQuery = useItemsQuery({ isActive: true });
   const items = itemsQuery.data?.data ?? [];
 
   return (
-    <Form.Item label={label}>
+    <Form.Item label={t(label)}>
       <Form.List name={name}>
         {(fields, { add, remove }) => (
           <>
@@ -30,7 +32,7 @@ export default function PlannedPartsEditor({ name = "plannedParts", form, label 
                     allowClear
                     showSearch
                     optionFilterProp="label"
-                    placeholder="สินค้าในคลัง (ถ้ามี)"
+                    placeholder={t("สินค้าในคลัง (ถ้ามี)")}
                     options={items.map((i) => ({ value: i.id, label: `${i.itemCode} — ${i.itemNameTh}` }))}
                     onChange={(value) => {
                       const item = items.find((i) => i.id === value);
@@ -42,19 +44,19 @@ export default function PlannedPartsEditor({ name = "plannedParts", form, label 
                 </Form.Item>
                 <Form.Item
                   name={[field.name, "partName"]}
-                  rules={[{ required: true, whitespace: true, message: "ใส่ชื่ออะไหล่" }]}
+                  rules={[{ required: true, whitespace: true, message: t("ใส่ชื่ออะไหล่") }]}
                   style={{ flex: 1 }}
                 >
-                  <Input placeholder="ชื่ออะไหล่" maxLength={255} />
+                  <Input placeholder={t("ชื่ออะไหล่")} maxLength={255} />
                 </Form.Item>
-                <Form.Item name={[field.name, "quantity"]} rules={[{ required: true, message: "ใส่จำนวน" }]} style={{ width: 110 }}>
-                  <InputNumber min={0.001} max={999999} placeholder="จำนวน" style={{ width: "100%" }} />
+                <Form.Item name={[field.name, "quantity"]} rules={[{ required: true, message: t("ใส่จำนวน") }]} style={{ width: 110 }}>
+                  <InputNumber min={0.001} max={999999} placeholder={t("จำนวน")} style={{ width: "100%" }} />
                 </Form.Item>
-                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)} aria-label="ลบ" />
+                <Button type="text" danger icon={<DeleteOutlined />} onClick={() => remove(field.name)} aria-label={t("ลบ")} />
               </div>
             ))}
             <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ quantity: 1 })} block>
-              เพิ่มอะไหล่
+              {t("เพิ่มอะไหล่")}
             </Button>
           </>
         )}

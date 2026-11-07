@@ -35,6 +35,9 @@ import {
   YAxis,
 } from "recharts";
 
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useReviewOvertimeRequestMutation } from "@/hooks/overtime/useOvertimeMutations";
 import {
@@ -45,7 +48,7 @@ import {
   OT_DAY_TYPE_LABEL,
   OVERTIME_SOURCE_LABEL,
   OVERTIME_STATUS_COLOR,
-  OVERTIME_STATUS_LABEL,
+  overtimeStatusLabel,
   type OvertimeRequest,
 } from "@/types/overtime";
 
@@ -60,24 +63,19 @@ const MUTED = "#77777C";
 /** DRAFT = รออนุมัติ — ตั้งเป็นแท็บแรกเพราะเป็นงานที่ต้องทำ */
 type StatusTab = "DRAFT" | "APPROVED" | "REJECTED" | "CANCELLED" | "ALL";
 
-function formatMoney(value: number) {
-  return value.toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatHours(value: string | number) {
+function formatHours(value: string | number, lang: "th" | "en") {
   const n = Number(value);
   return Number.isNaN(n)
     ? String(value)
-    : n.toLocaleString("th-TH", { maximumFractionDigits: 2 });
+    : n.toLocaleString(lang === "en" ? "en-GB" : "th-TH", { maximumFractionDigits: 2 });
 }
 
 export default function OvertimeRequestsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { modal } = App.useApp();
+  const t = useT();
+  const lang = useLanguage();
   const today = dayjs();
 
   const [tab, setTab] = useState<StatusTab>("DRAFT");
@@ -134,29 +132,28 @@ export default function OvertimeRequestsPage() {
     // ว่าง = ให้ระบบตัดสินจากปฏิทิน (วันหยุด / Shutdown / วันปกติ)
     let dayType: string | undefined;
     modal.confirm({
-      title: `อนุมัติคำขอ OT ${ids.length} รายการ`,
+      title: t("อนุมัติคำขอ OT {n} รายการ", { n: ids.length }),
       content: (
         <div className={styles.rejectBody}>
           <p>
-            ระบบคิดเงิน OT ตอนอนุมัติ — ประเภทวันตัดสินจากปฏิทินให้อัตโนมัติ
-            ถ้าเป็นการทำงานวันหยุดประจำสัปดาห์ของพนักงานคนนั้น ให้เลือกประเภทวันเอง
+            {t("ระบบคิดเงิน OT ตอนอนุมัติ — ประเภทวันตัดสินจากปฏิทินให้อัตโนมัติ ถ้าเป็นการทำงานวันหยุดประจำสัปดาห์ของพนักงานคนนั้น ให้เลือกประเภทวันเอง")}
           </p>
           <Select
             allowClear
             style={{ width: "100%" }}
-            placeholder="อัตโนมัติ (ตามปฏิทิน)"
+            placeholder={t("อัตโนมัติ (ตามปฏิทิน)")}
             onChange={(value) => {
               dayType = value;
             }}
             options={Object.entries(OT_DAY_TYPE_LABEL).map(([value, label]) => ({
               value,
-              label,
+              label: t(label),
             }))}
           />
         </div>
       ),
-      okText: "อนุมัติ",
-      cancelText: "ยกเลิก",
+      okText: t("อนุมัติ"),
+      cancelText: t("ยกเลิก"),
       centered: true,
       onOk: () => review(ids, "approve", undefined, dayType),
     });
@@ -165,22 +162,22 @@ export default function OvertimeRequestsPage() {
   const confirmReject = (ids: string[]) => {
     let remark = "";
     modal.confirm({
-      title: `ปฏิเสธคำขอ OT ${ids.length} รายการ`,
+      title: t("ปฏิเสธคำขอ OT {n} รายการ", { n: ids.length }),
       content: (
         <div className={styles.rejectBody}>
-          <p>ระบุเหตุผลให้พนักงานทราบ (พนักงานจะเห็นข้อความนี้)</p>
+          <p>{t("ระบุเหตุผลให้พนักงานทราบ (พนักงานจะเห็นข้อความนี้)")}</p>
           <Input.TextArea
             rows={3}
-            placeholder="เช่น งานไม่เร่งด่วน ให้ทำในเวลาปกติ"
+            placeholder={t("เช่น งานไม่เร่งด่วน ให้ทำในเวลาปกติ")}
             onChange={(event) => {
               remark = event.target.value;
             }}
           />
         </div>
       ),
-      okText: "ปฏิเสธ",
+      okText: t("ปฏิเสธ"),
       okButtonProps: { danger: true },
-      cancelText: "ยกเลิก",
+      cancelText: t("ยกเลิก"),
       centered: true,
       onOk: () => review(ids, "reject", remark.trim() || undefined),
     });
@@ -189,7 +186,7 @@ export default function OvertimeRequestsPage() {
   const columns: ColumnsType<OvertimeRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         fixed: "left",
         width: 64,
@@ -197,7 +194,7 @@ export default function OvertimeRequestsPage() {
         render: (_, __, index) => (page - 1) * pageSize + index + 1,
       },
       {
-        title: "พนักงาน",
+        title: t("พนักงาน"),
         key: "employee",
         fixed: "left",
         width: 190,
@@ -205,45 +202,45 @@ export default function OvertimeRequestsPage() {
           <div className={styles.employeeCell}>
             <strong>{row.displayName ?? "—"}</strong>
             <span>
-              {row.employeeCode ?? "ไม่มีรหัส"}
+              {row.employeeCode ?? t("ไม่มีรหัส")}
               {row.departmentName ? ` · ${row.departmentName}` : ""}
             </span>
           </div>
         ),
       },
       {
-        title: "วันที่ทำ OT",
+        title: t("วันที่ทำ OT"),
         dataIndex: "otDate",
         key: "otDate",
         width: 115,
         render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
       },
       {
-        title: "ชั่วโมง",
+        title: t("ชั่วโมง"),
         dataIndex: "hours",
         key: "hours",
         width: 85,
         align: "right",
         render: (value: string) => (
-          <strong className={styles.hoursValue}>{formatHours(value)}</strong>
+          <strong className={styles.hoursValue}>{formatHours(value, lang)}</strong>
         ),
       },
       {
-        title: "ประเภทวัน",
+        title: t("ประเภทวัน"),
         dataIndex: "dayType",
         key: "dayType",
         width: 110,
         render: (value: string | undefined) =>
           value ? (
             <Tag color={value === "NORMAL" ? "default" : "orange"}>
-              {OT_DAY_TYPE_LABEL[value] ?? value}
+              {t(OT_DAY_TYPE_LABEL[value] ?? value)}
             </Tag>
           ) : (
             "—"
           ),
       },
       {
-        title: "ยอดเงิน OT (บาท)",
+        title: t("ยอดเงิน OT (บาท)"),
         dataIndex: "otAmount",
         key: "otAmount",
         width: 150,
@@ -252,8 +249,8 @@ export default function OvertimeRequestsPage() {
           if (row.status !== "APPROVED") return "—";
           if (value == null) {
             return (
-              <Tooltip title={row.calcDetail?.note ?? "คิดเงินไม่ได้"}>
-                <Tag color="red">ไม่มีฐานค่าจ้าง</Tag>
+              <Tooltip title={row.calcDetail?.note ?? t("คิดเงินไม่ได้")}>
+                <Tag color="red">{t("ไม่มีฐานค่าจ้าง")}</Tag>
               </Tooltip>
             );
           }
@@ -262,23 +259,23 @@ export default function OvertimeRequestsPage() {
             <Tooltip
               title={
                 <div>
-                  <div>ค่าแรง {formatMoney(row.hourlyRate ?? 0)} บาท/ชม.</div>
+                  <div>{t("ค่าแรง {amount} บาท/ชม.", { amount: formatMoney(row.hourlyRate ?? 0, lang) })}</div>
                   {lines.map((line) => (
                     <div key={line.label}>
-                      {line.label}: {formatHours(line.hours)} ชม. × {line.multiplier} ={" "}
-                      {formatMoney(line.amount)}
+                      {line.label}: {formatHours(line.hours, lang)} {t("ชม.")} × {line.multiplier} ={" "}
+                      {formatMoney(line.amount, lang)}
                     </div>
                   ))}
                 </div>
               }
             >
-              <strong>{formatMoney(value)}</strong>
+              <strong>{formatMoney(value, lang)}</strong>
             </Tooltip>
           );
         },
       },
       {
-        title: "เหตุผล",
+        title: t("เหตุผล"),
         dataIndex: "reason",
         key: "reason",
         ellipsis: true,
@@ -289,7 +286,7 @@ export default function OvertimeRequestsPage() {
         ),
       },
       {
-        title: "ยื่นเมื่อ",
+        title: t("ยื่นเมื่อ"),
         dataIndex: "createdAt",
         key: "createdAt",
         width: 130,
@@ -297,13 +294,13 @@ export default function OvertimeRequestsPage() {
           <div className={styles.stackedCell}>
             <span>{dayjs(value).format("DD/MM/YYYY HH:mm")}</span>
             <small>
-              {row.source ? (OVERTIME_SOURCE_LABEL[row.source] ?? "") : ""}
+              {row.source ? t(OVERTIME_SOURCE_LABEL[row.source] ?? "") : ""}
             </small>
           </div>
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 110,
@@ -311,18 +308,18 @@ export default function OvertimeRequestsPage() {
         render: (value: string, row) => (
           <div className={styles.stackedCell}>
             <Tag color={OVERTIME_STATUS_COLOR[value]}>
-              {OVERTIME_STATUS_LABEL[value] ?? value}
+              {overtimeStatusLabel(value, lang)}
             </Tag>
             {row.reviewRemark ? (
               <Tooltip title={row.reviewRemark}>
-                <small className={styles.remarkHint}>ดูเหตุผล</small>
+                <small className={styles.remarkHint}>{t("ดูเหตุผล")}</small>
               </Tooltip>
             ) : null}
           </div>
         ),
       },
       {
-        title: "ผู้พิจารณา",
+        title: t("ผู้พิจารณา"),
         dataIndex: "approvedByName",
         key: "approvedByName",
         width: 140,
@@ -341,7 +338,7 @@ export default function OvertimeRequestsPage() {
           ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 150,
         align: "center",
@@ -355,7 +352,7 @@ export default function OvertimeRequestsPage() {
                 disabled={reviewMutation.isPending}
                 onClick={() => confirmApprove([row.id])}
               >
-                อนุมัติ
+                {t("อนุมัติ")}
               </Button>
               <Button
                 size="small"
@@ -364,7 +361,7 @@ export default function OvertimeRequestsPage() {
                 disabled={reviewMutation.isPending}
                 onClick={() => confirmReject([row.id])}
               >
-                ปฏิเสธ
+                {t("ปฏิเสธ")}
               </Button>
             </Space>
           ) : (
@@ -373,7 +370,7 @@ export default function OvertimeRequestsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [reviewMutation.isPending],
+    [reviewMutation.isPending, t, lang],
   );
 
   return (
@@ -382,13 +379,12 @@ export default function OvertimeRequestsPage() {
         <PageHeader
           eyebrow="HRM"
           icon={<FieldTimeOutlined />}
-          title="คำขอทำงานล่วงเวลา (OT)"
-          subtitle={<>พนักงานยื่นคำขอเองผ่านมือถือที่ <code>/overtime</code> —
-              หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้</>}
+          title={t("คำขอทำงานล่วงเวลา (OT)")}
+          subtitle={<>{t("พนักงานยื่นคำขอเองผ่านมือถือที่")}<code>/overtime</code> — {t("หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้")}</>}
           actions={
             <>
 <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
-            ตั้งค่าอัตรา OT
+            {t("ตั้งค่าอัตรา OT")}
           </Button>
             </>
           }
@@ -396,31 +392,31 @@ export default function OvertimeRequestsPage() {
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAlert}`}>
-            <span>รออนุมัติ (ทั้งหมด)</span>
-            <strong>{summary?.pendingCount ?? 0} คำขอ</strong>
-            <small>{formatHours(summary?.pendingHours ?? 0)} ชม.</small>
+            <span>{t("รออนุมัติ (ทั้งหมด)")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.pendingCount ?? 0 })}</strong>
+            <small>{formatHours(summary?.pendingHours ?? 0, lang)} {t("ชม.")}</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>อนุมัติแล้วในช่วงนี้</span>
-            <strong>{summary?.approvedCount ?? 0} คำขอ</strong>
-            <small>{formatHours(summary?.approvedHours ?? 0)} ชม.</small>
+            <span>{t("อนุมัติแล้วในช่วงนี้")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.approvedCount ?? 0 })}</strong>
+            <small>{formatHours(summary?.approvedHours ?? 0, lang)} {t("ชม.")}</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>ยอดเงิน OT ที่อนุมัติในช่วงนี้</span>
-            <strong>{formatMoney(summary?.approvedAmount ?? 0)} บาท</strong>
+            <span>{t("ยอดเงิน OT ที่อนุมัติในช่วงนี้")}</span>
+            <strong>{formatMoney(summary?.approvedAmount ?? 0, lang)} {t("บาท")}</strong>
             <small>
               {summary?.unpricedCount
-                ? `ไม่รวม ${summary.unpricedCount} คำขอที่ไม่มีฐานค่าจ้าง`
-                : "คิดเงินได้ครบทุกคำขอ"}
+                ? t("ไม่รวม {n} คำขอที่ไม่มีฐานค่าจ้าง", { n: summary.unpricedCount })
+                : t("คิดเงินได้ครบทุกคำขอ")}
             </small>
           </div>
           <div className={styles.summaryCard}>
-            <span>ปฏิเสธในช่วงนี้</span>
-            <strong>{summary?.rejectedCount ?? 0} คำขอ</strong>
+            <span>{t("ปฏิเสธในช่วงนี้")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.rejectedCount ?? 0 })}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>พนักงานยกเลิกเอง</span>
-            <strong>{summary?.cancelledCount ?? 0} คำขอ</strong>
+            <span>{t("พนักงานยกเลิกเอง")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.cancelledCount ?? 0 })}</strong>
           </div>
         </div>
 
@@ -437,7 +433,7 @@ export default function OvertimeRequestsPage() {
                 label: (
                   // นับเองแทน antd Badge — Badge ค้าง leave-animation แล้วโชว์เลขเก่าตอนคิวเหลือ 0
                   <span className={styles.tabLabel}>
-                    รออนุมัติ
+                    {overtimeStatusLabel("DRAFT", lang)}
                     {summary?.pendingCount ? (
                       <span className={styles.tabCount}>
                         {summary.pendingCount}
@@ -446,10 +442,10 @@ export default function OvertimeRequestsPage() {
                   </span>
                 ),
               },
-              { value: "APPROVED", label: "อนุมัติแล้ว" },
-              { value: "REJECTED", label: "ปฏิเสธ" },
-              { value: "CANCELLED", label: "ยกเลิก" },
-              { value: "ALL", label: "ทั้งหมด" },
+              { value: "APPROVED", label: overtimeStatusLabel("APPROVED", lang) },
+              { value: "REJECTED", label: overtimeStatusLabel("REJECTED", lang) },
+              { value: "CANCELLED", label: overtimeStatusLabel("CANCELLED", lang) },
+              { value: "ALL", label: t("ทั้งหมด") },
             ]}
           />
 
@@ -457,7 +453,7 @@ export default function OvertimeRequestsPage() {
             <Tooltip
               title={
                 isPendingTab
-                  ? "แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่"
+                  ? t("แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่")
                   : undefined
               }
             >
@@ -474,7 +470,7 @@ export default function OvertimeRequestsPage() {
             </Tooltip>
             <Input
               allowClear
-              placeholder="ค้นหาชื่อ / รหัส / เหตุผล"
+              placeholder={t("ค้นหาชื่อ / รหัส / เหตุผล")}
               prefix={<SearchOutlined />}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
@@ -489,14 +485,14 @@ export default function OvertimeRequestsPage() {
                 void listQuery.refetch();
               }}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
           </div>
         </div>
 
         {isPendingTab && selectedIds.length > 0 ? (
           <div className={styles.bulkBar}>
-            <span>เลือกไว้ {selectedIds.length} รายการ</span>
+            <span>{t("เลือกไว้ {n} รายการ", { n: selectedIds.length })}</span>
             <Space>
               <Button
                 type="primary"
@@ -504,7 +500,7 @@ export default function OvertimeRequestsPage() {
                 loading={reviewMutation.isPending}
                 onClick={() => confirmApprove(selectedIds)}
               >
-                อนุมัติที่เลือก
+                {t("อนุมัติที่เลือก")}
               </Button>
               <Button
                 danger
@@ -512,10 +508,10 @@ export default function OvertimeRequestsPage() {
                 loading={reviewMutation.isPending}
                 onClick={() => confirmReject(selectedIds)}
               >
-                ปฏิเสธที่เลือก
+                {t("ปฏิเสธที่เลือก")}
               </Button>
               <Button type="text" onClick={() => setSelectedIds([])}>
-                ล้างที่เลือก
+                {t("ล้างที่เลือก")}
               </Button>
             </Space>
           </div>
@@ -543,15 +539,15 @@ export default function OvertimeRequestsPage() {
               onChange: (p, ps) => { setPage(p); setPageSize(ps); },
               showSizeChanger: true,
               pageSizeOptions: [10, 20, 50, 100],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
             }}
             locale={{
               emptyText: (
                 <Empty
                   description={
                     isPendingTab
-                      ? "ไม่มีคำขอรออนุมัติ — เคลียร์หมดแล้ว 🎉"
-                      : "ไม่มีคำขอในเงื่อนไขนี้"
+                      ? t("ไม่มีคำขอรออนุมัติ — เคลียร์หมดแล้ว 🎉")
+                      : t("ไม่มีคำขอในเงื่อนไขนี้")
                   }
                 />
               ),
@@ -561,14 +557,14 @@ export default function OvertimeRequestsPage() {
 
         <div className={styles.chartCard}>
           <div className={styles.chartHeader}>
-            <h3>ชั่วโมง OT รายวัน</h3>
-            <p>เทียบชั่วโมงที่อนุมัติแล้วกับที่ยังรออนุมัติในช่วงที่เลือก</p>
+            <h3>{t("ชั่วโมง OT รายวัน")}</h3>
+            <p>{t("เทียบชั่วโมงที่อนุมัติแล้วกับที่ยังรออนุมัติในช่วงที่เลือก")}</p>
           </div>
           <div className={styles.chartBody}>
             {chartData.length === 0 ? (
               <Empty
                 className={styles.emptyState}
-                description="ไม่มีข้อมูลในช่วงนี้"
+                description={t("ไม่มีข้อมูลในช่วงนี้")}
               />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -593,19 +589,19 @@ export default function OvertimeRequestsPage() {
                       borderRadius: 10,
                       border: "1px solid #e4e7eb",
                     }}
-                    formatter={(value, name) => [`${value} ชม.`, name]}
+                    formatter={(value, name) => [`${value} ${t("ชม.")}`, name]}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar
                     stackId="ot"
                     dataKey="approvedHours"
-                    name="อนุมัติแล้ว"
+                    name={overtimeStatusLabel("APPROVED", lang)}
                     fill={GREEN}
                   />
                   <Bar
                     stackId="ot"
                     dataKey="pendingHours"
-                    name="รออนุมัติ"
+                    name={overtimeStatusLabel("DRAFT", lang)}
                     fill={ORANGE}
                     radius={[4, 4, 0, 0]}
                   />

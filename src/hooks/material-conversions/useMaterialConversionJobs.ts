@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
+import { useT } from "@/lib/i18n/useT";
 
 import { ApiError } from "@/lib/api/client";
 import {
@@ -64,6 +65,7 @@ function errorMessage(error: unknown, fallback: string) {
 export function useCreateMaterialConversionJobMutation() {
   const invalidate = useInvalidateJobs();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionJobsKey, "create"],
@@ -78,11 +80,11 @@ export function useCreateMaterialConversionJobMutation() {
       if (res.message.includes("—")) {
         message.warning(res.message);
       } else {
-        message.success(res.message || "เปิดใบงานแปรสภาพสำเร็จ");
+        message.success(res.message || t("เปิดใบงานแปรสภาพสำเร็จ"));
       }
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "เปิดใบงานแปรสภาพไม่สำเร็จ"));
+      message.error(errorMessage(error, t("เปิดใบงานแปรสภาพไม่สำเร็จ")));
     },
   });
 }
@@ -90,6 +92,7 @@ export function useCreateMaterialConversionJobMutation() {
 export function useCloseMaterialConversionJobMutation() {
   const invalidate = useInvalidateJobs();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionJobsKey, "close"],
@@ -97,10 +100,10 @@ export function useCloseMaterialConversionJobMutation() {
       closeMaterialConversionJob(getAccessToken(), vars.id, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ปิดใบงานสำเร็จ");
+      message.success(res.message || t("ปิดใบงานสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ปิดใบงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ปิดใบงานไม่สำเร็จ")));
     },
   });
 }
@@ -108,6 +111,7 @@ export function useCloseMaterialConversionJobMutation() {
 export function useReopenMaterialConversionJobMutation() {
   const invalidate = useInvalidateJobs();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionJobsKey, "reopen"],
@@ -115,10 +119,10 @@ export function useReopenMaterialConversionJobMutation() {
       reopenMaterialConversionJob(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เปิดใบงานกลับมาสำเร็จ");
+      message.success(res.message || t("เปิดใบงานกลับมาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "เปิดใบงานกลับมาไม่สำเร็จ"));
+      message.error(errorMessage(error, t("เปิดใบงานกลับมาไม่สำเร็จ")));
     },
   });
 }
@@ -126,6 +130,7 @@ export function useReopenMaterialConversionJobMutation() {
 export function useCancelMaterialConversionJobMutation() {
   const invalidate = useInvalidateJobs();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionJobsKey, "cancel"],
@@ -133,10 +138,10 @@ export function useCancelMaterialConversionJobMutation() {
       cancelMaterialConversionJob(getAccessToken(), vars.id, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกใบงานสำเร็จ");
+      message.success(res.message || t("ยกเลิกใบงานสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ยกเลิกใบงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ยกเลิกใบงานไม่สำเร็จ")));
     },
   });
 }

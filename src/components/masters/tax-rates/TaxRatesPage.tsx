@@ -1,5 +1,8 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -131,6 +134,8 @@ function buildSearchFromForm(
 }
 
 export default function TaxRatesPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -228,7 +233,7 @@ export default function TaxRatesPage() {
 
   const columns: ColumnsType<TaxRate> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -239,7 +244,7 @@ export default function TaxRatesPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 140,
@@ -248,7 +253,7 @@ export default function TaxRatesPage() {
       ),
     },
     {
-      title: "ชื่อภาษี",
+      title: t("ชื่อภาษี"),
       dataIndex: "name",
       key: "name",
       render: (value: string) => (
@@ -258,7 +263,7 @@ export default function TaxRatesPage() {
       ),
     },
     {
-      title: "อัตรา (%)",
+      title: t("อัตรา (%)"),
       dataIndex: "rate",
       key: "rate",
       width: 110,
@@ -268,7 +273,7 @@ export default function TaxRatesPage() {
       ),
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "taxType",
       key: "taxType",
       width: 110,
@@ -277,7 +282,7 @@ export default function TaxRatesPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -286,53 +291,53 @@ export default function TaxRatesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {formatDateTime(value, lang)}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.code}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.code })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบอัตราภาษี",
-                content: `ต้องการลบ "${record.code}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบอัตราภาษี"),
+                content: t('ต้องการลบ "{name}" หรือไม่?', { name: record.code }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -346,8 +351,8 @@ export default function TaxRatesPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="อัตราภาษี"
-        subtitle="จัดการอัตราภาษีมูลค่าเพิ่มและประเภทภาษีที่ใช้ในเอกสาร"
+        title={t("อัตราภาษี")}
+        subtitle={t("จัดการอัตราภาษีมูลค่าเพิ่มและประเภทภาษีที่ใช้ในเอกสาร")}
         actions={
           <>
 <Button
@@ -357,7 +362,7 @@ export default function TaxRatesPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มอัตราภาษี
+          {t("เพิ่มอัตราภาษี")}
         </Button>
           </>
         }
@@ -368,7 +373,7 @@ export default function TaxRatesPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "อัตราภาษีทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("อัตราภาษีทั้งหมด")}
             </span>
             <strong>{taxRates.length}</strong>
           </div>
@@ -377,7 +382,7 @@ export default function TaxRatesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -385,7 +390,7 @@ export default function TaxRatesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -395,13 +400,13 @@ export default function TaxRatesPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาอัตราภาษี</h3>
-            <p>กรองด้วยรหัส ชื่อ อัตรา ประเภท และสถานะ</p>
+            <h3>{t("ค้นหาอัตราภาษี")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ อัตรา ประเภท และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -415,27 +420,27 @@ export default function TaxRatesPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสภาษี">
+              <Form.Item name="code" label={t("รหัสภาษี")}>
                 <Input
                   allowClear
-                  placeholder="เช่น VAT7"
+                  placeholder={t("เช่น VAT7")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อภาษี">
-                <Input allowClear placeholder="เช่น มูลค่าเพิ่ม" />
+              <Form.Item name="name" label={t("ชื่อภาษี")}>
+                <Input allowClear placeholder={t("เช่น มูลค่าเพิ่ม")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={4}>
-              <Form.Item name="rate" label="อัตรา (%)">
+              <Form.Item name="rate" label={t("อัตรา (%)")}>
                 <InputNumber
                   min={0}
                   step={0.01}
-                  placeholder="เช่น 7"
+                  placeholder={t("เช่น 7")}
                   controls={false}
                   style={{ width: "100%" }}
                 />
@@ -443,10 +448,10 @@ export default function TaxRatesPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={4}>
-              <Form.Item name="taxType" label="ประเภท">
+              <Form.Item name="taxType" label={t("ประเภท")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
                     { value: "VAT", label: "VAT" },
                     { value: "WHT", label: "WHT" },
@@ -457,13 +462,13 @@ export default function TaxRatesPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={4}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -478,7 +483,7 @@ export default function TaxRatesPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -486,7 +491,7 @@ export default function TaxRatesPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -499,15 +504,15 @@ export default function TaxRatesPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>TAX RATE MANAGEMENT</div>
-            <h3>รายการอัตราภาษี</h3>
+            <h3>{t("รายการอัตราภาษี")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลอัตราภาษีทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลอัตราภาษีทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{taxRates.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: taxRates.length })}</div>
         </div>
 
         {taxRatesQuery.isError ? (
@@ -515,7 +520,7 @@ export default function TaxRatesPage() {
             <Typography.Text type="danger">
               {taxRatesQuery.error instanceof Error
                 ? taxRatesQuery.error.message
-                : "โหลดข้อมูลอัตราภาษีไม่สำเร็จ"}
+                : t("โหลดข้อมูลอัตราภาษีไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -529,14 +534,14 @@ export default function TaxRatesPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 960 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบอัตราภาษีตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลอัตราภาษี",
+                ? t("ไม่พบอัตราภาษีตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลอัตราภาษี"),
             }}
           />
         )}

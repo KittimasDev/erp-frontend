@@ -30,10 +30,13 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import { userHasRole } from "@/lib/auth/session";
 import {
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  productionOutputStatusLabel,
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
 import styles from "./ProductionOutputApprovalDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { appLocale } from "@/components/weighbridge/receiving-i18n";
 
 type Props = {
   requestId: string;
@@ -52,7 +55,7 @@ function formatQty(value?: string) {
   if (Number.isNaN(num)) {
     return "-";
   }
-  return num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return num.toLocaleString(appLocale(), { maximumFractionDigits: 3 });
 }
 
 function formatDate(value?: string) {
@@ -75,6 +78,7 @@ export default function ProductionOutputApprovalDetailPage({
   backLabel = "กลับรายการอนุมัติ",
   readOnly = false,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   /** มีสิทธิ์อนุมัติจริงไหม — ใช้ตัดสินว่าจะโชว์ทางลัดไปหน้าอนุมัติด้วย */
   const hasApproveRight =
@@ -218,13 +222,13 @@ export default function ProductionOutputApprovalDetailPage({
           eyebrow="WAREHOUSE · APPROVAL"
           title={
             <>
-              รายละเอียดคำขอรับผลผลิต
+              {t("รายละเอียดคำขอรับผลผลิต")}
               {request?.requestNo ? (
                 <span className={styles.requestNo}>{request.requestNo}</span>
               ) : null}
             </>
           }
-          subtitle="ตรวจรายการ เอกสารอ้างอิง และอนุมัติเพื่อ POST สต๊อก"
+          subtitle={t("ตรวจรายการ เอกสารอ้างอิง และอนุมัติเพื่อ POST สต๊อก")}
           actions={
             <>
             <Button
@@ -232,7 +236,7 @@ export default function ProductionOutputApprovalDetailPage({
               className={styles.backButton}
               onClick={() => router.push(backHref)}
             >
-              {backLabel}
+              {t(backLabel)}
             </Button>
             {request ? (
               <Button
@@ -240,7 +244,7 @@ export default function ProductionOutputApprovalDetailPage({
                 className={styles.backButton}
                 onClick={() => void handlePrint()}
               >
-                พิมพ์ PDF
+                {t("พิมพ์ PDF")}
               </Button>
             ) : null}
             </>
@@ -253,7 +257,7 @@ export default function ProductionOutputApprovalDetailPage({
               <div
                 className={`${styles.summaryCard} ${styles.summaryCardAccent}`}
               >
-                <span>จำนวนรับเข้า</span>
+                <span>{t("จำนวนรับเข้า")}</span>
                 <strong>
                   {formatQty(request.quantity)}
                   <span className={styles.summaryUnit}>
@@ -262,20 +266,19 @@ export default function ProductionOutputApprovalDetailPage({
                 </strong>
               </div>
               <div className={styles.summaryCard}>
-                <span>เอกสารอ้างอิง</span>
-                <strong>{refs.length} ตั๋ว</strong>
+                <span>{t("เอกสารอ้างอิง")}</span>
+                <strong>{t("{n} ตั๋ว", { n: refs.length })}</strong>
               </div>
               <div className={styles.summaryCard}>
-                <span>วันที่รับเข้า</span>
+                <span>{t("วันที่รับเข้า")}</span>
                 <strong className={styles.summaryCompact}>
                   {formatDate(request.postingDate)}
                 </strong>
               </div>
               <div className={styles.summaryCard}>
-                <span>สถานะ</span>
+                <span>{t("สถานะ")}</span>
                 <strong className={styles.summaryCompact}>
-                  {PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[request.status] ??
-                    request.status}
+                  {productionOutputStatusLabel(request.status)}
                 </strong>
               </div>
             </div>
@@ -283,13 +286,13 @@ export default function ProductionOutputApprovalDetailPage({
             <div className={styles.layout}>
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
-                  <h3>รายละเอียดรับเข้า</h3>
-                  <p>สินค้า / คลัง / Lot ที่จะ POST เมื่ออนุมัติ</p>
+                  <h3>{t("รายละเอียดรับเข้า")}</h3>
+                  <p>{t("สินค้า / คลัง / Lot ที่จะ POST เมื่ออนุมัติ")}</p>
                 </div>
                 <div className={styles.cardBody}>
                   <div className={styles.fieldGrid}>
                     <div className={styles.field}>
-                      <span className={styles.fieldLabel}>สินค้า</span>
+                      <span className={styles.fieldLabel}>{t("สินค้า")}</span>
                       <span className={styles.fieldValue}>
                         {request.itemCode
                           ? `${request.itemCode} — ${request.itemNameTh ?? ""}`
@@ -297,14 +300,14 @@ export default function ProductionOutputApprovalDetailPage({
                       </span>
                     </div>
                     <div className={styles.field}>
-                      <span className={styles.fieldLabel}>จำนวน</span>
+                      <span className={styles.fieldLabel}>{t("จำนวน")}</span>
                       <span className={styles.fieldValue}>
                         {formatQty(request.quantity)}{" "}
                         {request.unitCode || request.unitNameTh || ""}
                       </span>
                     </div>
                     <div className={styles.field}>
-                      <span className={styles.fieldLabel}>คลัง</span>
+                      <span className={styles.fieldLabel}>{t("คลัง")}</span>
                       <span className={styles.fieldValue}>
                         {request.warehouseCode
                           ? `${request.warehouseCode} — ${request.warehouseName ?? ""}`
@@ -312,7 +315,7 @@ export default function ProductionOutputApprovalDetailPage({
                       </span>
                     </div>
                     <div className={styles.field}>
-                      <span className={styles.fieldLabel}>ตำแหน่ง</span>
+                      <span className={styles.fieldLabel}>{t("ตำแหน่ง")}</span>
                       <span className={styles.fieldValue}>
                         {request.locationCode
                           ? `${request.locationCode} — ${request.locationName ?? ""}`
@@ -322,12 +325,12 @@ export default function ProductionOutputApprovalDetailPage({
                     <div className={styles.field}>
                       <span className={styles.fieldLabel}>Lot</span>
                       <span className={styles.fieldValue}>
-                        {request.lotNo || "สร้างตอนอนุมัติ"}
+                        {request.lotNo || t("สร้างตอนอนุมัติ")}
                       </span>
                     </div>
                     {request.productionOrderId ? (
                       <div className={styles.field}>
-                        <span className={styles.fieldLabel}>ใบสั่งผลิตต้นทาง</span>
+                        <span className={styles.fieldLabel}>{t("ใบสั่งผลิตต้นทาง")}</span>
                         <span className={styles.fieldValue}>
                           {canViewProductionOrders ? (
                             <button
@@ -357,13 +360,13 @@ export default function ProductionOutputApprovalDetailPage({
                       </div>
                     ) : null}
                     <div className={styles.field}>
-                      <span className={styles.fieldLabel}>ผู้ขอ</span>
+                      <span className={styles.fieldLabel}>{t("ผู้ขอ")}</span>
                       <span className={styles.fieldValue}>
                         {request.requestedByName ?? request.requestedById}
                       </span>
                     </div>
                     <div className={`${styles.field} ${styles.fieldFull}`}>
-                      <span className={styles.fieldLabel}>หมายเหตุ</span>
+                      <span className={styles.fieldLabel}>{t("หมายเหตุ")}</span>
                       <span className={styles.fieldValue}>
                         {request.remark || "-"}
                       </span>
@@ -372,9 +375,9 @@ export default function ProductionOutputApprovalDetailPage({
                 </div>
 
                 <div className={styles.cardHeader}>
-                  <h3>เอกสารอ้างอิง (ตั๋วชั่ง)</h3>
+                  <h3>{t("เอกสารอ้างอิง (ตั๋วชั่ง)")}</h3>
                   <p>
-                    ตั๋วที่รวบในคำขอนี้ — จำนวนด้านบนเป็นยอดรวมของทั้งชุด
+                    {t("ตั๋วที่รวบในคำขอนี้ — จำนวนด้านบนเป็นยอดรวมของทั้งชุด")}
                   </p>
                 </div>
                 <div className={styles.cardBody}>
@@ -391,7 +394,7 @@ export default function ProductionOutputApprovalDetailPage({
                         ))}
                       </div>
                       <div className={styles.ticketMeta}>
-                        รวม {refs.length} ตั๋ว
+                        {t("รวม {n} ตั๋ว", { n: refs.length })}
                       </div>
                     </>
                   ) : (
@@ -402,25 +405,23 @@ export default function ProductionOutputApprovalDetailPage({
 
               <aside className={styles.sideCard}>
                 <div className={statusBannerClass}>
-                  <span>สถานะคำขอ</span>
+                  <span>{t("สถานะคำขอ")}</span>
                   <strong>
-                    {PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[request.status] ??
-                      request.status}
+                    {productionOutputStatusLabel(request.status)}
                   </strong>
                 </div>
 
                 {isPending && canApprove ? (
                   <div className={styles.actionCard}>
                     <p className={styles.actionHint}>
-                      อนุมัติแล้วระบบจะสร้าง Lot / balances / movement RECEIVE
-                      และเพิ่มยอดคงเหลือทันที
+                      {t("อนุมัติแล้วระบบจะสร้าง Lot / balances / movement RECEIVE และเพิ่มยอดคงเหลือทันที")}
                     </p>
                     <div className={styles.actionButtons}>
                       <Popconfirm
-                        title="อนุมัติรับผลผลิตเข้าคลัง"
-                        description="ยืนยัน POST สต๊อกสำหรับคำขอนี้"
-                        okText="อนุมัติ"
-                        cancelText="ยกเลิก"
+                        title={t("อนุมัติรับผลผลิตเข้าคลัง")}
+                        description={t("ยืนยัน POST สต๊อกสำหรับคำขอนี้")}
+                        okText={t("อนุมัติ")}
+                        cancelText={t("ยกเลิก")}
                         onConfirm={handleApprove}
                       >
                         <Button
@@ -430,7 +431,7 @@ export default function ProductionOutputApprovalDetailPage({
                           loading={approveMutation.isPending}
                           block
                         >
-                          อนุมัติเข้าคลัง
+                          {t("อนุมัติเข้าคลัง")}
                         </Button>
                       </Popconfirm>
                       <Button
@@ -440,7 +441,7 @@ export default function ProductionOutputApprovalDetailPage({
                         onClick={() => setRejectOpen(true)}
                         block
                       >
-                        ไม่อนุมัติ
+                        {t("ไม่อนุมัติ")}
                       </Button>
                     </div>
                   </div>
@@ -449,9 +450,7 @@ export default function ProductionOutputApprovalDetailPage({
                 {readOnly && isPending ? (
                   <div className={styles.actionCard}>
                     <p className={styles.actionHint}>
-                      คำขอนี้รอหัวหน้าคลังอนุมัติ — สต๊อกจะเพิ่มหลังอนุมัติ
-                      เท่านั้น การอนุมัติทำที่เมนู คลัง FG →
-                      อนุมัติรับผลผลิตเข้าคลัง
+                      {t("คำขอนี้รอหัวหน้าคลังอนุมัติ — สต๊อกจะเพิ่มหลังอนุมัติเท่านั้น การอนุมัติทำที่เมนู คลัง FG → อนุมัติรับผลผลิตเข้าคลัง")}
                     </p>
                     {hasApproveRight ? (
                       <div className={styles.actionButtons}>
@@ -464,7 +463,7 @@ export default function ProductionOutputApprovalDetailPage({
                             )
                           }
                         >
-                          ไปหน้าอนุมัติ
+                          {t("ไปหน้าอนุมัติ")}
                         </Button>
                       </div>
                     ) : null}
@@ -474,9 +473,7 @@ export default function ProductionOutputApprovalDetailPage({
                 {!readOnly && !canApprove && isPending ? (
                   <div className={styles.actionCard}>
                     <p className={styles.actionHint}>
-                      ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}
-                      PRODUCTION_OUTPUT_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน →
-                      การอนุญาต
+                      {t("ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์ PRODUCTION_OUTPUT_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต")}
                     </p>
                   </div>
                 ) : null}
@@ -484,14 +481,14 @@ export default function ProductionOutputApprovalDetailPage({
                 {isApproved ? (
                   <div className={styles.actionCard}>
                     <p className={styles.actionHint}>
-                      อนุมัติแล้ว — ดูรายการเคลื่อนไหวสต๊อกที่เกิดจากคำขอนี้ได้
+                      {t("อนุมัติแล้ว — ดูรายการเคลื่อนไหวสต๊อกที่เกิดจากคำขอนี้ได้")}
                     </p>
                     {stockMovementsHref ? (
                       <Button
                         block
                         onClick={() => router.push(stockMovementsHref)}
                       >
-                        ดู Stock Movement
+                        {t("ดู Stock Movement")}
                       </Button>
                     ) : null}
                   </div>
@@ -499,19 +496,19 @@ export default function ProductionOutputApprovalDetailPage({
 
                 {request.rejectReason ? (
                   <div className={styles.rejectBox}>
-                    <strong>เหตุผลไม่อนุมัติ</strong>
+                    <strong>{t("เหตุผลไม่อนุมัติ")}</strong>
                     <p>{request.rejectReason}</p>
                   </div>
                 ) : null}
 
                 <div className={styles.metaList}>
                   <div className={styles.metaRow}>
-                    <span>ส่งคำขอ</span>
+                    <span>{t("ส่งคำขอ")}</span>
                     <strong>{formatDateTime(request.requestedAt)}</strong>
                   </div>
                   {request.approvedAt ? (
                     <div className={styles.metaRow}>
-                      <span>อนุมัติ</span>
+                      <span>{t("อนุมัติ")}</span>
                       <strong>
                         {formatDateTime(request.approvedAt)}
                         {request.approvedByName
@@ -522,7 +519,7 @@ export default function ProductionOutputApprovalDetailPage({
                   ) : null}
                   {request.rejectedAt ? (
                     <div className={styles.metaRow}>
-                      <span>ไม่อนุมัติ</span>
+                      <span>{t("ไม่อนุมัติ")}</span>
                       <strong>
                         {formatDateTime(request.rejectedAt)}
                         {request.rejectedByName
@@ -536,15 +533,15 @@ export default function ProductionOutputApprovalDetailPage({
             </div>
           </>
         ) : (
-          <div className={styles.emptyState}>ไม่พบคำขอที่ต้องการ</div>
+          <div className={styles.emptyState}>{t("ไม่พบคำขอที่ต้องการ")}</div>
         )}
 
         <Modal
-          title="ไม่อนุมัติคำขอ"
+          title={t("ไม่อนุมัติคำขอ")}
           open={rejectOpen}
           onCancel={() => setRejectOpen(false)}
           onOk={handleReject}
-          okText="ยืนยัน"
+          okText={t("ยืนยัน")}
           confirmLoading={rejectMutation.isPending}
           okButtonProps={{ disabled: !rejectReason.trim(), danger: true }}
         >
@@ -552,7 +549,7 @@ export default function ProductionOutputApprovalDetailPage({
             rows={4}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="ระบุเหตุผล"
+            placeholder={t("ระบุเหตุผล")}
           />
         </Modal>
       </section>

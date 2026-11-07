@@ -33,8 +33,12 @@ import type {
 } from "@/types/procurement-reports";
 import {
   SALES_ORDER_STATUS_LABEL,
+  tSoStatus,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
+import { useLanguage } from "@/lib/i18n/language";
+import type { Language } from "@/lib/i18n/translate";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 import {
   downloadTabularReport,
   type TabularPdfColumn,
@@ -299,12 +303,28 @@ function formatMoney(value: string) {
 const qtyText = (value: string | null | undefined) =>
   value === null || value === undefined ? "" : formatQty(value);
 
-/** 01/10/2569 — วัน/เดือน/ปี พ.ศ. */
-function formatBeDate(isoDate: string) {
+/** 01/10/2569 — วัน/เดือน/ปี พ.ศ. (lang = "en" → ค.ศ.; ไฟล์ส่งออกไม่ส่ง lang = พ.ศ. เสมอ) */
+function formatBeDate(isoDate: string, lang: Language = "th") {
   const d = dayjs(isoDate);
   if (!d.isValid()) return isoDate;
+  if (lang === "en") return d.format("DD/MM/YYYY");
   return `${d.format("DD/MM/")}${d.year() + 543}`;
 }
+
+/** สถานะการส่งมอบ (ตัวกรอง) ตามภาษา */
+function deliveryStatusLabel(value: SalesDeliveryStatusFilter, thai: string, lang: Language) {
+  if (lang !== "en") return thai;
+  const en: Record<SalesDeliveryStatusFilter, string> = {
+    ALL: "All delivery statuses",
+    NOT_DELIVERED: "Not delivered",
+    PARTIAL: "Partially delivered",
+    DELIVERED: "Delivered",
+  };
+  return en[value] ?? thai;
+}
+
+/** "ยกเลิก" ในความหมายสถานะ (Cancelled) — ต่างจากปุ่ม Cancel */
+const cancelledWord = (lang: Language) => (lang === "en" ? "Cancelled" : "ยกเลิก");
 
 function rangeLabel(dateFrom: string, dateTo: string) {
   return `ช่วงวันที่ ${formatBeDate(dateFrom)} – ${formatBeDate(dateTo)}`;
@@ -471,13 +491,12 @@ function toSheet(
   };
 }
 
-const CANCELLED_TAG = (
-  <Tag color="default" style={{ marginInlineStart: 8 }}>
-    ยกเลิก
-  </Tag>
-);
-
-function labelCell(row: SummaryRow, includeCancelled: boolean) {
+function labelCell(row: SummaryRow, includeCancelled: boolean, t: TFunction, lang: Language) {
+  const CANCELLED_TAG = (
+    <Tag color="default" style={{ marginInlineStart: 8 }}>
+      {cancelledWord(lang)}
+    </Tag>
+  );
   if (row.kind === "customer") return <strong>{row.label}</strong>;
   if (row.kind === "order") {
     return (
@@ -504,7 +523,7 @@ function labelCell(row: SummaryRow, includeCancelled: boolean) {
       {row.cancelled ? CANCELLED_TAG : null}
       {includeCancelled && hasCancelledQty(row) ? (
         <span style={{ marginInlineStart: 8, color: "#9ca3af", fontSize: 12 }}>
-          ยกเลิก {formatQty(row.cancelledQty ?? "0")} {row.unitCode ?? ""}
+          {t("ยกเลิก {qty} {unit}", { qty: formatQty(row.cancelledQty ?? "0"), unit: row.unitCode ?? "" })}
         </span>
       ) : null}
     </span>
@@ -514,40 +533,40 @@ function labelCell(row: SummaryRow, includeCancelled: boolean) {
 const emphasize = (row: SummaryRow, content: string) =>
   row.kind === "line" ? content : <strong>{content}</strong>;
 
-function buildColumns(includeCancelled: boolean): ColumnsType<SummaryRow> {
+function buildColumns(includeCancelled: boolean, t: TFunction, lang: Language): ColumnsType<SummaryRow> {
   return [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       dataIndex: "seq",
       width: 104,
       render: (value: number | undefined) => value ?? "",
     },
     {
-      title: "ลูกค้า / SO / สินค้า",
+      title: t("ลูกค้า / SO / สินค้า"),
       dataIndex: "label",
-      render: (_value: string, row) => labelCell(row, includeCancelled),
+      render: (_value: string, row) => labelCell(row, includeCancelled, t, lang),
     },
     {
-      title: "วันที่ SO",
+      title: t("วันที่ SO"),
       dataIndex: "soDate",
       width: 110,
-      render: (value: string | undefined) => (value ? formatBeDate(value) : ""),
+      render: (value: string | undefined) => (value ? formatBeDate(value, lang) : ""),
     },
     {
-      title: "หน่วยนับ",
+      title: t("หน่วยนับ"),
       dataIndex: "unitCode",
       width: 90,
       render: (value: string | null, row) => emphasize(row, value ?? ""),
     },
     ...QTY_COLUMNS.map(([title, dataIndex]) => ({
-      title,
+      title: t(title),
       dataIndex,
       align: "right" as const,
       render: (value: string | null, row: SummaryRow) =>
         emphasize(row, qtyText(value)),
     })),
     ...MONEY_COLUMNS.map(([title, dataIndex]) => ({
-      title,
+      title: t(title),
       dataIndex,
       align: "right" as const,
       render: (value: string, row: SummaryRow) =>
@@ -557,6 +576,8 @@ function buildColumns(includeCancelled: boolean): ColumnsType<SummaryRow> {
 }
 
 export default function SalesSummaryReportPage() {
+  const t = useT();
+  const lang = useLanguage();
   const { message } = App.useApp();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => [
     dayjs().startOf("month"),
@@ -616,8 +637,8 @@ export default function SalesSummaryReportPage() {
   const allCollapsed =
     expandableKeys.length > 0 && expandedRowKeys.length === 0;
   const columns = useMemo(
-    () => buildColumns(includeCancelled),
-    [includeCancelled],
+    () => buildColumns(includeCancelled, t, lang),
+    [includeCancelled, t, lang],
   );
 
   const canExport =
@@ -667,7 +688,7 @@ export default function SalesSummaryReportPage() {
       );
       const empty = exported.data.items.length === 0;
       if (empty) {
-        message.info("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง");
+        message.info(t("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง"));
       }
       await downloadTabularReport(
         format,
@@ -680,18 +701,18 @@ export default function SalesSummaryReportPage() {
         ),
       );
     } catch {
-      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
+      message.error(t("ดาวน์โหลดรายงานไม่สำเร็จ"));
     } finally {
       setExporting(null);
     }
   };
 
   const cards = [
-    { label: "มูลค่ายอดขาย", value: summary?.salesAmount, money: true },
-    { label: "มูลค่าส่งมอบแล้ว", value: summary?.deliveredAmount, money: true },
-    { label: "มูลค่าค้างส่ง", value: summary?.outstandingAmount, money: true },
+    { label: t("มูลค่ายอดขาย"), value: summary?.salesAmount, money: true },
+    { label: t("มูลค่าส่งมอบแล้ว"), value: summary?.deliveredAmount, money: true },
+    { label: t("มูลค่าค้างส่ง"), value: summary?.outstandingAmount, money: true },
     {
-      label: "จำนวนใบสั่งขาย",
+      label: t("จำนวนใบสั่งขาย"),
       value: summary ? String(summary.salesOrderCount) : undefined,
       money: false,
     },
@@ -709,8 +730,8 @@ export default function SalesSummaryReportPage() {
       <PageHeader
         eyebrow="Reports · Sales by Item"
         icon={<BarChartOutlined />}
-        title={TITLE}
-        subtitle="ยอดขายจากใบสั่งขายที่ยืนยันแล้ว แยกตามลูกค้า ใบสั่งขาย และสินค้า พร้อมยอดส่งมอบและยอดค้างส่ง"
+        title={t(TITLE)}
+        subtitle={t("ยอดขายจากใบสั่งขายที่ยืนยันแล้ว แยกตามลูกค้า ใบสั่งขาย และสินค้า พร้อมยอดส่งมอบและยอดค้างส่ง")}
         actions={
           <>
 
@@ -735,7 +756,7 @@ export default function SalesSummaryReportPage() {
                   ? formatMoney(card.value)
                   : Number(card.value).toLocaleString("th-TH")}
             </span>
-            <span className={styles.statHint}>{card.money ? "บาท" : "ใบ"}</span>
+            <span className={styles.statHint}>{card.money ? t("บาท") : t("ใบ")}</span>
           </div>
         ))}
       </div>
@@ -743,7 +764,7 @@ export default function SalesSummaryReportPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           {filterItem(
-            "ช่วงวันที่",
+            t("ช่วงวันที่"),
             <DatePicker.RangePicker
               allowClear={false}
               style={{ width: "100%" }}
@@ -757,12 +778,12 @@ export default function SalesSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "ลูกค้า",
+            t("ลูกค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={customerId}
               loading={customersQuery.isLoading}
               options={(customersQuery.data?.data ?? []).map((customer) => ({
@@ -773,12 +794,12 @@ export default function SalesSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "สินค้า",
+            t("สินค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={itemId}
               loading={itemsQuery.isLoading}
               options={(itemsQuery.data?.data ?? []).map((item) => ({
@@ -789,12 +810,12 @@ export default function SalesSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "ประเภทสินค้า",
+            t("ประเภทสินค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={itemCategoryId}
               loading={categoriesQuery.isLoading}
               options={(categoriesQuery.data?.data ?? []).map((category) => ({
@@ -805,31 +826,39 @@ export default function SalesSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "สถานะ SO",
+            t("สถานะ SO"),
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={soStatus}
               options={CONFIRMED_STATUSES.map((status) => ({
                 value: status,
-                label: SALES_ORDER_STATUS_LABEL[status],
+                label: tSoStatus(SALES_ORDER_STATUS_LABEL[status], lang),
               }))}
               onChange={setSoStatus}
             />,
           )}
           {filterItem(
-            "สถานะการส่งมอบ",
-            <Select value={deliveryStatus} options={DELIVERY_STATUS_OPTIONS} onChange={setDeliveryStatus} />,
+            t("สถานะการส่งมอบ"),
+            <Select
+              value={deliveryStatus}
+              options={DELIVERY_STATUS_OPTIONS.map((o) => ({ ...o, label: deliveryStatusLabel(o.value, o.label, lang) }))}
+              onChange={setDeliveryStatus}
+            />,
           )}
           {filterItem(
-            "รายการที่ยกเลิก",
-            <Select value={cancelledFilter} options={CANCELLED_OPTIONS} onChange={setCancelledFilter} />,
+            t("รายการที่ยกเลิก"),
+            <Select
+              value={cancelledFilter}
+              options={CANCELLED_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+              onChange={setCancelledFilter}
+            />,
           )}
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -838,16 +867,18 @@ export default function SalesSummaryReportPage() {
         <Alert
           type="info"
           showIcon
-          title="ข้อมูลตัวอย่าง"
-          description="ยังไม่มีใบสั่งขายที่ยืนยันแล้วตามเงื่อนไขนี้ ตาราง ยอดสรุป และไฟล์ที่ดาวน์โหลดจึงเป็นตัวอย่างเพื่อดูรูปแบบรายงาน"
+          title={t("ข้อมูลตัวอย่าง")}
+          description={t("ยังไม่มีใบสั่งขายที่ยืนยันแล้วตามเงื่อนไขนี้ ตาราง ยอดสรุป และไฟล์ที่ดาวน์โหลดจึงเป็นตัวอย่างเพื่อดูรูปแบบรายงาน")}
         />
       ) : null}
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> ลูกค้า
-            {dateFrom && dateTo ? <span> · {rangeLabel(dateFrom, dateTo)}</span> : null}
+            {t("พบทั้งหมด")} <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> {t("ลูกค้า")}
+            {dateFrom && dateTo ? (
+              <span> · {t("ช่วงวันที่ {from} – {to}", { from: formatBeDate(dateFrom, lang), to: formatBeDate(dateTo, lang) })}</span>
+            ) : null}
           </div>
           <div className={styles.toolbarActions}>
             <Button
@@ -855,14 +886,14 @@ export default function SalesSummaryReportPage() {
               disabled={expandedRowKeys.length === expandableKeys.length}
               onClick={() => setCollapsed(new Set())}
             >
-              ขยายทั้งหมด
+              {t("ขยายทั้งหมด")}
             </Button>
             <Button
               icon={<MinusSquareOutlined />}
               disabled={expandableKeys.length === 0 || allCollapsed}
               onClick={() => setCollapsed(new Set(expandableKeys))}
             >
-              ยุบทั้งหมด
+              {t("ยุบทั้งหมด")}
             </Button>
           </div>
         </div>
@@ -878,8 +909,8 @@ export default function SalesSummaryReportPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ไม่พบใบสั่งขายตามเงื่อนไขที่ค้นหา</strong>
-                ลองปรับช่วงวันที่หรือตัวกรองอื่น
+                <strong>{t("ไม่พบใบสั่งขายตามเงื่อนไขที่ค้นหา")}</strong>
+                {t("ลองปรับช่วงวันที่หรือตัวกรองอื่น")}
               </div>
             ),
           }}
@@ -898,7 +929,7 @@ export default function SalesSummaryReportPage() {
             summary ? (
               <Table.Summary.Row className={styles.totalRow}>
                 <Table.Summary.Cell index={0} colSpan={3}>
-                  รวมทั้งหมด
+                  {t("รวมทั้งหมด")}
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={3}>{summary.unitCode ?? ""}</Table.Summary.Cell>
                 {QTY_COLUMNS.map(([title, field], index) => (
@@ -919,8 +950,11 @@ export default function SalesSummaryReportPage() {
         {showingSample ? null : (
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–{Math.min(page * limit, total)} จาก{" "}
-              {total.toLocaleString("th-TH")} ลูกค้า
+              {t("แสดง {from}–{to} จาก {total} ลูกค้า", {
+                from: total === 0 ? 0 : (page - 1) * limit + 1,
+                to: Math.min(page * limit, total),
+                total: total.toLocaleString("th-TH"),
+              })}
             </div>
             <Pagination
               size="small"

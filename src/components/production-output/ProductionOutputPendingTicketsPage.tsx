@@ -20,6 +20,8 @@ import type { ProductionOutputReadyOrder } from "@/types/production-output-stock
 import { hasRequestableProductionOutput } from "@/types/production-output-stock-request";
 import styles from "./ProductionOutputPendingTicketsPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { appLocale } from "@/components/weighbridge/receiving-i18n";
 
 function formatDate(value?: string) {
   return value ? dayjs(value).format("DD/MM/YYYY") : "—";
@@ -32,7 +34,7 @@ function formatDateTime(value?: string) {
 function formatQty(value?: string) {
   const n = Number(value ?? 0);
   return Number.isFinite(n)
-    ? n.toLocaleString("th-TH", { maximumFractionDigits: 3 })
+    ? n.toLocaleString(appLocale(), { maximumFractionDigits: 3 })
     : "—";
 }
 
@@ -48,6 +50,7 @@ const YIELD_GAP_ALERT = 5;
  * ใบที่ขอครบทุก SKU แล้ว (รออนุมัติหรืออนุมัติเข้าคลังแล้ว) ไม่ขึ้นในคิวนี้
  */
 export default function ProductionOutputPendingTicketsPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -98,14 +101,14 @@ export default function ProductionOutputPendingTicketsPage() {
   const columns: ColumnsType<ProductionOutputReadyOrder> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_, __, index) => (page - 1) * 20 + index + 1,
       },
       {
-        title: "เลขที่ใบสั่งผลิต",
+        title: t("เลขที่ใบสั่งผลิต"),
         dataIndex: "orderNo",
         key: "orderNo",
         width: 190,
@@ -127,14 +130,14 @@ export default function ProductionOutputPendingTicketsPage() {
         render: (value?: string) => value || "—",
       },
       {
-        title: "วันที่ผลิต",
+        title: t("วันที่ผลิต"),
         dataIndex: "productionDate",
         key: "productionDate",
         width: 130,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ปิดงานเมื่อ",
+        title: t("ปิดงานเมื่อ"),
         dataIndex: "completedAt",
         key: "completedAt",
         width: 160,
@@ -143,7 +146,7 @@ export default function ProductionOutputPendingTicketsPage() {
         ),
       },
       {
-        title: "เข้าผลิต / ได้เข้าคลัง",
+        title: t("เข้าผลิต / ได้เข้าคลัง"),
         key: "qty",
         width: 170,
         align: "right",
@@ -154,7 +157,7 @@ export default function ProductionOutputPendingTicketsPage() {
               <div className={styles.yieldCell}>
                 {items.map((item) => (
                   <span key={item.itemId} className={styles.metaMuted}>
-                    {item.itemNameTh || item.itemCode || "สินค้า"}{" "}
+                    {item.itemNameTh || item.itemCode || t("สินค้า")}{" "}
                     {formatQty(item.plannedQty)}
                     {item.unitCode ? ` ${item.unitCode}` : ""}
                   </span>
@@ -168,29 +171,29 @@ export default function ProductionOutputPendingTicketsPage() {
                 {formatQty(row.totalOutputQty)} / {formatQty(row.totalInputQty)}
               </span>
               <span className={styles.metaMuted}>
-                แผนได้ {formatQty(row.totalPlannedOutputQty)}
+                {t("แผนได้")} {formatQty(row.totalPlannedOutputQty)}
               </span>
             </div>
           );
         },
       },
       {
-        title: "Yield จริง / แผน",
+        title: t("Yield จริง / แผน"),
         key: "yield",
         width: 160,
         align: "right",
         sorter: (a, b) => a.yieldPercent - b.yieldPercent,
         render: (_v, row) => {
           if ((row.outputItems?.length ?? 0) > 1) {
-            return <span className={styles.yieldNone}>แยกตามสินค้า</span>;
+            return <span className={styles.yieldNone}>{t("แยกตามสินค้า")}</span>;
           }
           // ยังไม่มีคำขออนุมัติ = ยังไม่มีผลผลิตเข้าคลัง จึงยังคิด yield ไม่ได้
           if (Number(row.totalInputQty) <= 0 || row.totalOutputQty === "0.000") {
             return (
               <div className={styles.yieldCell}>
-                <span className={styles.yieldNone}>ยังไม่มีผลผลิตเข้าคลัง</span>
+                <span className={styles.yieldNone}>{t("ยังไม่มีผลผลิตเข้าคลัง")}</span>
                 <span className={styles.metaMuted}>
-                  แผน {row.plannedYieldPercent.toFixed(1)}%
+                  {t("แผน")} {row.plannedYieldPercent.toFixed(1)}%
                 </span>
               </div>
             );
@@ -204,14 +207,14 @@ export default function ProductionOutputPendingTicketsPage() {
                 : styles.yieldValue;
           return (
             <Tooltip
-              title={`ผลผลิตที่อนุมัติเข้าคลัง ${formatQty(row.totalOutputQty)} ÷ วัตถุดิบที่ตัดเข้าผลิต ${formatQty(row.totalInputQty)}`}
+              title={t("ผลผลิตที่อนุมัติเข้าคลัง {out} ÷ วัตถุดิบที่ตัดเข้าผลิต {inp}", { out: formatQty(row.totalOutputQty), inp: formatQty(row.totalInputQty) })}
             >
               <div className={styles.yieldCell}>
                 <span className={`${styles.yieldValue} ${tone}`}>
                   {row.yieldPercent.toFixed(1)}%
                 </span>
                 <span className={styles.metaMuted}>
-                  แผน {row.plannedYieldPercent.toFixed(1)}%
+                  {t("แผน")} {row.plannedYieldPercent.toFixed(1)}%
                   {row.plannedYieldPercent > 0
                     ? ` (${gap >= 0 ? "+" : ""}${gap.toFixed(1)})`
                     : ""}
@@ -222,18 +225,18 @@ export default function ProductionOutputPendingTicketsPage() {
         },
       },
       {
-        title: "สถานะการขอรับเข้าคลัง",
+        title: t("สถานะการขอรับเข้าคลัง"),
         key: "requestState",
         width: 200,
         render: (_v, row) =>
           row.totalRequestCount === 0 ? (
             <span className={`${styles.statusPill} ${styles.statusRejected}`}>
-              ยังไม่ได้ขอ
+              {t("ยังไม่ได้ขอ")}
             </span>
           ) : (
-            <Tooltip title="เปิดหน้าใบสั่งผลิตเพื่อดูว่าขอสินค้าตัวไหนไปแล้วบ้าง">
+            <Tooltip title={t("เปิดหน้าใบสั่งผลิตเพื่อดูว่าขอสินค้าตัวไหนไปแล้วบ้าง")}>
               <span className={`${styles.statusPill} ${styles.statusNone}`}>
-                ขอแล้ว {row.totalRequestCount} คำขอ
+                {t("ขอแล้ว {n} คำขอ", { n: row.totalRequestCount })}
               </span>
             </Tooltip>
           ),
@@ -257,7 +260,7 @@ export default function ProductionOutputPendingTicketsPage() {
                   )
                 }
               >
-                ขอรับผลผลิต
+                {t("ขอรับผลผลิต")}
               </Button>
             ) : (
               <Button
@@ -267,15 +270,15 @@ export default function ProductionOutputPendingTicketsPage() {
                   router.push(`/production/production-orders/${row.id}`)
                 }
               >
-                ดูใบสั่งผลิต
+                {t("ดูใบสั่งผลิต")}
               </Button>
             )}
             {canCancelOrder && row.totalRequestCount === 0 ? (
               <Popconfirm
-                title="ยกเลิกใบสั่งผลิต?"
-                description="ใช้เมื่อไม่มีของจะรับเข้าคลัง — ไม่คืนวัตถุดิบที่ตัดตอนเริ่มผลิต"
-                okText="ยกเลิกใบ"
-                cancelText="ปิด"
+                title={t("ยกเลิกใบสั่งผลิต?")}
+                description={t("ใช้เมื่อไม่มีของจะรับเข้าคลัง — ไม่คืนวัตถุดิบที่ตัดตอนเริ่มผลิต")}
+                okText={t("ยกเลิกใบ")}
+                cancelText={t("ปิด")}
                 okButtonProps={{ danger: true }}
                 onConfirm={() => cancelMutation.mutate({ id: row.id })}
               >
@@ -287,7 +290,7 @@ export default function ProductionOutputPendingTicketsPage() {
                     cancelMutation.variables?.id === row.id
                   }
                 >
-                  ยกเลิกใบสั่งผลิต
+                  {t("ยกเลิกใบสั่งผลิต")}
                 </Button>
               </Popconfirm>
             ) : null}
@@ -302,6 +305,8 @@ export default function ProductionOutputPendingTicketsPage() {
       cancelMutation.variables,
       cancelMutation,
       router,
+      t,
+      page,
     ],
   );
 
@@ -309,35 +314,35 @@ export default function ProductionOutputPendingTicketsPage() {
     <MasterPageGate isLoading={readyQuery.isLoading}>
       <section className={styles.page}>
         <PageHeader
-          title="ใบสั่งผลิตรอรับเข้าคลัง"
-          subtitle="ใบสั่งผลิตที่เริ่มผลิตแล้วและยังรับผลผลิตเข้าคลังไม่ครบ"
+          title={t("ใบสั่งผลิตรอรับเข้าคลัง")}
+          subtitle={t("ใบสั่งผลิตที่เริ่มผลิตแล้วและยังรับผลผลิตเข้าคลังไม่ครบ")}
         />
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardWarn}`}>
-            <span>ยังไม่ได้ขอรับเข้าคลัง</span>
+            <span>{t("ยังไม่ได้ขอรับเข้าคลัง")}</span>
             <strong>
               {notRequested.length}
-              <span className={styles.summaryUnit}>ใบ</span>
+              <span className={styles.summaryUnit}>{t("ใบ")}</span>
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ขอไปแล้วบางส่วน</span>
+            <span>{t("ขอไปแล้วบางส่วน")}</span>
             <strong>
               {partlyRequested}
-              <span className={styles.summaryUnit}>ใบ</span>
+              <span className={styles.summaryUnit}>{t("ใบ")}</span>
             </strong>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>คิวที่ยังต้องขอรับ</span>
+            <span>{t("คิวที่ยังต้องขอรับ")}</span>
             <strong>
               {rows.length}
-              <span className={styles.summaryUnit}>ใบ</span>
+              <span className={styles.summaryUnit}>{t("ใบ")}</span>
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>Yield รวมของคิวนี้</span>
+            <span>{t("Yield รวมของคิวนี้")}</span>
             {queueHasMixedProducts ? (
-              <strong>แยกตามสินค้า</strong>
+              <strong>{t("แยกตามสินค้า")}</strong>
             ) : (
               <strong>
                 {overallYield.toFixed(1)}
@@ -346,8 +351,8 @@ export default function ProductionOutputPendingTicketsPage() {
             )}
             <span className={styles.metaMuted}>
               {queueHasMixedProducts
-                ? "มีใบที่ผลผลิตหลายสินค้า จึงไม่บวกเป็นยอดเดียว"
-                : `เข้าคลัง ${formatQty(totals.output.toFixed(3))} จากวัตถุดิบ ${formatQty(totals.input.toFixed(3))}`}
+                ? t("มีใบที่ผลผลิตหลายสินค้า จึงไม่บวกเป็นยอดเดียว")
+                : t("เข้าคลัง {out} จากวัตถุดิบ {inp}", { out: formatQty(totals.output.toFixed(3)), inp: formatQty(totals.input.toFixed(3)) })}
             </span>
           </div>
         </div>
@@ -355,10 +360,9 @@ export default function ProductionOutputPendingTicketsPage() {
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
-              <h3>ใบสั่งผลิตรอรับผลผลิตเข้าคลัง</h3>
+              <h3>{t("ใบสั่งผลิตรอรับผลผลิตเข้าคลัง")}</h3>
               <p>
-                ใบสั่งผลิตที่ปิดงานแล้วและยังขอรับผลผลิตเข้าคลังได้อีก — ของที่ผลิตเสร็จ
-                จะยังไม่เข้าสต๊อกจนกว่าจะเปิดคำขอและหัวหน้าคลังอนุมัติ ใบที่ขอครบแล้วไม่ขึ้นที่นี่
+                {t("ใบสั่งผลิตที่ปิดงานแล้วและยังขอรับผลผลิตเข้าคลังได้อีก — ของที่ผลิตเสร็จ จะยังไม่เข้าสต๊อกจนกว่าจะเปิดคำขอและหัวหน้าคลังอนุมัติ ใบที่ขอครบแล้วไม่ขึ้นที่นี่")}
               </p>
             </div>
             <div className={styles.listHeaderActions}>
@@ -368,14 +372,14 @@ export default function ProductionOutputPendingTicketsPage() {
                 loading={readyQuery.isFetching}
                 onClick={() => void readyQuery.refetch()}
               >
-                รีเฟรช
+                {t("รีเฟรช")}
               </Button>
               <Button
                 icon={<BuildOutlined />}
                 className={styles.secondaryButton}
                 onClick={() => router.push("/production/production-orders")}
               >
-                ไปใบสั่งผลิต
+                {t("ไปใบสั่งผลิต")}
               </Button>
               <Button
                 type="primary"
@@ -383,7 +387,7 @@ export default function ProductionOutputPendingTicketsPage() {
                 className={styles.primaryButton}
                 onClick={() => router.push("/production/output-stock-requests")}
               >
-                คำขอทั้งหมด
+                {t("คำขอทั้งหมด")}
               </Button>
             </div>
           </div>
@@ -393,7 +397,7 @@ export default function ProductionOutputPendingTicketsPage() {
               allowClear
               className={styles.filterSearch}
               prefix={<SearchOutlined />}
-              placeholder="ค้นหาเลขที่ใบสั่งผลิต / Batch"
+              placeholder={t("ค้นหาเลขที่ใบสั่งผลิต / Batch")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onPressEnter={() => setQ(search)}
@@ -408,7 +412,7 @@ export default function ProductionOutputPendingTicketsPage() {
                 }`}
                 onClick={() => setAllRange(true)}
               >
-                ทั้งหมด
+                {t("ทั้งหมด")}
               </button>
               <button
                 type="button"
@@ -417,15 +421,14 @@ export default function ProductionOutputPendingTicketsPage() {
                 }`}
                 onClick={() => setAllRange(false)}
               >
-                7 วันล่าสุด
+                {t("7 วันล่าสุด")}
               </button>
             </div>
           </div>
 
           {!canCreateRequest ? (
             <div className={styles.permissionNote}>
-              คุณดูคิวได้อย่างเดียว — การเปิดคำขอรับผลผลิตต้องมีสิทธิ์เพิ่มของหน้า
-              “ขอรับผลผลิตเข้าคลัง”
+              {t("คุณดูคิวได้อย่างเดียว — การเปิดคำขอรับผลผลิตต้องมีสิทธิ์เพิ่มของหน้า “ขอรับผลผลิตเข้าคลัง”")}
             </div>
           ) : null}
 
@@ -436,14 +439,13 @@ export default function ProductionOutputPendingTicketsPage() {
               columns={columns}
               dataSource={rows}
               loading={readyQuery.isFetching}
-              pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} ใบ` }}
+              pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} ใบ", { n: total }) }}
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>
-                    <strong>ไม่มีใบสั่งผลิตค้างรับเข้าคลัง</strong>
+                    <strong>{t("ไม่มีใบสั่งผลิตค้างรับเข้าคลัง")}</strong>
                     <span>
-                      ใบสั่งผลิตที่ปิดงานแล้วถูกขอรับผลผลิตครบทุกใบ — ถ้ายังไม่เห็นของในสต๊อก
-                      ให้ไปดูที่คำขอว่าค้างรอหัวหน้าคลังอนุมัติอยู่หรือเปล่า
+                      {t("ใบสั่งผลิตที่ปิดงานแล้วถูกขอรับผลผลิตครบทุกใบ — ถ้ายังไม่เห็นของในสต๊อก ให้ไปดูที่คำขอว่าค้างรอหัวหน้าคลังอนุมัติอยู่หรือเปล่า")}
                     </span>
                   </div>
                 ),
@@ -455,8 +457,8 @@ export default function ProductionOutputPendingTicketsPage() {
         <Alert
           type="info"
           showIcon
-          title="รับผลผลิตเข้าคลังเริ่มจากใบสั่งผลิตเท่านั้น"
-          description="ตั๋วชั่งประเภทรับซื้อยาง (PURCHASE_IN) ใช้ flow คัดแยก → ใบรับซื้อ → จ่ายเงิน → รับยางดิบเข้าคลัง คนละเส้นทางกับหน้านี้"
+          title={t("รับผลผลิตเข้าคลังเริ่มจากใบสั่งผลิตเท่านั้น")}
+          description={t("ตั๋วชั่งประเภทรับซื้อยาง (PURCHASE_IN) ใช้ flow คัดแยก → ใบรับซื้อ → จ่ายเงิน → รับยางดิบเข้าคลัง คนละเส้นทางกับหน้านี้")}
         />
       </section>
     </MasterPageGate>

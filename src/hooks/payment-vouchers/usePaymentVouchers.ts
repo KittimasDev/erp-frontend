@@ -5,6 +5,7 @@ import { App } from "antd";
 
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/payment-vouchers";
+import { useT } from "@/lib/i18n/useT";
 import { getAccessToken } from "@/lib/auth/token";
 import { advanceRequestsKey } from "@/hooks/advance-payment-requests/useAdvanceRequests";
 import type {
@@ -72,6 +73,7 @@ export const usePaymentRecordsQuery = (params?: PaymentRecordQuery) =>
 
 function useHelpers() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: paymentVouchersKey });
@@ -80,11 +82,11 @@ function useHelpers() {
   };
   const fail = (e: unknown, fallback: string) =>
     message.error(e instanceof ApiError ? e.message : fallback);
-  return { message, refresh, fail };
+  return { message, refresh, fail, t };
 }
 
 export function useCreateVoucherFromQueueMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (v: { queueItemId: string; body: CreateVoucherFormBody }) =>
       api.createVoucherFromQueue(getAccessToken(), v.queueItemId, v.body),
@@ -92,30 +94,30 @@ export function useCreateVoucherFromQueueMutation() {
       refresh();
       message.success(
         v.body.submit
-          ? `สร้าง ${res.data.voucher.voucherNo} และส่งอนุมัติแล้ว`
-          : `บันทึกร่าง ${res.data.voucher.voucherNo} แล้ว`,
+          ? t("สร้าง {no} และส่งอนุมัติแล้ว", { no: res.data.voucher.voucherNo })
+          : t("บันทึกร่าง {no} แล้ว", { no: res.data.voucher.voucherNo }),
       );
     },
-    onError: (e) => fail(e, "สร้างใบสำคัญจ่ายไม่สำเร็จ"),
+    onError: (e) => fail(e, t("สร้างใบสำคัญจ่ายไม่สำเร็จ")),
   });
 }
 
 export function useUpdateVoucherMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (v: { id: string; body: UpdateVoucherFormBody }) =>
       api.updatePaymentVoucher(getAccessToken(), v.id, v.body),
     onSuccess: () => {
       refresh();
-      message.success("บันทึกใบสำคัญจ่ายแล้ว");
+      message.success(t("บันทึกใบสำคัญจ่ายแล้ว"));
     },
-    onError: (e) => fail(e, "บันทึกไม่สำเร็จ"),
+    onError: (e) => fail(e, t("บันทึกไม่สำเร็จ")),
   });
 }
 
 /** action ของ workflow: ส่งอนุมัติ / ตรวจสอบ / อนุมัติ / ไม่อนุมัติ / ยกเลิก / บันทึกจ่ายเงิน */
 export function useVoucherActionMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (v: {
       id: string;
@@ -139,89 +141,89 @@ export function useVoucherActionMutation() {
     onSuccess: (_res, v) => {
       refresh();
       const done: Record<string, string> = {
-        submit: "ส่งอนุมัติแล้ว",
-        review: "บันทึกการตรวจสอบแล้ว",
-        approve: "อนุมัติแล้ว — ไปบันทึกจ่ายเงินได้ที่เมนูบันทึกจ่ายเงิน",
-        reject: "บันทึกการไม่อนุมัติแล้ว",
-        cancel: "ยกเลิกใบสำคัญจ่ายแล้ว",
+        submit: t("ส่งอนุมัติแล้ว"),
+        review: t("บันทึกการตรวจสอบแล้ว"),
+        approve: t("อนุมัติแล้ว — ไปบันทึกจ่ายเงินได้ที่เมนูบันทึกจ่ายเงิน"),
+        reject: t("บันทึกการไม่อนุมัติแล้ว"),
+        cancel: t("ยกเลิกใบสำคัญจ่ายแล้ว"),
       };
       message.success(done[v.action]);
     },
-    onError: (e) => fail(e, "ดำเนินการไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ดำเนินการไม่สำเร็จ")),
   });
 }
 
 /** คำนวณ WHT ของ PV ใหม่จากใบตั้งหนี้ (ร่าง/ไม่อนุมัติ) */
 export function useRecalculateWhtMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (id: string) => api.recalculatePaymentVoucherWht(getAccessToken(), id),
     onSuccess: () => {
       refresh();
-      message.success("คำนวณ WHT ใหม่แล้ว — ตรวจยอด WHT และยอดโอนสุทธิก่อนส่งอนุมัติ");
+      message.success(t("คำนวณ WHT ใหม่แล้ว — ตรวจยอด WHT และยอดโอนสุทธิก่อนส่งอนุมัติ"));
     },
-    onError: (e) => fail(e, "คำนวณ WHT ใหม่ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("คำนวณ WHT ใหม่ไม่สำเร็จ")),
   });
 }
 
 /** ยืนยันการจ่ายเงิน (multipart พร้อมหลักฐาน) */
 export function useRecordPaymentMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (v: { voucherId: string; form: RecordPaymentForm; files: File[] }) =>
       api.recordVoucherPayment(getAccessToken(), v.voucherId, v.form, v.files),
     onSuccess: (res) => {
       refresh();
-      message.success(`บันทึกจ่ายเงิน ${res.data.paymentNo ?? ""} แล้ว — PV เป็นจ่ายแล้ว`);
+      message.success(t("บันทึกจ่ายเงิน {no} แล้ว — PV เป็นจ่ายแล้ว", { no: res.data.paymentNo ?? "" }));
     },
-    onError: (e) => fail(e, "บันทึกจ่ายเงินไม่สำเร็จ"),
+    onError: (e) => fail(e, t("บันทึกจ่ายเงินไม่สำเร็จ")),
   });
 }
 
 export function useCancelPaymentMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (v: { paymentId: string; reason: string }) =>
       api.cancelPaymentRecord(getAccessToken(), v.paymentId, v.reason),
     onSuccess: () => {
       refresh();
-      message.success("ยกเลิกรายการจ่ายแล้ว — PV กลับไปรอบันทึกจ่ายเงิน");
+      message.success(t("ยกเลิกรายการจ่ายแล้ว — PV กลับไปรอบันทึกจ่ายเงิน"));
     },
-    onError: (e) => fail(e, "ยกเลิกรายการจ่ายไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ยกเลิกรายการจ่ายไม่สำเร็จ")),
   });
 }
 
 export function useIssueWhtMutation() {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   return useMutation({
     mutationFn: (v: { paymentId: string; body: IssueWhtBody }) =>
       api.issueWhtCertificate(getAccessToken(), v.paymentId, v.body),
     onSuccess: (res) => {
       refresh();
-      message.success(`ออกหนังสือรับรอง ${res.data.certNo} แล้ว`);
+      message.success(t("ออกหนังสือรับรอง {no} แล้ว", { no: res.data.certNo }));
     },
-    onError: (e) => fail(e, "ออกหนังสือรับรองหัก ณ ที่จ่ายไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ออกหนังสือรับรองหัก ณ ที่จ่ายไม่สำเร็จ")),
   });
 }
 
 export function useVoucherAttachmentMutations(voucherId: string) {
-  const { message, refresh, fail } = useHelpers();
+  const { message, refresh, fail, t } = useHelpers();
   const upload = useMutation({
     mutationFn: (file: File) => api.uploadVoucherAttachment(getAccessToken(), voucherId, file),
     onSuccess: () => {
       refresh();
-      message.success("แนบไฟล์แล้ว");
+      message.success(t("แนบไฟล์แล้ว"));
     },
-    onError: (e) => fail(e, "แนบไฟล์ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("แนบไฟล์ไม่สำเร็จ")),
   });
   const remove = useMutation({
     mutationFn: (attachmentId: string) =>
       api.deleteVoucherAttachment(getAccessToken(), voucherId, attachmentId),
     onSuccess: () => {
       refresh();
-      message.success("ลบไฟล์แล้ว");
+      message.success(t("ลบไฟล์แล้ว"));
     },
-    onError: (e) => fail(e, "ลบไฟล์ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ลบไฟล์ไม่สำเร็จ")),
   });
   return { upload, remove };
 }

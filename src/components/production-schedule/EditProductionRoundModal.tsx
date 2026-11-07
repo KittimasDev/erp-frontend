@@ -10,6 +10,8 @@ import {
 } from "@/hooks/production-schedule/useProductionSchedule";
 import type { ScheduleRound } from "@/types/production-schedule";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { fmtDate, roundWindow } from "./schedule-dates";
 
 type Props = {
@@ -20,6 +22,7 @@ type Props = {
 type FormValues = { startDate: Dayjs };
 
 export default function EditProductionRoundModal({ round, onClose }: Props) {
+  const t = useT();
   const { modal } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const preview = usePreviewScheduleRoundMutation();
@@ -41,9 +44,9 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
   return (
     <Modal
       open
-      title={`แก้ไขรอบ ${round.roundNo}`}
-      okText="ตรวจผลกระทบ"
-      cancelText="ยกเลิก"
+      title={t("แก้ไขรอบ {no}", { no: round.roundNo })}
+      okText={t("ตรวจผลกระทบ")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       confirmLoading={preview.isPending || update.isPending}
       okButtonProps={{ disabled: outside.length > 0 }}
@@ -57,30 +60,30 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
           void preview.mutateAsync({ id: round.id, body }).then((result) => {
             const data = result.data;
             modal.confirm({
-              title: "ยืนยันบันทึกการแก้ไข?",
-              okText: "บันทึก",
-              cancelText: "ยกเลิก",
+              title: t("ยืนยันบันทึกการแก้ไข?"),
+              okText: t("บันทึก"),
+              cancelText: t("ยกเลิก"),
               content: (
                 <div>
                   <p>
-                    {round.roundNo}: ผลิต {fmtDate(round.startDate)} – {fmtDate(round.endDate)} เป็น{" "}
+                    {round.roundNo}: {t("ผลิต")} {fmtDate(round.startDate)} – {fmtDate(round.endDate)} {t("เป็น")}{" "}
                     {fmtDate(data.round.startDate)} – {fmtDate(data.round.endDate)}
                     <br />
                     Shutdown {fmtDate(data.round.shutdownStartDate)} – {fmtDate(data.round.shutdownEndDate)}
                   </p>
                   {data.droppedExtraOffDates.length > 0 ? (
-                    <p>วันหยุดเพิ่มที่หลุดออก: {data.droppedExtraOffDates.map(fmtDate).join(", ")}</p>
+                    <p>{t("วันหยุดเพิ่มที่หลุดออก:")} {data.droppedExtraOffDates.map(fmtDate).join(", ")}</p>
                   ) : null}
                   {data.impacts.length === 0 ? (
-                    <p>ไม่มีผลกระทบต่อรอบถัดไป</p>
+                    <p>{t("ไม่มีผลกระทบต่อรอบถัดไป")}</p>
                   ) : (
                     <ul style={{ paddingLeft: 18 }}>
                       {data.impacts.map((impact) => (
                         <li key={impact.id}>
                           {impact.roundNo}: {fmtDate(impact.beforeStartDate)} – {fmtDate(impact.beforeEndDate)}{" "}
-                          เป็น {fmtDate(impact.afterStartDate)} – {fmtDate(impact.afterEndDate)}
+                          {t("เป็น")} {fmtDate(impact.afterStartDate)} – {fmtDate(impact.afterEndDate)}
                           {impact.droppedExtraOffDates.length > 0
-                            ? ` (วันหยุดที่หลุด: ${impact.droppedExtraOffDates.map(fmtDate).join(", ")})`
+                            ? ` (${t("วันหยุดที่หลุด:")} ${impact.droppedExtraOffDates.map(fmtDate).join(", ")})`
                             : ""}
                         </li>
                       ))}
@@ -99,20 +102,20 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
         layout="vertical"
         initialValues={{ startDate: dayjs(round.startDate) }}
       >
-        <Form.Item name="startDate" label="วันแรกของช่วงผลิต" rules={[{ required: true, message: "เลือกวันเริ่ม" }]}>
-          <DatePicker aria-label="วันแรกของช่วงผลิต" format="DD/MM/YYYY" style={{ width: "100%" }} allowClear={false} />
+        <Form.Item name="startDate" label={t("วันแรกของช่วงผลิต")} rules={[{ required: true, message: t("เลือกวันเริ่ม") }]}>
+          <DatePicker aria-label={t("วันแรกของช่วงผลิต")} format="DD/MM/YYYY" style={{ width: "100%" }} allowClear={false} />
         </Form.Item>
       </Form>
       {window ? (
         <p>
-          ผลิตถึง {fmtDate(window.endDate)} · Shutdown {fmtDate(window.shutdownStartDate)} –{" "}
+          {t("ผลิตถึง")} {fmtDate(window.endDate)} · Shutdown {fmtDate(window.shutdownStartDate)} –{" "}
           {fmtDate(window.shutdownEndDate)}
         </p>
       ) : null}
       <label style={{ display: "grid", gap: 6 }}>
-        <span>วันหยุดผลิตเพิ่มเติมของรอบนี้</span>
+        <span>{t("วันหยุดผลิตเพิ่มเติมของรอบนี้")}</span>
         <DatePicker
-          aria-label="วันหยุดผลิตเพิ่มเติมของรอบนี้"
+          aria-label={t("วันหยุดผลิตเพิ่มเติมของรอบนี้")}
           value={picker}
           format="DD/MM/YYYY"
           onChange={addDate}
@@ -132,7 +135,7 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
           </Tag>
         ))}
       </div>
-      {outside.length > 0 ? <p style={{ color: "#b91c1c" }}>วันหยุดเพิ่มต้องอยู่ในช่วงผลิตของรอบนี้</p> : null}
+      {outside.length > 0 ? <p style={{ color: "#b91c1c" }}>{t("วันหยุดเพิ่มต้องอยู่ในช่วงผลิตของรอบนี้")}</p> : null}
     </Modal>
   );
 }

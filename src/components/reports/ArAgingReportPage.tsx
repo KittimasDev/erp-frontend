@@ -20,7 +20,11 @@ import {
 import { getAccessToken } from "@/lib/auth/token";
 import { AGING_BUCKET_LABEL } from "@/types/sales-reports";
 import type { ArAgingRow } from "@/types/sales-reports";
-import { SALES_INVOICE_PAYMENT_STATUS_LABEL } from "@/types/sales-invoices";
+import { salesInvoicePaymentStatusLabel } from "@/types/sales-invoices";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatMoney as formatMoneyByLang } from "@/lib/i18n/format";
+import type { Language } from "@/lib/i18n/translate";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
@@ -37,13 +41,10 @@ const BUCKET_COLOR: Record<string, string> = {
   over_90: "red",
 };
 
-function formatMoney(value?: string) {
+function formatMoney(value: string | undefined, lang: Language) {
   const n = Number(value ?? 0);
   if (Number.isNaN(n)) return "—";
-  return n.toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return formatMoneyByLang(n, lang);
 }
 
 function formatDate(value?: string) {
@@ -51,6 +52,8 @@ function formatDate(value?: string) {
 }
 
 export default function ArAgingReportPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
@@ -88,7 +91,7 @@ export default function ArAgingReportPage() {
         getArAgingReport(getAccessToken(), { ...queryParams, page: exportPage, limit }),
       );
       if (all.truncated) {
-        message.warning(`มี ${all.total.toLocaleString("th-TH")} ใบ — ไฟล์มีเฉพาะ 5,000 ใบแรก`);
+        message.warning(t("มี {total} ใบ — ไฟล์มีเฉพาะ 5,000 ใบแรก", { total: all.total.toLocaleString(lang === "en" ? "en-GB" : "th-TH") }));
       }
       const customer = (customersQuery.data?.data ?? []).find((c) => c.id === customerId);
       await downloadTabularReport(
@@ -102,7 +105,7 @@ export default function ArAgingReportPage() {
         }),
       );
     } catch {
-      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
+      message.error(t("ดาวน์โหลดรายงานไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -110,21 +113,21 @@ export default function ArAgingReportPage() {
 
   const columns: ColumnsType<ArAgingRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "เลขที่ใบแจ้งหนี้",
+      title: t("เลขที่ใบแจ้งหนี้"),
       dataIndex: "invoiceNo",
       render: (value: string, row) => (
         <Link href={`/sales-invoices/${row.invoiceId}`}>{value}</Link>
       ),
     },
     {
-      title: "ลูกค้า",
+      title: t("ลูกค้า"),
       key: "customer",
       render: (_, row) =>
         row.customerId ? (
@@ -136,44 +139,44 @@ export default function ArAgingReportPage() {
         ),
     },
     {
-      title: "วันที่ออก",
+      title: t("วันที่ออก"),
       dataIndex: "invoiceDate",
       render: (v: string) => formatDate(v),
     },
     {
-      title: "ครบกำหนด",
+      title: t("ครบกำหนด"),
       dataIndex: "dueDate",
       render: (v?: string) => formatDate(v),
     },
     {
-      title: "ยอดรวม",
+      title: t("ยอดรวม"),
       dataIndex: "totalAmount",
       align: "right",
-      render: (v: string) => formatMoney(v),
+      render: (v: string) => formatMoney(v, lang),
     },
     {
-      title: "ชำระแล้ว",
+      title: t("ชำระแล้ว"),
       dataIndex: "paidAmount",
       align: "right",
-      render: (v: string) => formatMoney(v),
+      render: (v: string) => formatMoney(v, lang),
     },
     {
-      title: "คงค้าง",
+      title: t("คงค้าง"),
       dataIndex: "outstandingAmount",
       align: "right",
-      render: (v: string) => <strong>{formatMoney(v)}</strong>,
+      render: (v: string) => <strong>{formatMoney(v, lang)}</strong>,
     },
     {
-      title: "สถานะชำระ",
+      title: t("สถานะชำระ"),
       dataIndex: "paymentStatus",
-      render: (v: string) => SALES_INVOICE_PAYMENT_STATUS_LABEL[v] ?? v,
+      render: (v: string) => salesInvoicePaymentStatusLabel(v, lang),
     },
     {
-      title: "อายุหนี้",
+      title: t("อายุหนี้"),
       dataIndex: "agingBucket",
       render: (v: string) => (
         <Tag color={BUCKET_COLOR[v] ?? "default"}>
-          {AGING_BUCKET_LABEL[v] ?? v}
+          {AGING_BUCKET_LABEL[v] ? t(AGING_BUCKET_LABEL[v]) : v}
         </Tag>
       ),
     },
@@ -183,8 +186,8 @@ export default function ArAgingReportPage() {
     <section className={masterStyles.page}>
       <PageHeader
         eyebrow="REPORTS · ACCOUNTS RECEIVABLE"
-        title="รายงานสถานะลูกหนี้"
-        subtitle="ใบแจ้งหนี้ที่ยังไม่ชำระครบ พร้อมช่วงอายุหนี้"
+        title={t("รายงานสถานะลูกหนี้")}
+        subtitle={t("ใบแจ้งหนี้ที่ยังไม่ชำระครบ พร้อมช่วงอายุหนี้")}
         actions={
           <>
 <ReportExportButtons
@@ -198,20 +201,20 @@ export default function ArAgingReportPage() {
 
       <div className={masterStyles.summaryRow} style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         <div className={`${masterStyles.summaryCard} ${masterStyles.summaryTotal}`}>
-          <span className={masterStyles.summaryLabel}>ยอดออกใบแจ้งหนี้รวม</span>
-          <strong>{formatMoney(summary?.totalInvoiced)}</strong>
+          <span className={masterStyles.summaryLabel}>{t("ยอดออกใบแจ้งหนี้รวม")}</span>
+          <strong>{formatMoney(summary?.totalInvoiced, lang)}</strong>
         </div>
         <div className={`${masterStyles.summaryCard} ${masterStyles.summaryActive}`}>
-          <span className={masterStyles.summaryLabel}>ชำระแล้วรวม</span>
-          <strong>{formatMoney(summary?.totalPaid)}</strong>
+          <span className={masterStyles.summaryLabel}>{t("ชำระแล้วรวม")}</span>
+          <strong>{formatMoney(summary?.totalPaid, lang)}</strong>
         </div>
         <div className={masterStyles.summaryCard}>
-          <span className={masterStyles.summaryLabel}>คงค้างรวม</span>
-          <strong>{formatMoney(summary?.totalOutstanding)}</strong>
+          <span className={masterStyles.summaryLabel}>{t("คงค้างรวม")}</span>
+          <strong>{formatMoney(summary?.totalOutstanding, lang)}</strong>
         </div>
         <div className={`${masterStyles.summaryCard} ${masterStyles.summaryInactive}`}>
-          <span className={masterStyles.summaryLabel}>เกินกำหนดชำระ</span>
-          <strong>{formatMoney(summary?.overdueAmount)}</strong>
+          <span className={masterStyles.summaryLabel}>{t("เกินกำหนดชำระ")}</span>
+          <strong>{formatMoney(summary?.overdueAmount, lang)}</strong>
         </div>
       </div>
 
@@ -229,7 +232,7 @@ export default function ArAgingReportPage() {
             <Select
               allowClear
               showSearch
-              placeholder="ลูกค้าทั้งหมด"
+              placeholder={t("ลูกค้าทั้งหมด")}
               optionFilterProp="label"
               value={customerId}
               onChange={(value) => {
@@ -248,10 +251,10 @@ export default function ArAgingReportPage() {
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>ใบแจ้งหนี้ค้างชำระ</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("ใบแจ้งหนี้ค้างชำระ")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{data?.total ?? 0} ใบ</span>
+          <span className={masterStyles.tableCount}>{lang === "en" ? `${data?.total ?? 0} invoices` : `${data?.total ?? 0} ใบ`}</span>
         </div>
         <Table
           className={masterStyles.dataTable}
@@ -264,7 +267,7 @@ export default function ArAgingReportPage() {
             pageSize: 20,
             total: data?.total ?? 0,
             onChange: setPage,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
         />
       </div>

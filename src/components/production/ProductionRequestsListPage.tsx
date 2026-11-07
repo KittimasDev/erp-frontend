@@ -45,13 +45,17 @@ import {
   PRODUCTION_REQUEST_STATUS_FILTER_LABEL,
   getProductionRequestStatusDisplay,
   ProductionRequestStatus,
+  tProductionStatus,
 } from "@/types/production-request";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionRequestsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 
 export default function ProductionRequestsListPage() {
   const router = useRouter();
+  const t = useT();
   const { message } = App.useApp();
   const productionRequestActions =
     useScreenActionPermissions("PRODUCTION_REQUESTS");
@@ -136,14 +140,14 @@ export default function ProductionRequestsListPage() {
 
   const columns: ColumnsType<ProductionRequest> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 56,
       align: "center",
       render: (_v, _r, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "เลขที่ใบขอผลิต",
+      title: t("เลขที่ใบขอผลิต"),
       dataIndex: "requestNo",
       key: "requestNo",
       render: (value: string, row) => (
@@ -159,7 +163,7 @@ export default function ProductionRequestsListPage() {
             {value}
           </button>
           {row.sourceSoCancelled ? (
-            <Tooltip title="ใบสั่งขายที่อ้างอิงถูกยกเลิก — กรุณาตรวจสอบ">
+            <Tooltip title={t("ใบสั่งขายที่อ้างอิงถูกยกเลิก — กรุณาตรวจสอบ")}>
               <ExclamationCircleOutlined style={{ color: "#faad14" }} />
             </Tooltip>
           ) : null}
@@ -167,7 +171,7 @@ export default function ProductionRequestsListPage() {
       ),
     },
     {
-      title: "ใบสั่งขายอ้างอิง",
+      title: t("ใบสั่งขายอ้างอิง"),
       dataIndex: "soNo",
       key: "soNo",
       render: (value: string | undefined, row) =>
@@ -185,32 +189,32 @@ export default function ProductionRequestsListPage() {
         ),
     },
     {
-      title: "ลูกค้า",
+      title: t("ลูกค้า"),
       dataIndex: "customerName",
       key: "customerName",
       render: (value?: string) => value || "-",
     },
     {
-      title: "วันที่ขอ",
+      title: t("วันที่ขอ"),
       dataIndex: "requestDate",
       key: "requestDate",
       render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
     },
     {
-      title: "ต้องการภายใน",
+      title: t("ต้องการภายใน"),
       dataIndex: "requiredDate",
       key: "requiredDate",
       render: (value?: string) =>
         value ? dayjs(value).format("DD/MM/YYYY") : "-",
     },
     {
-      title: "รายการ",
+      title: t("รายการ"),
       key: "itemCount",
       align: "right",
-      render: (_, row) => `${row.items.length} รายการ`,
+      render: (_, row) => t("{n} รายการ", { n: row.items.length }),
     },
     {
-      title: "ค้างส่ง SO",
+      title: t("ค้างส่ง SO"),
       key: "outstanding",
       align: "right",
       width: 120,
@@ -223,9 +227,9 @@ export default function ProductionRequestsListPage() {
           return "—";
         }
         return (
-          <Tooltip title="ยอดที่ผูกไว้ให้ใบสั่งขายนี้แล้วแต่ยังผลิตไม่เสร็จ — ผลิตเสร็จเมื่อไหร่ระบบจองกลับให้ SO อัตโนมัติ ใบอื่นแย่งไม่ได้">
+          <Tooltip title={t("ยอดที่ผูกไว้ให้ใบสั่งขายนี้แล้วแต่ยังผลิตไม่เสร็จ — ผลิตเสร็จเมื่อไหร่ระบบจองกลับให้ SO อัตโนมัติ ใบอื่นแย่งไม่ได้")}>
             <span style={{ color: "#0958d9" }}>
-              {outstanding.toLocaleString("th-TH", {
+              {outstanding.toLocaleString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", {
                 maximumFractionDigits: 3,
               })}
             </span>
@@ -234,7 +238,7 @@ export default function ProductionRequestsListPage() {
       },
     },
     {
-      title: "ผลิตได้แล้ว",
+      title: t("ผลิตได้แล้ว"),
       key: "progress",
       width: 160,
       render: (_, row) => (
@@ -253,7 +257,7 @@ export default function ProductionRequestsListPage() {
       ),
     },
     {
-      title: "ใบสั่งผลิต",
+      title: t("ใบสั่งผลิต"),
       key: "productionOrders",
       render: (_, row) =>
         row.productionOrders.length ? (
@@ -276,7 +280,7 @@ export default function ProductionRequestsListPage() {
                 }
               >
                 {order.orderNo} (
-                {PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status})
+                {tProductionStatus(PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status)})
               </button>
             ))}
           </span>
@@ -285,7 +289,7 @@ export default function ProductionRequestsListPage() {
         ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       render: (_, row) => {
@@ -293,7 +297,7 @@ export default function ProductionRequestsListPage() {
           row.status,
           row.productionOrders,
         );
-        return <Tag color={display.color}>{display.label}</Tag>;
+        return <Tag color={display.color}>{tProductionStatus(display.label)}</Tag>;
       },
     },
   ];
@@ -314,11 +318,11 @@ export default function ProductionRequestsListPage() {
 
   const handleOpenCreateModal = () => {
     if (!selectedRequests.length) {
-      message.warning("ยังไม่ได้เลือกใบขอผลิต");
+      message.warning(t("ยังไม่ได้เลือกใบขอผลิต"));
       return;
     }
     if (!outstandingSelections.length) {
-      message.warning("ใบที่เลือกไม่มีรายการคงค้างที่ต้องผลิต");
+      message.warning(t("ใบที่เลือกไม่มีรายการคงค้างที่ต้องผลิต"));
       return;
     }
     setCreateModalOpen(true);
@@ -368,11 +372,10 @@ export default function ProductionRequestsListPage() {
     <MasterPageGate>
       <section className={masterStyles.page}>
         <PageHeader
-          eyebrow="PRODUCTION · จากใบสั่งขาย"
-          title="ใบขอผลิต"
-          subtitle={<>เลือกหลายใบสถานะรอเปิดใบสั่งผลิต เพื่อสร้างใบสั่งผลิตใบเดียว
-              ที่ผูกทุกรายการไว้ด้วยกัน
-              {canViewAll ? "" : " · แสดงเฉพาะใบที่คุณเป็นผู้ขอ"}</>}
+          eyebrow={t("PRODUCTION · จากใบสั่งขาย")}
+          title={t("ใบขอผลิต")}
+          subtitle={<>{t("เลือกหลายใบสถานะรอเปิดใบสั่งผลิต เพื่อสร้างใบสั่งผลิตใบเดียว ที่ผูกทุกรายการไว้ด้วยกัน")}
+              {canViewAll ? "" : ` · ${t("แสดงเฉพาะใบที่คุณเป็นผู้ขอ")}`}</>}
           actions={
             <>
 {canCreate ? (
@@ -384,7 +387,7 @@ export default function ProductionRequestsListPage() {
                 router.push("/production/production-requests/create")
               }
             >
-              สร้างใบขอผลิต
+              {t("สร้างใบขอผลิต")}
             </Button>
           ) : null}
             </>
@@ -394,18 +397,18 @@ export default function ProductionRequestsListPage() {
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
-              <div className={masterStyles.filterEyebrow}>ค้นหา</div>
-              <h3>รายการใบขอผลิต</h3>
-              <p>ทั้งหมด {total} ใบ</p>
+              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
+              <h3>{t("รายการใบขอผลิต")}</h3>
+              <p>{t("ทั้งหมด {n} ใบ", { n: total })}</p>
             </div>
           </div>
           <div className={masterStyles.filterForm}>
             <div className={masterStyles.formGrid}>
               <Input
                 allowClear
-                aria-label="ค้นหาเลขที่ใบขอผลิต"
+                aria-label={t("ค้นหาเลขที่ใบขอผลิต")}
                 prefix={<SearchOutlined />}
-                placeholder="ค้นหาเลขที่ใบขอผลิต"
+                placeholder={t("ค้นหาเลขที่ใบขอผลิต")}
                 value={requestNo}
                 onChange={(e) => {
                   setRequestNo(e.target.value);
@@ -414,9 +417,9 @@ export default function ProductionRequestsListPage() {
               />
               <Input
                 allowClear
-                aria-label="ค้นหาเลขที่ใบสั่งขาย"
+                aria-label={t("ค้นหาเลขที่ใบสั่งขาย")}
                 prefix={<SearchOutlined />}
-                placeholder="ค้นหาเลขที่ใบสั่งขาย"
+                placeholder={t("ค้นหาเลขที่ใบสั่งขาย")}
                 value={soNo}
                 onChange={(e) => {
                   setSoNo(e.target.value);
@@ -425,15 +428,15 @@ export default function ProductionRequestsListPage() {
               />
               <Select
                 allowClear
-                aria-label="กรองตามสถานะ"
-                placeholder="สถานะทั้งหมด"
+                aria-label={t("กรองตามสถานะ")}
+                placeholder={t("สถานะทั้งหมด")}
                 value={status}
                 onChange={(value) => {
                   setStatus(value);
                   setPage(1);
                 }}
                 options={Object.entries(PRODUCTION_REQUEST_STATUS_FILTER_LABEL).map(
-                  ([value, label]) => ({ value, label }),
+                  ([value, label]) => ({ value, label: tProductionStatus(label) }),
                 )}
               />
             </div>
@@ -443,21 +446,21 @@ export default function ProductionRequestsListPage() {
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>ใบขอผลิต</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t("ใบขอผลิต")}</h3>
             </div>
             <div className={styles.queueActions}>
               {selectedRowKeys.length ? (
                 <>
-                  <Button onClick={handleClearSelection}>ล้างที่เลือก</Button>
+                  <Button onClick={handleClearSelection}>{t("ล้างที่เลือก")}</Button>
                   {canCreateProductionOrder ? (
                     <Button type="primary" onClick={handleOpenCreateModal}>
-                      สร้างใบสั่งผลิตจากที่เลือก ({selectedRowKeys.length})
+                      {t("สร้างใบสั่งผลิตจากที่เลือก")} ({selectedRowKeys.length})
                     </Button>
                   ) : null}
                 </>
               ) : null}
-              <span className={masterStyles.tableCount}>{total} ใบ</span>
+              <span className={masterStyles.tableCount}>{t("{n} ใบ", { n: total })}</span>
             </div>
           </div>
           <Table
@@ -497,18 +500,18 @@ export default function ProductionRequestsListPage() {
               pageSize: 20,
               total,
               onChange: setPage,
-              showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+              showTotal: (n) => t("ทั้งหมด {n} รายการ", { n }),
             }}
           />
         </div>
       </section>
 
       <Modal
-        title="สร้างใบสั่งผลิตจากใบขอผลิตที่เลือก"
+        title={t("สร้างใบสั่งผลิตจากใบขอผลิตที่เลือก")}
         open={createModalOpen}
         onCancel={() => setCreateModalOpen(false)}
         onOk={handleConsolidatedCreate}
-        okText="สร้างใบสั่งผลิต 1 ใบ"
+        okText={t("สร้างใบสั่งผลิต 1 ใบ")}
         width={1000}
         destroyOnHidden
         confirmLoading={consolidatedCreateMutation.isPending}
@@ -517,7 +520,7 @@ export default function ProductionRequestsListPage() {
         <div className={styles.modalContent}>
           <div className={styles.modalGrid}>
             <div>
-              <span className={styles.modalLabel}>วันที่ผลิต</span>
+              <span className={styles.modalLabel}>{t("วันที่ผลิต")}</span>
               <DatePicker
                 value={productionDate}
                 format="DD/MM/YYYY"
@@ -534,7 +537,7 @@ export default function ProductionRequestsListPage() {
               />
             </div>
             <div>
-              <span className={styles.modalLabel}>Cycle เป้าหมาย (ชั่วโมง)</span>
+              <span className={styles.modalLabel}>{t("Cycle เป้าหมาย (ชั่วโมง)")}</span>
               <InputNumber
                 min={1}
                 style={{ width: "100%" }}
@@ -543,7 +546,7 @@ export default function ProductionRequestsListPage() {
               />
             </div>
             <div>
-              <span className={styles.modalLabel}>ชั่วโมงแรงงานที่วางแผน</span>
+              <span className={styles.modalLabel}>{t("ชั่วโมงแรงงานที่วางแผน")}</span>
               <InputNumber
                 min={0.01}
                 style={{ width: "100%" }}
@@ -554,7 +557,7 @@ export default function ProductionRequestsListPage() {
           </div>
 
           <div>
-            <span className={styles.modalLabel}>หมายเหตุรวม</span>
+            <span className={styles.modalLabel}>{t("หมายเหตุรวม")}</span>
             <Input.TextArea
               rows={2}
               value={remark}
@@ -564,7 +567,7 @@ export default function ProductionRequestsListPage() {
 
           <div className={styles.modalSection}>
             <div className={styles.modalSectionHead}>
-              <h4>ใบขอผลิตที่จะผูกกับใบสั่งผลิต</h4>
+              <h4>{t("ใบขอผลิตที่จะผูกกับใบสั่งผลิต")}</h4>
             </div>
             {sharedShortage.summaries.length ? (
               <div className={styles.shortageSummary}>
@@ -575,9 +578,9 @@ export default function ProductionRequestsListPage() {
                       {row.itemNameTh ? ` — ${row.itemNameTh}` : ""}
                     </strong>
                     <span>
-                      ต้องการรวม {formatQty(row.need)} {row.unitCode ?? ""} ·
-                      พร้อมใช้ในคลัง {formatQty(row.warehouseAvailable)}{" "}
-                      {row.unitCode ?? ""} · ขาดรวม{" "}
+                      {t("ต้องการรวม")} {formatQty(row.need)} {row.unitCode ?? ""} ·{" "}
+                      {t("พร้อมใช้ในคลัง")} {formatQty(row.warehouseAvailable)}{" "}
+                      {row.unitCode ?? ""} · {t("ขาดรวม")}{" "}
                       <b>{formatQty(row.shortage)}</b> {row.unitCode ?? ""}
                     </span>
                   </div>
@@ -600,10 +603,16 @@ export default function ProductionRequestsListPage() {
                           ? ` · ${lines
                               .map(
                                 (line) =>
-                                  `${line.itemCode ?? line.itemId} ต้องการ ${formatQty(line.need)} · ใช้จากคลัง ${formatQty(line.covered)} · ขาด ${formatQty(line.shortage)} ${line.unitCode ?? ""}`,
+                                  t("{item} ต้องการ {need} · ใช้จากคลัง {covered} · ขาด {shortage} {unit}", {
+                                    item: line.itemCode ?? line.itemId,
+                                    need: formatQty(line.need),
+                                    covered: formatQty(line.covered),
+                                    shortage: formatQty(line.shortage),
+                                    unit: line.unitCode ?? "",
+                                  }),
                               )
                               .join(" · ")}`
-                          : " · ไม่มีรายการคงค้าง"}
+                          : ` · ${t("ไม่มีรายการคงค้าง")}`}
                       </span>
                     </div>
                     <span className={styles.queueDate}>
@@ -619,9 +628,9 @@ export default function ProductionRequestsListPage() {
 
           <div className={styles.modalSection}>
             <div className={styles.modalSectionHead}>
-              <h4>วัตถุดิบที่ใช้ร่วมกันทุกใบ</h4>
+              <h4>{t("วัตถุดิบที่ใช้ร่วมกันทุกใบ")}</h4>
               <Button onClick={() => setInputRows((prev) => [...prev, emptyRow()])}>
-                เพิ่มวัตถุดิบ
+                {t("เพิ่มวัตถุดิบ")}
               </Button>
             </div>
             <div className={styles.sharedRows}>
@@ -650,11 +659,11 @@ export default function ProductionRequestsListPage() {
 
           <div className={styles.modalSection}>
             <div className={styles.modalSectionHead}>
-              <h4>ของเสีย/แผนเสริม</h4>
+              <h4>{t("ของเสีย/แผนเสริม")}</h4>
               <Button
                 onClick={() => setWasteRows((prev) => [...prev, emptyPlanRow()])}
               >
-                เพิ่มของเสีย
+                {t("เพิ่มของเสีย")}
               </Button>
             </div>
             <div className={styles.sharedRows}>
@@ -683,7 +692,7 @@ export default function ProductionRequestsListPage() {
                 ))
               ) : (
                 <div className={styles.emptyState}>
-                  ถ้าไม่มีของเสีย/แผนเสริม สามารถปล่อยว่างได้
+                  {t("ถ้าไม่มีของเสีย/แผนเสริม สามารถปล่อยว่างได้")}
                 </div>
               )}
             </div>
@@ -704,7 +713,7 @@ function canOpenProductionOrder(request: ProductionRequest) {
 }
 
 function formatQty(value: number) {
-  return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return value.toLocaleString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", { maximumFractionDigits: 3 });
 }
 
 type SharedShortageLine = {

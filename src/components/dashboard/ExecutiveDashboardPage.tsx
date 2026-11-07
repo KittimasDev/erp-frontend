@@ -24,6 +24,7 @@ import {
 
 import StatusLight from "@/components/common/StatusLight";
 import { useExecutiveOverviewQuery } from "@/hooks/dashboards/useDashboards";
+import { useT } from "@/lib/i18n/useT";
 import { buildExecutiveReport } from "@/utils/dashboardExport";
 
 import {
@@ -60,15 +61,16 @@ const bar: [number, number, number, number] = [6, 6, 0, 0];
  * สถานะเครื่องจักร Downtime KPI และ Cycle Progress วันที่ N จาก 45
  */
 export default function ExecutiveDashboardPage() {
+  const t = useT();
   const [params, range, setRange] = useDashboardRange();
   const q = useExecutiveOverviewQuery(params);
   const d = q.data;
 
   return (
     <DashboardShell
-      eyebrow="Executive Dashboard"
-      title="ภาพรวมผู้บริหาร"
-      subtitle="การผลิต · การรับซื้อยาง · สต๊อก · ยอดขาย · เครื่องจักร · Downtime"
+      eyebrow={t("Executive Dashboard")}
+      title={t("ภาพรวมผู้บริหาร")}
+      subtitle={t("การผลิต · การรับซื้อยาง · สต๊อก · ยอดขาย · เครื่องจักร · Downtime")}
       range={range}
       onRangeChange={setRange}
       loading={q.isFetching}
@@ -76,40 +78,40 @@ export default function ExecutiveDashboardPage() {
       extra={<DashboardExportButtons screenCode="EXECUTIVE_DASHBOARD" build={() => (d ? buildExecutiveReport(d) : null)} />}
     >
       {!d ? (
-        <Empty text={q.isLoading ? "กำลังโหลดข้อมูล…" : "ยังไม่มีข้อมูล"} />
+        <Empty text={q.isLoading ? t("กำลังโหลดข้อมูล…") : t("ยังไม่มีข้อมูล")} />
       ) : (
         <>
-          <SectionTitle hint="ช่วงวันที่ที่เลือก">ตัวเลขหลัก</SectionTitle>
+          <SectionTitle hint={t("ช่วงวันที่ที่เลือก")}>{t("ตัวเลขหลัก")}</SectionTitle>
           <KpiGrid hero>
-            <KpiCard hero icon={<ThunderboltOutlined />} label="ผลผลิตรับเข้าคลัง (ช่วงนี้)" value={fmtKg(d.production.outputKg)} note={`ยางป้อน ${fmtKg(d.production.inputKg)}`} />
-            <KpiCard hero icon={<PercentageOutlined />} label="Yield เฉลี่ย" value={fmtPercent(d.kpi.averageYieldPercent)} note={`ปิดงาน ${d.kpi.completedOrders} ใบ · กำลังเดิน ${d.kpi.inProgressOrders} ใบ`} />
-            <KpiCard hero icon={<TruckOutlined />} label="รับซื้อยาง (น้ำหนักจ่ายเงิน)" value={fmtKg(d.rawTire.payableKg)} note={`${fmt(d.rawTire.receipts, 0)} ใบรับ · ${fmtBaht(d.rawTire.amount)}`} />
-            <KpiCard hero icon={<ShoppingCartOutlined />} label="ยอดขาย (ยืนยันแล้ว)" value={fmtBaht(d.sales.soldAmount)} note={`ส่งมอบแล้ว ${fmtBaht(d.sales.deliveredAmount)} · ค้างส่ง ${d.sales.openOrders} ใบ`} />
+            <KpiCard hero icon={<ThunderboltOutlined />} label={t("ผลผลิตรับเข้าคลัง (ช่วงนี้)")} value={fmtKg(d.production.outputKg)} note={t("ยางป้อน {v}", { v: fmtKg(d.production.inputKg) })} />
+            <KpiCard hero icon={<PercentageOutlined />} label={t("Yield เฉลี่ย")} value={fmtPercent(d.kpi.averageYieldPercent)} note={t("ปิดงาน {done} ใบ · กำลังเดิน {running} ใบ", { done: d.kpi.completedOrders, running: d.kpi.inProgressOrders })} />
+            <KpiCard hero icon={<TruckOutlined />} label={t("รับซื้อยาง (น้ำหนักจ่ายเงิน)")} value={fmtKg(d.rawTire.payableKg)} note={t("{n} ใบรับ · {amt}", { n: fmt(d.rawTire.receipts, 0), amt: fmtBaht(d.rawTire.amount) })} />
+            <KpiCard hero icon={<ShoppingCartOutlined />} label={t("ยอดขาย (ยืนยันแล้ว)")} value={fmtBaht(d.sales.soldAmount)} note={t("ส่งมอบแล้ว {amt} · ค้างส่ง {n} ใบ", { amt: fmtBaht(d.sales.deliveredAmount), n: d.sales.openOrders })} />
           </KpiGrid>
 
-          <SectionTitle hint="สิ่งที่ควรจับตา">สถานะและความเสี่ยง</SectionTitle>
+          <SectionTitle hint={t("สิ่งที่ควรจับตา")}>{t("สถานะและความเสี่ยง")}</SectionTitle>
           <KpiGrid>
-            <KpiCard icon={<InboxOutlined />} label="มูลค่าสต๊อก" value={fmtBaht(d.inventory.totalValue)} tone={d.inventory.lowCount > 0 ? "warn" : "default"} note={d.inventory.lowCount > 0 ? `ต่ำกว่าขั้นต่ำ ${d.inventory.lowCount} รายการ (หมด ${d.inventory.outCount})` : "ไม่มีสินค้าต่ำกว่าขั้นต่ำ"} />
-            <KpiCard icon={<ClockCircleOutlined />} label="Downtime" value={`${fmt(d.downtime.totalHours, 1)} ชม.`} tone={d.kpi.openDowntimeCount > 0 ? "bad" : "default"} note={d.kpi.openDowntimeCount > 0 ? `ยังไม่ปิด ${d.kpi.openDowntimeCount} รายการ` : "ไม่มีค้าง"} />
-            <KpiCard icon={<AuditOutlined />} label="ใบรออนุมัติ (ทุกโมดูล)" value={fmt(d.kpi.pendingApprovalsCount, 0)} tone={d.kpi.pendingApprovalsCount > 0 ? "warn" : "good"} note={d.kpi.pendingApprovalsCount > 0 ? "รอดำเนินการ" : "ไม่มีค้างอนุมัติ"} />
+            <KpiCard icon={<InboxOutlined />} label={t("มูลค่าสต๊อก")} value={fmtBaht(d.inventory.totalValue)} tone={d.inventory.lowCount > 0 ? "warn" : "default"} note={d.inventory.lowCount > 0 ? t("ต่ำกว่าขั้นต่ำ {n} รายการ (หมด {out})", { n: d.inventory.lowCount, out: d.inventory.outCount }) : t("ไม่มีสินค้าต่ำกว่าขั้นต่ำ")} />
+            <KpiCard icon={<ClockCircleOutlined />} label={t("Downtime")} value={t("{v} ชม.", { v: fmt(d.downtime.totalHours, 1) })} tone={d.kpi.openDowntimeCount > 0 ? "bad" : "default"} note={d.kpi.openDowntimeCount > 0 ? t("ยังไม่ปิด {n} รายการ", { n: d.kpi.openDowntimeCount }) : t("ไม่มีค้าง")} />
+            <KpiCard icon={<AuditOutlined />} label={t("ใบรออนุมัติ (ทุกโมดูล)")} value={fmt(d.kpi.pendingApprovalsCount, 0)} tone={d.kpi.pendingApprovalsCount > 0 ? "warn" : "good"} note={d.kpi.pendingApprovalsCount > 0 ? t("รอดำเนินการ") : t("ไม่มีค้างอนุมัติ")} />
           </KpiGrid>
 
-          <SectionTitle>การผลิตและเครื่องจักร</SectionTitle>
+          <SectionTitle>{t("การผลิตและเครื่องจักร")}</SectionTitle>
           <Grid2>
-            <Panel title="Cycle Progress">
-              {d.cycle ? <CycleSummary cycle={d.cycle} /> : <Empty text="ไม่มีรอบผลิตที่เปิดอยู่" />}
+            <Panel title={t("Cycle Progress")}>
+              {d.cycle ? <CycleSummary cycle={d.cycle} /> : <Empty text={t("ไม่มีรอบผลิตที่เปิดอยู่")} />}
             </Panel>
             <Panel
-              title="สถานะเครื่องจักร"
+              title={t("สถานะเครื่องจักร")}
               extra={<StatusLight light={d.machines.overallLight} />}
             >
               <div style={{ marginBottom: 8 }}>
-                <Tag color="red">หยุด/เสีย {d.machines.counts.red}</Tag>
-                <Tag color="gold">เฝ้าระวัง {d.machines.counts.yellow}</Tag>
-                <Tag color="green">ปกติ {d.machines.counts.green}</Tag>
+                <Tag color="red">{t("หยุด/เสีย")} {d.machines.counts.red}</Tag>
+                <Tag color="gold">{t("เฝ้าระวัง")} {d.machines.counts.yellow}</Tag>
+                <Tag color="green">{t("ปกติ")} {d.machines.counts.green}</Tag>
               </div>
               {d.machines.issues.length === 0 ? (
-                <Empty text="ไม่มีเครื่องที่ผิดปกติ" />
+                <Empty text={t("ไม่มีเครื่องที่ผิดปกติ")} />
               ) : (
                 d.machines.issues.map((m) => (
                   <ListRow
@@ -126,7 +128,7 @@ export default function ExecutiveDashboardPage() {
             </Panel>
           </Grid2>
 
-          <Panel title="การผลิตรายวัน (ยางป้อน เทียบผลผลิตรับเข้าคลัง)">
+          <Panel title={t("การผลิตรายวัน (ยางป้อน เทียบผลผลิตรับเข้าคลัง)")}>
             <MassBalanceNote status={d.production.massBalanceStatus} />
             <ChartBox>
               <ResponsiveContainer>
@@ -136,27 +138,27 @@ export default function ExecutiveDashboardPage() {
                   <YAxis tick={axis} />
                   <Tooltip {...tooltipStyle} labelFormatter={(v) => String(v)} formatter={(v) => fmtKg(Number(v))} />
                   <Legend />
-                  <Bar dataKey="inputKg" name="ยางป้อน (kg)" fill="#c9ccd1" radius={bar} />
-                  <Bar dataKey="outputKg" name="ผลผลิต (kg)" fill={DASH_COLORS.green} radius={bar} />
+                  <Bar dataKey="inputKg" name={t("ยางป้อน (kg)")} fill="#c9ccd1" radius={bar} />
+                  <Bar dataKey="outputKg" name={t("ผลผลิต (kg)")} fill={DASH_COLORS.green} radius={bar} />
                 </ComposedChart>
               </ResponsiveContainer>
             </ChartBox>
           </Panel>
 
-          <SectionTitle>ผลผลิตและสต๊อก</SectionTitle>
+          <SectionTitle>{t("ผลผลิตและสต๊อก")}</SectionTitle>
           <Grid2>
-            <Panel title="ผลผลิตสะสมของช่วงนี้ แยกชนิด">
+            <Panel title={t("ผลผลิตสะสมของช่วงนี้ แยกชนิด")}>
               {d.production.outputKinds.map((k) => (
                 <ListRow
                   key={k.kind}
                   label={k.label}
-                  value={`${k.quantities?.length ? k.quantities.map((q) => `${q.quantity.toLocaleString("th-TH", { maximumFractionDigits: 2 })} ${q.unit}`).join(" · ") : fmtKg(k.quantityKg)}${k.yieldPercentOfInput != null ? ` (${fmtPercent(k.yieldPercentOfInput)} ของยางป้อน)` : ""}`}
+                  value={`${k.quantities?.length ? k.quantities.map((q) => `${fmt(q.quantity, 2)} ${q.unit}`).join(" · ") : fmtKg(k.quantityKg)}${k.yieldPercentOfInput != null ? t(" ({v} ของยางป้อน)", { v: fmtPercent(k.yieldPercentOfInput) }) : ""}`}
                 />
               ))}
             </Panel>
-            <Panel title="สินค้าสำเร็จรูปคงเหลือ">
+            <Panel title={t("สินค้าสำเร็จรูปคงเหลือ")}>
               {d.inventory.finishedGoods.length === 0 ? (
-                <Empty text="ไม่มีสินค้าสำเร็จรูปคงเหลือ" />
+                <Empty text={t("ไม่มีสินค้าสำเร็จรูปคงเหลือ")} />
               ) : (
                 d.inventory.finishedGoods.map((g) => (
                   <ListRow key={g.itemCode} label={`${g.itemCode} · ${g.itemName}`} value={`${fmt(g.quantity, 0)} ${g.unit ?? ""}`} />
@@ -165,9 +167,9 @@ export default function ExecutiveDashboardPage() {
             </Panel>
           </Grid2>
 
-          <SectionTitle>รับซื้อยางและยอดขาย</SectionTitle>
+          <SectionTitle>{t("รับซื้อยางและยอดขาย")}</SectionTitle>
           <Grid2>
-            <Panel title="ปริมาณรับซื้อยางรายวัน (kg น้ำหนักจ่ายเงิน)">
+            <Panel title={t("ปริมาณรับซื้อยางรายวัน (kg น้ำหนักจ่ายเงิน)")}>
               <ChartBox>
                 <ResponsiveContainer>
                   <ComposedChart data={d.rawTire.days}>
@@ -175,12 +177,12 @@ export default function ExecutiveDashboardPage() {
                     <XAxis dataKey="date" tickFormatter={shortDate} tick={axis} />
                     <YAxis tick={axis} />
                     <Tooltip {...tooltipStyle} formatter={(v) => fmtKg(Number(v))} />
-                    <Bar dataKey="payableKg" name="จ่ายเงิน (kg)" fill={DASH_COLORS.greenDark} radius={bar} />
+                    <Bar dataKey="payableKg" name={t("จ่ายเงิน (kg)")} fill={DASH_COLORS.greenDark} radius={bar} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </ChartBox>
             </Panel>
-            <Panel title="ยอดขายรายวัน (฿)">
+            <Panel title={t("ยอดขายรายวัน (฿)")}>
               <ChartBox>
                 <ResponsiveContainer>
                   <ComposedChart data={d.sales.days}>
@@ -189,17 +191,17 @@ export default function ExecutiveDashboardPage() {
                     <YAxis tick={axis} />
                     <Tooltip {...tooltipStyle} formatter={(v) => fmtBaht(Number(v))} />
                     <Legend />
-                    <Bar dataKey="soldAmount" name="ยอดขาย" fill={DASH_COLORS.blue} radius={bar} />
-                    <Bar dataKey="deliveredAmount" name="ส่งมอบแล้ว" fill={DASH_COLORS.green} radius={bar} />
+                    <Bar dataKey="soldAmount" name={t("ยอดขาย")} fill={DASH_COLORS.blue} radius={bar} />
+                    <Bar dataKey="deliveredAmount" name={t("ส่งมอบแล้ว")} fill={DASH_COLORS.green} radius={bar} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </ChartBox>
             </Panel>
           </Grid2>
 
-          <Panel title="Downtime ตามหมวด (Pareto)">
+          <Panel title={t("Downtime ตามหมวด (Pareto)")}>
             {d.downtime.byCategory.length === 0 ? (
-              <Empty text="ไม่มี Downtime ในช่วงนี้" />
+              <Empty text={t("ไม่มี Downtime ในช่วงนี้")} />
             ) : (
               <ChartBox>
                 <ResponsiveContainer>
@@ -210,8 +212,8 @@ export default function ExecutiveDashboardPage() {
                     <YAxis yAxisId="p" orientation="right" domain={[0, 100]} tick={axis} />
                     <Tooltip {...tooltipStyle} />
                     <Legend />
-                    <Bar yAxisId="h" dataKey="hours" name="ชั่วโมง" fill={DASH_COLORS.red} radius={bar} />
-                    <Line yAxisId="p" dataKey="cumulativePercent" name="สะสม %" stroke={DASH_COLORS.amber} strokeWidth={2.5} dot={{ r: 3 }} />
+                    <Bar yAxisId="h" dataKey="hours" name={t("ชั่วโมง")} fill={DASH_COLORS.red} radius={bar} />
+                    <Line yAxisId="p" dataKey="cumulativePercent" name={t("สะสม %")} stroke={DASH_COLORS.amber} strokeWidth={2.5} dot={{ r: 3 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </ChartBox>
@@ -222,8 +224,8 @@ export default function ExecutiveDashboardPage() {
             <Alert
               type="warning"
               showIcon
-              title={`มีสินค้า ${d.inventory.lowCount} รายการต่ำกว่าสต๊อกขั้นต่ำ (หมดสต๊อก ${d.inventory.outCount})`}
-              description="ดูรายละเอียดที่หน้าสินค้า ตัวกรอง “สถานะสต๊อก = ต่ำกว่าขั้นต่ำ”"
+              title={t("มีสินค้า {n} รายการต่ำกว่าสต๊อกขั้นต่ำ (หมดสต๊อก {out})", { n: d.inventory.lowCount, out: d.inventory.outCount })}
+              description={t("ดูรายละเอียดที่หน้าสินค้า ตัวกรอง “สถานะสต๊อก = ต่ำกว่าขั้นต่ำ”")}
             />
           ) : null}
         </>

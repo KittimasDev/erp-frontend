@@ -7,11 +7,19 @@ import Link from "next/link";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useLabCoaHistoryQuery } from "@/hooks/laboratory/useLaboratoryQuery";
-import type { LabCoa, LabCoaQueryParams } from "@/types/laboratory";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import {
+  labCoaStatusLabel,
+  type LabCoa,
+  type LabCoaQueryParams,
+} from "@/types/laboratory";
 import styles from "./LabSamplesListPage.module.css";
 
 /** ประวัติ COA ที่ออกทั้งหมด (M8.6) — เลขที่ ฉบับ ตัวอย่าง Lot สถานะ (ยกเลิกพร้อมเหตุผล) */
 export default function LabCoaHistoryTab() {
+  const t = useT();
+  const lang = useLanguage();
   const [coaNo, setCoaNo] = useState("");
   const [lotNo, setLotNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -21,23 +29,23 @@ export default function LabCoaHistoryTab() {
 
   const columns: ColumnsType<LabCoa> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ COA",
+      title: t("เลขที่ COA"),
       dataIndex: "coaNo",
       render: (v: string, r) => (
         <span>
-          <strong>{v}</strong> <Tag>ฉบับที่ {r.version}</Tag>
+          <strong>{v}</strong> <Tag>{t("ฉบับที่ {n}", { n: r.version })}</Tag>
         </span>
       ),
     },
     {
-      title: "ตัวอย่าง",
+      title: t("ตัวอย่าง"),
       dataIndex: "sampleNo",
       render: (v: string, r) => (
         <Link href={`/laboratory/samples/${r.sampleId}`}>{v}</Link>
@@ -45,27 +53,27 @@ export default function LabCoaHistoryTab() {
     },
     { title: "Lot", dataIndex: "lotNo", render: (v?: string) => v ?? "—" },
     {
-      title: "ออกเมื่อ",
+      title: t("ออกเมื่อ"),
       dataIndex: "issuedAt",
       width: 150,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
     },
     {
-      title: "ผู้ออก",
+      title: t("ผู้ออก"),
       dataIndex: "issuedByName",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "st",
       render: (_v, r) =>
         r.status === "VOIDED" ? (
           <span>
-            <Tag>ยกเลิก</Tag>
+            <Tag>{labCoaStatusLabel("VOIDED", lang)}</Tag>
             {r.voidReason}
           </span>
         ) : (
-          <Tag color="success">ใช้งานอยู่</Tag>
+          <Tag color="success">{labCoaStatusLabel("ISSUED", lang)}</Tag>
         ),
     },
   ];
@@ -75,12 +83,12 @@ export default function LabCoaHistoryTab() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ COA</label>
+            <label>{t("เลขที่ COA")}</label>
             <Input
               allowClear
               value={coaNo}
               onChange={(e) => setCoaNo(e.target.value)}
-              placeholder="เช่น COA-20261013"
+              placeholder={t("เช่น COA-20261013")}
             />
           </div>
           <div className={styles.filterItem}>
@@ -92,20 +100,20 @@ export default function LabCoaHistoryTab() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
               value={status}
               onChange={setStatus}
               options={[
-                { value: "ISSUED", label: "ใช้งานอยู่" },
-                { value: "VOIDED", label: "ยกเลิก" },
+                { value: "ISSUED", label: labCoaStatusLabel("ISSUED", lang) },
+                { value: "VOIDED", label: labCoaStatusLabel("VOIDED", lang) },
               ]}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่ออก</label>
+            <label>{t("วันที่ออก")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
@@ -124,7 +132,7 @@ export default function LabCoaHistoryTab() {
               setApplied({});
             }}
           >
-            เคลียร์
+            {t("เคลียร์")}
           </Button>
           <Button
             type="primary"
@@ -139,7 +147,7 @@ export default function LabCoaHistoryTab() {
               })
             }
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -150,7 +158,7 @@ export default function LabCoaHistoryTab() {
           columns={columns}
           dataSource={query.data?.data ?? []}
           pagination={{ pageSize: 20 }}
-          locale={{ emptyText: "ยังไม่มี COA ที่ออก" }}
+          locale={{ emptyText: t("ยังไม่มี COA ที่ออก") }}
         />
       </section>
     </>

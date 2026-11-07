@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useT } from "@/lib/i18n/useT";
 import {
   useShiftCalendarQuery,
   useShiftsQuery,
@@ -48,6 +49,7 @@ function monthRange(month: Dayjs) {
 }
 
 export default function ShiftCalendarPage() {
+  const t = useT();
   const [month, setMonth] = useState<Dayjs>(dayjs());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [masterOpen, setMasterOpen] = useState(false);
@@ -120,11 +122,11 @@ export default function ShiftCalendarPage() {
     return (
       <div className={styles.cell}>
         {production && day.productionDay ? (
-          <Tooltip title={`รอบการผลิต ${day.productionDay.roundNo}`}>
+          <Tooltip title={t("รอบการผลิต {n}", { n: day.productionDay.roundNo })}>
             <span
               className={`${styles.productionTag} ${production.className}`}
             >
-              {production.label}
+              {t(production.label)}
             </span>
           </Tooltip>
         ) : null}
@@ -145,7 +147,7 @@ export default function ShiftCalendarPage() {
         {day.schedules.map((round) => (
           <Tooltip
             key={round.id}
-            title={`${round.shiftName} ${round.startTime}-${round.endTime} · ${round.memberCount} คน`}
+            title={`${round.shiftName} ${round.startTime}-${round.endTime} · ${t("{n} คน", { n: round.memberCount })}`}
           >
             <div className={styles.cellRound}>
               <span
@@ -177,13 +179,13 @@ export default function ShiftCalendarPage() {
         <PageHeader
           eyebrow="HRM"
           icon={<CalendarOutlined />}
-          title="ตารางกะการทำงาน"
-          subtitle="จัดรอบกะลงปฏิทินรายวัน กดวันที่เพื่อดู/แก้รอบกะและรายชื่อคนในกะ หรือกดหยุดวันซ่อมเครื่อง — พนักงานเห็นกะของตัวเองในหน้าลงเวลา"
+          title={t("ตารางกะการทำงาน")}
+          subtitle={t("จัดรอบกะลงปฏิทินรายวัน กดวันที่เพื่อดู/แก้รอบกะและรายชื่อคนในกะ หรือกดหยุดวันซ่อมเครื่อง — พนักงานเห็นกะของตัวเองในหน้าลงเวลา")}
         />
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>
-            <span>เดือน</span>
+            <span>{t("เดือน")}</span>
             <DatePicker
               picker="month"
               allowClear={false}
@@ -197,15 +199,15 @@ export default function ShiftCalendarPage() {
             icon={<ReloadOutlined />}
             onClick={() => void calendarQuery.refetch()}
           >
-            รีเฟรช
+            {t("รีเฟรช")}
           </Button>
 
           <Button icon={<SettingOutlined />} onClick={() => setMasterOpen(true)}>
-            จัดการกะ
+            {t("จัดการกะ")}
           </Button>
 
           <Button icon={<ThunderboltOutlined />} onClick={() => setBulkOpen(true)}>
-            ลงกะเป็นช่วง
+            {t("ลงกะเป็นช่วง")}
           </Button>
 
           <Button
@@ -214,29 +216,29 @@ export default function ShiftCalendarPage() {
             disabled={shifts.length === 0}
             onClick={() => setAutoPlanOpen(true)}
           >
-            จัดตารางอัตโนมัติ
+            {t("จัดตารางอัตโนมัติ")}
           </Button>
         </div>
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>รอบกะเดือนนี้</span>
+            <span>{t("รอบกะเดือนนี้")}</span>
             <strong>{summary.rounds}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>วันที่จัดกะแล้ว</span>
+            <span>{t("วันที่จัดกะแล้ว")}</span>
             <strong>{summary.plannedDays}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>วันหยุด / ซ่อมเครื่อง</span>
+            <span>{t("วันหยุด / ซ่อมเครื่อง")}</span>
             <strong className={styles.holidayValue}>{summary.holidays}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>คน-กะรวม</span>
+            <span>{t("คน-กะรวม")}</span>
             <strong>{summary.totalMembers}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>รอบที่ยังไม่มีคน</span>
+            <span>{t("รอบที่ยังไม่มีคน")}</span>
             <strong className={styles.warnValue}>{summary.emptyRounds}</strong>
           </div>
         </div>
@@ -245,10 +247,10 @@ export default function ShiftCalendarPage() {
           {shifts.length === 0 && !shiftsQuery.isLoading ? (
             <Empty
               className={styles.noShiftEmpty}
-              description="ยังไม่มีกะในระบบ — กด จัดการกะ เพื่อสร้างกะเช้า/บ่าย/ดึกก่อน"
+              description={t("ยังไม่มีกะในระบบ — กด จัดการกะ เพื่อสร้างกะเช้า/บ่าย/ดึกก่อน")}
             >
               <Button type="primary" onClick={() => setMasterOpen(true)}>
-                จัดการกะ
+                {t("จัดการกะ")}
               </Button>
             </Empty>
           ) : null}
@@ -270,7 +272,7 @@ export default function ShiftCalendarPage() {
                   className={`${styles.legendSwatch} ${meta.className}`}
                   aria-hidden
                 />
-                {meta.label}
+                {t(meta.label)}
               </span>
             ))}
             {shifts.map((shift) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useEffect, useMemo, useState } from "react";
 import {
   App,
@@ -110,6 +111,7 @@ function joinAddress(values: ProfileFormValues) {
 }
 
 export default function CompanyProfilePage() {
+  const t = useT();
   const [form] = Form.useForm<ProfileFormValues>();
   const profileQuery = useCompanyProfileQuery();
   const updateProfile = useUpdateCompanyProfileMutation();
@@ -174,10 +176,10 @@ export default function CompanyProfilePage() {
   const previewLogo = previewValues.logoUrl?.trim();
   const previewContact = [
     previewValues.phone?.trim()
-      ? `เบอร์ออฟฟิศ : ${previewValues.phone.trim()}`
+      ? t("เบอร์ออฟฟิศ : {phone}", { phone: previewValues.phone.trim() })
       : null,
     previewValues.taxId?.trim()
-      ? `เลขประจำตัวผู้เสียภาษี ${formatTaxId(previewValues.taxId.trim())}`
+      ? t("เลขประจำตัวผู้เสียภาษี {taxId}", { taxId: formatTaxId(previewValues.taxId.trim()) })
       : null,
   ]
     .filter(Boolean)
@@ -226,7 +228,7 @@ export default function CompanyProfilePage() {
 
   const handlePickLogo = async (file: File) => {
     if (file.size > MAX_LOGO_BYTES) {
-      message.error("ไฟล์โลโก้ต้องไม่เกิน 2 MB");
+      message.error(t("ไฟล์โลโก้ต้องไม่เกิน 2 MB"));
       return;
     }
 
@@ -235,10 +237,10 @@ export default function CompanyProfilePage() {
       const response = await uploadCompanyLogo(getAccessToken(), file);
       invalidateCompanyInfo();
       await queryClient.invalidateQueries({ queryKey: companyProfileQueryKey });
-      message.success(response.message || "อัปโหลดโลโก้บริษัทสำเร็จแล้ว");
+      message.success(response.message || t("อัปโหลดโลโก้บริษัทสำเร็จแล้ว"));
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "อัปโหลดโลโก้ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("อัปโหลดโลโก้ไม่สำเร็จ"),
       );
     } finally {
       setUploadingLogo(false);
@@ -269,10 +271,10 @@ export default function CompanyProfilePage() {
       const response = await deleteCompanyLogo(getAccessToken());
       invalidateCompanyInfo();
       await queryClient.invalidateQueries({ queryKey: companyProfileQueryKey });
-      message.success(response.message || "ลบโลโก้บริษัทสำเร็จแล้ว");
+      message.success(response.message || t("ลบโลโก้บริษัทสำเร็จแล้ว"));
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ลบโลโก้ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ลบโลโก้ไม่สำเร็จ"),
       );
     } finally {
       setUploadingLogo(false);
@@ -300,14 +302,14 @@ export default function CompanyProfilePage() {
 
   const bankColumns: ColumnsType<CompanyBankAccount> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ธนาคาร",
+      title: t("ธนาคาร"),
       dataIndex: "bankName",
       render: (value: string, record) => (
         <div className={styles.bankName}>
@@ -317,48 +319,48 @@ export default function CompanyProfilePage() {
       ),
     },
     {
-      title: "ชื่อบัญชี",
+      title: t("ชื่อบัญชี"),
       dataIndex: "accountName",
     },
     {
-      title: "เลขที่บัญชี",
+      title: t("เลขที่บัญชี"),
       dataIndex: "accountNumber",
       render: (value: string) => (
         <span className={styles.accountNumber}>{value}</span>
       ),
     },
     {
-      title: "บัญชีหลัก",
+      title: t("บัญชีหลัก"),
       dataIndex: "isDefault",
       align: "center",
       width: 110,
       render: (value: boolean) =>
-        value ? <Tag color="gold">บัญชีหลัก</Tag> : <span>—</span>,
+        value ? <Tag color="gold">{t("บัญชีหลัก")}</Tag> : <span>—</span>,
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       align: "center",
       width: 110,
       render: (value: boolean) => (
         <Tag color={value ? "success" : "default"}>
-          {value ? "ใช้งาน" : "ปิดใช้งาน"}
+          {value ? t("ใช้งาน") : t("ปิดใช้งาน")}
         </Tag>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       align: "right",
       width: 90,
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการบัญชี ${record.accountNumber}`}
+          ariaLabel={t("เมนูจัดการบัญชี {no}", { no: record.accountNumber })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => {
                 setEditingAccount(record);
                 setBankModalOpen(true);
@@ -368,15 +370,15 @@ export default function CompanyProfilePage() {
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบบัญชีธนาคาร",
+              label: t("ลบบัญชีธนาคาร"),
               danger: true,
               onClick: () => deleteBankAccount.mutate(record.id),
               confirm: {
-                title: "ลบบัญชีธนาคารนี้",
+                title: t("ลบบัญชีธนาคารนี้"),
                 content:
-                  "เอกสารที่พิมพ์ไปแล้วไม่เปลี่ยน แต่เอกสารใหม่จะไม่มีบัญชีนี้",
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                  t("เอกสารที่พิมพ์ไปแล้วไม่เปลี่ยน แต่เอกสารใหม่จะไม่มีบัญชีนี้"),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -391,15 +393,15 @@ export default function CompanyProfilePage() {
         <PageHeader
           eyebrow="MASTER DATA"
           icon={<ShopOutlined />}
-          title="ข้อมูลบริษัท"
-          subtitle="ข้อมูลชุดนี้ขึ้นหัวเอกสารทุกใบในระบบ — ใบสั่งซื้อ ใบชั่ง ใบรับสินค้า ใบสำคัญจ่าย และใบรับซื้อยาง แก้ที่นี่ที่เดียว เปลี่ยนพร้อมกันทุกใบ"
+          title={t("ข้อมูลบริษัท")}
+          subtitle={t("ข้อมูลชุดนี้ขึ้นหัวเอกสารทุกใบในระบบ — ใบสั่งซื้อ ใบชั่ง ใบรับสินค้า ใบสำคัญจ่าย และใบรับซื้อยาง แก้ที่นี่ที่เดียว เปลี่ยนพร้อมกันทุกใบ")}
         />
 
         <div className={styles.previewCard}>
           <div className={styles.previewHead}>
             <div>
-              <h3>ตัวอย่างหัวเอกสาร</h3>
-              <p>อัปเดตตามที่พิมพ์ทันที — นี่คือสิ่งที่จะไปอยู่บนกระดาษ</p>
+              <h3>{t("ตัวอย่างหัวเอกสาร")}</h3>
+              <p>{t("อัปเดตตามที่พิมพ์ทันที — นี่คือสิ่งที่จะไปอยู่บนกระดาษ")}</p>
             </div>
           </div>
 
@@ -410,14 +412,14 @@ export default function CompanyProfilePage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={logoUploadPreview}
-                  alt="โลโก้บริษัท"
+                  alt={t("โลโก้บริษัท")}
                   className={styles.previewLogo}
                 />
               ) : (
                 <div className={styles.previewLogoEmpty}>
-                  ไม่มี
+                  {t("ไม่มี")}
                   <br />
-                  โลโก้
+                  {t("โลโก้")}
                 </div>
               )}
 
@@ -425,7 +427,7 @@ export default function CompanyProfilePage() {
                 <p className={styles.previewName}>
                   {previewName || (
                     <span className={styles.previewPlaceholder}>
-                      ยังไม่ได้กรอกชื่อบริษัท
+                      {t("ยังไม่ได้กรอกชื่อบริษัท")}
                     </span>
                   )}
                 </p>
@@ -436,7 +438,7 @@ export default function CompanyProfilePage() {
                   <p
                     className={`${styles.previewAddress} ${styles.previewPlaceholder}`}
                   >
-                    ยังไม่ได้กรอกที่อยู่
+                    {t("ยังไม่ได้กรอกที่อยู่")}
                   </p>
                 )}
 
@@ -464,8 +466,8 @@ export default function CompanyProfilePage() {
                   <IdcardOutlined />
                 </span>
                 <div className={styles.sectionTitles}>
-                  <h3>ข้อมูลบริษัท</h3>
-                  <p>ชื่อและเลขประจำตัวผู้เสียภาษีที่ขึ้นหัวเอกสาร</p>
+                  <h3>{t("ข้อมูลบริษัท")}</h3>
+                  <p>{t("ชื่อและเลขประจำตัวผู้เสียภาษีที่ขึ้นหัวเอกสาร")}</p>
                 </div>
               </div>
 
@@ -473,9 +475,9 @@ export default function CompanyProfilePage() {
                 <Col xs={24}>
                   <Form.Item
                     name="nameTh"
-                    label="ชื่อบริษัท (ไทย)"
+                    label={t("ชื่อบริษัท (ไทย)")}
                     rules={[
-                      { required: true, message: "กรุณากรอกชื่อบริษัทภาษาไทย" },
+                      { required: true, message: t("กรุณากรอกชื่อบริษัทภาษาไทย") },
                     ]}
                   >
                     <Input maxLength={255} size="large" />
@@ -483,48 +485,48 @@ export default function CompanyProfilePage() {
                 </Col>
 
                 <Col xs={24} md={16}>
-                  <Form.Item name="nameEn" label="ชื่อบริษัท (อังกฤษ)">
+                  <Form.Item name="nameEn" label={t("ชื่อบริษัท (อังกฤษ)")}>
                     <Input maxLength={255} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={8}>
-                  <Form.Item name="shortName" label="ชื่อย่อ">
-                    <Input maxLength={100} placeholder="เช่น SMT" />
+                  <Form.Item name="shortName" label={t("ชื่อย่อ")}>
+                    <Input maxLength={100} placeholder={t("เช่น SMT")} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
                   <Form.Item
                     name="taxId"
-                    label="เลขประจำตัวผู้เสียภาษี"
-                    extra="ตัวเลข 13 หลัก · พิมพ์เว้นวรรคหรือขีดมาได้ ระบบตัดให้เอง"
+                    label={t("เลขประจำตัวผู้เสียภาษี")}
+                    extra={t("ตัวเลข 13 หลัก · พิมพ์เว้นวรรคหรือขีดมาได้ ระบบตัดให้เอง")}
                   >
                     <Input maxLength={20} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
-                  <Form.Item name="businessType" label="ประเภทธุรกิจ">
+                  <Form.Item name="businessType" label={t("ประเภทธุรกิจ")}>
                     <Input maxLength={255} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24}>
                   <Form.Item
-                    label="โลโก้บริษัท"
-                    extra="ไฟล์รูป JPG PNG WEBP GIF ไม่เกิน 2 MB · โลโก้นี้จะขึ้นบนหัวเอกสาร PDF ทุกใบ"
+                    label={t("โลโก้บริษัท")}
+                    extra={t("ไฟล์รูป JPG PNG WEBP GIF ไม่เกิน 2 MB · โลโก้นี้จะขึ้นบนหัวเอกสาร PDF ทุกใบ")}
                   >
                     <div className={styles.logoUploadRow}>
                       {logoUploadPreview ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={logoUploadPreview}
-                          alt="โลโก้บริษัท"
+                          alt={t("โลโก้บริษัท")}
                           className={styles.logoUploadPreview}
                         />
                       ) : (
-                        <div className={styles.logoUploadEmpty}>ยังไม่มีโลโก้</div>
+                        <div className={styles.logoUploadEmpty}>{t("ยังไม่มีโลโก้")}</div>
                       )}
                       <Space wrap>
                         <Upload {...logoUploadProps}>
@@ -533,21 +535,21 @@ export default function CompanyProfilePage() {
                             loading={uploadingLogo}
                           >
                             {profile?.hasLogoFile
-                              ? "เปลี่ยนโลโก้"
-                              : "อัปโหลดโลโก้"}
+                              ? t("เปลี่ยนโลโก้")
+                              : t("อัปโหลดโลโก้")}
                           </Button>
                         </Upload>
                         {profile?.hasLogoFile ? (
                           <Popconfirm
-                            title="ลบโลโก้บริษัท"
-                            description="เอกสารจะกลับไปใช้ path โลโก้ที่ตั้งไว้ด้านล่าง"
-                            okText="ลบ"
-                            cancelText="ยกเลิก"
+                            title={t("ลบโลโก้บริษัท")}
+                            description={t("เอกสารจะกลับไปใช้ path โลโก้ที่ตั้งไว้ด้านล่าง")}
+                            okText={t("ลบ")}
+                            cancelText={t("ยกเลิก")}
                             okButtonProps={{ danger: true }}
                             onConfirm={() => void handleRemoveLogo()}
                           >
                             <Button danger icon={<DeleteOutlined />}>
-                              ลบโลโก้
+                              {t("ลบโลโก้")}
                             </Button>
                           </Popconfirm>
                         ) : null}
@@ -559,8 +561,8 @@ export default function CompanyProfilePage() {
                 <Col xs={24}>
                   <Form.Item
                     name="logoUrl"
-                    label="path โลโก้ (ตัวเลือกสำรอง)"
-                    extra="ใช้เมื่อไม่ได้อัปโหลดไฟล์ เช่น /logo.png — ถ้าอัปโหลดไฟล์ไว้ ระบบจะใช้ไฟล์ที่อัปโหลดก่อน"
+                    label={t("path โลโก้ (ตัวเลือกสำรอง)")}
+                    extra={t("ใช้เมื่อไม่ได้อัปโหลดไฟล์ เช่น /logo.png — ถ้าอัปโหลดไฟล์ไว้ ระบบจะใช้ไฟล์ที่อัปโหลดก่อน")}
                   >
                     <Input maxLength={500} />
                   </Form.Item>
@@ -574,44 +576,44 @@ export default function CompanyProfilePage() {
                   <EnvironmentOutlined />
                 </span>
                 <div className={styles.sectionTitles}>
-                  <h3>ที่อยู่</h3>
-                  <p>ทุกช่องจะถูกต่อเป็นบรรทัดเดียว ช่องที่ว่างจะถูกข้าม</p>
+                  <h3>{t("ที่อยู่")}</h3>
+                  <p>{t("ทุกช่องจะถูกต่อเป็นบรรทัดเดียว ช่องที่ว่างจะถูกข้าม")}</p>
                 </div>
               </div>
 
               <Row gutter={[14, 0]}>
                 <Col xs={24}>
-                  <Form.Item name="addressLine" label="ที่อยู่ (เลขที่ / ถนน)">
-                    <Input maxLength={500} placeholder="เช่น 85 ถนนโยธา" />
+                  <Form.Item name="addressLine" label={t("ที่อยู่ (เลขที่ / ถนน)")}>
+                    <Input maxLength={500} placeholder={t("เช่น 85 ถนนโยธา")} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
-                  <Form.Item name="subDistrict" label="ตำบล / แขวง">
-                    <Input maxLength={150} placeholder="เช่น แขวงตลาดน้อย" />
+                  <Form.Item name="subDistrict" label={t("ตำบล / แขวง")}>
+                    <Input maxLength={150} placeholder={t("เช่น แขวงตลาดน้อย")} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
-                  <Form.Item name="district" label="อำเภอ / เขต">
-                    <Input maxLength={150} placeholder="เช่น เขตสัมพันธวงศ์" />
+                  <Form.Item name="district" label={t("อำเภอ / เขต")}>
+                    <Input maxLength={150} placeholder={t("เช่น เขตสัมพันธวงศ์")} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={10}>
-                  <Form.Item name="province" label="จังหวัด">
+                  <Form.Item name="province" label={t("จังหวัด")}>
                     <Input maxLength={150} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={12} md={7}>
-                  <Form.Item name="postalCode" label="รหัสไปรษณีย์">
+                  <Form.Item name="postalCode" label={t("รหัสไปรษณีย์")}>
                     <Input maxLength={10} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={12} md={7}>
-                  <Form.Item name="country" label="ประเทศ">
+                  <Form.Item name="country" label={t("ประเทศ")}>
                     <Input maxLength={100} />
                   </Form.Item>
                 </Col>
@@ -624,24 +626,24 @@ export default function CompanyProfilePage() {
                   <PhoneOutlined />
                 </span>
                 <div className={styles.sectionTitles}>
-                  <h3>ข้อมูลติดต่อ</h3>
-                  <p>เบอร์โทรขึ้นหัวเอกสารคู่กับเลขผู้เสียภาษี</p>
+                  <h3>{t("ข้อมูลติดต่อ")}</h3>
+                  <p>{t("เบอร์โทรขึ้นหัวเอกสารคู่กับเลขผู้เสียภาษี")}</p>
                 </div>
               </div>
 
               <Row gutter={[14, 0]}>
                 <Col xs={24} md={12}>
-                  <Form.Item name="phone" label="เบอร์โทร">
-                    <Input maxLength={100} placeholder="เช่น 02-2359565-8" />
+                  <Form.Item name="phone" label={t("เบอร์โทร")}>
+                    <Input maxLength={100} placeholder={t("เช่น 02-2359565-8")} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
                   <Form.Item
                     name="email"
-                    label="อีเมล"
+                    label={t("อีเมล")}
                     rules={[
-                      { type: "email", message: "รูปแบบอีเมลไม่ถูกต้อง" },
+                      { type: "email", message: t("รูปแบบอีเมลไม่ถูกต้อง") },
                     ]}
                   >
                     <Input maxLength={255} />
@@ -649,14 +651,14 @@ export default function CompanyProfilePage() {
                 </Col>
 
                 <Col xs={24} md={12}>
-                  <Form.Item name="website" label="เว็บไซต์">
+                  <Form.Item name="website" label={t("เว็บไซต์")}>
                     <Input maxLength={255} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
                   <Form.Item name="lineId" label="LINE">
-                    <Input maxLength={100} placeholder="เช่น @smtenergy" />
+                    <Input maxLength={100} placeholder={t("เช่น @smtenergy")} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -668,8 +670,8 @@ export default function CompanyProfilePage() {
                   <CalculatorOutlined />
                 </span>
                 <div className={styles.sectionTitles}>
-                  <h3>ภาษีและการตั้งค่าระบบ</h3>
-                  <p>ค่าตั้งต้นที่เอกสารและรายงานใช้ร่วมกัน</p>
+                  <h3>{t("ภาษีและการตั้งค่าระบบ")}</h3>
+                  <p>{t("ค่าตั้งต้นที่เอกสารและรายงานใช้ร่วมกัน")}</p>
                 </div>
               </div>
 
@@ -677,15 +679,15 @@ export default function CompanyProfilePage() {
                 <Col xs={12} md={8}>
                   <Form.Item
                     name="isVatRegistered"
-                    label="จดทะเบียน VAT"
+                    label={t("จดทะเบียน VAT")}
                     valuePropName="checked"
                   >
-                    <Switch checkedChildren="จด" unCheckedChildren="ไม่จด" />
+                    <Switch checkedChildren={t("จด")} unCheckedChildren={t("ไม่จด")} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={12} md={8}>
-                  <Form.Item name="defaultVatRate" label="อัตรา VAT (%)">
+                  <Form.Item name="defaultVatRate" label={t("อัตรา VAT (%)")}>
                     <InputNumber
                       min={0}
                       max={100}
@@ -696,7 +698,7 @@ export default function CompanyProfilePage() {
                 </Col>
 
                 <Col xs={24} md={8}>
-                  <Form.Item name="currencyCode" label="สกุลเงินหลัก">
+                  <Form.Item name="currencyCode" label={t("สกุลเงินหลัก")}>
                     <Input maxLength={10} placeholder="THB" />
                   </Form.Item>
                 </Col>
@@ -708,7 +710,7 @@ export default function CompanyProfilePage() {
                 </Col>
 
                 <Col xs={24} md={12}>
-                  <Form.Item name="dateFormat" label="รูปแบบวันที่">
+                  <Form.Item name="dateFormat" label={t("รูปแบบวันที่")}>
                     <Select options={DATE_FORMAT_OPTIONS} />
                   </Form.Item>
                 </Col>
@@ -716,21 +718,21 @@ export default function CompanyProfilePage() {
                 <Col xs={24} md={12}>
                   <Form.Item
                     name="fiscalYearStartMonth"
-                    label="ปีบัญชีเริ่มเดือน"
+                    label={t("ปีบัญชีเริ่มเดือน")}
                   >
-                    <Select options={MONTH_OPTIONS} />
+                    <Select options={MONTH_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
                   </Form.Item>
                 </Col>
 
                 <Col xs={24} md={12}>
                   <Form.Item
                     name="isActive"
-                    label="สถานะ"
+                    label={t("สถานะ")}
                     valuePropName="checked"
                   >
                     <Switch
-                      checkedChildren="ใช้งาน"
-                      unCheckedChildren="ปิดใช้งาน"
+                      checkedChildren={t("ใช้งาน")}
+                      unCheckedChildren={t("ปิดใช้งาน")}
                     />
                   </Form.Item>
                 </Col>
@@ -745,8 +747,8 @@ export default function CompanyProfilePage() {
               <BankOutlined />
             </span>
             <div className={styles.sectionTitles}>
-              <h3>บัญชีธนาคารของบริษัท</h3>
-              <p>รองรับหลายบัญชี — ตั้งบัญชีหลักได้บัญชีเดียว</p>
+              <h3>{t("บัญชีธนาคารของบริษัท")}</h3>
+              <p>{t("รองรับหลายบัญชี — ตั้งบัญชีหลักได้บัญชีเดียว")}</p>
             </div>
 
             <div className={styles.sectionAction}>
@@ -757,7 +759,7 @@ export default function CompanyProfilePage() {
                   setBankModalOpen(true);
                 }}
               >
-                เพิ่มบัญชี
+                {t("เพิ่มบัญชี")}
               </Button>
             </div>
           </div>
@@ -771,8 +773,7 @@ export default function CompanyProfilePage() {
             locale={{
               emptyText: (
                 <div className={styles.emptyBank}>
-                  ยังไม่มีบัญชีธนาคาร — กด &ldquo;เพิ่มบัญชี&rdquo;
-                  เพื่อเพิ่มบัญชีแรก
+                  {t("ยังไม่มีบัญชีธนาคาร — กด “เพิ่มบัญชี” เพื่อเพิ่มบัญชีแรก")}
                 </div>
               ),
             }}
@@ -781,8 +782,7 @@ export default function CompanyProfilePage() {
 
         <div className={styles.saveBar}>
           <span className={styles.saveHint}>
-            การแก้ไขจะมีผลกับเอกสารที่พิมพ์ใหม่เท่านั้น
-            เอกสารที่พิมพ์ไปแล้วไม่เปลี่ยน
+            {t("การแก้ไขจะมีผลกับเอกสารที่พิมพ์ใหม่เท่านั้น เอกสารที่พิมพ์ไปแล้วไม่เปลี่ยน")}
           </span>
 
           <Button
@@ -793,7 +793,7 @@ export default function CompanyProfilePage() {
             loading={updateProfile.isPending}
             onClick={() => form.submit()}
           >
-            บันทึกข้อมูลบริษัท
+            {t("บันทึกข้อมูลบริษัท")}
           </Button>
         </div>
       </section>

@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { usePartyLabels } from "@/lib/i18n/partyLabels";
+
 import { useEffect } from "react";
 import { Col, Form, Input, InputNumber, Modal, Row, Select, Switch } from "antd";
 
@@ -61,6 +64,8 @@ export default function TruckFormModal({
   onCancel,
   onSubmit,
 }: TruckFormModalProps) {
+  const t = useT();
+  const partyLabels = usePartyLabels();
   const [form] = Form.useForm<TruckFormValues>();
 
   useEffect(() => {
@@ -130,8 +135,8 @@ export default function TruckFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={720}
       centered
@@ -146,12 +151,12 @@ export default function TruckFormModal({
             {isCreateMode ? "CREATE TRUCK" : "EDIT TRUCK"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มรถบรรทุก" : "แก้ไขรถบรรทุก"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มรถบรรทุก") : t("แก้ไขรถบรรทุก")}</h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลรถบรรทุกที่ใช้รับซื้อหรือขนส่งยาง"
-              : "แก้ไขรายละเอียดรถและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลรถบรรทุกที่ใช้รับซื้อหรือขนส่งยาง")
+              : t("แก้ไขรายละเอียดรถและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -165,24 +170,24 @@ export default function TruckFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลรถบรรทุก</strong>
-            <span>ระบุรหัส ทะเบียน ผู้ขาย และคนขับ</span>
+            <strong>{t("ข้อมูลรถบรรทุก")}</strong>
+            <span>{t("ระบุรหัส ทะเบียน ผู้ขาย และคนขับ")}</span>
           </div>
         </div>
 
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item
-              label="รหัสรถ"
+              label={t("รหัสรถ")}
               name="code"
               rules={[
-                { required: true, message: "กรุณากรอกรหัสรถ" },
-                { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกรหัสรถ") },
+                { max: 100, message: t("รหัสต้องไม่เกิน 100 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น TRK-001"
+                placeholder={t("เช่น TRK-001")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -190,29 +195,29 @@ export default function TruckFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ทะเบียนรถ"
+              label={t("ทะเบียนรถ")}
               name="licensePlate"
               rules={[
-                { required: true, message: "กรุณากรอกทะเบียนรถ" },
-                { max: 100, message: "ทะเบียนต้องไม่เกิน 100 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกทะเบียนรถ") },
+                { max: 100, message: t("ทะเบียนต้องไม่เกิน 100 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น กข-1234"
+                placeholder={t("เช่น กข-1234")}
                 autoComplete="off"
               />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
-            <Form.Item label="ผู้ขาย" name="sellerId">
+            <Form.Item label={t("ผู้ขาย")} name="sellerId">
               <Select
                 allowClear={!lockSellerId}
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกผู้ขาย"
+                placeholder={t("เลือกผู้ขาย")}
                 loading={sellersLoading}
                 options={sellerOptions}
                 disabled={lockSellerId}
@@ -222,34 +227,34 @@ export default function TruckFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="จังหวัด"
+              label={t("จังหวัด")}
               name="province"
-              rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+              rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น สมุทรปราการ" />
+              <Input size="large" placeholder={t("เช่น สมุทรปราการ")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
-            <Form.Item label="ประเภทรถ" name="truckType">
+            <Form.Item label={t("ประเภทรถ")} name="truckType">
               <Select
                 allowClear
                 size="large"
-                placeholder="เลือกประเภท"
-                options={TRUCK_TYPE_OPTIONS}
+                placeholder={t("เลือกประเภท")}
+                options={TRUCK_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
               />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="น้ำหนักรถเปล่า (กก.)"
+              label={t("น้ำหนักรถเปล่า (กก.)")}
               name="tareWeightKg"
               rules={[
                 {
                   type: "number",
                   min: 0,
-                  message: "น้ำหนักต้องไม่ติดลบ",
+                  message: t("น้ำหนักต้องไม่ติดลบ"),
                 },
               ]}
             >
@@ -258,28 +263,28 @@ export default function TruckFormModal({
                 min={0}
                 step={0.001}
                 style={{ width: "100%" }}
-                placeholder="เช่น 8500.5"
+                placeholder={t("เช่น 8500.5")}
               />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ชื่อคนขับ"
+              label={t("ชื่อคนขับ")}
               name="driverName"
-              rules={[{ max: 255, message: "ต้องไม่เกิน 255 ตัวอักษร" }]}
+              rules={[{ max: 255, message: t("ต้องไม่เกิน 255 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น สมชาย ใจดี" />
+              <Input size="large" placeholder={t("เช่น สมชาย ใจดี")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="เบอร์โทรคนขับ"
+              label={t("เบอร์โทรคนขับ")}
               name="driverPhone"
-              rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+              rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น 0812345678" />
+              <Input size="large" placeholder={t("เช่น 0812345678")} />
             </Form.Item>
           </Col>
         </Row>
@@ -288,13 +293,13 @@ export default function TruckFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกรถนี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกรถนี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={partyLabels.on} unCheckedChildren={partyLabels.off} />
           </Form.Item>
         </div>
       </Form>

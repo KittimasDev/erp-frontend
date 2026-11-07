@@ -25,9 +25,12 @@ import { usePurchaseJournalByDocQuery } from "@/hooks/purchase-journal/usePurcha
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import {
   JOURNAL_DOC_TYPE_LABEL,
+  journalDocTypeLabel,
   type JournalDocType,
 } from "@/types/purchase-journal";
 import PageHeader from "@/components/common/PageHeader";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PURCHASES";
 const LIST_PATH = "/reports/journals/purchases";
@@ -47,6 +50,8 @@ const GO_DOC_LABEL: Record<JournalDocType, string> = {
 type Props = { id: string };
 
 export default function PurchaseJournalDetailPage({ id }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const { message } = App.useApp();
   const journalQuery = usePurchaseJournalByDocQuery(id, Boolean(id));
@@ -89,7 +94,7 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
       const { printApJournalVoucherPdf } = await import("@/utils/generateApJournalVoucherPdf");
       await printApJournalVoucherPdf(voucherInput);
     } catch (e) {
-      message.error(e instanceof Error ? e.message : "พิมพ์เอกสารไม่สำเร็จ");
+      message.error(e instanceof Error ? e.message : t("พิมพ์เอกสารไม่สำเร็จ"));
     }
   };
 
@@ -99,7 +104,7 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
       const { downloadApJournalVoucherPdf } = await import("@/utils/generateApJournalVoucherPdf");
       await downloadApJournalVoucherPdf(voucherInput);
     } catch (e) {
-      message.error(e instanceof Error ? e.message : "ดาวน์โหลดไม่สำเร็จ");
+      message.error(e instanceof Error ? e.message : t("ดาวน์โหลดไม่สำเร็จ"));
     }
   };
 
@@ -117,27 +122,27 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
         <Typography.Text type="danger">
           {journalQuery.error instanceof Error
             ? journalQuery.error.message
-            : "ไม่พบรายการสมุดรายวันซื้อ"}
+            : t("ไม่พบรายการสมุดรายวันซื้อ")}
         </Typography.Text>
         <div style={{ marginTop: 16 }}>
           <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
-            กลับรายการ
+            {t("กลับรายการ")}
           </Button>
         </div>
       </Card>
     );
   }
 
-  const docTypeLabel = JOURNAL_DOC_TYPE_LABEL[entry.docType];
+  const docTypeLabel = journalDocTypeLabel(entry.docType, lang);
   const supplierInvoiceNo = entry.supplierDocNo || entry.taxInvoiceNo || "—";
   const grnText =
     entry.grns.length > 0 ? entry.grns.map((g) => g.no).join(", ") : "—";
-  const docNoLabel = entry.docType === "AP_INVOICE" ? "เลขที่ AP" : "เลขที่เอกสาร";
+  const docNoLabel = entry.docType === "AP_INVOICE" ? t("เลขที่ AP") : t("เลขที่เอกสาร");
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title={<>รายการ{docTypeLabel} {entry.docNo}</>}
+        title={t("รายการ{type} {no}", { type: docTypeLabel, no: entry.docNo })}
         actions={
           <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
@@ -148,8 +153,8 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
                 canPrint
                   ? undefined
                   : preview
-                    ? "พิมพ์ได้เมื่อเอกสารอนุมัติแล้ว"
-                    : "ไม่มีสิทธิ์พิมพ์"
+                    ? t("พิมพ์ได้เมื่อเอกสารอนุมัติแล้ว")
+                    : t("ไม่มีสิทธิ์พิมพ์")
               }
             >
               <span>
@@ -158,7 +163,7 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
                   disabled={!canPrint}
                   onClick={() => void printVoucher()}
                 >
-                  พิมพ์เอกสาร
+                  {t("พิมพ์เอกสาร")}
                 </Button>
               </span>
             </Tooltip>
@@ -167,8 +172,8 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
                 canPrint
                   ? undefined
                   : preview
-                    ? "ดาวน์โหลดได้เมื่อเอกสารอนุมัติแล้ว"
-                    : "ไม่มีสิทธิ์พิมพ์"
+                    ? t("ดาวน์โหลดได้เมื่อเอกสารอนุมัติแล้ว")
+                    : t("ไม่มีสิทธิ์พิมพ์")
               }
             >
               <span>
@@ -177,41 +182,44 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
                   disabled={!canPrint}
                   onClick={() => void downloadVoucher()}
                 >
-                  ดาวน์โหลด
+                  {t("ดาวน์โหลด")}
                 </Button>
               </span>
             </Tooltip>
             <Link href={`${DOC_BASE_PATH[entry.docType]}/${entry.id}`}>
-              <Button type="primary">{GO_DOC_LABEL[entry.docType]}</Button>
+              <Button type="primary">{t(GO_DOC_LABEL[entry.docType])}</Button>
             </Link>
           </>
         }
       />
 
-      <Card title="ข้อมูลเอกสาร" size="small">
+      <Card title={t("ข้อมูลเอกสาร")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
-          <Descriptions.Item label="วันที่เอกสาร">{formatThaiDate(entry.docDate)}</Descriptions.Item>
-          <Descriptions.Item label="วันที่บัญชี">{formatThaiDate(entry.docDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่เอกสาร")}>{formatThaiDate(entry.docDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่บัญชี")}>{formatThaiDate(entry.docDate)}</Descriptions.Item>
           <Descriptions.Item label={docNoLabel}>{entry.docNo}</Descriptions.Item>
-          <Descriptions.Item label="ผู้ขาย">
+          <Descriptions.Item label={t("ผู้ขาย")}>
             <Link href={`/finance/payables/creditors/${entry.creditorId}`}>
               {entry.creditorCode} {entry.creditorName}
             </Link>
           </Descriptions.Item>
-          <Descriptions.Item label="เลขที่ใบแจ้งหนี้ผู้ขาย">{supplierInvoiceNo}</Descriptions.Item>
-          <Descriptions.Item label="เลขที่ PO">
+          <Descriptions.Item label={t("เลขที่ใบแจ้งหนี้ผู้ขาย")}>{supplierInvoiceNo}</Descriptions.Item>
+          <Descriptions.Item label={t("เลขที่ PO")}>
             {entry.po ? (
               <Link href={`/purchase-orders/${entry.po.id}`}>{entry.po.no}</Link>
             ) : (
               "—"
             )}
           </Descriptions.Item>
-          <Descriptions.Item label="เลขที่ GRN">{grnText}</Descriptions.Item>
-          <Descriptions.Item label="ประเภทเอกสาร">{docTypeLabel}</Descriptions.Item>
+          <Descriptions.Item label={t("เลขที่ GRN")}>{grnText}</Descriptions.Item>
+          <Descriptions.Item label={t("ประเภทเอกสาร")}>{docTypeLabel}</Descriptions.Item>
         </Descriptions>
         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
-          ยอดรวม {money.format(entry.totalAmount)} บาท · เดบิต {money.format(entry.totalDebit)} / เครดิต{" "}
-          {money.format(entry.totalCredit)}
+          {t("ยอดรวม {total} บาท · เดบิต {debit} / เครดิต {credit}", {
+            total: money.format(entry.totalAmount),
+            debit: money.format(entry.totalDebit),
+            credit: money.format(entry.totalCredit),
+          })}
         </Typography.Paragraph>
       </Card>
 
@@ -220,7 +228,7 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
           items={[
             {
               key: "journal",
-              label: "รายละเอียดสมุดรายวันซื้อ",
+              label: t("รายละเอียดสมุดรายวันซื้อ"),
               children: (
                 <ApJournalVoucher
                   entry={entry}

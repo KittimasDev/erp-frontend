@@ -24,6 +24,8 @@ import type {
 import UnitConversionFormModal from "./UnitConversionFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 function unitLabel(unit?: { code: string; nameTh: string } | null): string {
   if (!unit) {
@@ -41,6 +43,8 @@ function formatFactor(value: string): string {
 }
 
 export default function UnitConversionsPage() {
+  const t = useT();
+  const lang = useLanguage();
   const searchParams = useSearchParams();
   const presetItemId = searchParams.get("itemId") ?? undefined;
   const presetUnitId = searchParams.get("unitId") ?? undefined;
@@ -135,14 +139,14 @@ export default function UnitConversionsPage() {
 
   const columns: ColumnsType<UnitConversion> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 10 + index + 1,
     },
     {
-      title: "ขอบเขต",
+      title: t("ขอบเขต"),
       key: "scope",
       width: 220,
       render: (_, record) =>
@@ -151,21 +155,21 @@ export default function UnitConversionsPage() {
             <span>
               {record.item
                 ? `${record.item.itemCode} — ${record.item.itemNameTh}`
-                : "รายสินค้า"}
+                : t("รายสินค้า")}
             </span>
           </div>
         ) : (
-          <Tag className={styles.statusTag}>กฎกลาง</Tag>
+          <Tag className={styles.statusTag}>{t("กฎกลาง")}</Tag>
         ),
     },
     {
-      title: "จาก",
+      title: lang === "en" ? "From" : "จาก",
       key: "fromUnit",
       width: 180,
       render: (_, record) => unitLabel(record.fromUnit),
     },
     {
-      title: "ตัวคูณ",
+      title: t("ตัวคูณ"),
       key: "factor",
       width: 220,
       align: "center",
@@ -176,13 +180,13 @@ export default function UnitConversionsPage() {
       ),
     },
     {
-      title: "เป็น",
+      title: lang === "en" ? "To" : "เป็น",
       key: "toUnit",
       width: 180,
       render: (_, record) => unitLabel(record.toUnit),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -191,44 +195,47 @@ export default function UnitConversionsPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     ...(canEdit || canDelete
       ? ([
           {
-            title: "จัดการ",
+            title: t("จัดการ"),
             key: "actions",
             width: 100,
             align: "center" as const,
             render: (_: unknown, record: UnitConversion) => (
               <RowActionsMenu
-                ariaLabel={`เมนูจัดการกฎ ${unitLabel(record.fromUnit)}`}
+                ariaLabel={t("เมนูจัดการกฎ {name}", { name: unitLabel(record.fromUnit) })}
                 actions={[
                   canEdit && {
                     key: "edit",
                     icon: <EditOutlined />,
-                    label: "แก้ไข",
+                    label: t("แก้ไข"),
                     onClick: () => openEditModal(record),
                   },
                   canDelete && "divider",
                   canDelete && {
                     key: "delete",
                     icon: <DeleteOutlined />,
-                    label: "ลบ",
+                    label: t("ลบ"),
                     danger: true,
                     onClick: () => deleteMutation.mutate(record.id),
                     confirm: {
-                      title: "ลบกฎแปลงหน่วย",
-                      content: `ต้องการลบกฎ ${unitLabel(record.fromUnit)} เป็น ${unitLabel(record.toUnit)} หรือไม่?`,
-                      okText: "ลบ",
-                      cancelText: "ยกเลิก",
+                      title: t("ลบกฎแปลงหน่วย"),
+                      content: t("ต้องการลบกฎ {from} เป็น {to} หรือไม่?", {
+                        from: unitLabel(record.fromUnit),
+                        to: unitLabel(record.toUnit),
+                      }),
+                      okText: t("ลบ"),
+                      cancelText: t("ยกเลิก"),
                     },
                   },
                 ]}
@@ -244,8 +251,8 @@ export default function UnitConversionsPage() {
       <section className={styles.page}>
         <PageHeader
           eyebrow="MASTER DATA"
-          title="กฎแปลงหน่วยนับ"
-          subtitle="ตั้งกฎให้กรอกเอกสารด้วยหน่วยอื่นได้ แล้วระบบแปลงกลับเป็นหน่วยหลักของสินค้าก่อนตัดสต๊อก"
+          title={t("กฎแปลงหน่วยนับ")}
+          subtitle={t("ตั้งกฎให้กรอกเอกสารด้วยหน่วยอื่นได้ แล้วระบบแปลงกลับเป็นหน่วยหลักของสินค้าก่อนตัดสต๊อก")}
           actions={
             <>
 {canAdd ? (
@@ -256,7 +263,7 @@ export default function UnitConversionsPage() {
               onClick={openCreateModal}
             >
               <span className={styles.plusIcon}>+</span>
-              เพิ่มกฎแปลงหน่วย
+              {t("เพิ่มกฎแปลงหน่วย")}
             </Button>
           ) : (
             // pageHeader เป็น grid 3 คอลัมน์ — ต้องคง element ที่สามไว้ ไม่งั้น layout เบี้ยว
@@ -271,7 +278,7 @@ export default function UnitConversionsPage() {
             <div className={styles.summaryIcon}>Σ</div>
 
             <div>
-              <span className={styles.summaryLabel}>กฎทั้งหมด</span>
+              <span className={styles.summaryLabel}>{t("กฎทั้งหมด")}</span>
               <strong>{conversions.length}</strong>
             </div>
           </div>
@@ -280,7 +287,7 @@ export default function UnitConversionsPage() {
             <div className={styles.summaryIcon}>✓</div>
 
             <div>
-              <span className={styles.summaryLabel}>กฎกลาง</span>
+              <span className={styles.summaryLabel}>{t("กฎกลาง")}</span>
               <strong>{globalCount}</strong>
             </div>
           </div>
@@ -289,7 +296,7 @@ export default function UnitConversionsPage() {
             <div className={styles.summaryIcon}>#</div>
 
             <div>
-              <span className={styles.summaryLabel}>กฎรายสินค้า</span>
+              <span className={styles.summaryLabel}>{t("กฎรายสินค้า")}</span>
               <strong>{itemCount}</strong>
             </div>
           </div>
@@ -298,7 +305,7 @@ export default function UnitConversionsPage() {
             <div className={styles.summaryIcon}>—</div>
 
             <div>
-              <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+              <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
               <strong>{inactiveCount}</strong>
             </div>
           </div>
@@ -309,15 +316,14 @@ export default function UnitConversionsPage() {
             <div>
               <div className={styles.tableEyebrow}>UNIT CONVERSION</div>
 
-              <h3>รายการกฎแปลงหน่วย</h3>
+              <h3>{t("รายการกฎแปลงหน่วย")}</h3>
 
               <p>
-                กฎรายสินค้าจะทับกฎกลางคู่หน่วยเดียวกัน
-                และทิศย้อนกลับระบบคำนวณให้เอง
+                {t("กฎรายสินค้าจะทับกฎกลางคู่หน่วยเดียวกัน และทิศย้อนกลับระบบคำนวณให้เอง")}
               </p>
             </div>
 
-            <div className={styles.tableCount}>{filtered.length} รายการ</div>
+            <div className={styles.tableCount}>{t("{n} รายการ", { n: filtered.length })}</div>
           </div>
 
           <div
@@ -332,9 +338,9 @@ export default function UnitConversionsPage() {
               value={scope}
               onChange={(value) => setScope(value as UnitConversionScope)}
               options={[
-                { label: "ทั้งหมด", value: "ALL" },
-                { label: "กฎกลาง", value: "GLOBAL" },
-                { label: "รายสินค้า", value: "ITEM" },
+                { label: t("ทั้งหมด"), value: "ALL" },
+                { label: t("กฎกลาง"), value: "GLOBAL" },
+                { label: t("รายสินค้า"), value: "ITEM" },
               ]}
             />
 
@@ -343,7 +349,7 @@ export default function UnitConversionsPage() {
               showSearch
               optionFilterProp="label"
               style={{ minWidth: 260 }}
-              placeholder="กรองตามสินค้า"
+              placeholder={t("กรองตามสินค้า")}
               value={itemFilter}
               onChange={setItemFilter}
               loading={itemsQuery.isLoading}
@@ -358,7 +364,7 @@ export default function UnitConversionsPage() {
               showSearch
               optionFilterProp="label"
               style={{ minWidth: 220 }}
-              placeholder="กรองตามหน่วย"
+              placeholder={t("กรองตามหน่วย")}
               value={unitFilter}
               onChange={setUnitFilter}
               loading={unitsQuery.isLoading}
@@ -374,7 +380,7 @@ export default function UnitConversionsPage() {
               <Typography.Text type="danger">
                 {conversionsQuery.error instanceof Error
                   ? conversionsQuery.error.message
-                  : "โหลดข้อมูลกฎแปลงหน่วยไม่สำเร็จ"}
+                  : t("โหลดข้อมูลกฎแปลงหน่วยไม่สำเร็จ")}
               </Typography.Text>
             </div>
           ) : (

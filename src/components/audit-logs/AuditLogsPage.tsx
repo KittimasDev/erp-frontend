@@ -32,6 +32,7 @@ import type { AuditLog, AuditLogQueryParams } from "@/types/audit-logs";
 
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./AuditLogsPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -61,6 +62,7 @@ const ACTION_OPTIONS = [
 const LIMIT = 20;
 
 export default function AuditLogsPage() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const [form] = Form.useForm<FilterFormValues>();
@@ -100,14 +102,14 @@ export default function AuditLogsPage() {
 
   const columns: ColumnsType<AuditLog> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * LIMIT + index + 1,
     },
     {
-      title: "เวลา",
+      title: t("เวลา"),
       dataIndex: "performedAt",
       key: "performedAt",
       width: 170,
@@ -139,7 +141,7 @@ export default function AuditLogsPage() {
       ),
     },
     {
-      title: "เอกสาร",
+      title: t("เอกสาร"),
       key: "document",
       render: (_, record) => (
         <div className={styles.codeCell}>
@@ -160,7 +162,7 @@ export default function AuditLogsPage() {
       render: (value?: string) => value ?? "—",
     },
     {
-      title: "ผู้ทำรายการ",
+      title: t("ผู้ทำรายการ"),
       key: "performedBy",
       width: 200,
       render: (_, record) =>
@@ -174,7 +176,7 @@ export default function AuditLogsPage() {
             </span>
           </div>
         ) : (
-          <span className={masterStyles.updatedText}>ไม่ทราบผู้ใช้งาน</span>
+          <span className={masterStyles.updatedText}>{t("ไม่ทราบผู้ใช้งาน")}</span>
         ),
     },
     {
@@ -188,7 +190,7 @@ export default function AuditLogsPage() {
           icon={<EyeOutlined />}
           onClick={() => setDetail(record)}
         >
-          ดูข้อมูล
+          {t("ดูข้อมูล")}
         </Button>
       ),
     },
@@ -201,19 +203,19 @@ export default function AuditLogsPage() {
           eyebrow="SECURITY"
           icon={<HistoryOutlined />}
           title="Audit Log"
-          subtitle="ประวัติการทำรายการสำคัญในระบบ — บันทึกอัตโนมัติทุกการสร้าง / แก้ไข / ลบข้อมูล"
+          subtitle={t("ประวัติการทำรายการสำคัญในระบบ — บันทึกอัตโนมัติทุกการสร้าง / แก้ไข / ลบข้อมูล")}
         />
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
               <div className={masterStyles.filterEyebrow}>SEARCH</div>
-              <h3>ค้นหา Audit Log</h3>
-              <p>กรองด้วย action / module / screen / ช่วงวันที่</p>
+              <h3>{t("ค้นหา Audit Log")}</h3>
+              <p>{t("กรองด้วย action / module / screen / ช่วงวันที่")}</p>
             </div>
             {hasFilters ? (
               <Tag className={masterStyles.filterActiveTag} color="green">
-                มีตัวกรอง
+                {t("มีตัวกรอง")}
               </Tag>
             ) : null}
           </div>
@@ -235,23 +237,23 @@ export default function AuditLogsPage() {
                 <Form.Item name="action" label="Action">
                   <Select
                     allowClear
-                    placeholder="ทั้งหมด"
+                    placeholder={t("ทั้งหมด")}
                     options={ACTION_OPTIONS}
                   />
                 </Form.Item>
               </Col>
               <Col xs={24} md={5}>
                 <Form.Item name="moduleCode" label="Module">
-                  <Input allowClear placeholder="เช่น USERS" />
+                  <Input allowClear placeholder={t("เช่น USERS")} />
                 </Form.Item>
               </Col>
               <Col xs={24} md={5}>
                 <Form.Item name="screenCode" label="Screen">
-                  <Input allowClear placeholder="เช่น USERS" />
+                  <Input allowClear placeholder={t("เช่น USERS")} />
                 </Form.Item>
               </Col>
               <Col xs={24} md={6}>
-                <Form.Item name="dateRange" label="ช่วงวันที่">
+                <Form.Item name="dateRange" label={t("ช่วงวันที่")}>
                   <RangePicker className={styles.rangePicker} />
                 </Form.Item>
               </Col>
@@ -283,10 +285,10 @@ export default function AuditLogsPage() {
           <div className={masterStyles.tableHeader}>
             <div>
               <div className={masterStyles.tableEyebrow}>HISTORY</div>
-              <h3>รายการ Audit Log</h3>
-              <p>เรียงจากล่าสุดไปเก่าสุด</p>
+              <h3>{t("รายการ Audit Log")}</h3>
+              <p>{t("เรียงจากล่าสุดไปเก่าสุด")}</p>
             </div>
-            <div className={masterStyles.tableCount}>{total} รายการ</div>
+            <div className={masterStyles.tableCount}>{total} {t("รายการ")}</div>
           </div>
 
           <Table
@@ -307,7 +309,7 @@ export default function AuditLogsPage() {
 
         <Modal
           open={Boolean(detail)}
-          title="รายละเอียด Audit Log"
+          title={t("รายละเอียด Audit Log")}
           onCancel={() => setDetail(null)}
           footer={null}
           width={640}

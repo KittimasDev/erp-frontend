@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Button, Tag, Typography } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 
+import { useT, type TFunction } from "@/lib/i18n/useT";
 import type { JournalLine } from "@/types/purchase-journal";
 
 import styles from "./JournalAccountDetailPanel.module.css";
@@ -15,11 +16,11 @@ const money = new Intl.NumberFormat("th-TH", {
 
 const moneyOrBlank = (value: number) => (value > 0 ? money.format(value) : "—");
 
-function vatTag(line: JournalLine) {
+function vatTag(line: JournalLine, t: TFunction) {
   if (line.taxGroup === "VAT") {
-    return <Tag color="green">{line.vatRate ? `มี VAT ${line.vatRate}%` : "มี VAT"}</Tag>;
+    return <Tag color="green">{line.vatRate ? t("มี VAT {rate}%", { rate: line.vatRate }) : t("มี VAT")}</Tag>;
   }
-  if (line.taxGroup === "NON_VAT") return <Tag>ไม่มี VAT</Tag>;
+  if (line.taxGroup === "NON_VAT") return <Tag>{t("ไม่มี VAT")}</Tag>;
   return null;
 }
 
@@ -49,16 +50,17 @@ export default function JournalAccountDetailPanel({
   totalCredit,
   onClose,
 }: Props) {
+  const t = useT();
   return (
     <>
-      <button type="button" className={styles.backdrop} aria-label="ปิดรายละเอียด" onClick={onClose} />
-      <aside className={styles.panel} aria-label="รายละเอียดเอกสาร">
+      <button type="button" className={styles.backdrop} aria-label={t("ปิดรายละเอียด")} onClick={onClose} />
+      <aside className={styles.panel} aria-label={t("รายละเอียดเอกสาร")}>
         <header className={styles.panelHeader}>
           <div className={styles.panelTitleBlock}>
             <h3 className={styles.panelDocNo}>{docNo}</h3>
             {typeTag ? <div className={styles.panelTags}>{typeTag}</div> : null}
           </div>
-          <Button type="text" icon={<CloseOutlined />} aria-label="ปิด" onClick={onClose} />
+          <Button type="text" icon={<CloseOutlined />} aria-label={t("ปิด")} onClick={onClose} />
         </header>
 
         <div className={styles.panelBody}>
@@ -71,17 +73,17 @@ export default function JournalAccountDetailPanel({
             ))}
             {references ? (
               <div className={styles.metaRow}>
-                <span className={styles.metaLabel}>เอกสารอ้างอิง</span>
+                <span className={styles.metaLabel}>{t("เอกสารอ้างอิง")}</span>
                 <div className={styles.metaValue}>{references}</div>
               </div>
             ) : null}
           </div>
 
           <section>
-            <h4 className={styles.sectionTitle}>รายละเอียดบัญชี</h4>
+            <h4 className={styles.sectionTitle}>{t("รายละเอียดบัญชี")}</h4>
             {lines.length === 0 ? (
               <Typography.Text className={styles.emptyLines} type="secondary">
-                ไม่มีบรรทัดบัญชี
+                {t("ไม่มีบรรทัดบัญชี")}
               </Typography.Text>
             ) : (
               <div className={styles.lineList}>
@@ -93,7 +95,7 @@ export default function JournalAccountDetailPanel({
                         {line.accountCode ? (
                           <span className={styles.lineCode}>{line.accountCode}</span>
                         ) : (
-                          <Tag color="red">ยังไม่ผูกบัญชี</Tag>
+                          <Tag color="red">{t("ยังไม่ผูกบัญชี")}</Tag>
                         )}
                         <span className={styles.lineName}>{line.accountName ?? "—"}</span>
                       </div>
@@ -115,7 +117,7 @@ export default function JournalAccountDetailPanel({
                           <Typography.Text type="secondary"> · {line.detail}</Typography.Text>
                         ) : null}
                       </span>
-                      {vatTag(line)}
+                      {vatTag(line, t)}
                     </div>
                   </div>
                 ))}
@@ -125,11 +127,11 @@ export default function JournalAccountDetailPanel({
 
           <div className={styles.totals}>
             <div className={styles.totalChip}>
-              <span className={styles.totalLabel}>ยอดรวม Debit</span>
+              <span className={styles.totalLabel}>{t("ยอดรวม Debit")}</span>
               <span className={styles.totalValue}>{money.format(totalDebit)}</span>
             </div>
             <div className={styles.totalChip}>
-              <span className={styles.totalLabel}>ยอดรวม Credit</span>
+              <span className={styles.totalLabel}>{t("ยอดรวม Credit")}</span>
               <span className={styles.totalValue}>{money.format(totalCredit)}</span>
             </div>
           </div>

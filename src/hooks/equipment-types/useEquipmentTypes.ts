@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
@@ -26,6 +27,7 @@ function errorText(error: unknown, fallback: string) {
 export function useSaveEquipmentTypeMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationFn: ({ id, body }: { id?: string; body: SaveEquipmentTypeRequest | Partial<SaveEquipmentTypeRequest> }) =>
       id
@@ -37,19 +39,20 @@ export function useSaveEquipmentTypeMutation() {
       await queryClient.invalidateQueries({ queryKey: ["maintenance"] });
       message.success(response.message);
     },
-    onError: (error) => message.error(errorText(error, "บันทึกประเภทเครื่องจักรไม่สำเร็จ")),
+    onError: (error) => message.error(errorText(error, t("บันทึกประเภทเครื่องจักรไม่สำเร็จ"))),
   });
 }
 
 export function useDeleteEquipmentTypeMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationFn: (id: string) => api.deleteEquipmentType(getAccessToken(), id),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: equipmentTypesQueryKey });
       message.success(response.message);
     },
-    onError: (error) => message.error(errorText(error, "ลบประเภทเครื่องจักรไม่สำเร็จ")),
+    onError: (error) => message.error(errorText(error, t("ลบประเภทเครื่องจักรไม่สำเร็จ"))),
   });
 }

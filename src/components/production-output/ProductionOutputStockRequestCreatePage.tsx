@@ -50,7 +50,7 @@ import type {
   ProductionOutputReadyOrder,
 } from "@/types/production-output-stock-request";
 import {
-  PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  productionOutputStatusLabel,
   REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
   REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
   resolveProductionOutputTicketLock,
@@ -69,6 +69,8 @@ import { RECEIPT_STATUS_LABELS } from "@/types/raw-tire-classification";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionOutputStockRequestCreatePage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { tNow, useT } from "@/lib/i18n/useT";
+import { appLocale, tLabel } from "@/components/weighbridge/receiving-i18n";
 
 type LineValues = {
   itemId?: string;
@@ -118,7 +120,7 @@ function formatQty(value?: number | string | null) {
   if (Number.isNaN(n)) {
     return "—";
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     maximumFractionDigits: 3,
   });
 }
@@ -157,7 +159,11 @@ function qtyPlanHint(
     return undefined;
   }
   const unit = plan.unitCode ? ` ${plan.unitCode}` : "";
-  return `แผน ${formatQty(plan.plannedQty)} · ขอแล้ว ${formatQty(plan.requestedQty)} · ค้าง ${formatQty(plan.remainingQty)}${unit}`;
+  return tNow("แผน {planned} · ขอแล้ว {requested} · ค้าง {remaining}", {
+    planned: formatQty(plan.plannedQty),
+    requested: formatQty(plan.requestedQty),
+    remaining: formatQty(plan.remainingQty),
+  }) + unit;
 }
 
 const SOURCE_ITEM_COLUMNS: ColumnsType<ClassificationItem> = [
@@ -211,6 +217,15 @@ export default function ProductionOutputStockRequestCreatePage({
   fromBatch = false,
   productionOrderId: initialProductionOrderId,
 }: Props) {
+  const t = useT();
+  const sourceItemColumns = useMemo(
+    () =>
+      SOURCE_ITEM_COLUMNS.map((col) => ({
+        ...col,
+        title: t(col.title as string),
+      })) as ColumnsType<ClassificationItem>,
+    [t],
+  );
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const warehouseId = Form.useWatch("warehouseId", form);
@@ -287,7 +302,7 @@ export default function ProductionOutputStockRequestCreatePage({
         netWeightKg: data.ticket.netWeightKg,
         receiptNo: receipt?.receiptNo,
         receiptStatus: receipt?.status
-          ? (RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status)
+          ? tLabel(RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status)
           : undefined,
         payableWeightKg:
           receipt?.payableWeightKg ?? receipt?.summary?.payableWeightKg,
@@ -396,10 +411,10 @@ export default function ProductionOutputStockRequestCreatePage({
         qty: formatQty(req.quantity),
         unitCode: req.unitCode,
         status: req.status,
-        statusLabel:
-          PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[req.status] ?? req.status,
+        statusLabel: productionOutputStatusLabel(req.status),
       })),
-    [productionOrderRequestsQuery.data?.data],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [productionOrderRequestsQuery.data?.data, t],
   );
 
   const items = itemsQuery.data?.data ?? [];
@@ -523,11 +538,11 @@ export default function ProductionOutputStockRequestCreatePage({
               !["FINISHED_GOODS", "HOLD", "QC_HOLD", "INSPECTION"].includes(whType)
             ) {
               disabled = true;
-              hint = " (สินค้าสำเร็จรูปต้องเข้าคลังสินค้าสำเร็จรูป / ตรวจสอบ)";
+              hint = ` (${t("สินค้าสำเร็จรูปต้องเข้าคลังสินค้าสำเร็จรูป / ตรวจสอบ")})`;
               break;
             } else if (group !== "FINISHED_GOODS" && whType === "FINISHED_GOODS") {
               disabled = true;
-              hint = ` (สินค้ากลุ่ม ${group} ห้ามเข้าคลังสำเร็จรูป)`;
+              hint = ` (${t("สินค้ากลุ่ม {group} ห้ามเข้าคลังสำเร็จรูป", { group })})`;
               break;
             }
           }
@@ -538,7 +553,7 @@ export default function ProductionOutputStockRequestCreatePage({
           disabled,
         };
       }),
-    [warehouses, selectedItemGroups],
+    [warehouses, selectedItemGroups, t],
   );
 
   const locationOptions = useMemo(
@@ -565,7 +580,7 @@ export default function ProductionOutputStockRequestCreatePage({
               ? `${item.itemNameTh} ${formatQty(line.quantity)} ${
                   unit?.nameTh ?? unit?.code ?? ""
                 }`.trim()
-              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+              : t("รายการที่ {n} (รอเลือกสินค้า)", { n: index + 1 }),
             itemLabel: item
               ? `${item.itemCode} — ${item.itemNameTh}`
               : "—",
@@ -580,7 +595,7 @@ export default function ProductionOutputStockRequestCreatePage({
         itemLabel: string;
         qtyLabel: string;
       }>,
-    [lines, items, units],
+    [lines, items, units, t],
   );
 
   const handleItemChange = (index: number, itemId?: string) => {
@@ -610,7 +625,7 @@ export default function ProductionOutputStockRequestCreatePage({
       form.setFields([
         {
           name: ["lines", 0, "itemId"],
-          errors: ["เพิ่มอย่างน้อย 1 รายการสินค้า"],
+          errors: [t("เพิ่มอย่างน้อย 1 รายการสินค้า")],
         },
       ]);
       return;
@@ -629,7 +644,7 @@ export default function ProductionOutputStockRequestCreatePage({
               "itemId",
             ],
             errors: [
-              "สินค้านี้รับเข้าคลังครบตามแผนของใบสั่งผลิตนี้แล้ว",
+              t("สินค้านี้รับเข้าคลังครบตามแผนของใบสั่งผลิตนี้แล้ว"),
             ],
           })),
         );
@@ -656,7 +671,7 @@ export default function ProductionOutputStockRequestCreatePage({
             {
               name: "warehouseId",
               errors: [
-                `สินค้า "${it.itemNameTh}" เป็นสินค้าสำเร็จรูป ต้องรับเข้าคลังสินค้าสำเร็จรูป / กักกัน / ตรวจสอบ`,
+                t("สินค้า \"{name}\" เป็นสินค้าสำเร็จรูป ต้องรับเข้าคลังสินค้าสำเร็จรูป / กักกัน / ตรวจสอบ", { name: it.itemNameTh }),
               ],
             },
           ]);
@@ -666,7 +681,7 @@ export default function ProductionOutputStockRequestCreatePage({
             {
               name: "warehouseId",
               errors: [
-                `สินค้า "${it.itemNameTh}" (กลุ่ม ${group}) ไม่สามารถรับเข้าคลังสินค้าสำเร็จรูปได้`,
+                t("สินค้า \"{name}\" (กลุ่ม {group}) ไม่สามารถรับเข้าคลังสินค้าสำเร็จรูปได้", { name: it.itemNameTh, group }),
               ],
             },
           ]);
@@ -685,7 +700,7 @@ export default function ProductionOutputStockRequestCreatePage({
         form.setFields([
           {
             name: "warehouseId",
-            errors: [`มีเลข Lot "${lot}" ซ้ำกันในฟอร์ม`],
+            errors: [t("มีเลข Lot \"{lot}\" ซ้ำกันในฟอร์ม", { lot })],
           },
         ]);
         return;
@@ -775,8 +790,8 @@ export default function ProductionOutputStockRequestCreatePage({
         <PageHeader
           eyebrow="PRODUCTION OUTPUT · STOCK IN"
           icon={<InboxOutlined />}
-          title="ขอรับผลผลิตเข้าคลัง"
-          subtitle="เลือกสินค้าจาก master ที่เป็นสินค้าคลัง (is stock item) — เช่น ผลผลิตหรือวัสดุอื่นที่ต้องการรับเข้า — เริ่มจากใบสั่งผลิต ไม่ใช่ตั๋วชั่งรับซื้อยาง"
+          title={t("ขอรับผลผลิตเข้าคลัง")}
+          subtitle={t("เลือกสินค้าจาก master ที่เป็นสินค้าคลัง (is stock item) — เช่น ผลผลิตหรือวัสดุอื่นที่ต้องการรับเข้า — เริ่มจากใบสั่งผลิต ไม่ใช่ตั๋วชั่งรับซื้อยาง")}
           actions={
             <>
 <Button
@@ -789,12 +804,12 @@ export default function ProductionOutputStockRequestCreatePage({
             }
           >
             {isPurchaseInTicket
-              ? "กลับ flow รับซื้อยาง"
+              ? t("กลับ flow รับซื้อยาง")
               : fromBatch
-                ? "กลับรายการรอรับผลผลิต"
+                ? t("กลับรายการรอรับผลผลิต")
                 : ticketId
-                  ? "กลับตั๋วชั่ง"
-                  : "กลับรายการ"}
+                  ? t("กลับตั๋วชั่ง")
+                  : t("กลับรายการ")}
           </Button>
             </>
           }
@@ -804,18 +819,17 @@ export default function ProductionOutputStockRequestCreatePage({
           <Alert
             type="warning"
             showIcon
-            title="ตั๋วชั่งรับซื้อยางไม่ใช้หน้านี้"
+            title={t("ตั๋วชั่งรับซื้อยางไม่ใช้หน้านี้")}
             description={
               <div>
                 <p style={{ marginBottom: 8 }}>
-                  ตั๋วนี้เป็น PURCHASE_IN — ใช้ flow คัดแยก / ใบรับซื้อ / จ่ายเงิน
-                  / รับยางดิบเข้าคลังเท่านั้น
+                  {t("ตั๋วนี้เป็น PURCHASE_IN — ใช้ flow คัดแยก / ใบรับซื้อ / จ่ายเงิน / รับยางดิบเข้าคลังเท่านั้น")}
                 </p>
                 <Button
                   type="primary"
                   onClick={() => router.push(purchaseInRedirectHref)}
                 >
-                  {purchaseTicket?.nextAction || "ไปดำเนินการรับซื้อยาง"}
+                  {purchaseTicket?.nextAction || t("ไปดำเนินการรับซื้อยาง")}
                 </Button>
               </div>
             }
@@ -827,7 +841,7 @@ export default function ProductionOutputStockRequestCreatePage({
           <Alert
             type="warning"
             showIcon
-            title="ต้องมีสิทธิ์ WAREHOUSE_OFFICER (หรือ Administrator) จึงจะสร้างคำขอได้"
+            title={t("ต้องมีสิทธิ์ WAREHOUSE_OFFICER (หรือ Administrator) จึงจะสร้างคำขอได้")}
           />
         ) : null}
 
@@ -835,17 +849,16 @@ export default function ProductionOutputStockRequestCreatePage({
           <Alert
             type={ticketLock.locked ? "info" : "warning"}
             showIcon
-            title={ticketLock.label}
+            title={t(ticketLock.label)}
             description={
               <div>
-                <div>{ticketLock.message}</div>
+                <div>{t(ticketLock.message)}</div>
                 {ticketLock.requests.length > 0 ? (
                   <div style={{ marginTop: 8 }}>
                     {ticketLock.requests.map((row) => (
                       <div key={row.id}>
                         {row.requestNo} ·{" "}
-                        {PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[row.status] ??
-                          row.status}
+                        {productionOutputStatusLabel(row.status)}
                         {row.itemNameTh
                           ? ` · ${row.itemNameTh} ${row.quantity} ${row.unitCode ?? ""}`
                           : ""}
@@ -863,30 +876,30 @@ export default function ProductionOutputStockRequestCreatePage({
             <div className={styles.sourceHeader}>
               <div>
                 <div className={styles.sourceEyebrow}>SOURCE RECEIVING</div>
-                <h3 className={styles.sourceTitle}>ยอดที่รับมาแล้วจากตั๋วชั่ง</h3>
+                <h3 className={styles.sourceTitle}>{t("ยอดที่รับมาแล้วจากตั๋วชั่ง")}</h3>
                 <p className={styles.sourceLead}>
-                  ใช้เทียบก่อนกรอกจำนวนผลผลิตเข้าคลัง — ไม่ใช่ยอดที่จะ POST อัตโนมัติ
+                  {t("ใช้เทียบก่อนกรอกจำนวนผลผลิตเข้าคลัง — ไม่ใช่ยอดที่จะ POST อัตโนมัติ")}
                 </p>
               </div>
               <div className={styles.sourceTotals}>
                 <div className={styles.sourceTotalItem}>
-                  <span>น้ำหนักสุทธิรวม</span>
-                  <strong>{formatQty(sourceTotals.net)} กก.</strong>
+                  <span>{t("น้ำหนักสุทธิรวม")}</span>
+                  <strong>{formatQty(sourceTotals.net)} {t("กก.")}</strong>
                 </div>
                 <div className={styles.sourceTotalItem}>
-                  <span>น้ำหนักคัดแยกรวม</span>
-                  <strong>{formatQty(sourceTotals.classified)} กก.</strong>
+                  <span>{t("น้ำหนักคัดแยกรวม")}</span>
+                  <strong>{formatQty(sourceTotals.classified)} {t("กก.")}</strong>
                 </div>
                 <div className={styles.sourceTotalItem}>
-                  <span>น้ำหนักจ่ายรวม</span>
-                  <strong>{formatQty(sourceTotals.payable)} กก.</strong>
+                  <span>{t("น้ำหนักจ่ายรวม")}</span>
+                  <strong>{formatQty(sourceTotals.payable)} {t("กก.")}</strong>
                 </div>
               </div>
             </div>
 
             {sourceLoading ? (
               <div className={styles.sourceLoading}>
-                <Spin size="small" /> กำลังโหลดข้อมูลรับเข้า...
+                <Spin size="small" /> {t("กำลังโหลดข้อมูลรับเข้า...")}
               </div>
             ) : null}
 
@@ -894,7 +907,7 @@ export default function ProductionOutputStockRequestCreatePage({
               <Alert
                 type="warning"
                 showIcon
-                title="โหลดยอดรับก่อนหน้าไม่สำเร็จ"
+                title={t("โหลดยอดรับก่อนหน้าไม่สำเร็จ")}
                 description={sourceError.message}
                 style={{ marginBottom: 12 }}
               />
@@ -904,8 +917,8 @@ export default function ProductionOutputStockRequestCreatePage({
               <Alert
                 type="info"
                 showIcon
-                title="ยังไม่พบข้อมูลรับเข้าของตั๋วนี้"
-                description="อาจยังไม่ได้คัดแยก/สร้างใบรับซื้อ — ยังสร้างคำขอรับผลผลิตได้ แต่ไม่มีตัวเลขอ้างอิง"
+                title={t("ยังไม่พบข้อมูลรับเข้าของตั๋วนี้")}
+                description={t("อาจยังไม่ได้คัดแยก/สร้างใบรับซื้อ — ยังสร้างคำขอรับผลผลิตได้ แต่ไม่มีตัวเลขอ้างอิง")}
               />
             ) : null}
 
@@ -924,13 +937,13 @@ export default function ProductionOutputStockRequestCreatePage({
                         {[
                           source.sellerName,
                           source.truckLicensePlate
-                            ? `ทะเบียน ${source.truckLicensePlate}`
+                            ? t("ทะเบียน {plate}", { plate: source.truckLicensePlate })
                             : null,
                           source.receiptNo
-                            ? `ใบรับซื้อ ${source.receiptNo}`
+                            ? t("ใบรับซื้อ {no}", { no: source.receiptNo })
                             : null,
                           source.receiptStatus
-                            ? `สถานะ ${source.receiptStatus}`
+                            ? t("สถานะ {status}", { status: source.receiptStatus })
                             : null,
                         ]
                           .filter(Boolean)
@@ -938,9 +951,9 @@ export default function ProductionOutputStockRequestCreatePage({
                       </div>
                     </div>
                     <div className={styles.sourceWeightChips}>
-                      <span>เข้า {formatQty(source.grossWeightKg)}</span>
-                      <span>ออก {formatQty(source.tareWeightKg)}</span>
-                      <span>สุทธิ {formatQty(source.netWeightKg)} กก.</span>
+                      <span>{t("เข้า")} {formatQty(source.grossWeightKg)}</span>
+                      <span>{t("ออก")} {formatQty(source.tareWeightKg)}</span>
+                      <span>{t("สุทธิ")} {formatQty(source.netWeightKg)} {t("กก.")}</span>
                     </div>
                   </div>
 
@@ -949,13 +962,13 @@ export default function ProductionOutputStockRequestCreatePage({
                       size="small"
                       rowKey="id"
                       pagination={false}
-                      columns={SOURCE_ITEM_COLUMNS}
+                      columns={sourceItemColumns}
                       dataSource={source.items}
                       className={styles.sourceTable}
                     />
                   ) : (
                     <Typography.Text type="secondary">
-                      ยังไม่มีรายการคัดแยกในใบรับซื้อ
+                      {t("ยังไม่มีรายการคัดแยกในใบรับซื้อ")}
                     </Typography.Text>
                   )}
                 </div>
@@ -984,10 +997,9 @@ export default function ProductionOutputStockRequestCreatePage({
                   <div className={masterStyles.sectionTitle}>
                     <span className={masterStyles.sectionLine} />
                     <div>
-                      <strong>1. รายการผลผลิตที่รับเข้าคลัง</strong>
+                      <strong>{t("1. รายการผลผลิตที่รับเข้าคลัง")}</strong>
                       <span>
-                        เลือกสินค้าจาก master ที่ใช้งานและเป็นสินค้าคลัง —
-                        เพิ่มได้หลายรายการ
+                        {t("เลือกสินค้าจาก master ที่ใช้งานและเป็นสินค้าคลัง — เพิ่มได้หลายรายการ")}
                       </span>
                     </div>
                   </div>
@@ -1003,9 +1015,9 @@ export default function ProductionOutputStockRequestCreatePage({
 
                   <p className={styles.masterHint}>
                     Master:{" "}
-                    <Link href="/masters/items">สินค้า / วัตถุดิบ</Link>
+                    <Link href="/masters/items">{t("สินค้า / วัตถุดิบ")}</Link>
                     {" · "}
-                    <Link href="/masters/units">หน่วยนับ</Link>
+                    <Link href="/masters/units">{t("หน่วยนับ")}</Link>
                   </p>
 
                   <Form.List name="lines">
@@ -1053,16 +1065,16 @@ export default function ProductionOutputStockRequestCreatePage({
                           return (
                           <div key={field.key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>รายการที่ {index + 1}</strong>
+                              <strong>{t("รายการที่ {n}", { n: index + 1 })}</strong>
                               {fields.length > 1 ? (
                                 <Button
                                   type="text"
                                   danger
                                   icon={<DeleteOutlined />}
                                   onClick={() => remove(field.name)}
-                                  aria-label={`ลบรายการที่ ${index + 1}`}
+                                  aria-label={t("ลบรายการที่ {n}", { n: index + 1 })}
                                 >
-                                  ลบ
+                                  {t("ลบ")}
                                 </Button>
                               ) : null}
                             </div>
@@ -1071,16 +1083,16 @@ export default function ProductionOutputStockRequestCreatePage({
                               <Form.Item
                                 className={styles.formGridFull}
                                 name={[field.name, "itemId"]}
-                                label="สินค้า"
+                                label={t("สินค้า")}
                                 rules={[
-                                  { required: true, message: "เลือกสินค้า" },
+                                  { required: true, message: t("เลือกสินค้า") },
                                 ]}
                               >
                                 <Select
                                   size="large"
                                   showSearch
                                   optionFilterProp="label"
-                                  placeholder="ค้นหารหัสหรือชื่อสินค้า"
+                                  placeholder={t("ค้นหารหัสหรือชื่อสินค้า")}
                                   options={itemOptions}
                                   loading={itemsQuery.isFetching}
                                   onChange={(value) =>
@@ -1088,32 +1100,32 @@ export default function ProductionOutputStockRequestCreatePage({
                                   }
                                   notFoundContent={
                                     itemsQuery.isFetching
-                                      ? "กำลังโหลด..."
-                                      : "ไม่พบสินค้าคลังที่ใช้งาน"
+                                      ? t("กำลังโหลด...")
+                                      : t("ไม่พบสินค้าคลังที่ใช้งาน")
                                   }
                                 />
                               </Form.Item>
 
                               <Form.Item
                                 name={[field.name, "quantity"]}
-                                label="จำนวน"
+                                label={t("จำนวน")}
                                 rules={[
-                                  { required: true, message: "กรอกจำนวน" },
+                                  { required: true, message: t("กรอกจำนวน") },
                                   {
                                     validator: async (_, value) => {
                                       if (value == null || value === "") return;
                                       const num = Number(value);
                                       if (Number.isNaN(num) || num <= 0) {
-                                        throw new Error("จำนวนต้องมากกว่า 0");
+                                        throw new Error(t("จำนวนต้องมากกว่า 0"));
                                       }
                                       if (isCountUnit && !Number.isInteger(num)) {
                                         throw new Error(
-                                          `หน่วย ${lineUnit?.nameTh || lineUnit?.code || ""} ต้องเป็นจำนวนเต็ม`,
+                                          t("หน่วย {unit} ต้องเป็นจำนวนเต็ม", { unit: lineUnit?.nameTh || lineUnit?.code || "" }),
                                         );
                                       }
                                       if (num > maxAllowed) {
                                         throw new Error(
-                                          `จำนวนเกินเพดานที่อนุญาต (สูงสุด ${maxAllowed.toLocaleString()})`,
+                                          t("จำนวนเกินเพดานที่อนุญาต (สูงสุด {max})", { max: maxAllowed.toLocaleString() }),
                                         );
                                       }
                                     },
@@ -1133,19 +1145,19 @@ export default function ProductionOutputStockRequestCreatePage({
                                   style={{ width: "100%" }}
                                   placeholder={
                                     isCountUnit
-                                      ? "เช่น 10 / 50 / 100"
-                                      : "เช่น 15 / 500 / 20"
+                                      ? t("เช่น 10 / 50 / 100")
+                                      : t("เช่น 15 / 500 / 20")
                                   }
                                 />
                               </Form.Item>
 
                               <Form.Item
                                 name={[field.name, "unitId"]}
-                                label="หน่วยนับ"
+                                label={t("หน่วยนับ")}
                                 rules={[
                                   {
                                     required: true,
-                                    message: "เลือกหน่วยนับ",
+                                    message: t("เลือกหน่วยนับ"),
                                   },
                                 ]}
                               >
@@ -1164,11 +1176,11 @@ export default function ProductionOutputStockRequestCreatePage({
                               <Form.Item
                                 className={styles.formGridFull}
                                 name={[field.name, "lotNo"]}
-                                label="เลข Lot (ถ้ามี)"
+                                label={t("เลข Lot (ถ้ามี)")}
                               >
                                 <Input
                                   size="large"
-                                  placeholder="ถ้าว่าง ระบบสร้างตอนอนุมัติ"
+                                  placeholder={t("ถ้าว่าง ระบบสร้างตอนอนุมัติ")}
                                 />
                               </Form.Item>
                             </div>
@@ -1184,7 +1196,7 @@ export default function ProductionOutputStockRequestCreatePage({
                           className={styles.addLineButton}
                           onClick={() => add({ ...EMPTY_LINE })}
                         >
-                          เพิ่มรายการผลผลิต
+                          {t("เพิ่มรายการผลผลิต")}
                         </Button>
                       </div>
                     )}
@@ -1195,30 +1207,30 @@ export default function ProductionOutputStockRequestCreatePage({
                   <div className={masterStyles.sectionTitle}>
                     <span className={masterStyles.sectionLine} />
                     <div>
-                      <strong>2. ปลายทางคลัง (ใช้ร่วมทุกรายการ)</strong>
-                      <span>คลังและตำแหน่งเดียวกันสำหรับทุกรายการในชุดนี้</span>
+                      <strong>{t("2. ปลายทางคลัง (ใช้ร่วมทุกรายการ)")}</strong>
+                      <span>{t("คลังและตำแหน่งเดียวกันสำหรับทุกรายการในชุดนี้")}</span>
                     </div>
                   </div>
 
                   <div className={styles.formGrid}>
                     <Form.Item
                       name="warehouseId"
-                      label="คลังสินค้า"
-                      rules={[{ required: true, message: "เลือกคลัง" }]}
+                      label={t("คลังสินค้า")}
+                      rules={[{ required: true, message: t("เลือกคลัง") }]}
                     >
                       <Select
                         size="large"
                         showSearch
                         optionFilterProp="label"
                         options={warehouseOptions}
-                        placeholder="เลือกคลัง"
+                        placeholder={t("เลือกคลัง")}
                       />
                     </Form.Item>
 
                     <Form.Item
                       name="warehouseLocationId"
-                      label="ตำแหน่งจัดเก็บ"
-                      rules={[{ required: true, message: "เลือกตำแหน่ง" }]}
+                      label={t("ตำแหน่งจัดเก็บ")}
+                      rules={[{ required: true, message: t("เลือกตำแหน่ง") }]}
                     >
                       <Select
                         size="large"
@@ -1226,7 +1238,7 @@ export default function ProductionOutputStockRequestCreatePage({
                         optionFilterProp="label"
                         options={locationOptions}
                         placeholder={
-                          warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
+                          warehouseId ? t("เลือกตำแหน่ง") : t("เลือกคลังก่อน")
                         }
                         disabled={!warehouseId}
                       />
@@ -1234,8 +1246,8 @@ export default function ProductionOutputStockRequestCreatePage({
 
                     <Form.Item
                       name="postingDate"
-                      label="วันที่รับเข้า"
-                      rules={[{ required: true, message: "เลือกวันที่" }]}
+                      label={t("วันที่รับเข้า")}
+                      rules={[{ required: true, message: t("เลือกวันที่") }]}
                     >
                       <DatePicker
                         size="large"
@@ -1250,13 +1262,13 @@ export default function ProductionOutputStockRequestCreatePage({
                   <div className={masterStyles.sectionTitle}>
                     <span className={masterStyles.sectionLine} />
                     <div>
-                      <strong>3. เอกสารอ้างอิง</strong>
+                      <strong>{t("3. เอกสารอ้างอิง")}</strong>
                       <span>
                         {isMultiTicket
-                          ? `ตั๋วชั่ง ${batchTickets.length} ใบ — ใช้ร่วมทุกรายการผลผลิต (จำนวนด้านบนเป็นยอดรวม)`
+                          ? t("ตั๋วชั่ง {n} ใบ — ใช้ร่วมทุกรายการผลผลิต (จำนวนด้านบนเป็นยอดรวม)", { n: batchTickets.length })
                           : showProductionOrderRef
-                            ? "เลือกใบสั่งผลิตที่เริ่มผลิตแล้ว หรือใส่เลขที่เอกสารอื่น (ถ้ามี)"
-                            : "ใส่เพิ่มได้ถ้ามี — ใช้ร่วมทุกรายการ"}
+                            ? t("เลือกใบสั่งผลิตที่เริ่มผลิตแล้ว หรือใส่เลขที่เอกสารอื่น (ถ้ามี)")
+                            : t("ใส่เพิ่มได้ถ้ามี — ใช้ร่วมทุกรายการ")}
                       </span>
                     </div>
                   </div>
@@ -1295,8 +1307,7 @@ export default function ProductionOutputStockRequestCreatePage({
                           type="secondary"
                           style={{ display: "block", marginTop: 10, fontSize: 13 }}
                         >
-                          ตัวอย่าง: ใส่น้ำมัน 70 ลิตร = ยอดรวมของทั้ง{" "}
-                          {batchTickets.length} ตั๋ว ไม่ใช่ใบละ 70
+                          {t("ตัวอย่าง: ใส่น้ำมัน 70 ลิตร = ยอดรวมของทั้ง {n} ตั๋ว ไม่ใช่ใบละ 70", { n: batchTickets.length })}
                         </Typography.Text>
                       ) : null}
                     </div>
@@ -1306,15 +1317,15 @@ export default function ProductionOutputStockRequestCreatePage({
                         <Col xs={24} md={12}>
                           <Form.Item
                             name="productionOrderId"
-                            label="ใบสั่งผลิต"
-                            extra="ใบที่เริ่มผลิตแล้ว — กำลังผลิต / หยุดชั่วคราว / เสร็จสิ้น"
+                            label={t("ใบสั่งผลิต")}
+                            extra={t("ใบที่เริ่มผลิตแล้ว — กำลังผลิต / หยุดชั่วคราว / เสร็จสิ้น")}
                           >
                             <Select
                               size="large"
                               allowClear
                               showSearch
                               optionFilterProp="label"
-                              placeholder="เลือกใบสั่งผลิต"
+                              placeholder={t("เลือกใบสั่งผลิต")}
                               loading={readyOrdersQuery.isLoading}
                               options={productionOrderOptions}
                               onChange={(value) => {
@@ -1328,16 +1339,16 @@ export default function ProductionOutputStockRequestCreatePage({
                         <Col xs={24} md={12}>
                           <Form.Item
                             name="referenceDocNo"
-                            label="เลขที่เอกสารอ้างอิง (อื่น)"
+                            label={t("เลขที่เอกสารอ้างอิง (อื่น)")}
                             extra={
                               selectedProductionOrderId
-                                ? "ล้างใบสั่งผลิตก่อน ถ้าต้องการใส่เลขที่เอง"
-                                : "ใช้เมื่อไม่ได้เลือกใบสั่งผลิต"
+                                ? t("ล้างใบสั่งผลิตก่อน ถ้าต้องการใส่เลขที่เอง")
+                                : t("ใช้เมื่อไม่ได้เลือกใบสั่งผลิต")
                             }
                           >
                             <Input
                               size="large"
-                              placeholder="ถ้ามี"
+                              placeholder={t("ถ้ามี")}
                               disabled={Boolean(selectedProductionOrderId)}
                             />
                           </Form.Item>
@@ -1359,13 +1370,15 @@ export default function ProductionOutputStockRequestCreatePage({
                                   selectedProductionOrder.batchNo
                                     ? `Batch ${selectedProductionOrder.batchNo}`
                                     : null,
-                                  `ผลิต ${dayjs(selectedProductionOrder.productionDate).format("DD/MM/YYYY")}`,
+                                  t("ผลิต {date}", { date: dayjs(selectedProductionOrder.productionDate).format("DD/MM/YYYY") }),
                                   selectedProductionOrder.completedAt
-                                    ? `เสร็จ ${dayjs(selectedProductionOrder.completedAt).format("DD/MM/YYYY HH:mm")}`
+                                    ? t("เสร็จ {date}", { date: dayjs(selectedProductionOrder.completedAt).format("DD/MM/YYYY HH:mm") })
                                     : null,
-                                  PRODUCTION_ORDER_STATUS_LABEL[
-                                    selectedProductionOrder.status
-                                  ] ?? selectedProductionOrder.status,
+                                  tLabel(
+                                    PRODUCTION_ORDER_STATUS_LABEL[
+                                      selectedProductionOrder.status
+                                    ] ?? selectedProductionOrder.status,
+                                  ),
                                 ]
                                   .filter(Boolean)
                                   .join(" · ")}
@@ -1373,16 +1386,16 @@ export default function ProductionOutputStockRequestCreatePage({
                             </div>
                             <div className={styles.refOrderStats}>
                               <span>
-                                คำขอที่เคยสร้าง{" "}
+                                {t("คำขอที่เคยสร้าง")}{" "}
                                 <strong>
                                   {selectedProductionOrder.totalRequestCount}
                                 </strong>
                               </span>
                               {blockedItemIds.length > 0 ? (
                                 <span className={styles.refOrderBlocked}>
-                                  ครบตามแผนแล้ว {blockedItemIds.length} รายการ
+                                  {t("ครบตามแผนแล้ว {n} รายการ", { n: blockedItemIds.length })}
                                   {orderIsRunning
-                                    ? " — รับเพิ่มได้ นับเป็นส่วนเกินแผน"
+                                    ? ` — ${t("รับเพิ่มได้ นับเป็นส่วนเกินแผน")}`
                                     : ""}
                                 </span>
                               ) : null}
@@ -1394,14 +1407,14 @@ export default function ProductionOutputStockRequestCreatePage({
                         <Alert
                           type="info"
                           showIcon
-                          title="ยังไม่มีใบสั่งผลิตที่เริ่มผลิต"
+                          title={t("ยังไม่มีใบสั่งผลิตที่เริ่มผลิต")}
                           description={
                             <>
-                              เปิดและกด &quot;เริ่มผลิต&quot; ที่{" "}
+                              {t("เปิดและกด \"เริ่มผลิต\" ที่")}{" "}
                               <Link href="/production/production-orders">
                                 /production/production-orders
                               </Link>{" "}
-                              ก่อน หรือใส่เลขที่เอกสารอ้างอิงด้านบน
+                              {t("ก่อน หรือใส่เลขที่เอกสารอ้างอิงด้านบน")}
                             </>
                           }
                           style={{ marginBottom: 16 }}
@@ -1413,9 +1426,9 @@ export default function ProductionOutputStockRequestCreatePage({
                       <Col xs={24} md={12}>
                         <Form.Item
                           name="referenceDocNo"
-                          label="เลขที่เอกสารอ้างอิง"
+                          label={t("เลขที่เอกสารอ้างอิง")}
                         >
-                          <Input size="large" placeholder="ถ้ามี" />
+                          <Input size="large" placeholder={t("ถ้ามี")} />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1423,10 +1436,10 @@ export default function ProductionOutputStockRequestCreatePage({
 
                   <Row gutter={14}>
                     <Col xs={24}>
-                      <Form.Item name="remark" label="หมายเหตุ">
+                      <Form.Item name="remark" label={t("หมายเหตุ")}>
                         <Input.TextArea
                           rows={3}
-                          placeholder="เช่น ผลผลิตจากรอบย่อยยางเช้า"
+                          placeholder={t("เช่น ผลผลิตจากรอบย่อยยางเช้า")}
                         />
                       </Form.Item>
                     </Col>
@@ -1437,15 +1450,15 @@ export default function ProductionOutputStockRequestCreatePage({
               <div className={styles.footerBar}>
                 <p className={styles.footerHint}>
                   {isMultiTicket
-                    ? `ส่งครั้งเดียว — อ้างอิง ${batchTickets.length} ตั๋ว · แต่ละวัตถุดิบเป็นคำขอแยก (PENDING) · สต๊อกเพิ่มเมื่ออนุมัติ`
-                    : "แต่ละรายการจะสร้างเป็นคำขอแยก (PENDING_APPROVAL) — สต๊อกยังไม่เพิ่มจนกว่าจะอนุมัติทีละรายการ"}
+                    ? t("ส่งครั้งเดียว — อ้างอิง {n} ตั๋ว · แต่ละวัตถุดิบเป็นคำขอแยก (PENDING) · สต๊อกเพิ่มเมื่ออนุมัติ", { n: batchTickets.length })
+                    : t("แต่ละรายการจะสร้างเป็นคำขอแยก (PENDING_APPROVAL) — สต๊อกยังไม่เพิ่มจนกว่าจะอนุมัติทีละรายการ")}
                 </p>
                 <div className={styles.footerActions}>
                   <Button
                     size="large"
                     onClick={() => router.push(backHref)}
                   >
-                    ยกเลิก
+                    {t("ยกเลิก")}
                   </Button>
                   <Button
                     type="primary"
@@ -1455,7 +1468,7 @@ export default function ProductionOutputStockRequestCreatePage({
                     loading={createMutation.isPending}
                     disabled={!canRequest || formLocked}
                   >
-                    ส่งคำขอ {previewLines.length > 0 ? `(${previewLines.length})` : ""}
+                    {t("ส่งคำขอ")} {previewLines.length > 0 ? `(${previewLines.length})` : ""}
                   </Button>
                 </div>
               </div>
@@ -1465,21 +1478,21 @@ export default function ProductionOutputStockRequestCreatePage({
           <aside className={styles.summaryCard}>
             <div>
               <div className={styles.summaryEyebrow}>LIVE PREVIEW</div>
-              <h3 className={styles.summaryTitle}>สรุปคำขอ</h3>
+              <h3 className={styles.summaryTitle}>{t("สรุปคำขอ")}</h3>
               <p className={styles.summaryLead}>
-                {previewLines.length} รายการผลผลิตจะถูกส่งเข้าคลังชุดเดียวกัน
+                {t("{n} รายการผลผลิตจะถูกส่งเข้าคลังชุดเดียวกัน", { n: previewLines.length })}
               </p>
             </div>
 
             {sourceSummaries.length > 0 ? (
               <div className={styles.previewBox}>
-                <div className={styles.previewLabel}>รับมาก่อนหน้า</div>
+                <div className={styles.previewLabel}>{t("รับมาก่อนหน้า")}</div>
                 <p className={styles.previewValue}>
-                  สุทธิ {formatQty(sourceTotals.net)} กก.
+                  {t("สุทธิ")} {formatQty(sourceTotals.net)} {t("กก.")}
                 </p>
                 <p className={styles.previewMeta}>
-                  คัดแยก {formatQty(sourceTotals.classified)} กก. · จ่าย{" "}
-                  {formatQty(sourceTotals.payable)} กก.
+                  {t("คัดแยก")} {formatQty(sourceTotals.classified)} {t("กก.")} · {t("จ่าย")}{" "}
+                  {formatQty(sourceTotals.payable)} {t("กก.")}
                 </p>
               </div>
             ) : null}
@@ -1487,7 +1500,7 @@ export default function ProductionOutputStockRequestCreatePage({
             {selectedProductionOrderId ? (
               <div className={styles.previewBox}>
                 <div className={styles.previewLabel}>
-                  จากใบสั่งผลิต {selectedProductionOrder?.orderNo ?? "—"}
+                  {t("จากใบสั่งผลิต")} {selectedProductionOrder?.orderNo ?? "—"}
                 </div>
                 {readyOrdersQuery.isLoading && !selectedProductionOrder ? (
                   <div className={styles.previewLoading}>
@@ -1496,12 +1509,12 @@ export default function ProductionOutputStockRequestCreatePage({
                 ) : selectedProductionOrder ? (
                   <>
                     <p className={styles.previewMeta}>
-                      <strong>วัตถุดิบเข้าจริง</strong>{" "}
+                      <strong>{t("วัตถุดิบเข้าจริง")}</strong>{" "}
                       {formatQty(selectedProductionOrder.totalInputQty)}
                     </p>
                     {(selectedProductionOrder.outputItems ?? []).length > 1 ? null : (
                       <p className={styles.previewMeta}>
-                        <strong>ผลผลิตตามแผน</strong>{" "}
+                        <strong>{t("ผลผลิตตามแผน")}</strong>{" "}
                         {formatQty(selectedProductionOrder.totalPlannedOutputQty)}
                       </p>
                     )}
@@ -1514,8 +1527,8 @@ export default function ProductionOutputStockRequestCreatePage({
                                 ? `${item.itemCode} — ${item.itemNameTh}`
                                 : item.itemNameTh || item.itemCode || "—"}{" "}
                               <span className={styles.previewSubQty}>
-                                แผน {formatQty(item.plannedQty)} · ขอแล้ว{" "}
-                                {formatQty(item.requestedQty)} · ค้าง{" "}
+                                {t("แผน")} {formatQty(item.plannedQty)} · {t("ขอแล้ว")}{" "}
+                                {formatQty(item.requestedQty)} · {t("ค้าง")}{" "}
                                 {formatQty(item.remainingQty)}
                                 {item.unitCode ? ` ${item.unitCode}` : ""}
                               </span>
@@ -1526,23 +1539,23 @@ export default function ProductionOutputStockRequestCreatePage({
                     ) : null}
                     {(selectedProductionOrder.outputItems ?? []).length > 1 ? (
                       <p className={styles.previewMeta}>
-                        <strong>ผลผลิตเข้าคลังแล้ว</strong> แยกตามสินค้าด้านบน — ไม่คิด Yield รวม
+                        <strong>{t("ผลผลิตเข้าคลังแล้ว")}</strong> {t("แยกตามสินค้าด้านบน — ไม่คิด Yield รวม")}
                       </p>
                     ) : (
                       <p className={styles.previewMeta}>
-                        <strong>ผลผลิตเข้าคลังแล้ว</strong>{" "}
+                        <strong>{t("ผลผลิตเข้าคลังแล้ว")}</strong>{" "}
                         {formatQty(selectedProductionOrder.totalOutputQty)}
                         {" · "}Yield{" "}
                         {selectedProductionOrder.yieldPercent.toLocaleString(
-                          "th-TH",
+                          appLocale(),
                           { maximumFractionDigits: 2 },
                         )}
                         %
                       </p>
                     )}
                     <p className={styles.previewMeta}>
-                      <strong>คำขอที่เคยส่ง</strong>{" "}
-                      {previousRequests.length} รายการ
+                      <strong>{t("คำขอที่เคยส่ง")}</strong>{" "}
+                      {t("{n} รายการ", { n: previousRequests.length })}
                     </p>
                     {previousRequests.length > 0 ? (
                       <ul className={styles.previewSubList}>
@@ -1563,17 +1576,17 @@ export default function ProductionOutputStockRequestCreatePage({
                   </>
                 ) : (
                   <p className={styles.previewMeta}>
-                    ไม่พบใบสั่งผลิตในคิวรับเข้าคลัง
+                    {t("ไม่พบใบสั่งผลิตในคิวรับเข้าคลัง")}
                   </p>
                 )}
               </div>
             ) : null}
 
             <div className={styles.previewBox}>
-              <div className={styles.previewLabel}>จะรับเข้า</div>
+              <div className={styles.previewLabel}>{t("จะรับเข้า")}</div>
               {previewLines.length === 0 ? (
                 <p className={styles.previewValue}>
-                  เพิ่มรายการผลผลิตเพื่อดูสรุป
+                  {t("เพิ่มรายการผลผลิตเพื่อดูสรุป")}
                 </p>
               ) : (
                 <ul className={styles.previewList}>
@@ -1585,29 +1598,29 @@ export default function ProductionOutputStockRequestCreatePage({
               <p className={styles.previewMeta}>
                 {selectedWarehouse
                   ? `${selectedWarehouse.warehouseCode} · ${
-                      selectedLocation?.locationName ?? "รอเลือกตำแหน่ง"
+                      selectedLocation?.locationName ?? t("รอเลือกตำแหน่ง")
                     }`
-                  : "ยังไม่ได้เลือกคลัง"}
+                  : t("ยังไม่ได้เลือกคลัง")}
               </p>
             </div>
 
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
-                <span>เอกสารอ้างอิง</span>
+                <span>{t("เอกสารอ้างอิง")}</span>
                 <strong>
                   {batchTickets.length > 0
-                    ? `${batchTickets.length} ตั๋ว`
+                    ? t("{n} ตั๋ว", { n: batchTickets.length })
                     : selectedProductionOrder
-                      ? `${selectedProductionOrder.orderNo} · วัตถุดิบ ${formatQty(selectedProductionOrder.totalInputQty)}`
+                      ? t("{orderNo} · วัตถุดิบ {qty}", { orderNo: selectedProductionOrder.orderNo, qty: formatQty(selectedProductionOrder.totalInputQty) })
                       : "—"}
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>จำนวนรายการ</span>
-                <strong>{previewLines.length} รายการ</strong>
+                <span>{t("จำนวนรายการ")}</span>
+                <strong>{t("{n} รายการ", { n: previewLines.length })}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>วันที่</span>
+                <span>{t("วันที่")}</span>
                 <strong>
                   {postingDate
                     ? dayjs(postingDate).format("DD/MM/YYYY")
@@ -1615,7 +1628,7 @@ export default function ProductionOutputStockRequestCreatePage({
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>คลัง</span>
+                <span>{t("คลัง")}</span>
                 <strong>
                   {selectedWarehouse
                     ? `${selectedWarehouse.warehouseCode} — ${selectedWarehouse.warehouseName}`
@@ -1625,19 +1638,18 @@ export default function ProductionOutputStockRequestCreatePage({
             </div>
 
             <div className={styles.flowNote}>
-              <strong>ตัวอย่างรอบย่อยยาง</strong>
+              <strong>{t("ตัวอย่างรอบย่อยยาง")}</strong>
               <p>
-                ผงยาง 15 กรัม + น้ำมัน Pyrolysis 500 ลิตร + เศษเหล็ก 20 kg
-                ในคำขอชุดเดียวกัน
+                {t("ผงยาง 15 กรัม + น้ำมัน Pyrolysis 500 ลิตร + เศษเหล็ก 20 kg ในคำขอชุดเดียวกัน")}
               </p>
             </div>
 
             <div className={styles.exampleChips}>
-              <span className={styles.exampleChip}>ผงยาง 15 กรัม</span>
+              <span className={styles.exampleChip}>{t("ผงยาง 15 กรัม")}</span>
               <span className={styles.exampleChip}>
-                น้ำมัน Pyrolysis 500 ลิตร
+                {t("น้ำมัน Pyrolysis 500 ลิตร")}
               </span>
-              <span className={styles.exampleChip}>เศษเหล็ก 20 kg</span>
+              <span className={styles.exampleChip}>{t("เศษเหล็ก 20 kg")}</span>
             </div>
           </aside>
         </div>

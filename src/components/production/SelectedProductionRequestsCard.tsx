@@ -5,6 +5,11 @@ import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 import type { BulkCreateProductionOrderSelectionBody } from "@/types/production-order";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+
+const numLocale = () => (getStoredLanguage() === "en" ? "en-GB" : "th-TH");
+
 
 /**
  * ใบขอผลิตที่จะผลิตในรอบนี้ — ตารางสรุปที่ภาพต้นแบบเรียกว่า "ใบสั่งผลิตที่เลือก"
@@ -44,7 +49,7 @@ export function selectionKeyOf(
 }
 
 function fmtQty(value: number) {
-  return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return value.toLocaleString(numLocale(), { maximumFractionDigits: 3 });
 }
 
 function fmtDate(value?: string) {
@@ -52,7 +57,7 @@ function fmtDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString("th-TH", {
+    : date.toLocaleDateString(numLocale(), {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -67,33 +72,34 @@ export default function SelectedProductionRequestsCard({
   canPick,
   disabled,
 }: Props) {
+  const t = useT();
   const columns: ColumnsType<BulkCreateProductionOrderSelectionBody> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ใบขอผลิต",
+      title: t("เลขที่ใบขอผลิต"),
       key: "requestNo",
       render: (_v, row) => labelByKey[selectionKeyOf(row)]?.requestNo ?? "-",
     },
     {
-      title: "วันที่ต้องการ",
+      title: t("วันที่ต้องการ"),
       key: "requiredDate",
       width: 130,
       render: (_v, row) =>
         fmtDate(labelByKey[selectionKeyOf(row)]?.requiredDate),
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, row) => labelByKey[selectionKeyOf(row)]?.itemLabel ?? "-",
     },
     {
-      title: "จำนวนที่จัดสรร",
+      title: t("จำนวนที่จัดสรร"),
       key: "plannedQty",
       width: 150,
       align: "right",
@@ -131,10 +137,10 @@ export default function SelectedProductionRequestsCard({
         }}
       >
         <div>
-          <strong>ใบขอผลิตที่จะผลิตรอบนี้</strong>
+          <strong>{t("ใบขอผลิตที่จะผลิตรอบนี้")}</strong>
           {selections.length > 0 ? (
             <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-              {selections.length} รายการ · จัดสรรรวม {fmtQty(total)}
+              {t("{n} รายการ · จัดสรรรวม {total}", { n: selections.length, total: fmtQty(total) })}
             </Typography.Text>
           ) : null}
         </div>
@@ -144,12 +150,12 @@ export default function SelectedProductionRequestsCard({
             disabled={disabled}
             onClick={onOpenPicker}
           >
-            เลือกใบขอผลิต
+            {t("เลือกใบขอผลิต")}
           </Button>
         ) : (
-          <Tooltip title="ต้องมีสิทธิ์ดูใบขอผลิตจึงจะเลือกได้ — สร้างใบสั่งผลิตโดยกรอกเองยังทำได้ตามปกติ">
+          <Tooltip title={t("ต้องมีสิทธิ์ดูใบขอผลิตจึงจะเลือกได้ — สร้างใบสั่งผลิตโดยกรอกเองยังทำได้ตามปกติ")}>
             <Button disabled icon={<PlusOutlined />}>
-              เลือกใบขอผลิต
+              {t("เลือกใบขอผลิต")}
             </Button>
           </Tooltip>
         )}
@@ -158,7 +164,7 @@ export default function SelectedProductionRequestsCard({
       {selections.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="ยังไม่ได้เลือกใบขอผลิต — ผลิตเก็บเข้าคลังโดยไม่ผูกใบขอผลิตก็ได้"
+          description={t("ยังไม่ได้เลือกใบขอผลิต — ผลิตเก็บเข้าคลังโดยไม่ผูกใบขอผลิตก็ได้")}
         />
       ) : (
         <Table

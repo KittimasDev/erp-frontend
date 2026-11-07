@@ -5,7 +5,9 @@ import { Form, Input, InputNumber, Modal, Select } from "antd";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
-import { OIL_TANK_STATUS_LABEL, type CreateOilTankBody, type OilTank, type UpdateOilTankBody } from "@/types/oil-tank-farm";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { OIL_TANK_STATUS_LABEL, oilTankStatusLabel, type CreateOilTankBody, type OilTank, type UpdateOilTankBody } from "@/types/oil-tank-farm";
 
 type Props = {
   tank: OilTank | null;
@@ -27,6 +29,8 @@ type Values = {
 
 /** สร้าง/แก้ถัง — แก้ได้เฉพาะความจุ สถานะ หมายเหตุ (ถัง สินค้า คลัง ตำแหน่ง ผูกกับยอดสต๊อกแล้วเปลี่ยนไม่ได้) */
 export default function TankFormModal({ tank, loading, onCancel, onCreate, onUpdate }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<Values>();
   const editing = Boolean(tank);
   const warehouseId = Form.useWatch("warehouseId", form) ?? tank?.warehouseId;
@@ -37,9 +41,9 @@ export default function TankFormModal({ tank, loading, onCancel, onCreate, onUpd
   return (
     <Modal
       open
-      title={editing ? `แก้ไขถัง ${tank?.tankNo}` : "เพิ่มถังเก็บน้ำมัน"}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={editing ? t("แก้ไขถัง {no}", { no: tank?.tankNo ?? "" }) : t("เพิ่มถังเก็บน้ำมัน")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       onCancel={onCancel}
       onOk={() =>
@@ -70,10 +74,10 @@ export default function TankFormModal({ tank, loading, onCancel, onCreate, onUpd
           remark: tank?.remark,
         }}
       >
-        <Form.Item name="tankNo" label="เลขที่ถัง" rules={[{ required: true, whitespace: true, message: "ใส่เลขที่ถัง" }]}>
-          <Input disabled={editing} maxLength={50} placeholder="เช่น TANK-01" />
+        <Form.Item name="tankNo" label={t("เลขที่ถัง")} rules={[{ required: true, whitespace: true, message: t("ใส่เลขที่ถัง") }]}>
+          <Input disabled={editing} maxLength={50} placeholder={t("เช่น TANK-01")} />
         </Form.Item>
-        <Form.Item name="itemId" label="น้ำมันที่เก็บ (สินค้า)" rules={[{ required: true, message: "เลือกสินค้า" }]}>
+        <Form.Item name="itemId" label={t("น้ำมันที่เก็บ (สินค้า)")} rules={[{ required: true, message: t("เลือกสินค้า") }]}>
           <Select
             showSearch
             disabled={editing}
@@ -82,7 +86,7 @@ export default function TankFormModal({ tank, loading, onCancel, onCreate, onUpd
             options={(itemsQuery.data?.data ?? []).map((i) => ({ value: i.id, label: `${i.itemCode} — ${i.itemNameTh}` }))}
           />
         </Form.Item>
-        <Form.Item name="warehouseId" label="คลัง" rules={[{ required: true, message: "เลือกคลัง" }]}>
+        <Form.Item name="warehouseId" label={t("คลัง")} rules={[{ required: true, message: t("เลือกคลัง") }]}>
           <Select
             showSearch
             disabled={editing}
@@ -92,7 +96,7 @@ export default function TankFormModal({ tank, loading, onCancel, onCreate, onUpd
             onChange={() => form.setFieldValue("locationId", undefined)}
           />
         </Form.Item>
-        <Form.Item name="locationId" label="ตำแหน่งจัดเก็บที่แทนถังนี้" rules={[{ required: true, message: "เลือกตำแหน่ง" }]}>
+        <Form.Item name="locationId" label={t("ตำแหน่งจัดเก็บที่แทนถังนี้")} rules={[{ required: true, message: t("เลือกตำแหน่ง") }]}>
           <Select
             showSearch
             disabled={editing || !warehouseId}
@@ -101,15 +105,15 @@ export default function TankFormModal({ tank, loading, onCancel, onCreate, onUpd
             options={(locationsQuery.data?.data ?? []).map((l) => ({ value: l.id, label: `${l.locationCode} — ${l.locationName}` }))}
           />
         </Form.Item>
-        <Form.Item name="capacityLiters" label="ความจุ (ลิตร)" rules={[{ required: true, message: "ใส่ความจุ" }]}>
+        <Form.Item name="capacityLiters" label={t("ความจุ (ลิตร)")} rules={[{ required: true, message: t("ใส่ความจุ") }]}>
           <InputNumber min={1} precision={3} style={{ width: "100%" }} />
         </Form.Item>
         {editing ? (
-          <Form.Item name="status" label="สถานะ" extra="ถังที่ไม่ใช่ “ใช้งาน” รับ/โอน/จ่ายไม่ได้">
-            <Select options={Object.entries(OIL_TANK_STATUS_LABEL).map(([value, label]) => ({ value, label }))} />
+          <Form.Item name="status" label={t("สถานะ")} extra={t("ถังที่ไม่ใช่ “ใช้งาน” รับ/โอน/จ่ายไม่ได้")}>
+            <Select options={Object.keys(OIL_TANK_STATUS_LABEL).map((value) => ({ value, label: oilTankStatusLabel(value, lang) }))} />
           </Form.Item>
         ) : null}
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
       </Form>

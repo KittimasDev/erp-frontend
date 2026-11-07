@@ -12,6 +12,7 @@ import {
 } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
 import {
   useCreateShiftScheduleMutation,
   useUpdateShiftScheduleMutation,
@@ -52,6 +53,7 @@ export default function ShiftScheduleModal({
   onClose,
   onMoved,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const isEdit = Boolean(schedule);
 
@@ -68,7 +70,7 @@ export default function ShiftScheduleModal({
 
   const shiftOptions = shifts.map((shift) => ({
     value: shift.id,
-    label: `${shift.name} · ${shift.startTime}-${shift.endTime}${shift.isOvernight ? " (ข้ามคืน)" : ""}`,
+    label: `${shift.name} · ${shift.startTime}-${shift.endTime}${shift.isOvernight ? ` ${t("(ข้ามคืน)")}` : ""}`,
   }));
 
   useEffect(() => {
@@ -150,11 +152,11 @@ export default function ShiftScheduleModal({
       open={open}
       title={
         isEdit
-          ? `แก้ไขรอบ ${schedule?.shiftName} — ${dayjs(date).format("DD/MM/YYYY")}`
-          : `เพิ่มรอบกะ — ${dayjs(date).format("DD/MM/YYYY")}`
+          ? `${t("แก้ไขรอบ {name}", { name: schedule?.shiftName ?? "" })} — ${dayjs(date).format("DD/MM/YYYY")}`
+          : `${t("เพิ่มรอบกะ")} — ${dayjs(date).format("DD/MM/YYYY")}`
       }
-      okText={isEdit ? "บันทึกการแก้ไข" : "จัดรอบกะ"}
-      cancelText="ยกเลิก"
+      okText={isEdit ? t("บันทึกการแก้ไข") : t("จัดรอบกะ")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={isPending}
       onCancel={onClose}
       onOk={() => form.submit()}
@@ -166,8 +168,8 @@ export default function ShiftScheduleModal({
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title="แก้ได้ทั้งเวลา วันที่ และกะ"
-          description="เปลี่ยนวันที่ = ย้ายรอบกะทั้งรอบ รายชื่อคนในกะย้ายไปด้วย · เวลาที่แก้มีผลเฉพาะรอบนี้ กะมาตรฐานไม่เปลี่ยน"
+          title={t("แก้ได้ทั้งเวลา วันที่ และกะ")}
+          description={t("เปลี่ยนวันที่ = ย้ายรอบกะทั้งรอบ รายชื่อคนในกะย้ายไปด้วย · เวลาที่แก้มีผลเฉพาะรอบนี้ กะมาตรฐานไม่เปลี่ยน")}
         />
       ) : null}
 
@@ -179,42 +181,42 @@ export default function ShiftScheduleModal({
       >
         <Form.Item
           name="shiftId"
-          label="กะ"
-          extra={isEdit ? "เปลี่ยนกะ = สลับทั้งรอบ คนในกะอยู่ครบเหมือนเดิม" : undefined}
-          rules={[{ required: true, message: "เลือกกะ" }]}
+          label={t("กะ")}
+          extra={isEdit ? t("เปลี่ยนกะ = สลับทั้งรอบ คนในกะอยู่ครบเหมือนเดิม") : undefined}
+          rules={[{ required: true, message: t("เลือกกะ") }]}
         >
           <Select
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกกะ"
+            placeholder={t("เลือกกะ")}
             options={shiftOptions}
             onChange={handleShiftChange}
-            notFoundContent="ยังไม่มีกะ — สร้างที่ปุ่ม จัดการกะ"
+            notFoundContent={t("ยังไม่มีกะ — สร้างที่ปุ่ม จัดการกะ")}
           />
         </Form.Item>
 
         <Form.Item
           name="shiftDate"
-          label="วันที่"
-          extra={isEdit ? "เปลี่ยนวันที่ = ย้ายรอบกะไปวันนั้น" : undefined}
-          rules={[{ required: true, message: "เลือกวันที่" }]}
+          label={t("วันที่")}
+          extra={isEdit ? t("เปลี่ยนวันที่ = ย้ายรอบกะไปวันนั้น") : undefined}
+          rules={[{ required: true, message: t("เลือกวันที่") }]}
         >
           <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
           name="startTime"
-          label="เวลาเข้ากะ"
-          rules={[{ required: true, message: "ระบุเวลาเข้ากะ" }]}
+          label={t("เวลาเข้ากะ")}
+          rules={[{ required: true, message: t("ระบุเวลาเข้ากะ") }]}
         >
           <TimePicker format="HH:mm" minuteStep={5} style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
           name="endTime"
-          label="เวลาเลิกกะ"
-          extra="เลิกกะไม่หลังเข้ากะ = กะข้ามเที่ยงคืน"
-          rules={[{ required: true, message: "ระบุเวลาเลิกกะ" }]}
+          label={t("เวลาเลิกกะ")}
+          extra={t("เลิกกะไม่หลังเข้ากะ = กะข้ามเที่ยงคืน")}
+          rules={[{ required: true, message: t("ระบุเวลาเลิกกะ") }]}
         >
           <TimePicker format="HH:mm" minuteStep={5} style={{ width: "100%" }} />
         </Form.Item>
@@ -222,15 +224,15 @@ export default function ShiftScheduleModal({
         {!isEdit ? (
           <Form.Item
             name="userIds"
-            label="พนักงานในกะนี้"
-            extra="เพิ่มภายหลังได้ที่การ์ดของรอบกะ"
+            label={t("พนักงานในกะนี้")}
+            extra={t("เพิ่มภายหลังได้ที่การ์ดของรอบกะ")}
           >
             <Select
               mode="multiple"
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ค้นหาชื่อหรือรหัสพนักงาน"
+              placeholder={t("ค้นหาชื่อหรือรหัสพนักงาน")}
               loading={usersQuery.isLoading}
               options={userOptions}
               maxTagCount="responsive"
@@ -238,8 +240,8 @@ export default function ShiftScheduleModal({
           </Form.Item>
         ) : null}
 
-        <Form.Item name="note" label="หมายเหตุ">
-          <Input.TextArea rows={2} placeholder="เช่น เข้าสายเพราะรอวัตถุดิบ" />
+        <Form.Item name="note" label={t("หมายเหตุ")}>
+          <Input.TextArea rows={2} placeholder={t("เช่น เข้าสายเพราะรอวัตถุดิบ")} />
         </Form.Item>
       </Form>
     </Modal>

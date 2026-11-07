@@ -14,8 +14,11 @@ import dayjs from "dayjs";
 
 import { useLabSamplesQuery } from "@/hooks/laboratory/useLaboratoryQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import type { LabSample } from "@/types/laboratory";
 import {
+  labSampleStatusLabel,
   LAB_SAMPLE_STATUS_LABEL,
   LAB_SAMPLE_TYPE_LABEL,
   LAB_SAMPLE_TYPES,
@@ -31,6 +34,8 @@ function formatDate(value?: string) {
 }
 
 export default function LabSamplesListPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const router = useRouter();
   const [sampleNo, setSampleNo] = useState("");
@@ -51,24 +56,24 @@ export default function LabSamplesListPage() {
   const columns: ColumnsType<LabSample> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_, __, index) => (page - 1) * 20 + index + 1,
       },
       {
-        title: "เลขที่ตัวอย่าง",
+        title: t("เลขที่ตัวอย่าง"),
         dataIndex: "sampleNo",
         render: (v: string) => <span className={styles.prNo}>{v}</span>,
       },
       {
-        title: "ประเภท",
+        title: t("ประเภท"),
         dataIndex: "sampleType",
-        render: (v: string) => LAB_SAMPLE_TYPE_LABEL[v] ?? v,
+        render: (v: string) => t(LAB_SAMPLE_TYPE_LABEL[v] ?? v),
       },
       {
-        title: "สินค้า / Lot",
+        title: t("สินค้า / Lot"),
         key: "lot",
         render: (_v, row) =>
           row.lotNo ? (
@@ -84,18 +89,18 @@ export default function LabSamplesListPage() {
           ),
       },
       {
-        title: "วันที่เก็บ",
+        title: t("วันที่เก็บ"),
         dataIndex: "collectedDate",
         width: 110,
         render: formatDate,
       },
       {
-        title: "อ้างอิง",
+        title: t("อ้างอิง"),
         dataIndex: "referenceDocNo",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
@@ -110,12 +115,12 @@ export default function LabSamplesListPage() {
                     : "default"
             }
           >
-            {LAB_SAMPLE_STATUS_LABEL[v] ?? v}
+            {labSampleStatusLabel(v, lang)}
           </Tag>
         ),
       },
       {
-        title: "ผลตรวจ",
+        title: t("ผลตรวจ"),
         key: "results",
         width: 80,
         align: "center",
@@ -136,7 +141,7 @@ export default function LabSamplesListPage() {
         ),
       },
     ],
-    [router, page],
+    [router, page, t, lang],
   );
 
   return (
@@ -144,8 +149,10 @@ export default function LabSamplesListPage() {
       <PageHeader
         eyebrow="Laboratory · LIMS"
         icon={<ExperimentOutlined />}
-        title="ตัวอย่างตรวจสอบ"
-        subtitle="ลงทะเบียนตัวอย่างจากการผลิต วัตถุดิบ สารเคมี สินค้าสำเร็จรูป พร้อมผูก Lot · พิมพ์ Certificate of Analysis (COA)"
+        title={t("ตัวอย่างตรวจสอบ")}
+        subtitle={t(
+          "ลงทะเบียนตัวอย่างจากการผลิต วัตถุดิบ สารเคมี สินค้าสำเร็จรูป พร้อมผูก Lot · พิมพ์ Certificate of Analysis (COA)",
+        )}
         actions={
           <>
 {canAdd ? (
@@ -155,7 +162,7 @@ export default function LabSamplesListPage() {
             icon={<PlusOutlined />}
             onClick={() => setCreating(true)}
           >
-            ลงทะเบียนตัวอย่าง
+            {t("ลงทะเบียนตัวอย่าง")}
           </Button>
         ) : null}
           </>
@@ -166,8 +173,8 @@ export default function LabSamplesListPage() {
         activeKey={tab}
         onChange={(key) => setTab(key as "samples" | "coas")}
         items={[
-          { key: "samples", label: "ตัวอย่าง" },
-          { key: "coas", label: "ประวัติ COA" },
+          { key: "samples", label: t("ตัวอย่าง") },
+          { key: "coas", label: t("ประวัติ COA") },
         ]}
       />
 
@@ -177,7 +184,7 @@ export default function LabSamplesListPage() {
           <section className={styles.filterCard}>
             <div className={styles.filterGrid}>
               <div className={styles.filterItem}>
-                <label>ประเภท</label>
+                <label>{t("ประเภท")}</label>
                 <Select
                   allowClear
                   style={{ width: "100%" }}
@@ -185,28 +192,31 @@ export default function LabSamplesListPage() {
                   onChange={setSampleType}
                   options={LAB_SAMPLE_TYPES.map((value) => ({
                     value,
-                    label: LAB_SAMPLE_TYPE_LABEL[value],
+                    label: t(LAB_SAMPLE_TYPE_LABEL[value]),
                   }))}
                 />
               </div>
               <div className={styles.filterItem}>
-                <label>ค้นหา</label>
+                <label>{t("ค้นหา")}</label>
                 <Input
                   allowClear
                   value={sampleNo}
                   onChange={(e) => setSampleNo(e.target.value)}
-                  placeholder="เช่น LS-20260723"
+                  placeholder={t("เช่น LS-20260723")}
                 />
               </div>
               <div className={styles.filterItem}>
-                <label>สถานะ</label>
+                <label>{t("สถานะ")}</label>
                 <Select
                   allowClear
                   style={{ width: "100%" }}
                   value={status}
                   onChange={setStatus}
-                  options={Object.entries(LAB_SAMPLE_STATUS_LABEL).map(
-                    ([value, label]) => ({ value, label }),
+                  options={Object.keys(LAB_SAMPLE_STATUS_LABEL).map(
+                    (value) => ({
+                      value,
+                      label: labSampleStatusLabel(value, lang),
+                    }),
                   )}
                 />
               </div>
@@ -220,7 +230,7 @@ export default function LabSamplesListPage() {
                   setApplied({});
                 }}
               >
-                เคลียร์
+                {t("เคลียร์")}
               </Button>
               <Button
                 type="primary"
@@ -234,7 +244,7 @@ export default function LabSamplesListPage() {
                   })
                 }
               >
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </section>
@@ -252,8 +262,8 @@ export default function LabSamplesListPage() {
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>
-                    <strong>ยังไม่มีตัวอย่าง</strong>
-                    กดปุ่มลงทะเบียนตัวอย่างเพื่อเริ่มต้น
+                    <strong>{t("ยังไม่มีตัวอย่าง")}</strong>
+                    {t("กดปุ่มลงทะเบียนตัวอย่างเพื่อเริ่มต้น")}
                   </div>
                 ),
               }}

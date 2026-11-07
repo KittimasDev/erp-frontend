@@ -2,6 +2,7 @@
 
 import { DatePicker, Form, Input, Select } from "antd";
 
+import { useT, tNow } from "@/lib/i18n/useT";
 import type { VoucherBankAccount } from "@/types/payment-vouchers";
 
 export const PAYMENT_METHOD_OPTIONS = [
@@ -11,7 +12,9 @@ export const PAYMENT_METHOD_OPTIONS = [
 ];
 
 export const paymentMethodLabel = (v?: string) =>
-  PAYMENT_METHOD_OPTIONS.find((o) => o.value === v)?.label ?? v ?? "—";
+  tNowOpt(PAYMENT_METHOD_OPTIONS.find((o) => o.value === v)?.label) ?? v ?? "—";
+
+const tNowOpt = (s?: string) => (s ? tNow(s) : undefined);
 
 export const bankLabel = (b?: VoucherBankAccount) =>
   b ? `${b.bankName} · ${b.accountNumber} (${b.accountName})` : "—";
@@ -24,34 +27,35 @@ export default function PaymentMethodFields({
   bankAccounts: VoucherBankAccount[];
   disabled?: boolean;
 }) {
+  const t = useT();
   const method = Form.useWatch("paymentMethod");
   const needsBank = method === "TRANSFER" || method === "CHEQUE";
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "0 16px" }}>
-        <Form.Item name="voucherDate" label="วันที่เอกสาร" rules={[{ required: true, message: "ระบุวันที่เอกสาร" }]}>
+        <Form.Item name="voucherDate" label={t("วันที่เอกสาร")} rules={[{ required: true, message: t("ระบุวันที่เอกสาร") }]}>
           <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} disabled={disabled} />
         </Form.Item>
-        <Form.Item name="paymentMethod" label="วิธีชำระ" rules={[{ required: true, message: "เลือกวิธีชำระ" }]}>
-          <Select options={PAYMENT_METHOD_OPTIONS} disabled={disabled} />
+        <Form.Item name="paymentMethod" label={t("วิธีชำระ")} rules={[{ required: true, message: t("เลือกวิธีชำระ") }]}>
+          <Select options={PAYMENT_METHOD_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} disabled={disabled} />
         </Form.Item>
-        <Form.Item name="desiredPayDate" label="วันที่ต้องการจ่าย">
+        <Form.Item name="desiredPayDate" label={t("วันที่ต้องการจ่าย")}>
           <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} disabled={disabled} />
         </Form.Item>
         <Form.Item
           name="companyBankAccountId"
-          label="ธนาคาร / บัญชีที่ใช้จ่าย"
-          extra={needsBank ? "ต้องเลือกก่อนส่งอนุมัติ" : undefined}
+          label={t("ธนาคาร / บัญชีที่ใช้จ่าย")}
+          extra={needsBank ? t("ต้องเลือกก่อนส่งอนุมัติ") : undefined}
         >
           <Select
             allowClear
             disabled={disabled}
-            placeholder={bankAccounts.length === 0 ? "ยังไม่มีบัญชีธนาคารบริษัท (ตั้งค่าที่ข้อมูลบริษัท)" : "เลือกบัญชี"}
+            placeholder={bankAccounts.length === 0 ? t("ยังไม่มีบัญชีธนาคารบริษัท (ตั้งค่าที่ข้อมูลบริษัท)") : t("เลือกบัญชี")}
             options={bankAccounts.map((b) => ({ value: b.id, label: bankLabel(b) }))}
           />
         </Form.Item>
       </div>
-      <Form.Item name="remark" label="หมายเหตุ">
+      <Form.Item name="remark" label={t("หมายเหตุ")}>
         <Input.TextArea rows={2} maxLength={5000} disabled={disabled} />
       </Form.Item>
     </>

@@ -8,11 +8,13 @@ import { ClearOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, WarningO
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useWorkOrdersQuery } from "@/hooks/maintenance/useMaintenance";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
-import { PRIORITY_OPTIONS, WORK_ORDER_STATUS_LABEL, type WorkOrder } from "@/types/maintenance";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { PRIORITY_OPTIONS, type WorkOrder } from "@/types/maintenance";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import BreakdownModal from "./BreakdownModal";
-import { fmtDate, fmtMoney } from "./maintenance-format";
+import { fmtDate, fmtMoney, woStatusLabel } from "./maintenance-format";
 import WorkOrderDetailDrawer from "./WorkOrderDetailDrawer";
 import { CreateWorkOrderModal } from "./WorkOrderModals";
 import PageHeader from "@/components/common/PageHeader";
@@ -22,6 +24,8 @@ const PRIORITY_COLOR: Record<string, string> = { LOW: "default", NORMAL: "blue",
 
 /** หน้า /maintenance/work-orders — ใบสั่งงานซ่อมบำรุง (PM/CM) · แจ้งเสีย · มอบหมายช่าง · เริ่ม/ปิดงาน · อะไหล่ */
 export default function WorkOrdersPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>("ACTIVE");
   const [type, setType] = useState<string>();
@@ -41,14 +45,14 @@ export default function WorkOrdersPage() {
 
   const columns: ColumnsType<WorkOrder> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "ใบสั่งงาน",
+      title: t("ใบสั่งงาน"),
       key: "no",
       width: 160,
       render: (_v, w) => (
@@ -61,9 +65,9 @@ export default function WorkOrdersPage() {
         </button>
       ),
     },
-    { title: "ประเภท", dataIndex: "type", width: 70, render: (t: string) => <Tag color={t === "PM" ? "blue" : "volcano"}>{t}</Tag> },
+    { title: t("ประเภท"), dataIndex: "type", width: 70, render: (ty: string) => <Tag color={ty === "PM" ? "blue" : "volcano"}>{ty}</Tag> },
     {
-      title: "เครื่อง / งาน",
+      title: t("เครื่อง / งาน"),
       key: "eq",
       render: (_v, w) => (
         <div>
@@ -72,11 +76,11 @@ export default function WorkOrdersPage() {
         </div>
       ),
     },
-    { title: "เร่งด่วน", key: "pr", width: 90, render: (_v, w) => <Tag color={PRIORITY_COLOR[w.priority]}>{PRIORITY_OPTIONS.find((p) => p.value === w.priority)?.label ?? w.priority}</Tag> },
-    { title: "ช่าง", key: "tech", width: 170, render: (_v, w) => w.technicians.map((t) => t.displayName).filter(Boolean).join(", ") || "—" },
-    { title: "วางแผน", key: "plan", width: 110, render: (_v, w) => fmtDate(w.plannedDate) },
-    { title: "ต้นทุนอะไหล่", key: "cost", width: 110, align: "right", render: (_v, w) => (w.partsCost ? fmtMoney(w.partsCost) : "—") },
-    { title: "สถานะ", key: "st", width: 110, render: (_v, w) => <Tag color={STATUS_COLOR[w.status]}>{WORK_ORDER_STATUS_LABEL[w.status] ?? w.status}</Tag> },
+    { title: t("เร่งด่วน"), key: "pr", width: 90, render: (_v, w) => <Tag color={PRIORITY_COLOR[w.priority]}>{t(PRIORITY_OPTIONS.find((p) => p.value === w.priority)?.label ?? w.priority)}</Tag> },
+    { title: t("ช่าง"), key: "tech", width: 170, render: (_v, w) => w.technicians.map((tech) => tech.displayName).filter(Boolean).join(", ") || "—" },
+    { title: t("วางแผน"), key: "plan", width: 110, render: (_v, w) => fmtDate(w.plannedDate) },
+    { title: t("ต้นทุนอะไหล่"), key: "cost", width: 110, align: "right", render: (_v, w) => (w.partsCost ? fmtMoney(w.partsCost) : "—") },
+    { title: t("สถานะ"), key: "st", width: 110, render: (_v, w) => <Tag color={STATUS_COLOR[w.status]}>{woStatusLabel(w.status, lang)}</Tag> },
   ];
 
   return (
@@ -85,17 +89,17 @@ export default function WorkOrdersPage() {
         <PageHeader
           eyebrow="MAINTENANCE · WORK ORDER"
           icon={<FileTextOutlined />}
-          title="ใบสั่งงานซ่อมบำรุง"
-          subtitle="PM / CM · แจ้งเสีย · มอบหมายช่าง · เริ่มและปิดงาน · วิเคราะห์สาเหตุ · เบิก/คืนอะไหล่และต้นทุน"
+          title={t("ใบสั่งงานซ่อมบำรุง")}
+          subtitle={t("PM / CM · แจ้งเสีย · มอบหมายช่าง · เริ่มและปิดงาน · วิเคราะห์สาเหตุ · เบิก/คืนอะไหล่และต้นทุน")}
           actions={
             <>
 <div style={{ display: "flex", gap: 8 }}>
             <Button size="large" danger icon={<WarningOutlined />} onClick={() => setBreakdown(true)}>
-              แจ้งเสีย
+              {t("แจ้งเสีย")}
             </Button>
             {canAdd ? (
               <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
-                สร้างใบสั่งงาน
+                {t("สร้างใบสั่งงาน")}
               </Button>
             ) : null}
           </div>
@@ -119,49 +123,49 @@ export default function WorkOrdersPage() {
             <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                  สถานะ:
+                  {t("สถานะ")}:
                 </span>
                 <Select
                   style={{ width: 140 }}
                   value={status}
                   onChange={setStatus}
                   options={[
-                    { value: "ACTIVE", label: "ที่ยังไม่ปิด" },
-                    { value: "COMPLETED", label: "เสร็จแล้ว" },
-                    { value: "CANCELLED", label: "ยกเลิก" },
-                    { value: "ALL", label: "ทั้งหมด" },
+                    { value: "ACTIVE", label: t("ที่ยังไม่ปิด") },
+                    { value: "COMPLETED", label: lang === "en" ? "Completed" : "เสร็จแล้ว" },
+                    { value: "CANCELLED", label: woStatusLabel("CANCELLED", lang) },
+                    { value: "ALL", label: t("ทั้งหมด") },
                   ]}
                 />
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                  ประเภท:
+                  {t("ประเภท")}:
                 </span>
                 <Select
                   allowClear
-                  placeholder="ทุกประเภท"
+                  placeholder={t("ทุกประเภท")}
                   style={{ width: 145 }}
                   value={type}
                   onChange={setType}
                   options={[
-                    { value: "PM", label: "PM (บำรุงรักษา)" },
-                    { value: "CM", label: "CM (ซ่อมแซม)" },
+                    { value: "PM", label: t("PM (บำรุงรักษา)") },
+                    { value: "CM", label: t("CM (ซ่อมแซม)") },
                   ]}
                 />
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                  ความเร่งด่วน:
+                  {t("ความเร่งด่วน")}:
                 </span>
                 <Select
                   allowClear
-                  placeholder="ทุกระดับ"
+                  placeholder={t("ทุกระดับ")}
                   style={{ width: 130 }}
                   value={priority}
                   onChange={setPriority}
-                  options={[...PRIORITY_OPTIONS]}
+                  options={PRIORITY_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
                 />
               </div>
 
@@ -169,7 +173,7 @@ export default function WorkOrdersPage() {
                 allowClear
                 style={{ width: 220 }}
                 prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                placeholder="ค้นหาเลขที่ใบสั่งงาน..."
+                placeholder={t("ค้นหาเลขที่ใบสั่งงาน...")}
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onPressEnter={() => setApplied(keyword)}
@@ -189,13 +193,13 @@ export default function WorkOrdersPage() {
                   }}
                   style={{ color: "#64748b" }}
                 >
-                  ล้างตัวกรอง
+                  {t("ล้างตัวกรอง")}
                 </Button>
               )}
             </div>
 
             <div style={{ fontSize: 13, color: "#64748b" }}>
-              แสดง <strong style={{ color: "#1e293b" }}>{rows.length}</strong> จาก {all.length} ใบ
+              {t("แสดง")} <strong style={{ color: "#1e293b" }}>{rows.length}</strong> {t("จาก {n} ใบ", { n: all.length })}
             </div>
           </div>
           <Table
@@ -204,9 +208,9 @@ export default function WorkOrdersPage() {
             columns={columns}
             dataSource={rows}
             loading={query.isFetching}
-            pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} ใบ` }}
+            pagination={{ pageSize: 20, showTotal: (total) => lang === "en" ? `${total} work orders in total` : `ทั้งหมด ${total} ใบ` }}
             scroll={{ x: 1100 }}
-            locale={{ emptyText: "ไม่มีใบสั่งงานตามเงื่อนไข" }}
+            locale={{ emptyText: t("ไม่มีใบสั่งงานตามเงื่อนไข") }}
           />
         </div>
 

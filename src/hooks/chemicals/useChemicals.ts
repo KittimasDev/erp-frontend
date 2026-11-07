@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   createHazardClass,
@@ -60,6 +62,7 @@ function useMasterMutation<TVars, TRes extends { message: string }>(
   fallbackError: string,
 ) {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -68,7 +71,7 @@ function useMasterMutation<TVars, TRes extends { message: string }>(
       for (const queryKey of keys) void queryClient.invalidateQueries({ queryKey });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : fallbackError);
+      message.error(error instanceof ApiError ? error.message : t(fallbackError));
     },
   });
 }

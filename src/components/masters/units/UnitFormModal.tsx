@@ -11,6 +11,7 @@ import {
 
 import type { CreateUnitRequest, Unit } from "@/types/units";
 import styles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type UnitFormValues = {
   code: string;
@@ -37,6 +38,7 @@ export default function UnitFormModal({
   onCancel,
   onSubmit,
 }: UnitFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<UnitFormValues>();
 
   useEffect(() => {
@@ -87,8 +89,8 @@ export default function UnitFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={580}
       centered
@@ -104,13 +106,13 @@ export default function UnitFormModal({
           </div>
 
           <h2>
-            {isCreateMode ? "เพิ่มหน่วยนับ" : "แก้ไขหน่วยนับ"}
+            {isCreateMode ? t("เพิ่มหน่วยนับ") : t("แก้ไขหน่วยนับ")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลหน่วยนับใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ"
-              : "แก้ไขรายละเอียดหน่วยนับและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลหน่วยนับใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ")
+              : t("แก้ไขรายละเอียดหน่วยนับและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -125,84 +127,84 @@ export default function UnitFormModal({
           <span className={styles.sectionLine} />
 
           <div>
-            <strong>ข้อมูลหน่วยนับ</strong>
-            <span>ระบุรหัส ชื่อ และสัญลักษณ์ที่ใช้ในระบบ</span>
+            <strong>{t("ข้อมูลหน่วยนับ")}</strong>
+            <span>{t("ระบุรหัส ชื่อ และสัญลักษณ์ที่ใช้ในระบบ")}</span>
           </div>
         </div>
 
         <div className={styles.formGrid}>
           <Form.Item
-            label="รหัสหน่วยนับ"
+            label={t("รหัสหน่วยนับ")}
             name="code"
             rules={[
               {
                 required: true,
-                message: "กรุณากรอกรหัสหน่วยนับ",
+                message: t("กรุณากรอกรหัสหน่วยนับ"),
               },
               {
                 max: 50,
-                message: "รหัสต้องไม่เกิน 50 ตัวอักษร",
+                message: t("รหัสต้องไม่เกิน 50 ตัวอักษร"),
               },
             ]}
           >
             <Input
               size="large"
-              placeholder="เช่น KG, TON, PCS"
+              placeholder={t("เช่น KG, TON, PCS")}
               autoComplete="off"
             />
           </Form.Item>
 
           <Form.Item
-            label="สัญลักษณ์ / ชื่อย่อ"
+            label={t("สัญลักษณ์ / ชื่อย่อ")}
             name="symbol"
             rules={[
               {
                 max: 50,
-                message: "สัญลักษณ์ต้องไม่เกิน 50 ตัวอักษร",
+                message: t("สัญลักษณ์ต้องไม่เกิน 50 ตัวอักษร"),
               },
             ]}
           >
             <Input
               size="large"
-              placeholder="เช่น kg"
+              placeholder={t("เช่น kg")}
               autoComplete="off"
             />
           </Form.Item>
         </div>
 
         <Form.Item
-          label="มิติของหน่วย"
+          label={t("มิติของหน่วย")}
           name="dimension"
-          extra="ใช้เตือนตอนตั้งกฎแปลงหน่วยกลางข้ามมิติเท่านั้น ไม่ระบุก็ได้"
+          extra={t("ใช้เตือนตอนตั้งกฎแปลงหน่วยกลางข้ามมิติเท่านั้น ไม่ระบุก็ได้")}
         >
           <Select
             size="large"
             allowClear
-            placeholder="เช่น น้ำหนัก"
+            placeholder={t("เช่น น้ำหนัก")}
             options={UNIT_DIMENSIONS.map((dimension) => ({
               value: dimension,
-              label: `${UNIT_DIMENSION_LABELS[dimension]} (${dimension})`,
+              label: `${t(UNIT_DIMENSION_LABELS[dimension])} (${dimension})`,
             }))}
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อหน่วยนับ"
+          label={t("ชื่อหน่วยนับ")}
           name="name"
           rules={[
             {
               required: true,
-              message: "กรุณากรอกชื่อหน่วยนับ",
+              message: t("กรุณากรอกชื่อหน่วยนับ"),
             },
             {
               max: 255,
-              message: "ชื่อต้องไม่เกิน 255 ตัวอักษร",
+              message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร"),
             },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น กิโลกรัม"
+            placeholder={t("เช่น กิโลกรัม")}
             autoComplete="off"
           />
         </Form.Item>
@@ -212,11 +214,10 @@ export default function UnitFormModal({
             <div className={styles.statusIcon}>●</div>
 
             <div>
-              <strong>สถานะใช้งาน</strong>
+              <strong>{t("สถานะใช้งาน")}</strong>
 
               <span>
-                เปิดใช้งานเพื่อให้สามารถเลือกหน่วยนับนี้ในรายการสินค้า
-                และเอกสารต่าง ๆ ได้
+                {t("เปิดใช้งานเพื่อให้สามารถเลือกหน่วยนับนี้ในรายการสินค้า และเอกสารต่าง ๆ ได้")}
               </span>
             </div>
           </div>
@@ -227,8 +228,8 @@ export default function UnitFormModal({
             noStyle
           >
             <Switch
-              checkedChildren="เปิด"
-              unCheckedChildren="ปิด"
+              checkedChildren={t("เปิด")}
+              unCheckedChildren={t("ปิด")}
             />
           </Form.Item>
         </div>

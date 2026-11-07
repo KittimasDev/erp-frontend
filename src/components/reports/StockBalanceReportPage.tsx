@@ -36,6 +36,7 @@ import {
 
 import styles from "./RawTirePurchaseReportPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 const TITLE = "รายงานแสดงสินค้าคงเหลือ";
 
@@ -236,28 +237,28 @@ function toSheet(
   };
 }
 
-const columns: ColumnsType<BalanceRow> = [
+const buildColumns = (t: TFunction): ColumnsType<BalanceRow> => [
   {
-    title: "ลำดับ",
+    title: t("ลำดับ"),
     dataIndex: "seq",
     width: 80,
     render: (value: number | undefined) => value ?? "",
   },
-  { title: "รหัสสินค้า", dataIndex: "itemCode" },
+  { title: t("รหัสสินค้า"), dataIndex: "itemCode" },
   {
-    title: "ชื่อสินค้า / Lot",
+    title: t("ชื่อสินค้า / Lot"),
     dataIndex: "label",
     render: (value: string, row) =>
       row.isGroup ? <strong>{value}</strong> : value,
   },
-  { title: "ประเภทสินค้า", dataIndex: "itemCategoryName" },
+  { title: t("ประเภทสินค้า"), dataIndex: "itemCategoryName" },
   {
-    title: "คลังสินค้า",
+    title: t("คลังสินค้า"),
     dataIndex: "warehouseName",
     render: (value: string, row) =>
-      row.isGroup ? <strong>{value}</strong> : value,
+      row.isGroup ? <strong>{t(value)}</strong> : value,
   },
-  { title: "หน่วยนับ", dataIndex: "unitCode" },
+  { title: t("หน่วยนับ"), dataIndex: "unitCode" },
   ...(
     [
       ["คงเหลือ", "quantityOnHand"],
@@ -265,7 +266,7 @@ const columns: ColumnsType<BalanceRow> = [
       ["พร้อมใช้", "quantityAvailable"],
     ] as const
   ).map(([title, dataIndex]) => ({
-    title,
+    title: t(title),
     dataIndex,
     align: "right" as const,
     render: (value: string, row: BalanceRow) =>
@@ -274,6 +275,8 @@ const columns: ColumnsType<BalanceRow> = [
 ];
 
 export default function StockBalanceReportPage() {
+  const t = useT();
+  const columns = useMemo(() => buildColumns(t), [t]);
   const { message } = App.useApp();
   const [asOf, setAsOf] = useState<Dayjs>(() => dayjs());
   const [warehouseId, setWarehouseId] = useState<string | undefined>();
@@ -358,14 +361,14 @@ export default function StockBalanceReportPage() {
       const groups =
         exported.data.items.length > 0 ? exported.data.items : SAMPLE_GROUPS;
       if (exported.data.items.length === 0) {
-        message.info("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง");
+        message.info(t("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง"));
       }
       await downloadTabularReport(
         format,
         toSheet(groups, exported.data.asOfDate || applied.asOfDate || ""),
       );
     } catch {
-      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
+      message.error(t("ดาวน์โหลดรายงานไม่สำเร็จ"));
     } finally {
       setExporting(null);
     }
@@ -383,8 +386,8 @@ export default function StockBalanceReportPage() {
       <PageHeader
         eyebrow="Reports · Stock Balance"
         icon={<InboxOutlined />}
-        title={TITLE}
-        subtitle="ยอดคงเหลือ ณ สิ้นวันที่เลือก แยกตามสินค้า Lot และคลัง พร้อมยอดจองและยอดพร้อมใช้"
+        title={t(TITLE)}
+        subtitle={t("ยอดคงเหลือ ณ สิ้นวันที่เลือก แยกตามสินค้า Lot และคลัง พร้อมยอดจองและยอดพร้อมใช้")}
         actions={
           <>
 
@@ -400,28 +403,28 @@ export default function StockBalanceReportPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>จำนวนสินค้า</span>
+          <span className={styles.statLabel}>{t("จำนวนสินค้า")}</span>
           <span className={styles.statValue}>{showingSample ? 0 : total.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>ตามเงื่อนไขที่กรอง</span>
+          <span className={styles.statHint}>{t("ตามเงื่อนไขที่กรอง")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ข้อมูล ณ วันที่</span>
+          <span className={styles.statLabel}>{t("ข้อมูล ณ วันที่")}</span>
           <span className={styles.statValue}>{asOfDate ? dayjs(asOfDate).format("DD/MM/YYYY") : "—"}</span>
-          <span className={styles.statHint}>ยอดสิ้นวัน</span>
+          <span className={styles.statHint}>{t("ยอดสิ้นวัน")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>สถานะสินค้า</span>
+          <span className={styles.statLabel}>{t("สถานะสินค้า")}</span>
           <span className={styles.statValue}>
-            {STATUS_OPTIONS.find((o) => o.value === (applied.stockStatus ?? "ALL"))?.label}
+            {t(STATUS_OPTIONS.find((o) => o.value === (applied.stockStatus ?? "ALL"))?.label ?? "")}
           </span>
-          <span className={styles.statHint}>ตัวกรองที่ใช้อยู่</span>
+          <span className={styles.statHint}>{t("ตัวกรองที่ใช้อยู่")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           {filterItem(
-            "วันที่รายงาน",
+            t("วันที่รายงาน"),
             <DatePicker
               allowClear={false}
               style={{ width: "100%" }}
@@ -433,12 +436,12 @@ export default function StockBalanceReportPage() {
             />,
           )}
           {filterItem(
-            "คลังสินค้า",
+            t("คลังสินค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={warehouseId}
               loading={warehousesQuery.isLoading}
               options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
@@ -449,12 +452,12 @@ export default function StockBalanceReportPage() {
             />,
           )}
           {filterItem(
-            "ประเภทสินค้า",
+            t("ประเภทสินค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={itemCategoryId}
               loading={categoriesQuery.isLoading}
               options={(categoriesQuery.data?.data ?? []).map((category) => ({
@@ -465,10 +468,10 @@ export default function StockBalanceReportPage() {
             />,
           )}
           {filterItem(
-            "สินค้า",
+            t("สินค้า"),
             <Input
               allowClear
-              placeholder="รหัสหรือชื่อสินค้า"
+              placeholder={t("รหัสหรือชื่อสินค้า")}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               onPressEnter={applySearch}
@@ -478,21 +481,25 @@ export default function StockBalanceReportPage() {
             "Lot",
             <Input
               allowClear
-              placeholder="ค้นเลข Lot"
+              placeholder={t("ค้นเลข Lot")}
               value={lotNo}
               onChange={(event) => setLotNo(event.target.value)}
               onPressEnter={applySearch}
             />,
           )}
           {filterItem(
-            "สถานะสินค้า",
-            <Select value={stockStatus} options={STATUS_OPTIONS} onChange={setStockStatus} />,
+            t("สถานะสินค้า"),
+            <Select
+              value={stockStatus}
+              options={STATUS_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+              onChange={setStockStatus}
+            />,
           )}
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -501,15 +508,15 @@ export default function StockBalanceReportPage() {
         <Alert
           type="info"
           showIcon
-          title="ข้อมูลตัวอย่าง"
-          description="ยังไม่มีรายการจริงตามเงื่อนไขนี้ ตารางและไฟล์ที่ดาวน์โหลดจึงเป็นตัวอย่างเพื่อดูรูปแบบรายงาน"
+          title={t("ข้อมูลตัวอย่าง")}
+          description={t("ยังไม่มีรายการจริงตามเงื่อนไขนี้ ตารางและไฟล์ที่ดาวน์โหลดจึงเป็นตัวอย่างเพื่อดูรูปแบบรายงาน")}
         />
       ) : null}
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> รายการสินค้า
+            {t("พบทั้งหมด")} <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> {t("รายการสินค้า")}
           </div>
           <div className={styles.toolbarActions}>
             <Button
@@ -517,14 +524,14 @@ export default function StockBalanceReportPage() {
               disabled={expandedRowKeys.length === expandableKeys.length}
               onClick={() => setCollapsed(new Set())}
             >
-              ขยายทั้งหมด
+              {t("ขยายทั้งหมด")}
             </Button>
             <Button
               icon={<MinusSquareOutlined />}
               disabled={expandedRowKeys.length === 0}
               onClick={() => setCollapsed(new Set(expandableKeys))}
             >
-              ยุบทั้งหมด
+              {t("ยุบทั้งหมด")}
             </Button>
           </div>
         </div>
@@ -540,8 +547,8 @@ export default function StockBalanceReportPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ไม่พบสินค้าตามเงื่อนไขที่ค้นหา</strong>
-                ลองปรับตัวกรองอื่น
+                <strong>{t("ไม่พบสินค้าตามเงื่อนไขที่ค้นหา")}</strong>
+                {t("ลองปรับตัวกรองอื่น")}
               </div>
             ),
           }}
@@ -561,8 +568,11 @@ export default function StockBalanceReportPage() {
         {showingSample ? null : (
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–{Math.min(page * limit, total)} จาก{" "}
-              {total.toLocaleString("th-TH")}
+              {t("แสดง {from}–{to} จาก {total}", {
+                from: total === 0 ? 0 : (page - 1) * limit + 1,
+                to: Math.min(page * limit, total),
+                total: total.toLocaleString("th-TH"),
+              })}
             </div>
             <Pagination
               size="small"

@@ -16,7 +16,9 @@ import {
 } from "@/hooks/oil-tank-farm/useOilTankFarm";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
-import { OIL_DOC_STATUS_LABEL, type OilTransfer } from "@/types/oil-tank-farm";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { oilDocStatusLabel, type OilTransfer } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -35,25 +37,26 @@ type Values = {
 };
 
 function CreateModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [form] = Form.useForm<Values>();
   const create = useCreateOilTransferMutation();
   const tanksQuery = useOilTanksQuery();
   const unitsQuery = useUnitsQuery({ isActive: true });
-  const tanks = (tanksQuery.data?.data ?? []).filter((t) => t.status === "ACTIVE");
+  const tanks = (tanksQuery.data?.data ?? []).filter((tk) => tk.status === "ACTIVE");
   const fromId = Form.useWatch("fromTankId", form);
   const toId = Form.useWatch("toTankId", form);
   const qty = Form.useWatch("quantityLiters", form) ?? 0;
   const loss = Form.useWatch("lossLiters", form) ?? 0;
-  const from = tanks.find((t) => t.id === fromId);
-  const to = tanks.find((t) => t.id === toId);
+  const from = tanks.find((tk) => tk.id === fromId);
+  const to = tanks.find((tk) => tk.id === toId);
   const toFree = to ? Number(to.capacityLiters) - Number(to.currentVolumeLiters ?? 0) : undefined;
 
   return (
     <Modal
       open
-      title="โอนน้ำมันระหว่างถัง"
-      okText="สร้างใบโอน"
-      cancelText="ยกเลิก"
+      title={t("โอนน้ำมันระหว่างถัง")}
+      okText={t("สร้างใบโอน")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={create.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -75,31 +78,31 @@ function CreateModal({ onClose }: { onClose: () => void }) {
       }
     >
       <Form form={form} layout="vertical" initialValues={{ transferDate: dayjs(), lossLiters: 0 }}>
-        <Form.Item name="transferDate" label="วันที่โอน" rules={[{ required: true }]}>
+        <Form.Item name="transferDate" label={t("วันที่โอน")} rules={[{ required: true }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="fromTankId" label="ถังต้นทาง" rules={[{ required: true, message: "เลือกถัง" }]} style={{ flex: 1 }}>
-            <Select options={tanks.map((t) => ({ value: t.id, label: `${t.tankNo} (พร้อมใช้ ${n(t.availableLiters ?? 0)})` }))} />
+          <Form.Item name="fromTankId" label={t("ถังต้นทาง")} rules={[{ required: true, message: t("เลือกถัง") }]} style={{ flex: 1 }}>
+            <Select options={tanks.map((tk) => ({ value: tk.id, label: `${tk.tankNo} (${t("พร้อมใช้")} ${n(tk.availableLiters ?? 0)})` }))} />
           </Form.Item>
           <Form.Item
             name="toTankId"
-            label="ถังปลายทาง"
+            label={t("ถังปลายทาง")}
             dependencies={["fromTankId"]}
-            rules={[{ required: true, message: "เลือกถัง" }, ({ getFieldValue }) => ({ validator: (_r, v) => (v && v === getFieldValue("fromTankId") ? Promise.reject(new Error("ต้องคนละถัง")) : Promise.resolve()) })]}
+            rules={[{ required: true, message: t("เลือกถัง") }, ({ getFieldValue }) => ({ validator: (_r, v) => (v && v === getFieldValue("fromTankId") ? Promise.reject(new Error(t("ต้องคนละถัง"))) : Promise.resolve()) })]}
             style={{ flex: 1 }}
           >
-            <Select options={tanks.filter((t) => t.id !== fromId && (!from || t.itemId === from.itemId)).map((t) => ({ value: t.id, label: `${t.tankNo} (ว่าง ${n(Number(t.capacityLiters) - Number(t.currentVolumeLiters ?? 0))})` }))} />
+            <Select options={tanks.filter((tk) => tk.id !== fromId && (!from || tk.itemId === from.itemId)).map((tk) => ({ value: tk.id, label: `${tk.tankNo} (${t("ว่าง")} ${n(Number(tk.capacityLiters) - Number(tk.currentVolumeLiters ?? 0))})` }))} />
           </Form.Item>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="quantityLiters" label="ปริมาณที่โอนออก" rules={[{ required: true, message: "ใส่ปริมาณ" }]} style={{ flex: 1 }}>
+          <Form.Item name="quantityLiters" label={t("ปริมาณที่โอนออก")} rules={[{ required: true, message: t("ใส่ปริมาณ") }]} style={{ flex: 1 }}>
             <InputNumber min={0.001} max={from ? Number(from.availableLiters ?? 0) : undefined} precision={3} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="lossLiters" label="สูญเสียระหว่างโอน" style={{ flex: 1 }} extra="ถังปลายทางได้ = โอนออก − สูญเสีย">
+          <Form.Item name="lossLiters" label={t("สูญเสียระหว่างโอน")} style={{ flex: 1 }} extra={t("ถังปลายทางได้ = โอนออก − สูญเสีย")}>
             <InputNumber min={0} max={qty > 0 ? qty - 0.001 : undefined} precision={3} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="unitId" label="หน่วย" rules={[{ required: true, message: "เลือกหน่วย" }]} style={{ flex: 1 }}>
+          <Form.Item name="unitId" label={t("หน่วย")} rules={[{ required: true, message: t("เลือกหน่วย") }]} style={{ flex: 1 }}>
             <Select showSearch optionFilterProp="label" options={(unitsQuery.data?.data ?? []).map((u) => ({ value: u.id, label: u.code }))} />
           </Form.Item>
         </div>
@@ -108,17 +111,17 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             style={{ marginBottom: 12 }}
             type={toFree !== undefined && qty - loss > toFree ? "error" : "info"}
             showIcon
-            title={`ถังปลายทางจะได้รับ ${n(Math.max(qty - loss, 0))} ลิตร${loss > 0 ? ` (สูญเสีย ${n(loss)} = ${((loss / qty) * 100).toFixed(2)}%)` : ""}${toFree !== undefined ? ` · ที่ว่างปลายทาง ${n(toFree)} ลิตร` : ""}`}
+            title={`${t("ถังปลายทางจะได้รับ {qty} ลิตร", { qty: n(Math.max(qty - loss, 0)) })}${loss > 0 ? ` ${t("(สูญเสีย {loss} = {pct}%)", { loss: n(loss), pct: ((loss / qty) * 100).toFixed(2) })}` : ""}${toFree !== undefined ? ` · ${t("ที่ว่างปลายทาง {free} ลิตร", { free: n(toFree) })}` : ""}`}
           />
         ) : null}
-        <Form.Item name="lossReason" label="สาเหตุที่สูญเสีย">
-          <Input maxLength={2000} placeholder="เช่น ระเหย / ตกค้างในท่อ" />
+        <Form.Item name="lossReason" label={t("สาเหตุที่สูญเสีย")}>
+          <Input maxLength={2000} placeholder={t("เช่น ระเหย / ตกค้างในท่อ")} />
         </Form.Item>
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
         <p style={{ color: "#8a94a6", marginBottom: 0 }}>
-          โอนได้เฉพาะถังที่เก็บน้ำมันชนิดเดียวกัน · สร้างใบแล้วระบบจองน้ำมันต้นทางไว้ให้ จนกว่าจะอนุมัติหรือยกเลิก · โอนตาม Lot (FIFO) ตามรอยย้อนกลับได้
+          {t("โอนได้เฉพาะถังที่เก็บน้ำมันชนิดเดียวกัน · สร้างใบแล้วระบบจองน้ำมันต้นทางไว้ให้ จนกว่าจะอนุมัติหรือยกเลิก · โอนตาม Lot (FIFO) ตามรอยย้อนกลับได้")}
         </p>
       </Form>
     </Modal>
@@ -127,6 +130,8 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 /** หน้า /oil-tank-farm/transfers — โอนน้ำมันระหว่างถังพร้อมบันทึกสูญเสีย */
 export default function TransfersPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const query = useOilTransfersQuery();
   const approve = useApproveOilTransferMutation();
@@ -136,19 +141,19 @@ export default function TransfersPage() {
 
   const columns: ColumnsType<OilTransfer> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: "ใบโอน", key: "no", width: 150, render: (_v, r) => <div><strong>{r.transferNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.transferDate).format("DD/MM/YYYY")}</div></div> },
-    { title: "จาก → ไป", key: "ft", width: 180, render: (_v, r) => `${r.fromTankNo} → ${r.toTankNo}` },
-    { title: "โอนออก", key: "q", width: 120, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },
-    { title: "สูญเสีย", key: "l", width: 150, align: "right", render: (_v, r) => (Number(r.lossLiters) ? <span style={{ color: "#cf1322" }}>{n(r.lossLiters)} ({((Number(r.lossLiters) / Number(r.quantityLiters)) * 100).toFixed(2)}%)</span> : "—") },
-    { title: "ปลายทางได้รับ", key: "r", width: 130, align: "right", render: (_v, r) => n(r.receivedLiters) },
-    { title: "หมายเหตุ", key: "m", render: (_v, r) => r.lossReason ?? r.remark ?? "" },
-    { title: "สถานะ", key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{OIL_DOC_STATUS_LABEL[r.status] ?? r.status}</Tag> },
+    { title: t("ใบโอน"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.transferNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.transferDate).format("DD/MM/YYYY")}</div></div> },
+    { title: t("จาก → ไป"), key: "ft", width: 180, render: (_v, r) => `${r.fromTankNo} → ${r.toTankNo}` },
+    { title: t("โอนออก"), key: "q", width: 120, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },
+    { title: t("สูญเสีย"), key: "l", width: 150, align: "right", render: (_v, r) => (Number(r.lossLiters) ? <span style={{ color: "#cf1322" }}>{n(r.lossLiters)} ({((Number(r.lossLiters) / Number(r.quantityLiters)) * 100).toFixed(2)}%)</span> : "—") },
+    { title: t("ปลายทางได้รับ"), key: "r", width: 130, align: "right", render: (_v, r) => n(r.receivedLiters) },
+    { title: t("หมายเหตุ"), key: "m", render: (_v, r) => r.lossReason ?? r.remark ?? "" },
+    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
     {
       title: "",
       key: "act",
@@ -157,12 +162,12 @@ export default function TransfersPage() {
         r.status === "DRAFT" ? (
           <div style={{ display: "flex", gap: 6 }}>
             {canApprove ? (
-              <Popconfirm title="อนุมัติโอนจริง?" description="ตัดน้ำมันถังต้นทางและเพิ่มถังปลายทางตาม Lot" okText="อนุมัติ" cancelText="ยกเลิก" onConfirm={() => approve.mutate(r.id)}>
-                <Button size="small" type="primary" loading={approve.isPending && approve.variables === r.id}>อนุมัติ</Button>
+              <Popconfirm title={t("อนุมัติโอนจริง?")} description={t("ตัดน้ำมันถังต้นทางและเพิ่มถังปลายทางตาม Lot")} okText={t("อนุมัติ")} cancelText={t("ยกเลิก")} onConfirm={() => approve.mutate(r.id)}>
+                <Button size="small" type="primary" loading={approve.isPending && approve.variables === r.id}>{t("อนุมัติ")}</Button>
               </Popconfirm>
             ) : null}
-            <Popconfirm title="ยกเลิกใบโอน? (ปล่อยที่จองคืน)" okText="ยกเลิกใบ" cancelText="ไม่" onConfirm={() => cancel.mutate(r.id)}>
-              <Button size="small" danger>ยกเลิก</Button>
+            <Popconfirm title={t("ยกเลิกใบโอน? (ปล่อยที่จองคืน)")} okText={t("ยกเลิกใบ")} cancelText={t("ไม่")} onConfirm={() => cancel.mutate(r.id)}>
+              <Button size="small" danger>{t("ยกเลิก")}</Button>
             </Popconfirm>
           </div>
         ) : null,
@@ -175,16 +180,16 @@ export default function TransfersPage() {
         <PageHeader
           eyebrow="OIL TANK FARM · TRANSFER"
           icon={<SwapOutlined />}
-          title="โอนน้ำมันระหว่างถัง"
-          subtitle="โอนตาม Lot พร้อมบันทึกปริมาณสูญเสีย · จองน้ำมันต้นทางตั้งแต่สร้างใบ"
+          title={t("โอนน้ำมันระหว่างถัง")}
+          subtitle={t("โอนตาม Lot พร้อมบันทึกปริมาณสูญเสีย · จองน้ำมันต้นทางตั้งแต่สร้างใบ")}
           actions={
             <>
-{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>สร้างใบโอน</Button> : <div />}
+{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>{t("สร้างใบโอน")}</Button> : <div />}
             </>
           }
         />
         <div className={styles.tableCard}>
-          <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} ใบ` }} scroll={{ x: 1000 }} locale={{ emptyText: "ยังไม่มีใบโอน" }} />
+          <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} ใบ", { n: total }) }} scroll={{ x: 1000 }} locale={{ emptyText: t("ยังไม่มีใบโอน") }} />
         </div>
         {creating ? <CreateModal onClose={() => setCreating(false)} /> : null}
       </section>

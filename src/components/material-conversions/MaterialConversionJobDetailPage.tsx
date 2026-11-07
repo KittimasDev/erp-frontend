@@ -68,6 +68,8 @@ import MaterialConversionRunLinesFields, {
   type InputLineValues,
   type OutputLineValues,
 } from "./MaterialConversionRunLinesFields";
+import { useT } from "@/lib/i18n/useT";
+import { tConvStatusLabel } from "@/types/material-conversion";
 import styles from "./MaterialConversionPage.module.css";
 
 const ROUTE_BASE = "/production/material-conversions";
@@ -126,6 +128,7 @@ export default function MaterialConversionJobDetailPage({
 }: {
   jobId: string;
 }) {
+  const t = useT();
   const router = useRouter();
   const { modal: modalApi } = App.useApp();
   const actions = useScreenActionPermissions("MATERIAL_CONVERSIONS");
@@ -178,24 +181,24 @@ export default function MaterialConversionJobDetailPage({
     const incomplete = job.completedStepCount < job.plannedStepCount;
     let reason = "";
     modalApi.confirm({
-      title: "ปิดใบงานนี้",
-      okText: "ปิดใบงาน",
-      cancelText: "ยกเลิก",
+      title: t("ปิดใบงานนี้"),
+      okText: t("ปิดใบงาน"),
+      cancelText: t("ยกเลิก"),
       content: (
         <div>
           <p style={{ marginTop: 0 }}>
             {incomplete
-              ? `ทำไปแล้ว ${job.completedStepCount} จาก ${job.plannedStepCount} ขั้นตอน — ขั้นที่เหลือจะถือว่าไม่ทำแล้ว`
-              : "ทำครบทุกขั้นตอนแล้ว ปิดใบงานได้เลย"}
+              ? t("ทำไปแล้ว {done} จาก {total} ขั้นตอน — ขั้นที่เหลือจะถือว่าไม่ทำแล้ว", { done: job.completedStepCount, total: job.plannedStepCount })
+              : t("ทำครบทุกขั้นตอนแล้ว ปิดใบงานได้เลย")}
           </p>
           <p style={{ color: "#8a9199", fontSize: 12 }}>
-            ไม่มีการคืนวัตถุดิบเข้าคลัง — ของที่ตัดไปแล้วยังถูกตัดไปตามเดิม
+            {t("ไม่มีการคืนวัตถุดิบเข้าคลัง — ของที่ตัดไปแล้วยังถูกตัดไปตามเดิม")}
           </p>
           {incomplete ? (
             <Input.TextArea
               rows={3}
               maxLength={2000}
-              placeholder="เหตุผลที่ปิดทั้งที่ยังไม่ครบ (อย่างน้อย 10 ตัวอักษร)"
+              placeholder={t("เหตุผลที่ปิดทั้งที่ยังไม่ครบ (อย่างน้อย 10 ตัวอักษร)")}
               onChange={(e) => {
                 reason = e.target.value;
               }}
@@ -215,10 +218,10 @@ export default function MaterialConversionJobDetailPage({
     if (!job) return;
     let reason = "";
     modalApi.confirm({
-      title: "ยกเลิกใบงานทั้งใบ",
-      okText: "ยกเลิกใบงาน",
+      title: t("ยกเลิกใบงานทั้งใบ"),
+      okText: t("ยกเลิกใบงาน"),
       okButtonProps: { danger: true },
-      cancelText: "ไม่ยกเลิก",
+      cancelText: t("ไม่ยกเลิก"),
       content: (
         <div>
           {/*
@@ -226,16 +229,16 @@ export default function MaterialConversionJobDetailPage({
             ยกเลิกทั้งใบทำได้ก็ต่อเมื่อยังไม่มีขั้นไหนแตะสต๊อกเลย
           */}
           <p style={{ marginTop: 0 }}>
-            ทำได้ก็ต่อเมื่อ<strong>ยังไม่มีขั้นไหนตัดสต๊อก</strong> ·
-            ถ้ามีขั้นที่เริ่มงานหรือปิดงานไปแล้ว ให้ปิดใบงานพร้อมเหตุผลแทน
+            {t("ทำได้ก็ต่อเมื่อ")}<strong>{t("ยังไม่มีขั้นไหนตัดสต๊อก")}</strong>{" "}
+            {t("· ถ้ามีขั้นที่เริ่มงานหรือปิดงานไปแล้ว ให้ปิดใบงานพร้อมเหตุผลแทน")}
           </p>
           <p style={{ color: "#8a9199", fontSize: 12 }}>
-            เอกสารขั้นตอนที่ยังเป็นร่างจะถูกยกเลิกตามไปด้วย
+            {t("เอกสารขั้นตอนที่ยังเป็นร่างจะถูกยกเลิกตามไปด้วย")}
           </p>
           <Input.TextArea
             rows={3}
             maxLength={2000}
-            placeholder="เหตุผลการยกเลิก (อย่างน้อย 10 ตัวอักษร)"
+            placeholder={t("เหตุผลการยกเลิก (อย่างน้อย 10 ตัวอักษร)")}
             onChange={(e) => {
               reason = e.target.value;
             }}
@@ -262,18 +265,18 @@ export default function MaterialConversionJobDetailPage({
             <div className={masterStyles.eyebrow}>
               PRODUCTION · MATERIAL CONVERSION JOB
             </div>
-            <h2 className={masterStyles.pageTitle}>ใบงานแปรสภาพตามเส้นทาง</h2>
+            <h2 className={masterStyles.pageTitle}>{t("ใบงานแปรสภาพตามเส้นทาง")}</h2>
             <span className={masterStyles.pageSubtitle}>
-              กรอกและเดินงานทีละขั้นในหน้าเดียว — Batch เดียวกันทั้งสาย
+              {t("กรอกและเดินงานทีละขั้นในหน้าเดียว — Batch เดียวกันทั้งสาย")}
             </span>
           </div>
           <Button onClick={() => router.push(`${ROUTE_BASE}?tab=jobs`)}>
-            กลับ
+            {t("กลับ")}
           </Button>
         </div>
 
         {!job ? (
-          <Empty description="ไม่พบใบงานที่ต้องการ" />
+          <Empty description={t("ไม่พบใบงานที่ต้องการ")} />
         ) : (
           <>
             <JobHero
@@ -297,8 +300,8 @@ export default function MaterialConversionJobDetailPage({
                 className={styles.notice}
                 type="info"
                 showIcon
-                title="เส้นทางถูกแก้หลังเปิดใบงานนี้"
-                description={`แผนของใบงานนี้ถ่ายไว้ตอนเปิดใบว่ามี ${job.plannedStepCount} ขั้นตอน — เส้นทางปัจจุบันมี ${job.currentRouteStepCount} ขั้นตอน · ใบนี้ยังเดินตามแผนเดิมเพื่อให้ตรวจย้อนหลังได้`}
+                title={t("เส้นทางถูกแก้หลังเปิดใบงานนี้")}
+                description={t("แผนของใบงานนี้ถ่ายไว้ตอนเปิดใบว่ามี {planned} ขั้นตอน — เส้นทางปัจจุบันมี {current} ขั้นตอน · ใบนี้ยังเดินตามแผนเดิมเพื่อให้ตรวจย้อนหลังได้", { planned: job.plannedStepCount, current: job.currentRouteStepCount })}
               />
             ) : null}
 
@@ -307,8 +310,8 @@ export default function MaterialConversionJobDetailPage({
                 className={styles.notice}
                 type="warning"
                 showIcon
-                title="มีเอกสารของขั้นที่ไม่อยู่ในแผนใบงานนี้"
-                description={`รหัสขั้นตอน: ${job.unplannedStepCodes.join(", ")}`}
+                title={t("มีเอกสารของขั้นที่ไม่อยู่ในแผนใบงานนี้")}
+                description={`${t("รหัสขั้นตอน:")} ${job.unplannedStepCodes.join(", ")}`}
               />
             ) : null}
 
@@ -317,7 +320,7 @@ export default function MaterialConversionJobDetailPage({
                 className={styles.notice}
                 type="warning"
                 showIcon
-                title="ใบงานนี้ปิดทั้งที่ยังทำไม่ครบ"
+                title={t("ใบงานนี้ปิดทั้งที่ยังทำไม่ครบ")}
                 description={job.closeReason}
               />
             ) : null}
@@ -365,7 +368,7 @@ export default function MaterialConversionJobDetailPage({
         open={Boolean(fillStep)}
         onClose={() => setFillStep(null)}
         title={
-          fillStep ? `กรอกข้อมูล — ${fillStep.stepOrder}. ${fillStep.nameTh}` : ""
+          fillStep ? `${t("กรอกข้อมูล")} — ${fillStep.stepOrder}. ${fillStep.nameTh}` : ""
         }
         size="large"
         /*
@@ -451,6 +454,7 @@ function JobHero({
   onCancel: () => void;
   busy: boolean;
 }) {
+  const t = useT();
   const percent =
     job.plannedStepCount > 0
       ? Math.round((job.completedStepCount / job.plannedStepCount) * 100)
@@ -462,17 +466,17 @@ function JobHero({
         <div className={styles.jobHeroTitle}>
           <h2>{job.jobNo}</h2>
           <Tag color={MATERIAL_CONVERSION_JOB_STATUS_COLOR[job.status]}>
-            {MATERIAL_CONVERSION_JOB_STATUS_LABEL[job.status] ?? job.status}
+            {tConvStatusLabel(MATERIAL_CONVERSION_JOB_STATUS_LABEL[job.status] ?? job.status)}
           </Tag>
           <Tag>
-            {MATERIAL_CONVERSION_JOB_PROGRESS_LABEL[job.progressStatus] ??
-              job.progressStatus}
+            {tConvStatusLabel(MATERIAL_CONVERSION_JOB_PROGRESS_LABEL[job.progressStatus] ??
+              job.progressStatus)}
           </Tag>
         </div>
         <span className={styles.cellMuted}>
-          {job.routeNameTh ?? job.routeCode} · เริ่มตามแผน{" "}
+          {job.routeNameTh ?? job.routeCode} · {t("เริ่มตามแผน")}{" "}
           {fmtDate(job.plannedStartDate)}
-          {job.requestedBy ? ` · เปิดโดย ${job.requestedBy.displayName}` : ""}
+          {job.requestedBy ? ` · ${t("เปิดโดย")} ${job.requestedBy.displayName}` : ""}
         </span>
         {job.remark ? (
           <span className={styles.subNote}>{job.remark}</span>
@@ -486,9 +490,9 @@ function JobHero({
 
       <div className={styles.jobProgress}>
         <div className={styles.jobProgressLabel}>
-          <span>ความคืบหน้า</span>
+          <span>{t("ความคืบหน้า")}</span>
           <span className={styles.jobProgressCount}>
-            {job.completedStepCount} / {job.plannedStepCount} ขั้นตอน
+            {job.completedStepCount} / {job.plannedStepCount} {t("ขั้นตอน")}
           </span>
         </div>
         <Progress
@@ -499,7 +503,7 @@ function JobHero({
         />
         {job.openRunCount > 0 ? (
           <span className={styles.subNote}>
-            มี {job.openRunCount} ขั้นตอนที่ยังเปิดค้างอยู่
+            {t("มี {n} ขั้นตอนที่ยังเปิดค้างอยู่", { n: job.openRunCount })}
           </span>
         ) : null}
       </div>
@@ -509,18 +513,18 @@ function JobHero({
           {job.status === "OPEN" ? (
             <>
               <Button loading={busy} onClick={onClose}>
-                ปิดใบงาน
+                {t("ปิดใบงาน")}
               </Button>
-              <Tooltip title="ทำได้ก็ต่อเมื่อยังไม่มีขั้นไหนตัดสต๊อก">
+              <Tooltip title={t("ทำได้ก็ต่อเมื่อยังไม่มีขั้นไหนตัดสต๊อก")}>
                 <Button danger loading={busy} onClick={onCancel}>
-                  ยกเลิกทั้งใบ
+                  {t("ยกเลิกทั้งใบ")}
                 </Button>
               </Tooltip>
             </>
           ) : null}
           {job.status === "CLOSED" ? (
             <Button loading={busy} onClick={onReopen}>
-              เปิดใบงานกลับมา
+              {t("เปิดใบงานกลับมา")}
             </Button>
           ) : null}
         </div>
@@ -544,6 +548,7 @@ function StepCard({
   onFill: () => void;
   onAction: (kind: ActionKind, runId: string) => void;
 }) {
+  const t = useT();
   const cardClass =
     step.state === "COMPLETED"
       ? `${styles.stepCard} ${styles.stepCardDone}`
@@ -561,13 +566,13 @@ function StepCard({
         <span className={styles.stepTitle}>
           {step.stepOrder}. {step.nameTh}
           <Tag color={JOB_STEP_STATE_COLOR[step.state]}>
-            {JOB_STEP_STATE_LABEL[step.state] ?? step.state}
+            {tConvStatusLabel(JOB_STEP_STATE_LABEL[step.state] ?? step.state)}
           </Tag>
         </span>
         <div className={styles.stepActions}>
           {step.state === "NOT_STARTED" && canEdit ? (
             <Button type="primary" size="small" onClick={onFill}>
-              กรอกข้อมูลขั้นตอนนี้
+              {t("กรอกข้อมูลขั้นตอนนี้")}
             </Button>
           ) : null}
           {step.state === "DRAFT" && step.runId ? (
@@ -578,7 +583,7 @@ function StepCard({
                   size="small"
                   onClick={() => onAction("start", step.runId as string)}
                 >
-                  เริ่มงาน (ตัดสต๊อก)
+                  {t("เริ่มงาน (ตัดสต๊อก)")}
                 </Button>
               ) : null}
               {canEdit ? (
@@ -587,7 +592,7 @@ function StepCard({
                   danger
                   onClick={() => onAction("cancelRun", step.runId as string)}
                 >
-                  ยกเลิกขั้นตอนนี้
+                  {t("ยกเลิกขั้นตอนนี้")}
                 </Button>
               ) : null}
             </>
@@ -600,7 +605,7 @@ function StepCard({
                   size="small"
                   onClick={() => onAction("complete", step.runId as string)}
                 >
-                  ปิดงาน (รับเข้าคลัง)
+                  {t("ปิดงาน (รับเข้าคลัง)")}
                 </Button>
               ) : null}
               {canEdit ? (
@@ -609,7 +614,7 @@ function StepCard({
                   danger
                   onClick={() => onAction("cancelRun", step.runId as string)}
                 >
-                  ยกเลิกขั้นตอนนี้
+                  {t("ยกเลิกขั้นตอนนี้")}
                 </Button>
               ) : null}
             </>
@@ -617,7 +622,7 @@ function StepCard({
           {step.runId ? (
             <Link href={`${ROUTE_BASE}/${step.runId}`}>
               <Button size="small" type="link">
-                เปิดใบเต็ม
+                {t("เปิดใบเต็ม")}
               </Button>
             </Link>
           ) : null}
@@ -636,10 +641,10 @@ function StepCard({
           */
           <span className={styles.cellMuted}>
             {template.length > 0
-              ? `คาดว่าจะได้: ${template
+              ? `${t("คาดว่าจะได้:")} ${template
                   .map((line) => line.itemNameTh ?? line.itemCode ?? "-")
                   .join(" · ")}`
-              : "ยังไม่มีเอกสารของขั้นนี้"}
+              : t("ยังไม่มีเอกสารของขั้นนี้")}
           </span>
         )}
         {step.state === "COMPLETED" && step.yieldPercent !== null &&
@@ -663,12 +668,12 @@ function StepCard({
             title={step.runs
               .map(
                 (run) =>
-                  `${run.runNo} · ${MATERIAL_CONVERSION_STATUS_LABEL[run.status] ?? run.status}`,
+                  `${run.runNo} · ${tConvStatusLabel(MATERIAL_CONVERSION_STATUS_LABEL[run.status] ?? run.status)}`,
               )
               .join("\n")}
           >
             <Tag color={MATERIAL_CONVERSION_STATUS_COLOR.CANCELLED}>
-              มีเอกสาร {step.runs.length} ใบในขั้นนี้
+              {t("มีเอกสาร {n} ใบในขั้นนี้", { n: step.runs.length })}
             </Tag>
           </Tooltip>
         ) : null}
@@ -680,6 +685,7 @@ function StepCard({
 }
 
 function StepRunLines({ runId }: { runId: string }) {
+  const t = useT();
   const query = useMaterialConversionQuery(runId);
   const run = query.data?.data;
   if (!run) {
@@ -689,9 +695,9 @@ function StepRunLines({ runId }: { runId: string }) {
   return (
     <div className={styles.stepLines}>
       <div className={styles.stepLineGroup}>
-        <span className={styles.stepLineLabel}>วัตถุดิบ</span>
+        <span className={styles.stepLineLabel}>{t("วัตถุดิบ")}</span>
         {run.inputs.length === 0 ? (
-          <span className={styles.cellMuted}>ไม่มีบรรทัดวัตถุดิบ</span>
+          <span className={styles.cellMuted}>{t("ไม่มีบรรทัดวัตถุดิบ")}</span>
         ) : (
           run.inputs.map((line) => (
             <span key={line.id} className={styles.stepLineItem}>
@@ -705,9 +711,9 @@ function StepRunLines({ runId }: { runId: string }) {
         )}
       </div>
       <div className={styles.stepLineGroup}>
-        <span className={styles.stepLineLabel}>ผลผลิต</span>
+        <span className={styles.stepLineLabel}>{t("ผลผลิต")}</span>
         {run.outputs.length === 0 ? (
-          <span className={styles.cellMuted}>ไม่มีบรรทัดผลผลิต</span>
+          <span className={styles.cellMuted}>{t("ไม่มีบรรทัดผลผลิต")}</span>
         ) : (
           run.outputs.map((line) => (
             <span key={line.id} className={styles.stepLineItem}>
@@ -752,6 +758,7 @@ function FillStepDrawerBody({
   lineData: ConversionLineData;
   onDone: () => void;
 }) {
+  const t = useT();
   const { message } = App.useApp();
   const [form] = Form.useForm<FillFormValues>();
   const createMutation = useCreateMaterialConversionMutation();
@@ -825,15 +832,15 @@ function FillStepDrawerBody({
         type="info"
         showIcon
         title={`Batch ${job.batchNo}`}
-        description="ระบบใส่เลข Batch ของใบงานให้เองทุกขั้น · บันทึกแล้วยังเป็นร่าง ยังไม่ตัดสต๊อกจนกว่าจะกดเริ่มงาน"
+        description={t("ระบบใส่เลข Batch ของใบงานให้เองทุกขั้น · บันทึกแล้วยังเป็นร่าง ยังไม่ตัดสต๊อกจนกว่าจะกดเริ่มงาน")}
       />
 
       <div className={styles.formSection}>
         <Form.Item
           name="runDate"
-          label="วันที่ทำงานของขั้นนี้"
-          rules={[{ required: true, message: "เลือกวันที่" }]}
-          extra="ขั้นตอนคนละวันกันได้ ใส่วันที่ทำจริงของขั้นนี้"
+          label={t("วันที่ทำงานของขั้นนี้")}
+          rules={[{ required: true, message: t("เลือกวันที่") }]}
+          extra={t("ขั้นตอนคนละวันกันได้ ใส่วันที่ทำจริงของขั้นนี้")}
         >
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
@@ -850,19 +857,19 @@ function FillStepDrawerBody({
       <RunTeamFields />
 
       <div className={styles.formSection}>
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} showCount />
         </Form.Item>
       </div>
 
       <div className={styles.drawerFooter}>
-        <Button onClick={onDone}>ยกเลิก</Button>
+        <Button onClick={onDone}>{t("ยกเลิก")}</Button>
         <Button
           type="primary"
           htmlType="submit"
           loading={createMutation.isPending}
         >
-          บันทึกเป็นร่าง
+          {t("บันทึกเป็นร่าง")}
         </Button>
       </div>
     </Form>

@@ -17,6 +17,8 @@ import {
 
 import { formatThaiDate } from "@/components/ap-documents/apDocumentConfig";
 import { useProductionDailyQuery } from "@/hooks/dashboards/useDashboards";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { buildProductionDailyReport } from "@/utils/dashboardExport";
 import type {
   DashboardRange,
@@ -60,18 +62,19 @@ const STATUS_TAG: Record<MassBalanceStatus, { color: string; text: string }> = {
 
 /** เตือนเมื่อผลผลิตมากกว่าวัตถุดิบ (เป็นไปไม่ได้ทางกายภาพ — มักกรอกผิด) หรือยังไม่มีข้อมูลเทียบ */
 export function MassBalanceNote({ status }: { status: MassBalanceStatus }) {
+  const t = useT();
   if (status === "EXCEEDS_INPUT") {
     return (
       <Alert
         type="warning"
         showIcon
         style={{ marginBottom: 8 }}
-        title="ผลผลิตรับเข้าคลังมากกว่ายางที่ป้อน — ตรวจบันทึกกะ/ใบรับผลผลิตว่ากรอกครบหรือผิดหรือไม่"
+        title={t("ผลผลิตรับเข้าคลังมากกว่ายางที่ป้อน — ตรวจบันทึกกะ/ใบรับผลผลิตว่ากรอกครบหรือผิดหรือไม่")}
       />
     );
   }
   if (status === "NO_DATA") {
-    return <div style={{ marginBottom: 8, color: "#8a9199", fontSize: 13 }}>ยังไม่มีข้อมูลยางป้อน (บันทึกกะ) หรือผลผลิตให้เทียบ Mass Balance</div>;
+    return <div style={{ marginBottom: 8, color: "#8a9199", fontSize: 13 }}>{t("ยังไม่มีข้อมูลยางป้อน (บันทึกกะ) หรือผลผลิตให้เทียบ Mass Balance")}</div>;
   }
   return null;
 }
@@ -85,27 +88,29 @@ const PHASE_TEXT: Record<string, string> = {
 
 /** รอบผลิตปัจจุบัน: วันที่ N จาก 45 · เหลือกี่วันถึง Shutdown · Mass Balance และผลผลิตสะสมรายรอบ */
 export function CycleSummary({ cycle }: { cycle: ProductionCycleBalance }) {
+  const t = useT();
+  const lang = useLanguage();
   const b = cycle.balance;
   return (
     <div>
       <div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1.2 }}>
-        {cycle.phase === "NOT_STARTED" ? "ยังไม่เริ่มรอบ" : `วันที่ ${cycle.runDay} จาก ${cycle.runDays}`}
+        {cycle.phase === "NOT_STARTED" ? t("ยังไม่เริ่มรอบ") : t("วันที่ {day} จาก {total}", { day: cycle.runDay, total: cycle.runDays })}
         <span style={{ fontSize: 13, fontWeight: 400, color: "#8a9199" }}> · {cycle.cycleNo}</span>
       </div>
       <Progress percent={Math.round(cycle.progressPercent)} status={cycle.phase === "OVERDUE" ? "exception" : "active"} />
       <div style={{ marginBottom: 8 }}>
-        <Tag>{PHASE_TEXT[cycle.phase] ?? cycle.phase}</Tag>
+        <Tag>{PHASE_TEXT[cycle.phase] ? (cycle.phase === "RUNNING" && lang === "en" ? "In production" : t(PHASE_TEXT[cycle.phase])) : cycle.phase}</Tag>
         {cycle.daysToShutdown !== undefined
-          ? `เหลืออีก ${cycle.daysToShutdown} วันถึง Shutdown (เริ่ม ${formatThaiDate(cycle.shutdownStartDate)})`
+          ? t("เหลืออีก {n} วันถึง Shutdown (เริ่ม {date})", { n: cycle.daysToShutdown, date: formatThaiDate(cycle.shutdownStartDate) })
           : cycle.phase === "SHUTDOWN"
-            ? `Shutdown ถึง ${formatThaiDate(cycle.shutdownEndDate)}`
+            ? t("Shutdown ถึง {date}", { date: formatThaiDate(cycle.shutdownEndDate) })
             : ""}
       </div>
-      <ListRow label="ยางป้อนสะสมรอบ" value={fmtKg(b.inputKg)} />
-      <ListRow label="ผลผลิตสะสมรอบ (kg)" value={fmtKg(b.outputKg)} />
+      <ListRow label={t("ยางป้อนสะสมรอบ")} value={fmtKg(b.inputKg)} />
+      <ListRow label={t("ผลผลิตสะสมรอบ (kg)")} value={fmtKg(b.outputKg)} />
       <ListRow
-        label="Mass Balance รายรอบ (ส่วนต่าง)"
-        value={b.status === "NO_DATA" ? "ไม่มีข้อมูลเทียบ" : `${fmtKg(b.lossKg)} (${fmtPercent(b.lossPercent)})`}
+        label={t("Mass Balance รายรอบ (ส่วนต่าง)")}
+        value={b.status === "NO_DATA" ? t("ไม่มีข้อมูลเทียบ") : `${fmtKg(b.lossKg)} (${fmtPercent(b.lossPercent)})`}
       />
       {b.status === "EXCEEDS_INPUT" ? <MassBalanceNote status={b.status} /> : null}
       {cycle.outputKinds.map((k) => (
@@ -119,6 +124,7 @@ type OtherOutput = NonNullable<ProductionDaily["otherOutputs"]>[number];
 
 /** แถว "อื่น ๆ" กดขยายดูรายการสินค้า — แสดงหน้าละ 10 รายการ ถ้ามากกว่านั้นกดหน้าถัดไป */
 function OtherOutputsRow({ label, value, items }: { label: string; value: string; items: OtherOutput[] }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -135,7 +141,7 @@ function OtherOutputsRow({ label, value, items }: { label: string; value: string
         }}
         style={{ cursor: "pointer" }}
       >
-        <ListRow label={`${open ? "▾" : "▸"} ${label} (${items.length} รายการ)`} value={value} />
+        <ListRow label={`${open ? "▾" : "▸"} ${label} (${t("{n} รายการ", { n: items.length })})`} value={value} />
       </div>
       {open ? (
         <Table<OtherOutput>
@@ -144,8 +150,8 @@ function OtherOutputsRow({ label, value, items }: { label: string; value: string
           dataSource={items}
           pagination={{ pageSize: 10, size: "small", showSizeChanger: false, hideOnSinglePage: true }}
           columns={[
-            { title: "สินค้า", key: "item", render: (_: unknown, r) => `${r.itemCode ? `${r.itemCode} — ` : ""}${r.itemName}` },
-            { title: "ปริมาณ", key: "qty", align: "right", render: (_: unknown, r) => `${fmt(r.quantity, r.quantity % 1 === 0 ? 0 : 2)} ${r.unit}` },
+            { title: t("สินค้า"), key: "item", render: (_: unknown, r) => `${r.itemCode ? `${r.itemCode} — ` : ""}${r.itemName}` },
+            { title: t("ปริมาณ"), key: "qty", align: "right", render: (_: unknown, r) => `${fmt(r.quantity, r.quantity % 1 === 0 ? 0 : 2)} ${r.unit}` },
           ]}
         />
       ) : null}
@@ -164,43 +170,44 @@ function fmtKindQuantities(k: ProductionOutputKind): string {
  * ส่วนเสริมของ Production Dashboard (M15.2): Input Tire, ผลผลิต 4 ชนิด, Mass Balance รายวัน/รายรอบ, Efficiency, วันที่ N จาก 45
  */
 export default function ProductionDailySection({ params }: { params: DashboardRange }) {
+  const t = useT();
   const q = useProductionDailyQuery(params);
   const d = q.data;
   if (!d) {
     return q.error ? (
-      <Alert type="error" showIcon title="โหลดข้อมูลการผลิตรายวันไม่สำเร็จ" />
+      <Alert type="error" showIcon title={t("โหลดข้อมูลการผลิตรายวันไม่สำเร็จ")} />
     ) : (
-      <Empty text="กำลังโหลดข้อมูลการผลิตรายวัน…" />
+      <Empty text={t("กำลังโหลดข้อมูลการผลิตรายวัน…")} />
     );
   }
 
   const columns: ColumnsType<ProductionDailyDay> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "วันที่", dataIndex: "date", width: 110, render: (v: string) => formatThaiDate(v) },
-    { title: "ยางป้อน (kg)", dataIndex: "inputKg", align: "right", render: (v: number) => fmt(v, 0) },
-    { title: "ผลผลิต (kg)", dataIndex: "outputKg", align: "right", render: (v: number) => fmt(v, 0) },
+    { title: t("วันที่"), dataIndex: "date", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("ยางป้อน (kg)"), dataIndex: "inputKg", align: "right", render: (v: number) => fmt(v, 0) },
+    { title: t("ผลผลิต (kg)"), dataIndex: "outputKg", align: "right", render: (v: number) => fmt(v, 0) },
     {
-      title: "ส่วนต่าง (kg)",
+      title: t("ส่วนต่าง (kg)"),
       dataIndex: "lossKg",
       align: "right",
       render: (v: number, r) => (r.massBalanceStatus === "NO_DATA" ? "—" : `${fmt(v, 0)} (${fmtPercent(r.lossPercent)})`),
     },
     {
-      title: "Efficiency",
+      title: t("Efficiency"),
       dataIndex: "efficiencyPercent",
       align: "right",
       render: (v?: number | null) => fmtPercent(v),
     },
     {
-      title: "Mass Balance",
+      title: t("Mass Balance"),
       dataIndex: "massBalanceStatus",
-      render: (v: MassBalanceStatus) => <Tag color={STATUS_TAG[v].color}>{STATUS_TAG[v].text}</Tag>,
+      render: (v: MassBalanceStatus) => <Tag color={STATUS_TAG[v].color}>{t(STATUS_TAG[v].text)}</Tag>,
     },
   ];
 
@@ -212,36 +219,36 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
         <DashboardExportButtons screenCode="PRODUCTION_DASHBOARD" build={() => buildProductionDailyReport(d)} />
       </div>
       <KpiGrid>
-        <KpiCard label="Input Tire (ยางป้อน)" value={fmtKg(d.totals.inputKg)} note={`จากบันทึกกะ ${d.totals.recordedDays} วัน`} />
-        <KpiCard label="ผลผลิตรับเข้าคลัง (kg)" value={fmtKg(d.totals.outputKg)} note="นับเฉพาะหน่วย kg ที่อนุมัติแล้ว" />
+        <KpiCard label={t("Input Tire (ยางป้อน)")} value={fmtKg(d.totals.inputKg)} note={t("จากบันทึกกะ {n} วัน", { n: d.totals.recordedDays })} />
+        <KpiCard label={t("ผลผลิตรับเข้าคลัง (kg)")} value={fmtKg(d.totals.outputKg)} note={t("นับเฉพาะหน่วย kg ที่อนุมัติแล้ว")} />
         <KpiCard
-          label="Mass Balance (ส่วนต่าง)"
+          label={t("Mass Balance (ส่วนต่าง)")}
           value={d.totals.status === "NO_DATA" ? "—" : fmtPercent(d.totals.lossPercent)}
           tone={d.totals.status === "EXCEEDS_INPUT" ? "bad" : "default"}
-          note={d.totals.status === "NO_DATA" ? "ยังไม่มีข้อมูลเทียบ" : `${fmtKg(d.totals.lossKg)} ของยางป้อน`}
+          note={d.totals.status === "NO_DATA" ? t("ยังไม่มีข้อมูลเทียบ") : t("{v} ของยางป้อน", { v: fmtKg(d.totals.lossKg) })}
         />
-        <KpiCard label="Efficiency เฉลี่ย" value={fmtPercent(d.totals.averageEfficiencyPercent)} note="ชั่วโมงเดินเครื่อง ÷ 24 (เฉพาะวันที่มีบันทึกกะ)" />
+        <KpiCard label={t("Efficiency เฉลี่ย")} value={fmtPercent(d.totals.averageEfficiencyPercent)} note={t("ชั่วโมงเดินเครื่อง ÷ 24 (เฉพาะวันที่มีบันทึกกะ)")} />
       </KpiGrid>
 
       <Grid2>
-        <Panel title="รอบผลิต (วันที่ N จาก 45)">
-          {d.cycle ? <CycleSummary cycle={d.cycle} /> : <Empty text="ไม่มีรอบผลิตที่เปิดอยู่" />}
+        <Panel title={t("รอบผลิต (วันที่ N จาก 45)")}>
+          {d.cycle ? <CycleSummary cycle={d.cycle} /> : <Empty text={t("ไม่มีรอบผลิตที่เปิดอยู่")} />}
         </Panel>
-        <Panel title="ผลผลิตช่วงที่เลือก แยก 4 ชนิด">
+        <Panel title={t("ผลผลิตช่วงที่เลือก แยก 4 ชนิด")}>
           {d.outputKinds.map((k) => {
-            const value = `${fmtKindQuantities(k)} (${k.yieldPercentOfInput != null ? `${fmtPercent(k.yieldPercentOfInput)} ของยางป้อน${(k.quantities ?? []).some((q) => q.unit.toUpperCase() !== "KG" && q.quantity > 0) ? " เฉพาะส่วน kg" : ""}` : "—"})`;
+            const value = `${fmtKindQuantities(k)} (${k.yieldPercentOfInput != null ? `${t("{v} ของยางป้อน", { v: fmtPercent(k.yieldPercentOfInput) })}${(k.quantities ?? []).some((q) => q.unit.toUpperCase() !== "KG" && q.quantity > 0) ? t(" เฉพาะส่วน kg") : ""}` : "—"})`;
             if (k.kind === "OTHER" && (d.otherOutputs?.length ?? 0) > 0) {
               return <OtherOutputsRow key={k.kind} label={k.label} value={value} items={d.otherOutputs ?? []} />;
             }
             return <ListRow key={k.kind} label={k.label} value={value} />;
           })}
           <div style={{ marginTop: 8, fontSize: 12, color: "#8a9199" }}>
-            แสดงตามหน่วยนับจริงของแต่ละรายการรับเข้า (ผลผลิตที่อนุมัติรับเข้าคลังแล้ว) — ต่างหน่วยไม่นำมารวมกัน · % ของยางป้อนคิดเฉพาะส่วน kg ส่วนหน่วยอื่นแสดง — · ชนิดจัดจากรหัส/ชื่อสินค้า (Oil / rCB / Steel / Syngas) สินค้าที่ไม่เข้าเกณฑ์อยู่ใน “อื่น ๆ”
+            {t("แสดงตามหน่วยนับจริงของแต่ละรายการรับเข้า (ผลผลิตที่อนุมัติรับเข้าคลังแล้ว) — ต่างหน่วยไม่นำมารวมกัน · % ของยางป้อนคิดเฉพาะส่วน kg ส่วนหน่วยอื่นแสดง — · ชนิดจัดจากรหัส/ชื่อสินค้า (Oil / rCB / Steel / Syngas) สินค้าที่ไม่เข้าเกณฑ์อยู่ใน “อื่น ๆ”")}
           </div>
         </Panel>
       </Grid2>
 
-      <Panel title="ผลผลิตรายวัน แยกชนิด (kg)">
+      <Panel title={t("ผลผลิตรายวัน แยกชนิด (kg)")}>
         <ChartBox>
           <ResponsiveContainer>
             <ComposedChart data={chartDays}>
@@ -258,7 +265,7 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
         </ChartBox>
       </Panel>
 
-      <Panel title="Input Tire เทียบผลผลิต และ Efficiency รายวัน">
+      <Panel title={t("Input Tire เทียบผลผลิต และ Efficiency รายวัน")}>
         <ChartBox>
           <ResponsiveContainer>
             <ComposedChart data={d.days}>
@@ -268,15 +275,15 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
               <YAxis yAxisId="eff" orientation="right" domain={[0, 100]} tick={axis} />
               <Tooltip />
               <Legend />
-              <Bar yAxisId="kg" dataKey="inputKg" name="ยางป้อน (kg)" fill={DASH_COLORS.muted} />
-              <Bar yAxisId="kg" dataKey="outputKg" name="ผลผลิต (kg)" fill={DASH_COLORS.green} />
-              <Line yAxisId="eff" dataKey="efficiencyPercent" name="Efficiency %" stroke={DASH_COLORS.amber} connectNulls />
+              <Bar yAxisId="kg" dataKey="inputKg" name={t("ยางป้อน (kg)")} fill={DASH_COLORS.muted} />
+              <Bar yAxisId="kg" dataKey="outputKg" name={t("ผลผลิต (kg)")} fill={DASH_COLORS.green} />
+              <Line yAxisId="eff" dataKey="efficiencyPercent" name={t("Efficiency %")} stroke={DASH_COLORS.amber} connectNulls />
             </ComposedChart>
           </ResponsiveContainer>
         </ChartBox>
       </Panel>
 
-      <Panel title="Mass Balance รายวัน">
+      <Panel title={t("Mass Balance รายวัน")}>
         <MassBalanceNote status={d.totals.status} />
         <Table<ProductionDailyDay>
           rowKey="date"
@@ -285,7 +292,7 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
           dataSource={[...d.days].reverse().filter((r) => r.inputKg > 0 || r.outputKg > 0 || r.operatingHours > 0)}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           scroll={{ x: 640 }}
-          locale={{ emptyText: "ไม่มีบันทึกกะหรือผลผลิตในช่วงนี้" }}
+          locale={{ emptyText: t("ไม่มีบันทึกกะหรือผลผลิตในช่วงนี้") }}
         />
       </Panel>
     </>

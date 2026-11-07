@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment, getDocumentAttachments } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT, tNow } from "@/lib/i18n/useT";
 import { useVoucherAttachmentMutations } from "@/hooks/payment-vouchers/usePaymentVouchers";
 import type { DocumentAttachment } from "@/types/document-attachments";
 
@@ -21,9 +22,9 @@ const ACCEPT = ".pdf,.jpg,.jpeg,.png";
 export function validatePvFile(file: File): string | null {
   const ext = file.name.toLowerCase().split(".").pop() ?? "";
   if (!ALLOWED_MIME.includes(file.type) || !["pdf", "jpg", "jpeg", "png"].includes(ext)) {
-    return "แนบได้เฉพาะไฟล์ PDF, JPG, JPEG, PNG";
+    return tNow("แนบได้เฉพาะไฟล์ PDF, JPG, JPEG, PNG");
   }
-  if (file.size > MAX_BYTES) return "ไฟล์ใหญ่เกิน 20MB";
+  if (file.size > MAX_BYTES) return tNow("ไฟล์ใหญ่เกิน 20MB");
   return null;
 }
 
@@ -48,6 +49,7 @@ type Props =
 /** เอกสารแนบ / หลักฐานประกอบการขออนุมัติจ่าย (หลักฐานโอนจริงบันทึกที่เมนูบันทึกจ่ายเงิน) */
 export default function PvAttachmentsPanel(props: Props) {
   const { message } = App.useApp();
+  const t = useT();
   const voucherId = props.voucherId ?? "";
   const query = useQuery({
     queryKey: ["payment-vouchers", "attachments", voucherId],
@@ -61,7 +63,7 @@ export default function PvAttachmentsPanel(props: Props) {
     try {
       return await downloadDocumentAttachment(getAccessToken(), file.id);
     } catch (e) {
-      message.error(e instanceof ApiError ? e.message : "เปิดไฟล์ไม่สำเร็จ");
+      message.error(e instanceof ApiError ? e.message : t("เปิดไฟล์ไม่สำเร็จ"));
       return null;
     }
   };
@@ -98,16 +100,16 @@ export default function PvAttachmentsPanel(props: Props) {
 
   const columns: ColumnsType<DocumentAttachment> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "ชื่อไฟล์", dataIndex: "originalFileName", render: (v?: string) => v || "ไฟล์" },
-    { title: "ประเภทไฟล์", dataIndex: "mimeType", width: 100, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
-    { title: "วันที่แนบ", dataIndex: "createdAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },
-    { title: "ผู้แนบ", dataIndex: "uploadedByName", width: 150, render: (v?: string) => v ?? "—" },
+    { title: t("ชื่อไฟล์"), dataIndex: "originalFileName", render: (v?: string) => v || t("ไฟล์") },
+    { title: t("ประเภทไฟล์"), dataIndex: "mimeType", width: 100, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
+    { title: t("วันที่แนบ"), dataIndex: "createdAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },
+    { title: t("ผู้แนบ"), dataIndex: "uploadedByName", width: 150, render: (v?: string) => v ?? "—" },
     {
       title: "",
       key: "actions",
@@ -115,12 +117,12 @@ export default function PvAttachmentsPanel(props: Props) {
       render: (_v, file) => (
         <span style={{ display: "inline-flex", gap: 6 }}>
           <Button size="small" icon={<EyeOutlined />} onClick={() => void preview(file)}>
-            ดู
+            {t("ดู")}
           </Button>
-          <Button size="small" icon={<DownloadOutlined />} onClick={() => void download(file)} aria-label="ดาวน์โหลด" />
+          <Button size="small" icon={<DownloadOutlined />} onClick={() => void download(file)} aria-label={t("ดาวน์โหลด")} />
           {props.canEdit ? (
-            <Popconfirm title="ลบไฟล์นี้?" okText="ลบ" cancelText="ยกเลิก" onConfirm={() => remove.mutate(file.id)}>
-              <Button size="small" danger icon={<DeleteOutlined />} aria-label="ลบไฟล์" />
+            <Popconfirm title={t("ลบไฟล์นี้?")} okText={t("ลบ")} cancelText={t("ยกเลิก")} onConfirm={() => remove.mutate(file.id)}>
+              <Button size="small" danger icon={<DeleteOutlined />} aria-label={t("ลบไฟล์")} />
             </Popconfirm>
           ) : null}
         </span>
@@ -132,7 +134,7 @@ export default function PvAttachmentsPanel(props: Props) {
     <div>
       {props.pendingFiles ? (
         props.pendingFiles.files.length === 0 ? (
-          <p style={{ color: "#8a94a6", margin: "4px 0 8px" }}>ยังไม่มีไฟล์แนบ — ไฟล์จะถูกอัปโหลดเมื่อบันทึกร่าง</p>
+          <p style={{ color: "#8a94a6", margin: "4px 0 8px" }}>{t("ยังไม่มีไฟล์แนบ — ไฟล์จะถูกอัปโหลดเมื่อบันทึกร่าง")}</p>
         ) : (
           <ul style={{ margin: "0 0 8px", paddingLeft: 18 }}>
             {props.pendingFiles.files.map((f, i) => (
@@ -144,7 +146,7 @@ export default function PvAttachmentsPanel(props: Props) {
                   danger
                   onClick={() => props.pendingFiles.onChange(props.pendingFiles.files.filter((_, j) => j !== i))}
                 >
-                  เอาออก
+                  {t("เอาออก")}
                 </Button>
               </li>
             ))}
@@ -158,14 +160,14 @@ export default function PvAttachmentsPanel(props: Props) {
           columns={columns}
           dataSource={files}
           pagination={false}
-          locale={{ emptyText: "ยังไม่มีไฟล์แนบ" }}
+          locale={{ emptyText: t("ยังไม่มีไฟล์แนบ") }}
           style={{ marginBottom: 8 }}
         />
       )}
       {props.canEdit ? (
         <Upload accept={ACCEPT} multiple showUploadList={false} beforeUpload={beforeUpload}>
           <Button icon={<UploadOutlined />} loading={upload.isPending}>
-            แนบไฟล์ (PDF, JPG, JPEG, PNG ไม่เกิน 20MB)
+            {t("แนบไฟล์ (PDF, JPG, JPEG, PNG ไม่เกิน 20MB)")}
           </Button>
         </Upload>
       ) : null}

@@ -9,6 +9,7 @@ import type {
   ItemCategory,
 } from "@/types/item-categories";
 import styles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type ItemCategoryFormValues = {
   code: string;
@@ -35,6 +36,7 @@ export default function ItemCategoryFormModal({
   onCancel,
   onSubmit,
 }: ItemCategoryFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<ItemCategoryFormValues>();
   const glAccountsQuery = useGlAccountsQuery({ isActive: true });
 
@@ -86,8 +88,8 @@ export default function ItemCategoryFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={580}
       centered
@@ -103,13 +105,13 @@ export default function ItemCategoryFormModal({
           </div>
 
           <h2>
-            {isCreateMode ? "เพิ่มหมวดหมู่สินค้า" : "แก้ไขหมวดหมู่สินค้า"}
+            {isCreateMode ? t("เพิ่มหมวดหมู่สินค้า") : t("แก้ไขหมวดหมู่สินค้า")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลหมวดหมู่สินค้าใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ"
-              : "แก้ไขรายละเอียดหมวดหมู่และสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลหมวดหมู่สินค้าใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ")
+              : t("แก้ไขรายละเอียดหมวดหมู่และสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -124,59 +126,59 @@ export default function ItemCategoryFormModal({
           <span className={styles.sectionLine} />
 
           <div>
-            <strong>ข้อมูลหมวดหมู่</strong>
-            <span>ระบุรหัส ชื่อ และคำอธิบายที่ใช้จัดกลุ่มสินค้า</span>
+            <strong>{t("ข้อมูลหมวดหมู่")}</strong>
+            <span>{t("ระบุรหัส ชื่อ และคำอธิบายที่ใช้จัดกลุ่มสินค้า")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="รหัสหมวดหมู่"
+          label={t("รหัสหมวดหมู่")}
           name="code"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสหมวดหมู่" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกรหัสหมวดหมู่") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น RAW_MATERIAL, CHEMICAL"
+            placeholder={t("เช่น RAW_MATERIAL, CHEMICAL")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อหมวดหมู่"
+          label={t("ชื่อหมวดหมู่")}
           name="name"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อหมวดหมู่" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อหมวดหมู่") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น วัตถุดิบ"
+            placeholder={t("เช่น วัตถุดิบ")}
             autoComplete="off"
           />
         </Form.Item>
 
-        <Form.Item label="คำอธิบาย" name="description">
+        <Form.Item label={t("คำอธิบาย")} name="description">
           <Input.TextArea
             rows={3}
-            placeholder="เช่น หมวดหมู่สำหรับวัตถุดิบที่ใช้ในการผลิต"
+            placeholder={t("เช่น หมวดหมู่สำหรับวัตถุดิบที่ใช้ในการผลิต")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="บัญชีซื้อ (สมุดรายวันซื้อ)"
+          label={t("บัญชีซื้อ (สมุดรายวันซื้อ)")}
           name="purchaseAccountId"
-          extra="ไม่เลือก = ใช้บัญชีซื้อสินค้าค่าเริ่มต้นที่หน้า ผังบัญชีและการผูกบัญชี"
+          extra={t("ไม่เลือก = ใช้บัญชีซื้อสินค้าค่าเริ่มต้นที่หน้า ผังบัญชีและการผูกบัญชี")}
         >
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="ใช้ค่าเริ่มต้น"
+            placeholder={t("ใช้ค่าเริ่มต้น")}
             loading={glAccountsQuery.isLoading}
             options={(glAccountsQuery.data ?? []).map((account) => ({
               value: account.id,
@@ -190,15 +192,15 @@ export default function ItemCategoryFormModal({
             <div className={styles.statusIcon}>●</div>
 
             <div>
-              <strong>สถานะใช้งาน</strong>
+              <strong>{t("สถานะใช้งาน")}</strong>
               <span>
-                เปิดใช้งานเพื่อให้สามารถเลือกหมวดหมู่นี้กับสินค้ารายการต่าง ๆ ได้
+                {t("เปิดใช้งานเพื่อให้สามารถเลือกหมวดหมู่นี้กับสินค้ารายการต่าง ๆ ได้")}
               </span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

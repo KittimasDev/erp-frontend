@@ -34,6 +34,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useReviewLeaveRequestMutation } from "@/hooks/leave/useLeaveMutations";
 import { getLeaveStaffingCheck } from "@/lib/api/leave";
@@ -46,10 +48,10 @@ import {
 import {
   LEAVE_SOURCE_LABEL,
   LEAVE_STATUS_COLOR,
-  LEAVE_STATUS_LABEL,
   LEAVE_TYPE_COLOR,
   LEAVE_TYPE_LABEL,
   LEAVE_TYPE_OPTIONS,
+  leaveStatusLabel,
   type LeaveRequest,
 } from "@/types/leave";
 
@@ -84,6 +86,8 @@ export default function LeaveRequestsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { modal } = App.useApp();
+  const t = useT();
+  const lang = useLanguage();
   const today = dayjs();
 
   const [tab, setTab] = useState<StatusTab>("DRAFT");
@@ -121,9 +125,9 @@ export default function LeaveRequestsPage() {
     () =>
       (summary?.byType ?? []).map((row) => ({
         ...row,
-        label: LEAVE_TYPE_LABEL[row.leaveType] ?? row.leaveType,
+        label: t(LEAVE_TYPE_LABEL[row.leaveType] ?? row.leaveType),
       })),
-    [summary?.byType],
+    [summary?.byType, t],
   );
 
   const userChartData = useMemo(
@@ -158,7 +162,7 @@ export default function LeaveRequestsPage() {
       const checks = await Promise.all(ids.map((id) => getLeaveStaffingCheck(token, id)));
       warnings = checks
         .map((check, index) => ({
-          name: names[index] ?? "พนักงาน",
+          name: names[index] ?? t("พนักงาน"),
           messages: check.data.messages,
         }))
         .filter((item) => item.messages.length > 0);
@@ -168,10 +172,10 @@ export default function LeaveRequestsPage() {
 
     if (warnings.length === 0) {
       modal.confirm({
-        title: `อนุมัติคำขอลา ${ids.length} รายการ`,
-        content: "ยืนยันอนุมัติคำขอที่เลือกทั้งหมด?",
-        okText: "อนุมัติ",
-        cancelText: "ยกเลิก",
+        title: t("อนุมัติคำขอลา {n} รายการ", { n: ids.length }),
+        content: t("ยืนยันอนุมัติคำขอที่เลือกทั้งหมด?"),
+        okText: t("อนุมัติ"),
+        cancelText: t("ยกเลิก"),
         centered: true,
         onOk: () => review(ids, "approve"),
       });
@@ -179,13 +183,12 @@ export default function LeaveRequestsPage() {
     }
 
     modal.confirm({
-      title: "กำลังคนในกะต่ำกว่าขั้นต่ำ — รับทราบก่อนอนุมัติ",
+      title: t("กำลังคนในกะต่ำกว่าขั้นต่ำ — รับทราบก่อนอนุมัติ"),
       width: 560,
       content: (
         <div className={styles.rejectBody}>
           <p>
-            อนุมัติแล้วกะต่อไปนี้จะเหลือคน (ตำแหน่งเดียวกัน หักคนที่ลาอยู่) น้อยกว่าขั้นต่ำที่ตั้งไว้ —
-            อนุมัติได้ ระบบจะบันทึกว่าคุณรับทราบ
+            {t("อนุมัติแล้วกะต่อไปนี้จะเหลือคน (ตำแหน่งเดียวกัน หักคนที่ลาอยู่) น้อยกว่าขั้นต่ำที่ตั้งไว้ — อนุมัติได้ ระบบจะบันทึกว่าคุณรับทราบ")}
           </p>
           {warnings.map((item) => (
             <div key={item.name}>
@@ -199,8 +202,8 @@ export default function LeaveRequestsPage() {
           ))}
         </div>
       ),
-      okText: "รับทราบและอนุมัติ",
-      cancelText: "ยกเลิก",
+      okText: t("รับทราบและอนุมัติ"),
+      cancelText: t("ยกเลิก"),
       centered: true,
       onOk: () => review(ids, "approve", undefined, true),
     });
@@ -209,22 +212,22 @@ export default function LeaveRequestsPage() {
   const confirmReject = (ids: string[]) => {
     let remark = "";
     modal.confirm({
-      title: `ปฏิเสธคำขอลา ${ids.length} รายการ`,
+      title: t("ปฏิเสธคำขอลา {n} รายการ", { n: ids.length }),
       content: (
         <div className={styles.rejectBody}>
-          <p>ระบุเหตุผลให้พนักงานทราบ (พนักงานจะเห็นข้อความนี้)</p>
+          <p>{t("ระบุเหตุผลให้พนักงานทราบ (พนักงานจะเห็นข้อความนี้)")}</p>
           <Input.TextArea
             rows={3}
-            placeholder="เช่น ช่วงนี้กำลังเร่งผลิต ขอให้เลื่อนไปสัปดาห์หน้า"
+            placeholder={t("เช่น ช่วงนี้กำลังเร่งผลิต ขอให้เลื่อนไปสัปดาห์หน้า")}
             onChange={(event) => {
               remark = event.target.value;
             }}
           />
         </div>
       ),
-      okText: "ปฏิเสธ",
+      okText: t("ปฏิเสธ"),
       okButtonProps: { danger: true },
-      cancelText: "ยกเลิก",
+      cancelText: t("ยกเลิก"),
       centered: true,
       onOk: () => review(ids, "reject", remark.trim() || undefined),
     });
@@ -233,7 +236,7 @@ export default function LeaveRequestsPage() {
   const columns: ColumnsType<LeaveRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         fixed: "left",
         width: 64,
@@ -241,7 +244,7 @@ export default function LeaveRequestsPage() {
         render: (_, __, index) => (page - 1) * pageSize + index + 1,
       },
       {
-        title: "พนักงาน",
+        title: t("พนักงาน"),
         key: "employee",
         fixed: "left",
         width: 190,
@@ -249,32 +252,32 @@ export default function LeaveRequestsPage() {
           <div className={styles.employeeCell}>
             <strong>{row.displayName ?? "—"}</strong>
             <span>
-              {row.employeeCode ?? "ไม่มีรหัส"}
+              {row.employeeCode ?? t("ไม่มีรหัส")}
               {row.departmentName ? ` · ${row.departmentName}` : ""}
             </span>
           </div>
         ),
       },
       {
-        title: "ประเภท",
+        title: t("ประเภท"),
         dataIndex: "leaveType",
         key: "leaveType",
         width: 110,
         align: "center",
         render: (value: string) => (
           <Tag color={LEAVE_TYPE_COLOR[value]}>
-            {LEAVE_TYPE_LABEL[value] ?? value}
+            {t(LEAVE_TYPE_LABEL[value] ?? value)}
           </Tag>
         ),
       },
       {
-        title: "ช่วงวันที่ลา",
+        title: t("ช่วงวันที่ลา"),
         key: "range",
         width: 190,
         render: (_v, row) => formatRange(row.startDate, row.endDate),
       },
       {
-        title: "จำนวนวัน",
+        title: t("จำนวนวัน"),
         dataIndex: "days",
         key: "days",
         width: 90,
@@ -284,7 +287,7 @@ export default function LeaveRequestsPage() {
         ),
       },
       {
-        title: "เหตุผล",
+        title: t("เหตุผล"),
         dataIndex: "reason",
         key: "reason",
         ellipsis: true,
@@ -295,7 +298,7 @@ export default function LeaveRequestsPage() {
         ),
       },
       {
-        title: "ยื่นเมื่อ",
+        title: t("ยื่นเมื่อ"),
         dataIndex: "createdAt",
         key: "createdAt",
         width: 130,
@@ -303,13 +306,13 @@ export default function LeaveRequestsPage() {
           <div className={styles.stackedCell}>
             <span>{dayjs(value).format("DD/MM/YYYY HH:mm")}</span>
             <small>
-              {row.source ? (LEAVE_SOURCE_LABEL[row.source] ?? "") : ""}
+              {row.source ? t(LEAVE_SOURCE_LABEL[row.source] ?? "") : ""}
             </small>
           </div>
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 110,
@@ -317,30 +320,30 @@ export default function LeaveRequestsPage() {
         render: (value: string, row) => (
           <div className={styles.stackedCell}>
             <Tag color={LEAVE_STATUS_COLOR[value]}>
-              {LEAVE_STATUS_LABEL[value] ?? value}
+              {leaveStatusLabel(value, lang)}
             </Tag>
             {row.staffingWarning?.length ? (
               <Tooltip
                 title={row.staffingWarning
                   .map(
                     (item) =>
-                      `${dayjs(item.date).format("DD/MM")} ${item.position} กะ${item.shiftName} เหลือ ${item.remaining} (ขั้นต่ำ ${item.minHeadcount})`,
+                      t("{date} {position} กะ{shift} เหลือ {remaining} (ขั้นต่ำ {min})", { date: dayjs(item.date).format("DD/MM"), position: item.position, shift: item.shiftName, remaining: item.remaining, min: item.minHeadcount }),
                   )
                   .join(" · ")}
               >
-                <small className={styles.remarkHint}>รับทราบกำลังคนต่ำกว่าขั้นต่ำ</small>
+                <small className={styles.remarkHint}>{t("รับทราบกำลังคนต่ำกว่าขั้นต่ำ")}</small>
               </Tooltip>
             ) : null}
             {row.reviewRemark ? (
               <Tooltip title={row.reviewRemark}>
-                <small className={styles.remarkHint}>ดูเหตุผล</small>
+                <small className={styles.remarkHint}>{t("ดูเหตุผล")}</small>
               </Tooltip>
             ) : null}
           </div>
         ),
       },
       {
-        title: "ผู้พิจารณา",
+        title: t("ผู้พิจารณา"),
         dataIndex: "approvedByName",
         key: "approvedByName",
         width: 140,
@@ -359,7 +362,7 @@ export default function LeaveRequestsPage() {
           ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 150,
         align: "center",
@@ -371,9 +374,9 @@ export default function LeaveRequestsPage() {
                 type="primary"
                 icon={<CheckOutlined />}
                 disabled={reviewMutation.isPending}
-                onClick={() => void confirmApprove([row.id], [row.displayName ?? "พนักงาน"])}
+                onClick={() => void confirmApprove([row.id], [row.displayName ?? t("พนักงาน")])}
               >
-                อนุมัติ
+                {t("อนุมัติ")}
               </Button>
               <Button
                 size="small"
@@ -382,7 +385,7 @@ export default function LeaveRequestsPage() {
                 disabled={reviewMutation.isPending}
                 onClick={() => confirmReject([row.id])}
               >
-                ปฏิเสธ
+                {t("ปฏิเสธ")}
               </Button>
             </Space>
           ) : (
@@ -391,7 +394,7 @@ export default function LeaveRequestsPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [reviewMutation.isPending],
+    [reviewMutation.isPending, t, lang],
   );
 
   return (
@@ -400,39 +403,38 @@ export default function LeaveRequestsPage() {
         <PageHeader
           eyebrow="HRM"
           icon={<CalendarOutlined />}
-          title="คำขอลางาน"
-          subtitle={<>พนักงานยื่นคำขอเองผ่านมือถือที่ <code>/leave</code> —
-              หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้</>}
+          title={t("คำขอลางาน")}
+          subtitle={<>{t("พนักงานยื่นคำขอเองผ่านมือถือที่")}<code>/leave</code> — {t("หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้")}</>}
           actions={
             <>
-<Button onClick={() => setMinStaffingOpen(true)}>ตั้งกำลังคนขั้นต่ำ</Button>
+<Button onClick={() => setMinStaffingOpen(true)}>{t("ตั้งกำลังคนขั้นต่ำ")}</Button>
             </>
           }
         />
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAlert}`}>
-            <span>รออนุมัติ (ทั้งหมด)</span>
-            <strong>{summary?.pendingCount ?? 0} คำขอ</strong>
-            <small>{summary?.pendingDays ?? 0} วัน</small>
+            <span>{t("รออนุมัติ (ทั้งหมด)")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.pendingCount ?? 0 })}</strong>
+            <small>{t("{n} วัน", { n: summary?.pendingDays ?? 0 })}</small>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryCardToday}`}>
-            <span>ลาอยู่วันนี้</span>
-            <strong>{summary?.onLeaveToday ?? 0} คน</strong>
-            <small>เฉพาะคำขอที่อนุมัติแล้ว</small>
+            <span>{t("ลาอยู่วันนี้")}</span>
+            <strong>{t("{n} คน", { n: summary?.onLeaveToday ?? 0 })}</strong>
+            <small>{t("เฉพาะคำขอที่อนุมัติแล้ว")}</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>อนุมัติแล้วในช่วงนี้</span>
-            <strong>{summary?.approvedCount ?? 0} คำขอ</strong>
-            <small>{summary?.approvedDays ?? 0} วัน</small>
+            <span>{t("อนุมัติแล้วในช่วงนี้")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.approvedCount ?? 0 })}</strong>
+            <small>{t("{n} วัน", { n: summary?.approvedDays ?? 0 })}</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>ปฏิเสธในช่วงนี้</span>
-            <strong>{summary?.rejectedCount ?? 0} คำขอ</strong>
+            <span>{t("ปฏิเสธในช่วงนี้")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.rejectedCount ?? 0 })}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>พนักงานยกเลิกเอง</span>
-            <strong>{summary?.cancelledCount ?? 0} คำขอ</strong>
+            <span>{t("พนักงานยกเลิกเอง")}</span>
+            <strong>{t("{n} คำขอ", { n: summary?.cancelledCount ?? 0 })}</strong>
           </div>
         </div>
 
@@ -449,7 +451,7 @@ export default function LeaveRequestsPage() {
                 label: (
                   // นับเองแทน antd Badge — Badge ค้าง leave-animation แล้วโชว์เลขเก่าตอนคิวเหลือ 0
                   <span className={styles.tabLabel}>
-                    รออนุมัติ
+                    {leaveStatusLabel("DRAFT", lang)}
                     {summary?.pendingCount ? (
                       <span className={styles.tabCount}>
                         {summary.pendingCount}
@@ -458,26 +460,26 @@ export default function LeaveRequestsPage() {
                   </span>
                 ),
               },
-              { value: "APPROVED", label: "อนุมัติแล้ว" },
-              { value: "REJECTED", label: "ปฏิเสธ" },
-              { value: "CANCELLED", label: "ยกเลิก" },
-              { value: "ALL", label: "ทั้งหมด" },
+              { value: "APPROVED", label: leaveStatusLabel("APPROVED", lang) },
+              { value: "REJECTED", label: leaveStatusLabel("REJECTED", lang) },
+              { value: "CANCELLED", label: leaveStatusLabel("CANCELLED", lang) },
+              { value: "ALL", label: t("ทั้งหมด") },
             ]}
           />
 
           <div className={styles.toolbarRight}>
             <Select
               allowClear
-              placeholder="ทุกประเภท"
+              placeholder={t("ทุกประเภท")}
               value={leaveType}
               onChange={setLeaveType}
               style={{ width: 150 }}
-              options={[...LEAVE_TYPE_OPTIONS]}
+              options={LEAVE_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
             />
             <Tooltip
               title={
                 isPendingTab
-                  ? "แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่"
+                  ? t("แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่")
                   : undefined
               }
             >
@@ -494,7 +496,7 @@ export default function LeaveRequestsPage() {
             </Tooltip>
             <Input
               allowClear
-              placeholder="ค้นหาชื่อ / รหัส / เหตุผล"
+              placeholder={t("ค้นหาชื่อ / รหัส / เหตุผล")}
               prefix={<SearchOutlined />}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
@@ -509,14 +511,14 @@ export default function LeaveRequestsPage() {
                 void listQuery.refetch();
               }}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
           </div>
         </div>
 
         {isPendingTab && selectedIds.length > 0 ? (
           <div className={styles.bulkBar}>
-            <span>เลือกไว้ {selectedIds.length} รายการ</span>
+            <span>{t("เลือกไว้ {n} รายการ", { n: selectedIds.length })}</span>
             <Space>
               <Button
                 type="primary"
@@ -525,11 +527,11 @@ export default function LeaveRequestsPage() {
                 onClick={() =>
                   void confirmApprove(
                     selectedIds,
-                    selectedIds.map((id) => rows.find((r) => r.id === id)?.displayName ?? "พนักงาน"),
+                    selectedIds.map((id) => rows.find((r) => r.id === id)?.displayName ?? t("พนักงาน")),
                   )
                 }
               >
-                อนุมัติที่เลือก
+                {t("อนุมัติที่เลือก")}
               </Button>
               <Button
                 danger
@@ -537,10 +539,10 @@ export default function LeaveRequestsPage() {
                 loading={reviewMutation.isPending}
                 onClick={() => confirmReject(selectedIds)}
               >
-                ปฏิเสธที่เลือก
+                {t("ปฏิเสธที่เลือก")}
               </Button>
               <Button type="text" onClick={() => setSelectedIds([])}>
-                ล้างที่เลือก
+                {t("ล้างที่เลือก")}
               </Button>
             </Space>
           </div>
@@ -568,15 +570,15 @@ export default function LeaveRequestsPage() {
               onChange: (p, ps) => { setPage(p); setPageSize(ps); },
               showSizeChanger: true,
               pageSizeOptions: [10, 20, 50, 100],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
             }}
             locale={{
               emptyText: (
                 <Empty
                   description={
                     isPendingTab
-                      ? "ไม่มีคำขอลารออนุมัติ — เคลียร์หมดแล้ว 🎉"
-                      : "ไม่มีคำขอในเงื่อนไขนี้"
+                      ? t("ไม่มีคำขอลารออนุมัติ — เคลียร์หมดแล้ว 🎉")
+                      : t("ไม่มีคำขอในเงื่อนไขนี้")
                   }
                 />
               ),
@@ -587,14 +589,14 @@ export default function LeaveRequestsPage() {
         <div className={styles.chartsGrid}>
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>วันลาแยกตามประเภท</h3>
-              <p>นับเฉพาะคำขอที่อนุมัติแล้วในช่วงที่เลือก</p>
+              <h3>{t("วันลาแยกตามประเภท")}</h3>
+              <p>{t("นับเฉพาะคำขอที่อนุมัติแล้วในช่วงที่เลือก")}</p>
             </div>
             <div className={styles.chartBody}>
               {typeChartData.length === 0 ? (
                 <Empty
                   className={styles.emptyState}
-                  description="ไม่มีข้อมูลในช่วงนี้"
+                  description={t("ไม่มีข้อมูลในช่วงนี้")}
                 />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -620,7 +622,7 @@ export default function LeaveRequestsPage() {
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
                       }}
-                      formatter={(value) => [`${value} วัน`, "รวม"]}
+                      formatter={(value) => [`${value} ${t("วัน")}`, t("รวม")]}
                     />
                     <Bar dataKey="days" radius={[4, 4, 0, 0]}>
                       {typeChartData.map((row) => (
@@ -638,14 +640,14 @@ export default function LeaveRequestsPage() {
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>วันลารายบุคคล (สูงสุด 8 คน)</h3>
-              <p>ยอดวันลาที่อนุมัติแล้วในช่วงที่เลือก</p>
+              <h3>{t("วันลารายบุคคล (สูงสุด 8 คน)")}</h3>
+              <p>{t("ยอดวันลาที่อนุมัติแล้วในช่วงที่เลือก")}</p>
             </div>
             <div className={styles.chartBody}>
               {userChartData.length === 0 ? (
                 <Empty
                   className={styles.emptyState}
-                  description="ไม่มีข้อมูลในช่วงนี้"
+                  description={t("ไม่มีข้อมูลในช่วงนี้")}
                 />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -679,7 +681,7 @@ export default function LeaveRequestsPage() {
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
                       }}
-                      formatter={(value) => [`${value} วัน`, "รวม"]}
+                      formatter={(value) => [`${value} ${t("วัน")}`, t("รวม")]}
                     />
                     <Bar
                       dataKey="approvedDays"

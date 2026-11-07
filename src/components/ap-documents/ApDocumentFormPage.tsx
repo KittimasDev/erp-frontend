@@ -34,6 +34,7 @@ import {
 } from "@/hooks/ap-documents/useApDocuments";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
+import { useT } from "@/lib/i18n/useT";
 import { STANDARD_VAT_PERCENT, VAT_MODE_OPTIONS } from "@/lib/money/vat-totals";
 import {
   AP_SETTLEMENT_METHOD_LABEL,
@@ -43,9 +44,9 @@ import {
   type SaveApDebitNoteBody,
   type SaveApInvoiceBody,
 } from "@/types/ap-documents";
-import { purchaseOrderStatusLabel } from "@/types/purchase-orders";
+import { purchaseOrderStatusLabel, tStatus } from "@/types/purchase-orders";
 
-import { AP_DOCUMENT_CONFIG, formatThaiDate, money, previewTotals } from "./apDocumentConfig";
+import { AP_DOCUMENT_CONFIG, apFullLabel, apShortLabel, formatThaiDate, money, previewTotals } from "./apDocumentConfig";
 import ApInvoicePickerModal from "./ApInvoicePickerModal";
 
 type Props = { kind: ApDocumentKind; id?: string };
@@ -82,6 +83,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   const config = AP_DOCUMENT_CONFIG[kind];
   const isInvoice = kind === "invoice";
   const isCredit = kind === "creditNote";
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
@@ -142,8 +144,8 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
     () =>
       Object.entries(AP_SETTLEMENT_METHOD_LABEL)
         .filter(([value]) => canOffsetSelectedAp || value !== "OFFSET_AP")
-        .map(([value, label]) => ({ value, label })),
-    [canOffsetSelectedAp],
+        .map(([value, label]) => ({ value, label: t(label) })),
+    [canOffsetSelectedAp, t],
   );
 
   /* เติมค่าครั้งเดียว — แก้ใบเดิม หรือกด "ออกใบเพิ่มหนี้" มาจากหน้าใบตั้งหนี้ (?creditorId=&invoiceId=) */
@@ -302,10 +304,12 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           };
     try {
       const res = await saveMutation.mutateAsync(body);
-      message.success(id ? "บันทึกแล้ว" : `สร้าง${config.shortLabel} ${res.data.docNo} แล้ว`);
+      message.success(
+        id ? t("บันทึกแล้ว") : t("สร้าง{label} {docNo} แล้ว", { label: apShortLabel(config), docNo: res.data.docNo }),
+      );
       router.push(`${config.basePath}/${res.data.id}`);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("บันทึกไม่สำเร็จ"));
     }
   };
 
@@ -316,8 +320,8 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
       <Alert
         type="error"
         showIcon
-        title={grnQuery.error instanceof Error ? grnQuery.error.message : "ดึงข้อมูลจาก GRN ไม่สำเร็จ"}
-        action={<Button onClick={() => router.push(config.basePath)}>กลับ</Button>}
+        title={grnQuery.error instanceof Error ? grnQuery.error.message : t("ดึงข้อมูลจาก GRN ไม่สำเร็จ")}
+        action={<Button onClick={() => router.push(config.basePath)}>{t("กลับ")}</Button>}
       />
     );
   }
@@ -326,8 +330,8 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
       <Alert
         type="warning"
         showIcon
-        title={`${config.shortLabel} ${existing.docNo} ไม่ได้อยู่ในสถานะร่างหรือไม่อนุมัติ แก้ไขไม่ได้`}
-        action={<Button onClick={() => router.push(`${config.basePath}/${id}`)}>กลับ</Button>}
+        title={t("{label} {docNo} ไม่ได้อยู่ในสถานะร่างหรือไม่อนุมัติ แก้ไขไม่ได้", { label: apShortLabel(config), docNo: existing.docNo })}
+        action={<Button onClick={() => router.push(`${config.basePath}/${id}`)}>{t("กลับ")}</Button>}
       />
     );
   }
@@ -335,10 +339,14 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   return (
     <>
     <PageHeader
-      title={id ? `แก้ไข${config.shortLabel} ${existing?.docNo ?? ""}` : `สร้าง${config.title}`}
+      title={
+        id
+          ? t("แก้ไข{label} {docNo}", { label: apShortLabel(config), docNo: existing?.docNo ?? "" })
+          : t("สร้าง{label}", { label: apFullLabel(config) })
+      }
       actions={
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
-          กลับ
+          {t("กลับ")}
         </Button>
       }
     />
@@ -349,7 +357,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          title={`บัญชีนี้ไม่มีสิทธิ์${id ? "แก้ไข" : "สร้าง"}${config.shortLabel}`}
+          title={t(id ? "บัญชีนี้ไม่มีสิทธิ์แก้ไข{label}" : "บัญชีนี้ไม่มีสิทธิ์สร้าง{label}", { label: apShortLabel(config) })}
         />
       ) : null}
       {lockedByGrn ? (
@@ -357,11 +365,11 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title={`ตั้งหนี้จากใบรับสินค้า ${grnNo ?? ""}${grnInfo ? ` · ใบสั่งซื้อ ${grnInfo.poNo} (รายการจ่ายเงิน)` : ""}`}
+          title={`${t("ตั้งหนี้จากใบรับสินค้า {grnNo}", { grnNo: grnNo ?? "" })}${grnInfo ? ` · ${t("ใบสั่งซื้อ {poNo} (รายการจ่ายเงิน)", { poNo: grnInfo.poNo })}` : ""}`}
           description={
             grnInfo
-              ? `ยอดรอตั้งหนี้ ${money.format(grnInfo.pendingAmount)} บาท · ข้อมูลเจ้าหนี้/ใบสั่งซื้อ/รายการดึงจาก GRN แล้ว ไม่ต้องเลือกซ้ำ — ยอดตั้งหนี้ต้องไม่เกินยอดที่ยังตั้งได้`
-              : "เจ้าหนี้และใบสั่งซื้อล็อกตาม GRN ที่ตั้งหนี้ไว้"
+              ? t("ยอดรอตั้งหนี้ {amount} บาท · ข้อมูลเจ้าหนี้/ใบสั่งซื้อ/รายการดึงจาก GRN แล้ว ไม่ต้องเลือกซ้ำ — ยอดตั้งหนี้ต้องไม่เกินยอดที่ยังตั้งได้", { amount: money.format(grnInfo.pendingAmount) })
+              : t("เจ้าหนี้และใบสั่งซื้อล็อกตาม GRN ที่ตั้งหนี้ไว้")
           }
         />
       ) : null}
@@ -370,8 +378,8 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          title={`ไม่อนุมัติโดย ${existing.rejectedByName ?? "—"}`}
-          description={existing.rejectReason ? `เหตุผล: ${existing.rejectReason}` : undefined}
+          title={t("ไม่อนุมัติโดย {name}", { name: existing.rejectedByName ?? "—" })}
+          description={existing.rejectReason ? t("เหตุผล: {reason}", { reason: existing.rejectReason }) : undefined}
         />
       ) : null}
       {kind === "debitNote" ? (
@@ -379,7 +387,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title="เลือกเจ้าหนี้ แล้วเลือกใบตั้งหนี้ที่อนุมัติแล้วที่จะเพิ่มหนี้ — ยอดในใบนี้คือส่วนที่เพิ่มขึ้นเท่านั้น"
+          title={t("เลือกเจ้าหนี้ แล้วเลือกใบตั้งหนี้ที่อนุมัติแล้วที่จะเพิ่มหนี้ — ยอดในใบนี้คือส่วนที่เพิ่มขึ้นเท่านั้น")}
         />
       ) : null}
       {isCredit ? (
@@ -387,7 +395,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title="เลือกเจ้าหนี้และวิธีจัดการยอดลดหนี้ (เลือกได้ 1 วิธี) — ยอดในใบนี้คือส่วนที่ลดลง สร้างและอนุมัติไว้ก่อนได้ ยอด AP ยังไม่เปลี่ยนจนกว่าจะยืนยันนำไปใช้"
+          title={t("เลือกเจ้าหนี้และวิธีจัดการยอดลดหนี้ (เลือกได้ 1 วิธี) — ยอดในใบนี้คือส่วนที่ลดลง สร้างและอนุมัติไว้ก่อนได้ ยอด AP ยังไม่เปลี่ยนจนกว่าจะยืนยันนำไปใช้")}
         />
       ) : null}
       <Form<FormValues>
@@ -401,13 +409,13 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           <Col xs={24} md={12}>
             <Form.Item
               name="creditorId"
-              label="เจ้าหนี้"
-              rules={[{ required: true, message: "เลือกเจ้าหนี้" }]}
+              label={t("เจ้าหนี้")}
+              rules={[{ required: true, message: t("เลือกเจ้าหนี้") }]}
             >
               <Select
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกเจ้าหนี้"
+                placeholder={t("เลือกเจ้าหนี้")}
                 loading={vendorsQuery.isLoading}
                 disabled={lockedByGrn}
                 onChange={onCreditorChange}
@@ -422,21 +430,21 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
             {isInvoice ? (
               <Form.Item
                 name="purchaseOrderId"
-                label="ใบสั่งซื้อ (ยืนยันแล้ว)"
-                tooltip="ตั้งหนี้ได้เฉพาะใบสั่งซื้อที่อนุมัติแล้ว รวมใบที่รับของบางส่วน / รับครบ / ปิดรับบางส่วน"
-                rules={[{ required: true, message: "เลือกใบสั่งซื้อที่ยืนยันแล้ว" }]}
+                label={t("ใบสั่งซื้อ (ยืนยันแล้ว)")}
+                tooltip={t("ตั้งหนี้ได้เฉพาะใบสั่งซื้อที่อนุมัติแล้ว รวมใบที่รับของบางส่วน / รับครบ / ปิดรับบางส่วน")}
+                rules={[{ required: true, message: t("เลือกใบสั่งซื้อที่ยืนยันแล้ว") }]}
               >
                 <Select
                   showSearch
                   optionFilterProp="label"
                   disabled={!creditorId || !allowed || lockedByGrn}
-                  placeholder={creditorId ? "เลือกใบสั่งซื้อ" : "เลือกเจ้าหนี้ก่อน"}
+                  placeholder={creditorId ? t("เลือกใบสั่งซื้อ") : t("เลือกเจ้าหนี้ก่อน")}
                   loading={poOptionsQuery.isFetching}
-                  notFoundContent="เจ้าหนี้รายนี้ยังไม่มีใบสั่งซื้อที่ยืนยันแล้ว"
+                  notFoundContent={t("เจ้าหนี้รายนี้ยังไม่มีใบสั่งซื้อที่ยืนยันแล้ว")}
                   onChange={onPurchaseOrderPicked}
                   options={(poOptionsQuery.data ?? []).map((po) => ({
                     value: po.id,
-                    label: `${po.poNo} · ${formatThaiDate(po.poDate)} · ${money.format(po.totalAmount)} · ${purchaseOrderStatusLabel(po)}`,
+                    label: `${po.poNo} · ${formatThaiDate(po.poDate)} · ${money.format(po.totalAmount)} · ${tStatus(purchaseOrderStatusLabel(po))}`,
                   }))}
                 />
               </Form.Item>
@@ -447,7 +455,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                   rules={[
                     {
                       required: !isCredit || settlementMethod === "OFFSET_AP",
-                      message: "เลือกใบตั้งหนี้",
+                      message: t("เลือกใบตั้งหนี้"),
                     },
                   ]}
                   hidden
@@ -457,18 +465,18 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 <Form.Item
                   label={
                     !isCredit
-                      ? "ใบตั้งหนี้ที่จะเพิ่มหนี้"
+                      ? t("ใบตั้งหนี้ที่จะเพิ่มหนี้")
                       : settlementMethod === "SUPPLIER_CREDIT"
-                        ? "ใบตั้งหนี้ต้นทาง (เก็บประวัติ)"
-                        : "ใบตั้งหนี้ที่อ้างอิง (AP)"
+                        ? t("ใบตั้งหนี้ต้นทาง (เก็บประวัติ)")
+                        : t("ใบตั้งหนี้ที่อ้างอิง (AP)")
                   }
                   tooltip={
                     isCredit
                       ? settlementMethod === "SUPPLIER_CREDIT"
-                        ? "บันทึกว่าเครดิตเกิดจาก AP ใบนี้ · หลังอนุมัติใช้หักกับใบตั้งหนี้ใดก็ได้ของผู้ขายเดียวกัน"
+                        ? t("บันทึกว่าเครดิตเกิดจาก AP ใบนี้ · หลังอนุมัติใช้หักกับใบตั้งหนี้ใดก็ได้ของผู้ขายเดียวกัน")
                         : settlementMethod === "OFFSET_AP"
-                          ? "บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง”"
-                          : "อ้างใบตั้งหนี้หรือไม่ก็ได้"
+                          ? t("บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง”")
+                          : t("อ้างใบตั้งหนี้หรือไม่ก็ได้")
                       : undefined
                   }
                   required={!isCredit || settlementMethod === "OFFSET_AP"}
@@ -479,11 +487,11 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                         disabled={!creditorId || !allowed}
                         onClick={() => setPickerOpen(true)}
                       >
-                        เลือกใบตั้งหนี้
+                        {t("เลือกใบตั้งหนี้")}
                       </Button>
                       {isCredit && selectedAp ? (
                         <Button type="link" danger disabled={!allowed} onClick={clearInvoice}>
-                          ล้าง
+                          {t("ล้าง")}
                         </Button>
                       ) : null}
                     </Space>
@@ -492,11 +500,11 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                         {selectedAp.docNo}
                         {selectedAp.poNo ? ` · ${selectedAp.poNo}` : ""}
                         {` · ${money.format(selectedAp.totalAmount)}`}
-                        {` · คงเหลือ ${money.format(selectedAp.remainingAmount)}`}
+                        {` · ${t("คงเหลือ {amount}", { amount: money.format(selectedAp.remainingAmount) })}`}
                       </Typography.Text>
                     ) : (
                       <Typography.Text type="secondary">
-                        {creditorId ? "ยังไม่ได้เลือกใบตั้งหนี้" : "เลือกเจ้าหนี้ก่อน"}
+                        {creditorId ? t("ยังไม่ได้เลือกใบตั้งหนี้") : t("เลือกเจ้าหนี้ก่อน")}
                       </Typography.Text>
                     )}
                   </Space>
@@ -505,7 +513,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
             )}
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="docDate" label="วันที่เอกสาร" rules={[{ required: true }]}>
+            <Form.Item name="docDate" label={t("วันที่เอกสาร")} rules={[{ required: true }]}>
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
@@ -514,23 +522,23 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
               name="supplierDocNo"
               label={
                 isInvoice
-                  ? "เลขที่ใบแจ้งหนี้/ใบกำกับของผู้ขาย"
+                  ? t("เลขที่ใบแจ้งหนี้/ใบกำกับของผู้ขาย")
                   : isCredit
-                    ? "เลขที่ใบลดหนี้ของผู้ขาย"
-                    : "เลขที่ใบเพิ่มหนี้ของผู้ขาย"
+                    ? t("เลขที่ใบลดหนี้ของผู้ขาย")
+                    : t("เลขที่ใบเพิ่มหนี้ของผู้ขาย")
               }
             >
-              <Input maxLength={100} placeholder="เช่น IV-6810-0012" />
+              <Input maxLength={100} placeholder={t("เช่น IV-6810-0012")} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="supplierDocDate" label="วันที่เอกสารผู้ขาย">
+            <Form.Item name="supplierDocDate" label={t("วันที่เอกสารผู้ขาย")}>
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           {isInvoice ? (
             <Col xs={24} sm={12} md={6}>
-              <Form.Item name="dueDate" label="ครบกำหนดชำระ">
+              <Form.Item name="dueDate" label={t("ครบกำหนดชำระ")}>
                 <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
               </Form.Item>
             </Col>
@@ -539,15 +547,15 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
             <Col xs={24} md={12}>
               <Form.Item
                 name="settlementMethod"
-                label="วิธีจัดการยอดลดหนี้"
-                rules={[{ required: true, message: "เลือกวิธีจัดการยอด" }]}
+                label={t("วิธีจัดการยอดลดหนี้")}
+                rules={[{ required: true, message: t("เลือกวิธีจัดการยอด") }]}
                 extra={
                   !canOffsetSelectedAp
-                    ? "ใบตั้งหนี้ที่เลือกวางบิลแล้วหรือจ่ายครบแล้ว — หักยอดเจ้าหนี้คงค้างไม่ได้ เลือกวิธีรับเงินคืนหรือเครดิตผู้ขายแทน"
+                    ? t("ใบตั้งหนี้ที่เลือกวางบิลแล้วหรือจ่ายครบแล้ว — หักยอดเจ้าหนี้คงค้างไม่ได้ เลือกวิธีรับเงินคืนหรือเครดิตผู้ขายแทน")
                     : undefined
                 }
               >
-                <Select placeholder="เลือกวิธีจัดการยอด" options={settlementMethodOptions} />
+                <Select placeholder={t("เลือกวิธีจัดการยอด")} options={settlementMethodOptions} />
               </Form.Item>
             </Col>
           ) : null}
@@ -557,26 +565,26 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 name="reason"
                 label={
                   isCredit
-                    ? "สาเหตุที่ลดหนี้ (เช่น คืนสินค้า สินค้าชำรุด ลดราคา ราคาคลาดเคลื่อน)"
-                    : "เหตุผลที่เพิ่มหนี้ (เช่น ค่าขนส่ง ปรับราคา ค่าใช้จ่ายเพิ่มเติม ส่วนต่างภาษี)"
+                    ? t("สาเหตุที่ลดหนี้ (เช่น คืนสินค้า สินค้าชำรุด ลดราคา ราคาคลาดเคลื่อน)")
+                    : t("เหตุผลที่เพิ่มหนี้ (เช่น ค่าขนส่ง ปรับราคา ค่าใช้จ่ายเพิ่มเติม ส่วนต่างภาษี)")
                 }
-                rules={[{ required: true, whitespace: true, message: "ระบุเหตุผล" }]}
+                rules={[{ required: true, whitespace: true, message: t("ระบุเหตุผล") }]}
               >
                 <Input.TextArea rows={2} maxLength={2000} />
               </Form.Item>
             </Col>
           ) : null}
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="vatMode" label="การคิด VAT" rules={[{ required: true }]}>
-              <Select options={VAT_MODE_OPTIONS} />
+            <Form.Item name="vatMode" label={t("การคิด VAT")} rules={[{ required: true }]}>
+              <Select options={VAT_MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="taxRateId" label="อัตราภาษี">
+            <Form.Item name="taxRateId" label={t("อัตราภาษี")}>
               <Select
                 allowClear
                 disabled={vatMode === "NONE" || !allowed}
-                placeholder={`มาตรฐาน ${STANDARD_VAT_PERCENT}%`}
+                placeholder={t("มาตรฐาน {rate}%", { rate: STANDARD_VAT_PERCENT })}
                 options={taxRates.map((rate) => ({
                   value: rate.id,
                   label: `${rate.name} (${Number(rate.rate)}%)`,
@@ -586,7 +594,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           </Col>
         </Row>
 
-        <Typography.Title level={5}>รายการ</Typography.Title>
+        <Typography.Title level={5}>{t("รายการ")}</Typography.Title>
         <Form.List name="items">
           {(fields, { add, remove }) => (
             <Space orientation="vertical" style={{ width: "100%" }} size={8}>
@@ -601,33 +609,33 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                     <Col flex="auto">
                       <Form.Item
                         name={[field.name, "description"]}
-                        rules={[{ required: true, whitespace: true, message: "ระบุรายละเอียด" }]}
+                        rules={[{ required: true, whitespace: true, message: t("ระบุรายละเอียด") }]}
                         style={{ marginBottom: 0 }}
                       >
-                        <Input maxLength={500} placeholder="รายละเอียด" />
+                        <Input maxLength={500} placeholder={t("รายละเอียด")} />
                       </Form.Item>
                     </Col>
                     <Col flex="110px">
                       <Form.Item
                         name={[field.name, "quantity"]}
-                        rules={[{ required: true, message: "จำนวน" }]}
+                        rules={[{ required: true, message: t("จำนวน") }]}
                         style={{ marginBottom: 0 }}
                       >
-                        <InputNumber min={0.001} precision={3} placeholder="จำนวน" style={{ width: "100%" }} />
+                        <InputNumber min={0.001} precision={3} placeholder={t("จำนวน")} style={{ width: "100%" }} />
                       </Form.Item>
                     </Col>
                     <Col flex="90px">
                       <Form.Item name={[field.name, "unitLabel"]} style={{ marginBottom: 0 }}>
-                        <Input maxLength={50} placeholder="หน่วย" />
+                        <Input maxLength={50} placeholder={t("หน่วย")} />
                       </Form.Item>
                     </Col>
                     <Col flex="140px">
                       <Form.Item
                         name={[field.name, "unitPrice"]}
-                        rules={[{ required: true, message: "ราคา" }]}
+                        rules={[{ required: true, message: t("ราคา") }]}
                         style={{ marginBottom: 0 }}
                       >
-                        <InputNumber min={0} precision={2} placeholder="ราคา/หน่วย" style={{ width: "100%" }} />
+                        <InputNumber min={0} precision={2} placeholder={t("ราคา/หน่วย")} style={{ width: "100%" }} />
                       </Form.Item>
                     </Col>
                     <Col flex="120px" style={{ paddingTop: 6, textAlign: "right" }}>
@@ -638,14 +646,14 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                         icon={<DeleteOutlined />}
                         disabled={fields.length <= 1 || !allowed}
                         onClick={() => remove(field.name)}
-                        aria-label={`ลบรายการที่ ${index + 1}`}
+                        aria-label={t("ลบรายการที่ {n}", { n: index + 1 })}
                       />
                     </Col>
                   </Row>
                 );
               })}
               <Button icon={<PlusOutlined />} onClick={() => add({ ...EMPTY_LINE })}>
-                เพิ่มรายการ
+                {t("เพิ่มรายการ")}
               </Button>
             </Space>
           )}
@@ -654,42 +662,42 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         <Row justify="end" style={{ marginTop: 16 }}>
           <Col xs={24} md={10}>
             <Descriptions bordered size="small" column={1}>
-              <Descriptions.Item label="มูลค่าก่อน VAT">{money.format(totals.subtotal)}</Descriptions.Item>
-              <Descriptions.Item label={`VAT ${vatRate}%`}>{money.format(totals.vat)}</Descriptions.Item>
-              <Descriptions.Item label={isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้"}>
+              <Descriptions.Item label={t("มูลค่าก่อน VAT")}>{money.format(totals.subtotal)}</Descriptions.Item>
+              <Descriptions.Item label={t("VAT {rate}%", { rate: vatRate })}>{money.format(totals.vat)}</Descriptions.Item>
+              <Descriptions.Item label={t(isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้")}>
                 <Typography.Text strong>{money.format(totals.total)}</Typography.Text>
               </Descriptions.Item>
             </Descriptions>
           </Col>
         </Row>
 
-        <Form.Item name="remark" label="หมายเหตุ" style={{ marginTop: 16 }}>
+        <Form.Item name="remark" label={t("หมายเหตุ")} style={{ marginTop: 16 }}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
-        <Form.Item name="internalNote" label="โน้ตภายในบริษัท" extra="เห็นเฉพาะภายในบริษัท — ไม่ส่งให้ผู้ขาย">
+        <Form.Item name="internalNote" label={t("โน้ตภายในบริษัท")} extra={t("เห็นเฉพาะภายในบริษัท — ไม่ส่งให้ผู้ขาย")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
 
         {!isInvoice ? (
-          <Card title="เอกสารแนบ" size="small" style={{ marginBottom: 16 }}>
+          <Card title={t("เอกสารแนบ")} size="small" style={{ marginBottom: 16 }}>
             {id ? (
               <DocumentAttachmentsPanel
                 documentType={isCredit ? "AP_CREDIT_NOTE" : "AP_DEBIT_NOTE"}
                 documentId={id}
                 canEdit={allowed}
-                emptyText="ยังไม่มีเอกสารแนบ"
+                emptyText={t("ยังไม่มีเอกสารแนบ")}
               />
             ) : (
-              <Typography.Text type="secondary">แนบไฟล์ได้หลังบันทึกร่าง (ในหน้าแก้ไข/รายละเอียด)</Typography.Text>
+              <Typography.Text type="secondary">{t("แนบไฟล์ได้หลังบันทึกร่าง (ในหน้าแก้ไข/รายละเอียด)")}</Typography.Text>
             )}
           </Card>
         ) : null}
 
         <Space>
           <Button type="primary" htmlType="submit" loading={saveMutation.isPending}>
-            บันทึกเป็นร่าง
+            {t("บันทึกเป็นร่าง")}
           </Button>
-          <Typography.Text type="secondary">ร่างแก้ไขได้จนกว่าจะส่งอนุมัติ — ส่งอนุมัติได้ที่หน้ารายละเอียด</Typography.Text>
+          <Typography.Text type="secondary">{t("ร่างแก้ไขได้จนกว่าจะส่งอนุมัติ — ส่งอนุมัติได้ที่หน้ารายละเอียด")}</Typography.Text>
         </Space>
       </Form>
     </Card>

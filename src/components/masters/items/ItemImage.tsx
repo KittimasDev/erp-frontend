@@ -5,6 +5,7 @@ import { PictureOutlined } from "@ant-design/icons";
 
 import { downloadItemImage } from "@/lib/api/items";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 
 type ItemImageProps = {
   itemId: string;
@@ -23,6 +24,7 @@ export default function ItemImage({
   alt = "",
   className = "",
 }: ItemImageProps) {
+  const t = useT();
   const { data: src } = useQuery({
     queryKey: ["item-image", itemId, imageFileName],
     queryFn: async () => {
@@ -55,7 +57,7 @@ export default function ItemImage({
     <span
       style={box}
       className={`inline-flex items-center justify-center rounded-md bg-slate-100 text-slate-400 border border-slate-200 ${className}`}
-      title={imageFileName ? "กำลังโหลดรูป" : "ยังไม่มีรูปสินค้า"}
+      title={imageFileName ? t("กำลังโหลดรูป") : t("ยังไม่มีรูปสินค้า")}
     >
       <PictureOutlined />
     </span>

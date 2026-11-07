@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import { updateUnitConversion } from "@/lib/api/unit-conversions";
 import { getAccessToken } from "@/lib/auth/token";
@@ -17,6 +19,7 @@ type UpdateUnitConversionPayload = {
 export function useUpdateUnitConversionMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "unit-conversions", "update"],
@@ -26,13 +29,13 @@ export function useUpdateUnitConversionMutation() {
       await queryClient.invalidateQueries({
         queryKey: unitConversionsQueryKey,
       });
-      message.success(response.message || "แก้ไขกฎแปลงหน่วยนับสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขกฎแปลงหน่วยนับสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "แก้ไขกฎแปลงหน่วยนับไม่สำเร็จ",
+          : t("แก้ไขกฎแปลงหน่วยนับไม่สำเร็จ"),
       );
     },
   });

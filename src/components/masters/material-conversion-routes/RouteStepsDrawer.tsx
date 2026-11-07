@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useState } from "react";
 import { App, Button, Drawer, Popconfirm, Table, Tag, Tooltip } from "antd";
@@ -29,6 +30,7 @@ export default function RouteStepsDrawer({
   canWrite: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const { message } = App.useApp();
   const [stepModalOpen, setStepModalOpen] = useState(false);
   const [editingStep, setEditingStep] = useState<
@@ -41,14 +43,14 @@ export default function RouteStepsDrawer({
 
   const columns: ColumnsType<MaterialConversionRouteStep> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       dataIndex: "stepOrder",
       key: "stepOrder",
       width: 72,
       align: "center",
     },
     {
-      title: "ขั้นตอน",
+      title: t("ขั้นตอน"),
       key: "name",
       render: (_v, row) => (
         <div>
@@ -58,11 +60,11 @@ export default function RouteStepsDrawer({
       ),
     },
     {
-      title: "แม่แบบรายการ",
+      title: t("แม่แบบรายการ"),
       key: "lines",
       render: (_v, row) => {
         if (row.lines.length === 0) {
-          return <span style={{ color: "#8a9199" }}>ยังไม่ตั้งแม่แบบ</span>;
+          return <span style={{ color: "#8a9199" }}>{t("ยังไม่ตั้งแม่แบบ")}</span>;
         }
         return (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -71,8 +73,8 @@ export default function RouteStepsDrawer({
                 key={line.id}
                 title={
                   line.expectedRatio
-                    ? `สัดส่วนคาดหมาย ${Number(line.expectedRatio)}`
-                    : "ไม่ได้ตั้งสัดส่วน"
+                    ? t("สัดส่วนคาดหมาย {ratio}", { ratio: Number(line.expectedRatio) })
+                    : t("ไม่ได้ตั้งสัดส่วน")
                 }
               >
                 <Tag
@@ -84,8 +86,8 @@ export default function RouteStepsDrawer({
                   }
                 >
                   {line.lineRole === "INPUT"
-                    ? "เข้า"
-                    : (OUTPUT_TYPE_LABEL[line.outputType ?? "MAIN"] ?? "ออก")}
+                    ? t("เข้า")
+                    : t(OUTPUT_TYPE_LABEL[line.outputType ?? "MAIN"] ?? "ออก")}
                   {line.itemCode ? ` · ${line.itemCode}` : ""}
                 </Tag>
               </Tooltip>
@@ -95,30 +97,30 @@ export default function RouteStepsDrawer({
       },
     },
     {
-      title: "ลำดับบนสายรวม",
+      title: t("ลำดับบนสายรวม"),
       dataIndex: "sequenceNo",
       key: "sequenceNo",
       width: 130,
       align: "center",
       render: (value: number) => (
-        <Tooltip title="ตำแหน่งบนกราฟความคืบหน้า 14 ขั้นของแดชบอร์ด">
+        <Tooltip title={t("ตำแหน่งบนกราฟความคืบหน้า 14 ขั้นของแดชบอร์ด")}>
           <span>{value}</span>
         </Tooltip>
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 110,
       render: (value: boolean, row) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <Tag color={value ? "success" : "default"}>
-            {value ? "ใช้งาน" : "ปิดใช้งาน"}
+            {value ? t("ใช้งาน") : t("ปิดใช้งาน")}
           </Tag>
           {row.runCount > 0 ? (
             <span style={{ color: "#8a9199", fontSize: 12 }}>
-              {row.runCount} ใบ
+              {t("{runs} ใบ", { runs: row.runCount })}
             </span>
           ) : null}
         </div>
@@ -127,7 +129,7 @@ export default function RouteStepsDrawer({
     ...(canWrite
       ? ([
           {
-            title: "จัดการ",
+            title: t("จัดการ"),
             key: "actions",
             width: 150,
             render: (_v, row) => (
@@ -140,18 +142,18 @@ export default function RouteStepsDrawer({
                     setStepModalOpen(true);
                   }}
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 {row.runCount > 0 ? (
-                  <Tooltip title="มีรอบงานอ้างอิงแล้ว ลบไม่ได้ — ปิดใช้งานแทน">
+                  <Tooltip title={t("มีรอบงานอ้างอิงแล้ว ลบไม่ได้ — ปิดใช้งานแทน")}>
                     <Button size="small" danger disabled icon={<DeleteOutlined />} />
                   </Tooltip>
                 ) : (
                   <Popconfirm
-                    title="ลบขั้นตอนนี้?"
-                    description="แม่แบบรายการของขั้นตอนนี้จะถูกลบไปด้วย"
-                    okText="ลบ"
-                    cancelText="ยกเลิก"
+                    title={t("ลบขั้นตอนนี้?")}
+                    description={t("แม่แบบรายการของขั้นตอนนี้จะถูกลบไปด้วย")}
+                    okText={t("ลบ")}
+                    cancelText={t("ยกเลิก")}
                     okButtonProps={{ danger: true }}
                     onConfirm={() => {
                       if (!route) return;
@@ -173,7 +175,7 @@ export default function RouteStepsDrawer({
       open={open}
       onClose={onClose}
       size={960}
-      title={route ? `ขั้นตอนของ "${route.nameTh}"` : "ขั้นตอน"}
+      title={route ? `ขั้นตอนของ "${route.nameTh}"` : t("ขั้นตอน")}
       extra={
         canWrite && route ? (
           <Button
@@ -184,7 +186,7 @@ export default function RouteStepsDrawer({
               setStepModalOpen(true);
             }}
           >
-            เพิ่มขั้นตอน
+            {t("เพิ่มขั้นตอน")}
           </Button>
         ) : null
       }
@@ -196,7 +198,7 @@ export default function RouteStepsDrawer({
         columns={columns}
         dataSource={route?.steps ?? []}
         pagination={false}
-        locale={{ emptyText: "ยังไม่มีขั้นตอนในเส้นทางนี้" }}
+        locale={{ emptyText: t("ยังไม่มีขั้นตอนในเส้นทางนี้") }}
       />
 
       {route ? (
@@ -224,7 +226,7 @@ export default function RouteStepsDrawer({
               return;
             }
             if (!values.stepCode) {
-              message.warning("กรอกรหัสขั้นตอน");
+              message.warning(t("กรอกรหัสขั้นตอน"));
               return;
             }
             createStep.mutate(

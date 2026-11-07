@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 
@@ -41,6 +42,7 @@ export default function PaymentTermFormModal({
   onCancel,
   onSubmit,
 }: PaymentTermFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<PaymentTermFormValues>();
   const termType = Form.useWatch("termType", form);
 
@@ -98,8 +100,8 @@ export default function PaymentTermFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={560}
       centered
@@ -116,14 +118,14 @@ export default function PaymentTermFormModal({
 
           <h2>
             {isCreateMode
-              ? "เพิ่มเงื่อนไขชำระเงิน"
-              : "แก้ไขเงื่อนไขชำระเงิน"}
+              ? t("เพิ่มเงื่อนไขชำระเงิน")
+              : t("แก้ไขเงื่อนไขชำระเงิน")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กรอกเงื่อนไขการชำระเงินใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ"
-              : "แก้ไขรายละเอียดเงื่อนไขและสถานะการใช้งาน"}
+              ? t("กรอกเงื่อนไขการชำระเงินใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ")
+              : t("แก้ไขรายละเอียดเงื่อนไขและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -137,60 +139,60 @@ export default function PaymentTermFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลเงื่อนไข</strong>
-            <span>ระบุรหัส ชื่อ ประเภท และจำนวนวันเครดิต / % ชำระล่วงหน้า</span>
+            <strong>{t("ข้อมูลเงื่อนไข")}</strong>
+            <span>{t("ระบุรหัส ชื่อ ประเภท และจำนวนวันเครดิต / % ชำระล่วงหน้า")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="รหัสเงื่อนไข"
+          label={t("รหัสเงื่อนไข")}
           name="code"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสเงื่อนไข" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกรหัสเงื่อนไข") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น CREDIT_30, CASH"
+            placeholder={t("เช่น CREDIT_30, CASH")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อเงื่อนไข"
+          label={t("ชื่อเงื่อนไข")}
           name="name"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อเงื่อนไข" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อเงื่อนไข") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น เครดิต 30 วัน"
+            placeholder={t("เช่น เครดิต 30 วัน")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ประเภทเงื่อนไข"
+          label={t("ประเภทเงื่อนไข")}
           name="termType"
-          rules={[{ required: true, message: "กรุณาเลือกประเภทเงื่อนไข" }]}
-          extra="ใช้คำนวณยอดที่ต้องชำระและวันครบกำหนดในหน้ารายการจ่ายเงิน"
+          rules={[{ required: true, message: t("กรุณาเลือกประเภทเงื่อนไข") }]}
+          extra={t("ใช้คำนวณยอดที่ต้องชำระและวันครบกำหนดในหน้ารายการจ่ายเงิน")}
         >
-          <Select size="large" options={TERM_TYPE_OPTIONS} />
+          <Select size="large" options={TERM_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
         </Form.Item>
 
         {termType === "CREDIT" ? (
           <Form.Item
-            label="วันเครดิต"
+            label={t("วันเครดิต")}
             name="creditDays"
             rules={[
-              { required: true, message: "กรุณากรอกจำนวนวันเครดิต" },
+              { required: true, message: t("กรุณากรอกจำนวนวันเครดิต") },
               {
                 type: "number",
                 min: 1,
-                message: "วันเครดิตต้องอย่างน้อย 1 วัน",
+                message: t("วันเครดิตต้องอย่างน้อย 1 วัน"),
               },
             ]}
           >
@@ -199,25 +201,25 @@ export default function PaymentTermFormModal({
               min={1}
               precision={0}
               style={{ width: "100%" }}
-              placeholder="เช่น 30"
+              placeholder={t("เช่น 30")}
             />
           </Form.Item>
         ) : null}
 
         {termType === "ADVANCE" ? (
           <Form.Item
-            label="% ที่ต้องชำระล่วงหน้า"
+            label={t("% ที่ต้องชำระล่วงหน้า")}
             name="advancePercent"
             rules={[
-              { required: true, message: "กรุณากรอก % ที่ต้องชำระล่วงหน้า" },
+              { required: true, message: t("กรุณากรอก % ที่ต้องชำระล่วงหน้า") },
               {
                 type: "number",
                 min: 0.01,
                 max: 100,
-                message: "ต้องอยู่ระหว่าง 0.01 - 100",
+                message: t("ต้องอยู่ระหว่าง 0.01 - 100"),
               },
             ]}
-            extra="ชำระเต็มจำนวนก่อนรับสินค้าให้ใส่ 100 · มัดจำ 30% ให้ใส่ 30"
+            extra={t("ชำระเต็มจำนวนก่อนรับสินค้าให้ใส่ 100 · มัดจำ 30% ให้ใส่ 30")}
           >
             <InputNumber
               size="large"
@@ -226,7 +228,7 @@ export default function PaymentTermFormModal({
               precision={2}
               suffix="%"
               style={{ width: "100%" }}
-              placeholder="เช่น 30"
+              placeholder={t("เช่น 30")}
             />
           </Form.Item>
         ) : null}
@@ -235,15 +237,15 @@ export default function PaymentTermFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
+              <strong>{t("สถานะใช้งาน")}</strong>
               <span>
-                เปิดใช้งานเพื่อเลือกเงื่อนไขนี้ในเอกสารจัดซื้อและขายได้
+                {t("เปิดใช้งานเพื่อเลือกเงื่อนไขนี้ในเอกสารจัดซื้อและขายได้")}
               </span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

@@ -3,6 +3,7 @@
 import { Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
+import { useT, type TFunction } from "@/lib/i18n/useT";
 import type { JournalLine, PurchaseJournalItem } from "@/types/purchase-journal";
 
 import { money } from "./apDocumentConfig";
@@ -16,11 +17,13 @@ type Row =
 const moneyOrBlank = (value: number) => (value > 0 ? money.format(value) : "");
 
 /** ป้ายบอกว่าบรรทัดนั้นมี VAT หรือไม่ (เฉพาะบรรทัดสินค้า/ค่าใช้จ่าย — ภาษีซื้อและเจ้าหนี้ไม่ต้องมี) */
-function vatTag(line: JournalLine) {
+function vatTag(line: JournalLine, t: TFunction) {
   if (line.taxGroup === "VAT") {
-    return <Tag color="green">{line.vatRate ? `มี VAT ${line.vatRate}%` : "มี VAT"}</Tag>;
+    return (
+      <Tag color="green">{line.vatRate ? t("มี VAT {rate}%", { rate: line.vatRate }) : t("มี VAT")}</Tag>
+    );
   }
-  if (line.taxGroup === "NON_VAT") return <Tag>ไม่มี VAT</Tag>;
+  if (line.taxGroup === "NON_VAT") return <Tag>{t("ไม่มี VAT")}</Tag>;
   return null;
 }
 
@@ -30,6 +33,7 @@ function vatTag(line: JournalLine) {
  * ไม่มีแถวหัวกลุ่ม "มี VAT / ไม่มี VAT" — แยกด้วยป้ายท้ายคำอธิบายแทน
  */
 export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
+  const t = useT();
   const rows: Row[] = [
     ...doc.lines.map((line): Row => ({ key: `l-${line.no}`, kind: "line", line })),
     { key: "total", kind: "total", debit: doc.totalDebit, credit: doc.totalCredit },
@@ -37,7 +41,7 @@ export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
 
   const columns: ColumnsType<Row> = [
     {
-      title: "ลำดับที่",
+      title: t("ลำดับที่"),
       key: "no",
       width: 88,
       align: "center",
@@ -46,14 +50,14 @@ export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
       render: (_, row) =>
         row.kind === "total" ? (
           <div style={{ textAlign: "right" }}>
-            <Typography.Text strong>ยอดรวมสุทธิ</Typography.Text>
+            <Typography.Text strong>{t("ยอดรวมสุทธิ")}</Typography.Text>
           </div>
         ) : (
           row.line.no
         ),
     },
     {
-      title: "รหัสบัญชี",
+      title: t("รหัสบัญชี"),
       key: "code",
       width: 150,
       onCell: (row) => (row.kind === "total" ? { colSpan: 0 } : {}),
@@ -62,19 +66,19 @@ export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
         return row.line.accountCode ? (
           <Typography.Text strong>{row.line.accountCode}</Typography.Text>
         ) : (
-          <Tag color="red">ยังไม่ผูกบัญชี</Tag>
+          <Tag color="red">{t("ยังไม่ผูกบัญชี")}</Tag>
         );
       },
     },
     {
-      title: "ชื่อบัญชี",
+      title: t("ชื่อบัญชี"),
       key: "name",
       width: 250,
       onCell: (row) => (row.kind === "total" ? { colSpan: 0 } : {}),
       render: (_, row) => (row.kind === "total" ? null : (row.line.accountName ?? "—")),
     },
     {
-      title: "เดบิต",
+      title: t("เดบิต"),
       key: "debit",
       width: 130,
       align: "right",
@@ -86,7 +90,7 @@ export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
         ),
     },
     {
-      title: "เครดิต",
+      title: t("เครดิต"),
       key: "credit",
       width: 130,
       align: "right",
@@ -98,7 +102,7 @@ export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
         ),
     },
     {
-      title: "คำอธิบายรายการย่อย",
+      title: t("คำอธิบายรายการย่อย"),
       key: "description",
       // เว้นระยะซ้ายให้ห่างจากช่องเครดิต ไม่ให้ตัวเลขชิดข้อความ
       onHeaderCell: () => ({ style: { paddingLeft: 40 } }),
@@ -110,7 +114,7 @@ export default function JournalLinesDetailTable({ doc }: { doc: Source }) {
           <span>
             {description}
             {detail ? <Typography.Text type="secondary"> · {detail}</Typography.Text> : null}
-            {vatTag(row.line) ? <span style={{ marginLeft: 8 }}>{vatTag(row.line)}</span> : null}
+            {vatTag(row.line, t) ? <span style={{ marginLeft: 8 }}>{vatTag(row.line, t)}</span> : null}
           </span>
         );
       },

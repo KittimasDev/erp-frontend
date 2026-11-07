@@ -5,6 +5,8 @@ import { Descriptions, Drawer, Tag } from "antd";
 
 import type { ScheduleDisplayStatus, ScheduleRound } from "@/types/production-schedule";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { fmtDate } from "./schedule-dates";
 
 const STATUS_LABEL: Record<ScheduleDisplayStatus, string> = {
@@ -25,25 +27,26 @@ type Props = {
 };
 
 export default function ProductionRoundDetailDrawer({ round, onClose }: Props) {
+  const t = useT();
   return (
     <Drawer
       open={Boolean(round)}
-      title={round ? `รอบ ${round.roundNo}` : "รายละเอียดรอบ"}
+      title={round ? t("รอบ {no}", { no: round.roundNo }) : t("รายละเอียดรอบ")}
       destroyOnHidden
       size={480}
       onClose={onClose}
     >
       {round ? (
         <Descriptions column={1} bordered size="small">
-          <Descriptions.Item label="ลำดับ">{round.sequence}</Descriptions.Item>
-          <Descriptions.Item label="รหัสรอบ">{round.roundNo}</Descriptions.Item>
-          <Descriptions.Item label="ช่วงวันที่ผลิต">
-            {fmtDate(round.startDate)} – {fmtDate(round.endDate)} ({round.runDays} วัน)
+          <Descriptions.Item label={t("ลำดับ")}>{round.sequence}</Descriptions.Item>
+          <Descriptions.Item label={t("รหัสรอบ")}>{round.roundNo}</Descriptions.Item>
+          <Descriptions.Item label={t("ช่วงวันที่ผลิต")}>
+            {fmtDate(round.startDate)} – {fmtDate(round.endDate)} ({t("{n} วัน", { n: round.runDays })})
           </Descriptions.Item>
-          <Descriptions.Item label="ช่วง Shutdown">
-            {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)} ({round.shutdownDays} วัน)
+          <Descriptions.Item label={t("ช่วง Shutdown")}>
+            {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)} ({t("{n} วัน", { n: round.shutdownDays })})
           </Descriptions.Item>
-          <Descriptions.Item label="วันหยุดผลิตเพิ่มเติม">
+          <Descriptions.Item label={t("วันหยุดผลิตเพิ่มเติม")}>
             {round.extraOffDates.length === 0 && round.holidays.length === 0 ? (
               "—"
             ) : (
@@ -66,16 +69,16 @@ export default function ProductionRoundDetailDrawer({ round, onClose }: Props) {
               </div>
             )}
           </Descriptions.Item>
-          <Descriptions.Item label="สถานะ">
-            <Tag color={STATUS_COLOR[round.displayStatus]}>{STATUS_LABEL[round.displayStatus]}</Tag>
+          <Descriptions.Item label={t("สถานะ")}>
+            <Tag color={STATUS_COLOR[round.displayStatus]}>{t(STATUS_LABEL[round.displayStatus])}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="กำหนดยืนยัน">{fmtDate(round.confirmByDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("กำหนดยืนยัน")}>{fmtDate(round.confirmByDate)}</Descriptions.Item>
           {round.confirmReason ? (
-            <Descriptions.Item label="เหตุผลยืนยันเกินกำหนด">{round.confirmReason}</Descriptions.Item>
+            <Descriptions.Item label={t("เหตุผลยืนยันเกินกำหนด")}>{round.confirmReason}</Descriptions.Item>
           ) : null}
           {round.productionCycleId ? (
-            <Descriptions.Item label="สรุปผลรอบผลิต">
-              <Link href={`/production/cycles/${round.productionCycleId}`}>ดูสรุปรอบ</Link>
+            <Descriptions.Item label={t("สรุปผลรอบผลิต")}>
+              <Link href={`/production/cycles/${round.productionCycleId}`}>{t("ดูสรุปรอบ")}</Link>
             </Descriptions.Item>
           ) : null}
         </Descriptions>

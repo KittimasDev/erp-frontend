@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { useEffect } from "react";
 import { Form, Input, Modal, Select } from "antd";
 
@@ -38,6 +40,7 @@ export default function QuickCreateCustomerModal({
   onClose,
   onCreated,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const createMutation = useCreateCustomerMutation();
 
@@ -81,62 +84,62 @@ export default function QuickCreateCustomerModal({
 
   return (
     <Modal
-      title="เพิ่มลูกค้าใหม่"
+      title={t("เพิ่มลูกค้าใหม่")}
       open={open}
       onCancel={onClose}
       onOk={() => void handleSubmit()}
-      okText="บันทึกลูกค้า"
-      cancelText="ยกเลิก"
+      okText={t("บันทึกลูกค้า")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={createMutation.isPending}
       destroyOnHidden
       forceRender
     >
       <Form form={form} layout="vertical" requiredMark="optional">
         <Form.Item
-          label="รหัสลูกค้า"
+          label={t("รหัสลูกค้า")}
           name="customerCode"
           rules={[
-            { required: true, message: "กรอกรหัสลูกค้า" },
-            { max: 50, message: "ไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรอกรหัสลูกค้า") },
+            { max: 50, message: t("ไม่เกิน 50 ตัวอักษร") },
           ]}
         >
-          <Input placeholder="เช่น CUST-00001" autoComplete="off" />
+          <Input placeholder={t("เช่น CUST-00001")} autoComplete="off" />
         </Form.Item>
         <Form.Item
-          label="ชื่อลูกค้า"
+          label={t("ชื่อลูกค้า")}
           name="nameTh"
           rules={[
-            { required: true, message: "กรอกชื่อลูกค้า" },
-            { max: 255, message: "ไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรอกชื่อลูกค้า") },
+            { max: 255, message: t("ไม่เกิน 255 ตัวอักษร") },
           ]}
         >
-          <Input placeholder="เช่น บริษัท ตัวอย่าง จำกัด" autoComplete="off" />
+          <Input placeholder={t("เช่น บริษัท ตัวอย่าง จำกัด")} autoComplete="off" />
         </Form.Item>
-        <Form.Item label="ประเภทลูกค้า" name="customerType">
+        <Form.Item label={t("ประเภทลูกค้า")} name="customerType">
           <Select
             allowClear
-            placeholder="เลือกประเภท"
+            placeholder={t("เลือกประเภท")}
             options={CUSTOMER_TYPES.map((type) => ({
               value: type,
-              label: CUSTOMER_TYPE_LABEL[type] ?? type,
+              label: t(CUSTOMER_TYPE_LABEL[type] ?? type),
             }))}
           />
         </Form.Item>
         <Form.Item
-          label="เลขประจำตัวผู้เสียภาษี"
+          label={t("เลขประจำตัวผู้เสียภาษี")}
           name="taxId"
-          rules={[{ max: 50, message: "ไม่เกิน 50 ตัวอักษร" }]}
+          rules={[{ max: 50, message: t("ไม่เกิน 50 ตัวอักษร") }]}
         >
-          <Input placeholder="ไม่บังคับ" autoComplete="off" />
+          <Input placeholder={t("ไม่บังคับ")} autoComplete="off" />
         </Form.Item>
-        <Form.Item label="ชื่อผู้ติดต่อ" name="contactName">
-          <Input placeholder="ไม่บังคับ" autoComplete="off" />
+        <Form.Item label={t("ชื่อผู้ติดต่อ")} name="contactName">
+          <Input placeholder={t("ไม่บังคับ")} autoComplete="off" />
         </Form.Item>
-        <Form.Item label="เบอร์โทร" name="contactPhone">
-          <Input placeholder="ไม่บังคับ" autoComplete="off" />
+        <Form.Item label={t("เบอร์โทร")} name="contactPhone">
+          <Input placeholder={t("ไม่บังคับ")} autoComplete="off" />
         </Form.Item>
-        <Form.Item label="ที่อยู่" name="address">
-          <Input.TextArea rows={2} placeholder="ไม่บังคับ" autoComplete="off" />
+        <Form.Item label={t("ที่อยู่")} name="address">
+          <Input.TextArea rows={2} placeholder={t("ไม่บังคับ")} autoComplete="off" />
         </Form.Item>
       </Form>
     </Modal>

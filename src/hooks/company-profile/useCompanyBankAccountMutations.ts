@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   createCompanyBankAccount,
@@ -24,6 +26,7 @@ import { companyProfileQueryKey } from "./useCompanyProfileQuery";
 function useBankAccountFeedback(fallbackError: string) {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return {
     onSuccess: async (response: { message: string }) => {
@@ -34,7 +37,7 @@ function useBankAccountFeedback(fallbackError: string) {
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : fallbackError,
+        error instanceof ApiError ? error.message : t(fallbackError),
       );
     },
   };

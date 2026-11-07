@@ -42,6 +42,8 @@ import {
   toMonthlySheet,
   type RawTirePurchaseExportContext,
 } from "@/utils/rawTirePurchaseReportSheets";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./RawTirePurchaseReportPage.module.css";
 
 function formatDate(value?: string) {
@@ -57,6 +59,7 @@ function formatNumber(value: string | number) {
 }
 
 function PaymentStatusPill({ status }: { status: string }) {
+  const t = useT();
   const tone =
     status === "PAID"
       ? styles.paidTone
@@ -67,7 +70,7 @@ function PaymentStatusPill({ status }: { status: string }) {
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {PAYMENT_STATUS_LABEL[status] ?? status}
+      {PAYMENT_STATUS_LABEL[status] ? t(PAYMENT_STATUS_LABEL[status]) : status}
     </span>
   );
 }
@@ -115,6 +118,15 @@ const MODE_OPTIONS: Array<{ label: string; value: RawTirePurchaseReportViewMode 
 ];
 
 export default function RawTirePurchaseReportPage() {
+  const t = useT();
+  const lang = useLanguage();
+  /** วันที่แสดงบนจอ: ไทย = วว/ดด/พ.ศ. · อังกฤษ = วว/ดด/ค.ศ. */
+  const showBeDate = (iso: string) => (lang === "en" ? formatDate(iso) : formatBeDate(iso));
+  const showMonth = (month: string) => {
+    if (lang !== "en") return formatBeMonth(month);
+    const d = dayjs(`${month}-01`);
+    return d.isValid() ? d.format("MMMM YYYY") : month;
+  };
   const { message } = App.useApp();
   const [mode, setMode] = useState<RawTirePurchaseReportViewMode>("daily");
   const [dateRange, setDateRange] = useState<
@@ -219,7 +231,9 @@ export default function RawTirePurchaseReportPage() {
       );
       if (all.truncated) {
         message.warning(
-          `มี ${all.total.toLocaleString("th-TH")} ใบ — ไฟล์มีเฉพาะ 5,000 ใบแรก (ยอดรวมเป็นของทั้งชุด)`,
+          t("มี {total} ใบ — ไฟล์มีเฉพาะ 5,000 ใบแรก (ยอดรวมเป็นของทั้งชุด)", {
+            total: all.total.toLocaleString("th-TH"),
+          }),
         );
       }
       const context: RawTirePurchaseExportContext = {
@@ -231,7 +245,7 @@ export default function RawTirePurchaseReportPage() {
       // CSV แบนไม่ปนแถวสรุป — Excel/PDF แทรกหัววันและยอดรวมวัน
       await downloadTabularReport(format, toDailySheet(all.rows, context, format !== "csv"));
     } catch {
-      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
+      message.error(t("ดาวน์โหลดรายงานไม่สำเร็จ"));
     } finally {
       setExporting(null);
     }
@@ -254,49 +268,52 @@ export default function RawTirePurchaseReportPage() {
       align?: "center" | "right";
       render: (row: RawTirePurchaseReportRow, seq: number) => React.ReactNode;
     }> = [
-      { title: "ลำดับ", key: "no", width: 52, align: "center", render: (_r, seq) => seq },
+      { title: t("ลำดับ"), key: "no", width: 52, align: "center", render: (_r, seq) => seq },
       {
-        title: "เลขที่ใบรับซื้อ",
+        title: t("เลขที่ใบรับซื้อ"),
         key: "receiptNo",
         render: (row) => <span className={styles.receiptNo}>{row.receiptNo}</span>,
       },
-      { title: "วันที่รับซื้อ", key: "receiptDate", width: 110, render: (row) => formatDate(row.receiptDate) },
+      { title: t("วันที่รับซื้อ"), key: "receiptDate", width: 110, render: (row) => formatDate(row.receiptDate) },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         key: "seller",
         render: (row) => (row.sellerName ? `${row.sellerCode ?? ""} — ${row.sellerName}` : "—"),
       },
-      { title: "ทะเบียนรถ", key: "truck", render: (row) => row.truckLicensePlate ?? "—" },
+      { title: t("ทะเบียนรถ"), key: "truck", render: (row) => row.truckLicensePlate ?? "—" },
       {
-        title: "น้ำหนักคิดเงิน (กก.)",
+        title: t("น้ำหนักคิดเงิน (กก.)"),
         key: "payableWeightKg",
         align: "right",
         render: (row) => formatNumber(row.payableWeightKg),
       },
       {
-        title: "ยอดสุทธิ (บาท)",
+        title: t("ยอดสุทธิ (บาท)"),
         key: "totalAmount",
         align: "right",
         render: (row) => formatNumber(row.totalAmount),
       },
       {
-        title: "การชำระเงิน",
+        title: t("การชำระเงิน"),
         key: "paymentStatus",
         width: 130,
         render: (row) => <PaymentStatusPill status={row.paymentStatus} />,
       },
       {
-        title: "สถานะเข้าคลัง",
+        title: t("สถานะเข้าคลัง"),
         key: "stockPostingStatus",
         width: 130,
-        render: (row) => STOCK_POSTING_STATUS_LABEL[row.stockPostingStatus] ?? row.stockPostingStatus,
+        render: (row) =>
+          STOCK_POSTING_STATUS_LABEL[row.stockPostingStatus]
+            ? t(STOCK_POSTING_STATUS_LABEL[row.stockPostingStatus])
+            : row.stockPostingStatus,
       },
       {
         title: "",
         key: "actions",
         width: 60,
         render: (row) => (
-          <Link href={`/receiving/receipts/${row.id}`} className={styles.actionBtn} title="ดูรายละเอียด">
+          <Link href={`/receiving/receipts/${row.id}`} className={styles.actionBtn} title={t("ดูรายละเอียด")}>
             <EyeOutlined />
           </Link>
         ),
@@ -313,26 +330,29 @@ export default function RawTirePurchaseReportPage() {
         if (record.kind === "day") {
           return index === 0 ? (
             <div className={styles.dayHeader}>
-              <strong>วันที่ {formatBeDate(record.date)}</strong>
-              <span className={styles.dayChip}>{record.summary.receiptCount.toLocaleString("th-TH")} ใบ</span>
-              <span className={styles.dayChip}>น้ำหนักสุทธิ {formatNumber(record.summary.netWeightKg)} กก.</span>
-              <span className={styles.dayChip}>ยอดสุทธิ {formatNumber(record.summary.totalAmount)} บาท</span>
+              <strong>{t("วันที่ {date}", { date: showBeDate(record.date) })}</strong>
+              <span className={styles.dayChip}>{lang === "en"
+                  ? `${record.summary.receiptCount.toLocaleString("en-GB")} receipts`
+                  : `${record.summary.receiptCount.toLocaleString("th-TH")} ใบ`}</span>
+              <span className={styles.dayChip}>{t("น้ำหนักสุทธิ {n} กก.", { n: formatNumber(record.summary.netWeightKg) })}</span>
+              <span className={styles.dayChip}>{t("ยอดสุทธิ {n} บาท", { n: formatNumber(record.summary.totalAmount) })}</span>
             </div>
           ) : null;
         }
         return column.render(record.row, record.seq);
       },
     }));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, lang]);
 
   const monthColumns: ColumnsType<RawTirePurchaseReportMonthRow> = [
     {
-      title: "เดือน",
+      title: t("เดือน"),
       key: "month",
-      render: (_v, row) => <span className={styles.receiptNo}>{formatBeMonth(row.month)}</span>,
+      render: (_v, row) => <span className={styles.receiptNo}>{showMonth(row.month)}</span>,
     },
     {
-      title: "จำนวนใบ",
+      title: t("จำนวนใบ"),
       dataIndex: "receiptCount",
       key: "receiptCount",
       align: "right",
@@ -348,7 +368,7 @@ export default function RawTirePurchaseReportPage() {
         ["ยอดสุทธิ (บาท)", "totalAmount"],
       ] as const
     ).map(([title, field]) => ({
-      title,
+      title: t(title),
       dataIndex: field,
       key: field,
       align: "right" as const,
@@ -358,8 +378,8 @@ export default function RawTirePurchaseReportPage() {
 
   const filterEmptyText = (
     <div className={styles.emptyState}>
-      <strong>ไม่พบใบรับซื้อยางตามเงื่อนไขที่ค้นหา</strong>
-      ลองปรับช่วงวันที่หรือตัวกรองอื่น
+      <strong>{t("ไม่พบใบรับซื้อยางตามเงื่อนไขที่ค้นหา")}</strong>
+      {t("ลองปรับช่วงวันที่หรือตัวกรองอื่น")}
     </div>
   );
 
@@ -368,8 +388,8 @@ export default function RawTirePurchaseReportPage() {
       <PageHeader
         eyebrow="Reports · Raw Tire Purchase"
         icon={<FileTextOutlined />}
-        title="รายงานรับซื้อรายวัน / รายเดือน"
-        subtitle="สรุปใบรับซื้อยางที่อนุมัติแล้ว (CONFIRMED) กรองตามช่วงวันที่ ผู้ขาย ประเภทยาง สถานะชำระเงิน และสถานะคลัง"
+        title={t("รายงานรับซื้อรายวัน / รายเดือน")}
+        subtitle={t("สรุปใบรับซื้อยางที่อนุมัติแล้ว (CONFIRMED) กรองตามช่วงวันที่ ผู้ขาย ประเภทยาง สถานะชำระเงิน และสถานะคลัง")}
         actions={
           <ReportExportButtons
             canExport={canExport}
@@ -381,7 +401,7 @@ export default function RawTirePurchaseReportPage() {
 
       <div className={styles.modeBar}>
         <Segmented<RawTirePurchaseReportViewMode>
-          options={MODE_OPTIONS}
+          options={MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
           value={mode}
           onChange={(value) => {
             setMode(value);
@@ -390,37 +410,37 @@ export default function RawTirePurchaseReportPage() {
         />
         <span className={styles.modeHint}>
           {mode === "daily"
-            ? "รายการใบรับซื้อ แยกตามวันที่ พร้อมยอดรวมรายวัน"
-            : "สรุปจำนวนใบ น้ำหนัก (กก.) และมูลค่า (บาท) แยกตามเดือน"}
+            ? t("รายการใบรับซื้อ แยกตามวันที่ พร้อมยอดรวมรายวัน")
+            : t("สรุปจำนวนใบ น้ำหนัก (กก.) และมูลค่า (บาท) แยกตามเดือน")}
         </span>
       </div>
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>จำนวนใบรับซื้อ</span>
+          <span className={styles.statLabel}>{t("จำนวนใบรับซื้อ")}</span>
           <span className={styles.statValue}>{summary?.totalReceipts ?? 0}</span>
-          <span className={styles.statHint}>ตามเงื่อนไขที่กรอง</span>
+          <span className={styles.statHint}>{t("ตามเงื่อนไขที่กรอง")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>น้ำหนักสุทธิรวม</span>
+          <span className={styles.statLabel}>{t("น้ำหนักสุทธิรวม")}</span>
           <span className={styles.statValue}>
             {summary ? formatNumber(summary.totalNetWeightKg) : "0.00"}
           </span>
-          <span className={styles.statHint}>กิโลกรัม</span>
+          <span className={styles.statHint}>{t("กิโลกรัม")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดเงินรวม</span>
+          <span className={styles.statLabel}>{t("ยอดเงินรวม")}</span>
           <span className={styles.statValue}>
             {summary ? formatNumber(summary.totalAmount) : "0.00"}
           </span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่รับซื้อ</label>
+            <label>{t("ช่วงวันที่รับซื้อ")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               value={dateRange}
@@ -431,12 +451,12 @@ export default function RawTirePurchaseReportPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ผู้ขาย</label>
+            <label>{t("ผู้ขาย")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={sellerId}
               onChange={setSellerId}
               loading={sellersQuery.isLoading}
@@ -447,12 +467,12 @@ export default function RawTirePurchaseReportPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ประเภทยาง</label>
+            <label>{t("ประเภทยาง")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={tireClassificationId}
               onChange={setTireClassificationId}
               loading={classificationsQuery.isLoading}
@@ -463,41 +483,41 @@ export default function RawTirePurchaseReportPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะชำระเงิน</label>
+            <label>{t("สถานะชำระเงิน")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={paymentStatus}
               onChange={setPaymentStatus}
               options={Object.entries(PAYMENT_STATUS_LABEL).map(([value, label]) => ({
                 value,
-                label,
+                label: t(label),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะคลัง</label>
+            <label>{t("สถานะคลัง")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={stockPostingStatus}
               onChange={setStockPostingStatus}
               options={STOCK_POSTING_FILTER_OPTIONS.map((value) => ({
                 value,
-                label: STOCK_POSTING_STATUS_LABEL[value],
+                label: t(STOCK_POSTING_STATUS_LABEL[value]),
               }))}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.searchBtn}
             icon={<SearchOutlined />}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -507,17 +527,17 @@ export default function RawTirePurchaseReportPage() {
           <div className={styles.toolbarLeft}>
             {mode === "daily" ? (
               <>
-                พบทั้งหมด <strong>{dailyTotal}</strong> รายการ
+                {t("พบทั้งหมด")} <strong>{dailyTotal}</strong> {t("รายการ")}
               </>
             ) : (
               <>
-                พบทั้งหมด <strong>{monthRows.length}</strong> เดือน
+                {t("พบทั้งหมด")} <strong>{monthRows.length}</strong> {t("เดือน")}
               </>
             )}
           </div>
           {mode === "daily" ? (
             <div className={styles.entriesBox}>
-              <span>แสดง</span>
+              <span>{t("แสดง")}</span>
               <Select
                 size="small"
                 value={limit}
@@ -532,7 +552,7 @@ export default function RawTirePurchaseReportPage() {
                   setPage(1);
                 }}
               />
-              <span>รายการ/หน้า</span>
+              <span>{t("รายการ/หน้า")}</span>
             </div>
           ) : null}
         </div>
@@ -562,7 +582,7 @@ export default function RawTirePurchaseReportPage() {
             summary={() =>
               monthRows.length > 0 && summary ? (
                 <Table.Summary.Row className={styles.totalRow}>
-                  <Table.Summary.Cell index={0}>รวมทั้งหมด</Table.Summary.Cell>
+                  <Table.Summary.Cell index={0}>{t("รวมทั้งหมด")}</Table.Summary.Cell>
                   <Table.Summary.Cell index={1} align="right">
                     {summary.totalReceipts.toLocaleString("th-TH")}
                   </Table.Summary.Cell>
@@ -589,8 +609,11 @@ export default function RawTirePurchaseReportPage() {
         {mode === "daily" ? (
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง {dailyTotal === 0 ? 0 : (page - 1) * limit + 1}–
-              {Math.min(page * limit, dailyTotal)} จาก {dailyTotal}
+              {t("แสดง {from}–{to} จาก {total}", {
+                from: dailyTotal === 0 ? 0 : (page - 1) * limit + 1,
+                to: Math.min(page * limit, dailyTotal),
+                total: dailyTotal,
+              })}
             </div>
             <Pagination
               size="small"

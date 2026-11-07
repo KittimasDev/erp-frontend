@@ -3,6 +3,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/gl-accounts";
 import { getAccessToken } from "@/lib/auth/token";
@@ -37,6 +39,7 @@ function errorText(error: unknown, fallback: string) {
 export function useSaveGlAccountMutation() {
   const invalidate = useInvalidate();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationFn: ({ id, body }: { id?: string; body: SaveGlAccountRequest }) =>
       id ? api.updateGlAccount(getAccessToken(), id, body) : api.createGlAccount(getAccessToken(), body),
@@ -44,26 +47,28 @@ export function useSaveGlAccountMutation() {
       await invalidate();
       message.success(response.message);
     },
-    onError: (error) => message.error(errorText(error, "บันทึกบัญชีไม่สำเร็จ")),
+    onError: (error) => message.error(errorText(error, t("บันทึกบัญชีไม่สำเร็จ"))),
   });
 }
 
 export function useDeleteGlAccountMutation() {
   const invalidate = useInvalidate();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationFn: (id: string) => api.deleteGlAccount(getAccessToken(), id),
     onSuccess: async (response) => {
       await invalidate();
       message.success(response.message);
     },
-    onError: (error) => message.error(errorText(error, "ลบบัญชีไม่สำเร็จ")),
+    onError: (error) => message.error(errorText(error, t("ลบบัญชีไม่สำเร็จ"))),
   });
 }
 
 export function useSaveAccountSettingsMutation() {
   const invalidate = useInvalidate();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationFn: (settings: Array<{ settingKey: string; glAccountId: string | null }>) =>
       api.saveAccountSettings(getAccessToken(), settings),
@@ -71,6 +76,6 @@ export function useSaveAccountSettingsMutation() {
       await invalidate();
       message.success(response.message);
     },
-    onError: (error) => message.error(errorText(error, "บันทึกการผูกบัญชีไม่สำเร็จ")),
+    onError: (error) => message.error(errorText(error, t("บันทึกการผูกบัญชีไม่สำเร็จ"))),
   });
 }

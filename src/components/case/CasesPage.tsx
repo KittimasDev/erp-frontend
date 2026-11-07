@@ -30,6 +30,8 @@ import { useUpdateTempCaseMutation } from "@/hooks/temp-cases/useUpdateTempCaseM
 import { ApiError } from "@/lib/api/client";
 import { uploadTempCaseImage } from "@/lib/api/temp-cases";
 import { getAccessToken } from "@/lib/auth/token";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type { TempCase, TempCaseStatus } from "@/types/temp-cases";
 import { TEMP_CASE_STATUS_LABEL } from "@/types/temp-cases";
 
@@ -41,6 +43,8 @@ import PageHeader from "@/components/common/PageHeader";
 type StatusFilter = "ALL" | TempCaseStatus;
 
 export default function CasesPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const { message } = App.useApp();
   const queryClient = useQueryClient();
@@ -103,7 +107,7 @@ export default function CasesPage() {
               ? error.message
               : error instanceof Error
                 ? error.message
-                : "อัปโหลดไม่สำเร็จ";
+                : t("อัปโหลดไม่สำเร็จ");
         }
       }
       await Promise.all([
@@ -114,10 +118,10 @@ export default function CasesPage() {
       ]);
       if (failed > 0) {
         message.warning(
-          `บันทึกเคสแล้ว แต่แนบรูปไม่สำเร็จ ${failed} ไฟล์${lastError ? ` — ${lastError}` : ""}`,
+          `${t("บันทึกเคสแล้ว แต่แนบรูปไม่สำเร็จ {failed} ไฟล์", { failed })}${lastError ? ` — ${lastError}` : ""}`,
         );
       } else {
-        message.success(`แนบรูป ${files.length} ไฟล์แล้ว`);
+        message.success(t("แนบรูป {n} ไฟล์แล้ว", { n: files.length }));
       }
     } finally {
       setUploadingImages(false);
@@ -157,14 +161,14 @@ export default function CasesPage() {
 
   const columns: ColumnsType<TempCase> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 10 + index + 1,
     },
     {
-      title: "หัวข้อ",
+      title: t("หัวข้อ"),
       dataIndex: "title",
       key: "title",
       render: (value: string, record) => (
@@ -181,7 +185,7 @@ export default function CasesPage() {
       ),
     },
     {
-      title: "หมวด",
+      title: t("หมวด"),
       dataIndex: "categoryNameTh",
       key: "categoryNameTh",
       width: 110,
@@ -200,7 +204,7 @@ export default function CasesPage() {
       ),
     },
     {
-      title: "รูป",
+      title: t("รูป"),
       dataIndex: "imageCount",
       key: "imageCount",
       width: 70,
@@ -208,7 +212,7 @@ export default function CasesPage() {
       render: (count: number) => (count > 0 ? <Tag>{count}</Tag> : "-"),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       width: 120,
@@ -217,41 +221,41 @@ export default function CasesPage() {
         status === "DONE" ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            {TEMP_CASE_STATUS_LABEL[status]}
+            {t(TEMP_CASE_STATUS_LABEL[status])}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            {TEMP_CASE_STATUS_LABEL[status]}
+            {t(TEMP_CASE_STATUS_LABEL[status])}
           </Tag>
         ),
     },
     {
-      title: "ผู้สร้าง",
+      title: t("ผู้สร้าง"),
       dataIndex: "createdByDisplayName",
       key: "createdByDisplayName",
       width: 130,
       render: (value?: string) => value || "-",
     },
     {
-      title: "วันที่",
+      title: t("วันที่"),
       dataIndex: "createdAt",
       key: "createdAt",
       width: 160,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการเคส ${record.title}`}
+          ariaLabel={t("เมนูจัดการเคส {title}", { title: record.title })}
           actions={[
             {
               key: "toggle",
@@ -261,27 +265,27 @@ export default function CasesPage() {
                 ) : (
                   <ReloadOutlined />
                 ),
-              label: record.status === "OPEN" ? "ทำแล้ว" : "เปิดใหม่",
+              label: record.status === "OPEN" ? t("ทำแล้ว") : t("เปิดใหม่"),
               onClick: () => toggleStatus(record),
             },
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบเคส",
+              label: t("ลบเคส"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบเคส",
-                content: `ต้องการลบ "${record.title}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบเคส"),
+                content: t("ต้องการลบ \"{title}\" หรือไม่?", { title: record.title }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -306,7 +310,7 @@ export default function CasesPage() {
         <PageHeader
           eyebrow="TEMP TRACKER"
           title="Case / Issue"
-          subtitle="บันทึกเคสจากหน้าจอในระบบสำหรับทีม — หน้าชั่วคราว ลบทิ้งได้เมื่อจบโปรเจกต์"
+          subtitle={t("บันทึกเคสจากหน้าจอในระบบสำหรับทีม — หน้าชั่วคราว ลบทิ้งได้เมื่อจบโปรเจกต์")}
           actions={
             <>
 <Space>
@@ -320,7 +324,7 @@ export default function CasesPage() {
               onClick={openCreateModal}
             >
               <span className={styles.plusIcon}>+</span>
-              เพิ่มเคส
+              {t("เพิ่มเคส")}
             </Button>
           </Space>
             </>
@@ -331,21 +335,21 @@ export default function CasesPage() {
           <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
             <div className={styles.summaryIcon}>Σ</div>
             <div>
-              <span className={styles.summaryLabel}>ทั้งหมด (ตามตัวกรอง)</span>
+              <span className={styles.summaryLabel}>{t("ทั้งหมด (ตามตัวกรอง)")}</span>
               <strong>{cases.length}</strong>
             </div>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
             <div className={styles.summaryIcon}>○</div>
             <div>
-              <span className={styles.summaryLabel}>ยังไม่ทำ</span>
+              <span className={styles.summaryLabel}>{t("ยังไม่ทำ")}</span>
               <strong>{openCount}</strong>
             </div>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
             <div className={styles.summaryIcon}>✓</div>
             <div>
-              <span className={styles.summaryLabel}>ทำแล้ว</span>
+              <span className={styles.summaryLabel}>{t("ทำแล้ว")}</span>
               <strong>{doneCount}</strong>
             </div>
           </div>
@@ -356,9 +360,9 @@ export default function CasesPage() {
             value={statusFilter}
             onChange={(value) => setStatusFilter(value as StatusFilter)}
             options={[
-              { label: "ทั้งหมด", value: "ALL" },
-              { label: "ยังไม่ทำ", value: "OPEN" },
-              { label: "ทำแล้ว", value: "DONE" },
+              { label: t("ทั้งหมด"), value: "ALL" },
+              { label: t("ยังไม่ทำ"), value: "OPEN" },
+              { label: t("ทำแล้ว"), value: "DONE" },
             ]}
           />
         </div>

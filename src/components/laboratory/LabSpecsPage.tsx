@@ -13,7 +13,13 @@ import {
   useUpdateLabSpecMutation,
 } from "@/hooks/laboratory/useLabSpecs";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
-import { LAB_SAMPLE_TYPE_LABEL, type LabSpec } from "@/types/laboratory";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import {
+  labSpecActiveLabel,
+  LAB_SAMPLE_TYPE_LABEL,
+  type LabSpec,
+} from "@/types/laboratory";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import LabSpecFormModal from "./LabSpecFormModal";
@@ -21,6 +27,8 @@ import PageHeader from "@/components/common/PageHeader";
 
 /** หน้า /laboratory/specs — Spec การตรวจ (พารามิเตอร์ + เกณฑ์ min/max) ตามประเภทตัวอย่าง/สินค้า (M8.3) */
 export default function LabSpecsPage() {
+  const t = useT();
+  const lang = useLanguage();
   const query = useLabSpecsQuery();
   const create = useCreateLabSpecMutation();
   const update = useUpdateLabSpecMutation();
@@ -31,7 +39,7 @@ export default function LabSpecsPage() {
 
   const columns: ColumnsType<LabSpec> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
@@ -44,16 +52,16 @@ export default function LabSpecsPage() {
         <div>
           <strong>{s.nameTh}</strong>
           <div style={{ fontSize: 12, color: "#8a94a6" }}>
-            {LAB_SAMPLE_TYPE_LABEL[s.sampleType] ?? s.sampleType}
+            {t(LAB_SAMPLE_TYPE_LABEL[s.sampleType] ?? s.sampleType)}
             {s.itemNameTh
-              ? ` · เฉพาะ ${s.itemCode} ${s.itemNameTh}`
-              : " · ทั้งประเภท"}
+              ? ` · ${t("เฉพาะ {code} {name}", { code: s.itemCode ?? "", name: s.itemNameTh })}`
+              : ` · ${t("ทั้งประเภท")}`}
           </div>
         </div>
       ),
     },
     {
-      title: "พารามิเตอร์",
+      title: t("พารามิเตอร์"),
       key: "params",
       render: (_v, s) => (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -62,19 +70,19 @@ export default function LabSpecsPage() {
               {p.parameterName}
               {p.specMin || p.specMax
                 ? ` (${p.specMin ?? "…"} – ${p.specMax ?? "…"}${p.unit ? ` ${p.unit}` : ""})`
-                : " (ยังไม่ตั้งเกณฑ์)"}
+                : ` (${t("ยังไม่ตั้งเกณฑ์")})`}
             </Tag>
           ))}
         </div>
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "st",
       width: 100,
       render: (_v, s) => (
         <Tag color={s.isActive ? "green" : "default"}>
-          {s.isActive ? "ใช้งาน" : "ปิด"}
+          {labSpecActiveLabel(s.isActive, lang)}
         </Tag>
       ),
     },
@@ -86,19 +94,19 @@ export default function LabSpecsPage() {
         <div style={{ display: "flex", gap: 6 }}>
           {canEdit ? (
             <Button size="small" onClick={() => setEditing(s)}>
-              แก้ไข
+              {t("แก้ไข")}
             </Button>
           ) : null}
           {canDelete ? (
             <Popconfirm
-              title="ลบ Spec นี้?"
-              description="ผลตรวจที่บันทึกไปแล้วไม่ได้รับผลกระทบ"
-              okText="ลบ"
-              cancelText="ยกเลิก"
+              title={t("ลบ Spec นี้?")}
+              description={t("ผลตรวจที่บันทึกไปแล้วไม่ได้รับผลกระทบ")}
+              okText={t("ลบ")}
+              cancelText={t("ยกเลิก")}
               onConfirm={() => remove.mutate(s.id)}
             >
               <Button size="small" danger>
-                ลบ
+                {t("ลบ")}
               </Button>
             </Popconfirm>
           ) : null}
@@ -115,8 +123,10 @@ export default function LabSpecsPage() {
         <PageHeader
           eyebrow="LABORATORY · SPEC"
           icon={<ExperimentOutlined />}
-          title="Spec การตรวจ"
-          subtitle="กำหนดพารามิเตอร์และเกณฑ์ผ่าน/ไม่ผ่านตามประเภทตัวอย่าง (หรือสินค้าเฉพาะ) — ตอนคีย์ผลระบบตัดสินให้อัตโนมัติ"
+          title={t("Spec การตรวจ")}
+          subtitle={t(
+            "กำหนดพารามิเตอร์และเกณฑ์ผ่าน/ไม่ผ่านตามประเภทตัวอย่าง (หรือสินค้าเฉพาะ) — ตอนคีย์ผลระบบตัดสินให้อัตโนมัติ",
+          )}
           actions={
             <>
 {canAdd ? (
@@ -126,7 +136,7 @@ export default function LabSpecsPage() {
               icon={<PlusOutlined />}
               onClick={() => setEditing("new")}
             >
-              เพิ่ม Spec
+              {t("เพิ่ม Spec")}
             </Button>
           ) : (
             <div />
@@ -142,7 +152,7 @@ export default function LabSpecsPage() {
             dataSource={query.data?.data ?? []}
             loading={query.isFetching}
             pagination={false}
-            locale={{ emptyText: "ยังไม่มี Spec — กด เพิ่ม Spec" }}
+            locale={{ emptyText: t("ยังไม่มี Spec — กด เพิ่ม Spec") }}
           />
         </div>
         {editing ? (

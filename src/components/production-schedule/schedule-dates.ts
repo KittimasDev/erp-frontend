@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
 
+import { tNow } from "@/lib/i18n/useT";
+
 export const PLAN_ROUND_COUNT = 6;
 
 export function addIsoDays(iso: string, days: number) {
@@ -97,7 +99,7 @@ export function shiftDraftStart(
   | { ok: true; rounds: DraftRound[]; dropped: DroppedHoliday[] }
   | { ok: false; message: string } {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(newStart)) {
-    return { ok: false, message: "วันเริ่มไม่ถูกต้อง" };
+    return { ok: false, message: tNow("วันเริ่มไม่ถูกต้อง") };
   }
   const next = rounds.map((round) => ({ ...round }));
   const dropped: DroppedHoliday[] = [];
@@ -106,11 +108,11 @@ export function shiftDraftStart(
     const window = roundWindow(cursor);
     const earlier = next.slice(0, i).find((round) => rangesOverlap(window, round));
     if (earlier) {
-      return { ok: false, message: `ช่วงวันทับกับรอบที่ ${earlier.index}` };
+      return { ok: false, message: tNow("ช่วงวันทับกับรอบที่ {no}", { no: earlier.index }) };
     }
     const clash = existing.find((round) => rangesOverlap(window, round));
     if (clash) {
-      return { ok: false, message: `ช่วงวันทับกับรอบ ${clash.roundNo}` };
+      return { ok: false, message: tNow("ช่วงวันทับกับรอบ {no}", { no: clash.roundNo }) };
     }
     const moved = { ...next[i], ...window };
     const kept = moved.holidays.filter((holiday) => isWithinRound(moved, holiday.date));

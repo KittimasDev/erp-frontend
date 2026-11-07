@@ -9,7 +9,9 @@ import dayjs from "dayjs";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateOilTankMutation, useOilTanksQuery, useUpdateOilTankMutation } from "@/hooks/oil-tank-farm/useOilTankFarm";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
-import { OIL_TANK_STATUS_LABEL, type OilTank } from "@/types/oil-tank-farm";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { oilTankStatusLabel, type OilTank } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import TankBalanceReportTab from "./TankBalanceReportTab";
@@ -22,6 +24,8 @@ const STATUS_COLOR: Record<string, string> = { ACTIVE: "green", MAINTENANCE: "or
 
 /** หน้า /oil-tank-farm/tanks — ถังเก็บน้ำมัน: ความจุ/ยอดคงเหลือ/พร้อมใช้/จอง/รอ QC · วัดระดับจริง · รายงานยอดรายถัง */
 export default function TanksPage() {
+  const tr = useT();
+  const lang = useLanguage();
   const query = useOilTanksQuery();
   const create = useCreateOilTankMutation();
   const update = useUpdateOilTankMutation();
@@ -32,14 +36,14 @@ export default function TanksPage() {
 
   const columns: ColumnsType<OilTank> = [
     {
-      title: "ลำดับ",
+      title: tr("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
     {
-      title: "ถัง",
+      title: tr("ถัง"),
       key: "t",
       render: (_v, t) => (
         <div>
@@ -49,7 +53,7 @@ export default function TanksPage() {
       ),
     },
     {
-      title: "ระดับ",
+      title: tr("ระดับ"),
       key: "lv",
       width: 210,
       render: (_v, t) => {
@@ -57,16 +61,16 @@ export default function TanksPage() {
         return (
           <div>
             <Progress percent={Math.min(pct, 100)} size="small" status={pct >= 95 ? "exception" : undefined} />
-            <div style={{ fontSize: 12 }}>{n(t.currentVolumeLiters)} / {n(t.capacityLiters)} ลิตร</div>
+            <div style={{ fontSize: 12 }}>{n(t.currentVolumeLiters)} / {n(t.capacityLiters)} {tr("ลิตร")}</div>
           </div>
         );
       },
     },
-    { title: "พร้อมใช้", key: "av", width: 110, align: "right", render: (_v, t) => n(t.availableLiters) },
-    { title: "จองไว้", key: "rs", width: 100, align: "right", render: (_v, t) => (Number(t.reservedLiters) ? n(t.reservedLiters) : "—") },
-    { title: "รอ QC", key: "hd", width: 100, align: "right", render: (_v, t) => (Number(t.holdLiters) ? <Tag color="gold">{n(t.holdLiters)}</Tag> : "—") },
+    { title: tr("พร้อมใช้"), key: "av", width: 110, align: "right", render: (_v, t) => n(t.availableLiters) },
+    { title: tr("จองไว้"), key: "rs", width: 100, align: "right", render: (_v, t) => (Number(t.reservedLiters) ? n(t.reservedLiters) : "—") },
+    { title: tr("รอ QC"), key: "hd", width: 100, align: "right", render: (_v, t) => (Number(t.holdLiters) ? <Tag color="gold">{n(t.holdLiters)}</Tag> : "—") },
     {
-      title: "วัดล่าสุด",
+      title: tr("วัดล่าสุด"),
       key: "lr",
       width: 190,
       render: (_v, t) =>
@@ -75,7 +79,7 @@ export default function TanksPage() {
             {dayjs(t.lastReading.measuredAt).format("DD/MM HH:mm")} · {n(t.lastReading.measuredLiters)}
             {Number(t.lastReading.varianceLiters) !== 0 ? (
               <Tag color={t.lastReading.status === "RECORDED" ? "orange" : "default"} style={{ marginLeft: 4 }}>
-                ต่าง {Number(t.lastReading.varianceLiters) > 0 ? "+" : ""}{n(t.lastReading.varianceLiters)}
+                {tr("ต่าง")} {Number(t.lastReading.varianceLiters) > 0 ? "+" : ""}{n(t.lastReading.varianceLiters)}
               </Tag>
             ) : null}
           </div>
@@ -83,15 +87,15 @@ export default function TanksPage() {
           "—"
         ),
     },
-    { title: "สถานะ", key: "st", width: 100, render: (_v, t) => <Tag color={STATUS_COLOR[t.status]}>{OIL_TANK_STATUS_LABEL[t.status] ?? t.status}</Tag> },
+    { title: tr("สถานะ"), key: "st", width: 100, render: (_v, t) => <Tag color={STATUS_COLOR[t.status]}>{oilTankStatusLabel(t.status, lang)}</Tag> },
     {
       title: "",
       key: "act",
       width: 170,
       render: (_v, t) => (
         <div style={{ display: "flex", gap: 6 }}>
-          <Button size="small" onClick={() => setReadingsOf(t)}>วัดระดับ</Button>
-          {canEdit ? <Button size="small" onClick={() => setEditing(t)}>แก้ไข</Button> : null}
+          <Button size="small" onClick={() => setReadingsOf(t)}>{tr("วัดระดับ")}</Button>
+          {canEdit ? <Button size="small" onClick={() => setEditing(t)}>{tr("แก้ไข")}</Button> : null}
         </div>
       ),
     },
@@ -103,12 +107,12 @@ export default function TanksPage() {
         <PageHeader
           eyebrow="OIL TANK FARM"
           icon={<ExperimentOutlined />}
-          title="ถังเก็บน้ำมัน"
-          subtitle="ความจุและยอดคงเหลือรายถัง · วัดระดับจริงเทียบกับยอดในระบบ · รายงานยอดรายวัน/รายเดือน"
+          title={tr("ถังเก็บน้ำมัน")}
+          subtitle={tr("ความจุและยอดคงเหลือรายถัง · วัดระดับจริงเทียบกับยอดในระบบ · รายงานยอดรายวัน/รายเดือน")}
           actions={
             <>
 {canAdd ? (
-            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>เพิ่มถัง</Button>
+            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>{tr("เพิ่มถัง")}</Button>
           ) : <div />}
             </>
           }
@@ -118,12 +122,12 @@ export default function TanksPage() {
             items={[
               {
                 key: "tanks",
-                label: "ถัง",
+                label: tr("ถัง"),
                 children: (
-                  <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={tanks} loading={query.isFetching} pagination={false} scroll={{ x: 1100 }} locale={{ emptyText: "ยังไม่มีถัง — กด เพิ่มถัง" }} />
+                  <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={tanks} loading={query.isFetching} pagination={false} scroll={{ x: 1100 }} locale={{ emptyText: tr("ยังไม่มีถัง — กด เพิ่มถัง") }} />
                 ),
               },
-              { key: "report", label: "รายงานยอดรายถัง", children: <TankBalanceReportTab /> },
+              { key: "report", label: tr("รายงานยอดรายถัง"), children: <TankBalanceReportTab /> },
             ]}
           />
         </div>

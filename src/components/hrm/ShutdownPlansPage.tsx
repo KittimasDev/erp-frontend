@@ -11,6 +11,8 @@ import {
   useShutdownPlansQuery,
   useUpdateShutdownPlanMutation,
 } from "@/hooks/shutdown-plans/useShutdownPlans";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type { CreateShutdownPlanRequest, ShutdownPlan } from "@/types/shutdown-plans";
 import styles from "@/components/masters/shared/master-page.module.css";
 
@@ -23,6 +25,8 @@ type StatusFilter = "ACTIVE" | "CANCELLED" | "ALL";
 
 /** หน้า /hrm/shutdown-plans — แผนกำลังคนช่วง Shutdown แยกจากตารางกะปกติ */
 export default function ShutdownPlansPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<StatusFilter>("ACTIVE");
   const [formOpen, setFormOpen] = useState(false);
@@ -67,14 +71,14 @@ export default function ShutdownPlansPage() {
 
   const columns: ColumnsType<ShutdownPlan> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "ชื่อแผน",
+      title: t("ชื่อแผน"),
       key: "name",
       render: (_v, row) => (
         <button
@@ -87,30 +91,30 @@ export default function ShutdownPlansPage() {
       ),
     },
     {
-      title: "ช่วงวันที่",
+      title: t("ช่วงวันที่"),
       key: "range",
       width: 230,
-      render: (_v, row) => `${formatBeRange(row.dateFrom, row.dateTo)} (${row.dayCount} วัน)`,
+      render: (_v, row) => `${formatBeRange(row.dateFrom, row.dateTo, lang)} (${t("{n} วัน", { n: row.dayCount })})`,
     },
     {
-      title: "กำลังคนต่อวัน",
+      title: t("กำลังคนต่อวัน"),
       key: "headcount",
       width: 170,
       render: (_v, row) =>
         row.requiredHeadcount === 0 ? (
-          <Tag>ยังไม่ระบุความต้องการ</Tag>
+          <Tag>{t("ยังไม่ระบุความต้องการ")}</Tag>
         ) : row.shortageHeadcount > 0 ? (
           <Tag color="red">
-            {row.assignedHeadcount}/{row.requiredHeadcount} · ขาด {row.shortageHeadcount}
+            {row.assignedHeadcount}/{row.requiredHeadcount} · {t("ขาด {n}", { n: row.shortageHeadcount })}
           </Tag>
         ) : (
           <Tag color="green">
-            {row.assignedHeadcount}/{row.requiredHeadcount} · ครบ
+            {row.assignedHeadcount}/{row.requiredHeadcount} · {t("ครบ")}
           </Tag>
         ),
     },
     {
-      title: "คำเตือน",
+      title: t("คำเตือน"),
       key: "warnings",
       width: 100,
       align: "center",
@@ -122,11 +126,15 @@ export default function ShutdownPlansPage() {
         ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 110,
       render: (_v, row) =>
-        row.status === "ACTIVE" ? <Tag color="green">ใช้งาน</Tag> : <Tag>ยกเลิก</Tag>,
+        row.status === "ACTIVE" ? (
+          <Tag color="green">{t("ใช้งาน")}</Tag>
+        ) : (
+          <Tag>{lang === "en" ? "Cancelled" : "ยกเลิก"}</Tag>
+        ),
     },
     {
       title: "",
@@ -142,7 +150,7 @@ export default function ShutdownPlansPage() {
               setFormOpen(true);
             }}
           >
-            แก้ไข
+            {t("แก้ไข")}
           </Button>
         ) : null,
     },
@@ -154,12 +162,14 @@ export default function ShutdownPlansPage() {
         <PageHeader
           eyebrow="HRM · SHUTDOWN"
           icon={<ToolOutlined />}
-          title="แผนกำลังคนช่วง Shutdown"
-          subtitle="วางกำลังคนช่วงหยุดเดินเครื่อง แยกจากตารางกะปกติ · สร้างแผนแล้วระบบลงวัน &quot;ซ่อมเครื่อง&quot; ในปฏิทินให้"
+          title={t("แผนกำลังคนช่วง Shutdown")}
+          subtitle={t(
+            "วางกำลังคนช่วงหยุดเดินเครื่อง แยกจากตารางกะปกติ · สร้างแผนแล้วระบบลงวัน \"ซ่อมเครื่อง\" ในปฏิทินให้",
+          )}
           actions={
             <>
 <Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
-            สร้างแผน Shutdown
+            {t("สร้างแผน Shutdown")}
           </Button>
             </>
           }
@@ -168,17 +178,17 @@ export default function ShutdownPlansPage() {
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>
             <div>
-              <h3>รายการแผน</h3>
-              <p>กดชื่อแผนเพื่อกำหนดผู้ทำงานและดูคำเตือน</p>
+              <h3>{t("รายการแผน")}</h3>
+              <p>{t("กดชื่อแผนเพื่อกำหนดผู้ทำงานและดูคำเตือน")}</p>
             </div>
             <Select<StatusFilter>
               value={status}
               style={{ width: 160 }}
               onChange={setStatus}
               options={[
-                { value: "ACTIVE", label: "ใช้งาน" },
-                { value: "CANCELLED", label: "ยกเลิกแล้ว" },
-                { value: "ALL", label: "ทั้งหมด" },
+                { value: "ACTIVE", label: t("ใช้งาน") },
+                { value: "CANCELLED", label: t("ยกเลิกแล้ว") },
+                { value: "ALL", label: t("ทั้งหมด") },
               ]}
             />
           </div>
@@ -188,9 +198,9 @@ export default function ShutdownPlansPage() {
             columns={columns}
             dataSource={plans}
             loading={plansQuery.isFetching}
-            pagination={{ pageSize: 20, showTotal: (total) => `ทั้งหมด ${total} แผน` }}
+            pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} แผน", { n: total }) }}
             scroll={{ x: 900 }}
-            locale={{ emptyText: "ยังไม่มีแผน Shutdown — กด สร้างแผน Shutdown" }}
+            locale={{ emptyText: t("ยังไม่มีแผน Shutdown — กด สร้างแผน Shutdown") }}
           />
         </div>
 

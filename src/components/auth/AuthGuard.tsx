@@ -11,6 +11,7 @@ import { redirectToLogin } from "@/lib/auth/redirect-to-login";
 import { clearStoredPermissions } from "@/lib/auth/permissions-access";
 import { resolveScreenCodesForPath } from "@/lib/auth/screen-routes";
 import { hasAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 
 type AuthGuardProps = {
   children: ReactNode;
@@ -24,6 +25,7 @@ type AuthGuardProps = {
  * ยิงใหม่ทั้งชุดทุกครั้ง
  */
 export default function AuthGuard({ children }: AuthGuardProps) {
+  const t = useT();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const meQuery = useMeQuery();
@@ -44,7 +46,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   // ยังไม่มีข้อมูลสิทธิ์ = ห้ามปล่อยผ่าน (default-deny) แสดง loading จนกว่าจะรู้ผล
   if (!hasToken || failed || !me || !perms) {
-    return <PageLoading label="กำลังตรวจสอบสิทธิ์..." />;
+    return <PageLoading label={t("กำลังตรวจสอบสิทธิ์...")} />;
   }
 
   const screenCodes = resolveScreenCodesForPath(pathname, searchParams);

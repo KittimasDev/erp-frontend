@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { createItem } from "@/lib/api/items";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -12,6 +14,7 @@ import { itemsQueryKey } from "./useItemsQuery";
 export function useCreateItemMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "items", "create"],
@@ -19,11 +22,11 @@ export function useCreateItemMutation() {
       createItem(getAccessToken(), payload),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: itemsQueryKey });
-      message.success(response.message || "สร้างสินค้าสำเร็จแล้ว");
+      message.success(response.message || t("สร้างสินค้าสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างสินค้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างสินค้าไม่สำเร็จ"),
       );
     },
   });

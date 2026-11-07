@@ -9,6 +9,7 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCreateMaterialConversionJobMutation } from "@/hooks/material-conversions/useMaterialConversionJobs";
 import { useMaterialConversionRoutesQuery } from "@/hooks/material-conversions/useMaterialConversionQueries";
+import { useT } from "@/lib/i18n/useT";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./MaterialConversionPage.module.css";
 
@@ -28,6 +29,7 @@ type FormValues = {
  * ข้อมูลจริงของแต่ละขั้นกรอกทีหลังในหน้าใบงาน ตามวันที่ทำงานจริงของขั้นนั้น
  */
 export default function MaterialConversionJobCreatePage() {
+  const t = useT();
   const router = useRouter();
   const actions = useScreenActionPermissions("MATERIAL_CONVERSIONS");
   const createMutation = useCreateMaterialConversionJobMutation();
@@ -74,13 +76,13 @@ export default function MaterialConversionJobCreatePage() {
               PRODUCTION · MATERIAL CONVERSION JOB
             </div>
             <h2 className={masterStyles.pageTitle}>
-              เปิดใบงานแปรสภาพตามเส้นทาง
+              {t("เปิดใบงานแปรสภาพตามเส้นทาง")}
             </h2>
             <span className={masterStyles.pageSubtitle}>
-              เปิดใบเดียวคุมทั้งสาย แล้วทยอยกรอกทีละขั้นตามวันที่ทำงานจริง
+              {t("เปิดใบเดียวคุมทั้งสาย แล้วทยอยกรอกทีละขั้นตามวันที่ทำงานจริง")}
             </span>
           </div>
-          <Button onClick={() => router.push(ROUTE_BASE)}>กลับ</Button>
+          <Button onClick={() => router.push(ROUTE_BASE)}>{t("กลับ")}</Button>
         </div>
 
         {!actions.canAdd ? (
@@ -88,8 +90,8 @@ export default function MaterialConversionJobCreatePage() {
             className={styles.notice}
             type="warning"
             showIcon
-            title="ไม่มีสิทธิ์เปิดใบงาน"
-            description="บัญชีนี้ยังไม่ได้รับสิทธิ์เพิ่มใบแปรสภาพวัตถุดิบ กรุณาติดต่อผู้ดูแลระบบ"
+            title={t("ไม่มีสิทธิ์เปิดใบงาน")}
+            description={t("บัญชีนี้ยังไม่ได้รับสิทธิ์เพิ่มใบแปรสภาพวัตถุดิบ กรุณาติดต่อผู้ดูแลระบบ")}
           />
         ) : null}
 
@@ -103,21 +105,21 @@ export default function MaterialConversionJobCreatePage() {
           <div className={styles.formCard}>
             <div className={styles.formSection}>
               <div className={styles.formSectionHead}>
-                <h4>ข้อมูลใบงาน</h4>
+                <h4>{t("ข้อมูลใบงาน")}</h4>
                 <span className={styles.formSectionHint}>
-                  ยังไม่แตะสต๊อกและยังไม่สร้างเอกสารขั้นตอนใด ๆ
+                  {t("ยังไม่แตะสต๊อกและยังไม่สร้างเอกสารขั้นตอนใด ๆ")}
                 </span>
               </div>
               <div className={styles.formGrid}>
                 <Form.Item
                   name="routeId"
-                  label="เส้นทางแปรสภาพ"
-                  rules={[{ required: true, message: "เลือกเส้นทาง" }]}
+                  label={t("เส้นทางแปรสภาพ")}
+                  rules={[{ required: true, message: t("เลือกเส้นทาง") }]}
                 >
                   <Select
                     showSearch
                     optionFilterProp="label"
-                    placeholder="เลือกเส้นทาง เช่น ขั้นตอนเตรียมยาง"
+                    placeholder={t("เลือกเส้นทาง เช่น ขั้นตอนเตรียมยาง")}
                     loading={routesQuery.isFetching}
                     options={routes.map((route) => ({
                       value: route.id,
@@ -129,24 +131,24 @@ export default function MaterialConversionJobCreatePage() {
                   name="batchNo"
                   label="Batch"
                   rules={[
-                    { required: true, message: "กรอกเลข Batch" },
+                    { required: true, message: t("กรอกเลข Batch") },
                     {
                       validator: async (_, value) => {
                         if (typeof value === "string" && !value.trim()) {
-                          return Promise.reject(new Error("กรอกเลข Batch"));
+                          return Promise.reject(new Error(t("กรอกเลข Batch")));
                         }
                       },
                     },
                   ]}
-                  extra="ระบบจะใส่เลขนี้ให้ทุกขั้นตอนเอง ไม่ต้องพิมพ์ซ้ำ"
+                  extra={t("ระบบจะใส่เลขนี้ให้ทุกขั้นตอนเอง ไม่ต้องพิมพ์ซ้ำ")}
                 >
-                  <Input placeholder="เช่น B-2609-01" maxLength={50} />
+                  <Input placeholder={t("เช่น B-2609-01")} maxLength={50} />
                 </Form.Item>
                 <Form.Item
                   name="plannedStartDate"
-                  label="วันที่เริ่มตามแผน"
-                  rules={[{ required: true, message: "เลือกวันที่" }]}
-                  extra="แต่ละขั้นยังบันทึกวันที่ทำงานของตัวเอง"
+                  label={t("วันที่เริ่มตามแผน")}
+                  rules={[{ required: true, message: t("เลือกวันที่") }]}
+                  extra={t("แต่ละขั้นยังบันทึกวันที่ทำงานของตัวเอง")}
                 >
                   <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                 </Form.Item>
@@ -161,7 +163,7 @@ export default function MaterialConversionJobCreatePage() {
                   className={styles.notice}
                   type="info"
                   showIcon
-                  title={`ใบงานนี้จะมี ${steps.length} ขั้นตอน`}
+                  title={t("ใบงานนี้จะมี {n} ขั้นตอน", { n: steps.length })}
                   description={
                     <div className={styles.outputChips}>
                       {steps.map((step) => (
@@ -176,24 +178,24 @@ export default function MaterialConversionJobCreatePage() {
             </div>
 
             <div className={styles.formSection}>
-              <Form.Item name="remark" label="หมายเหตุ">
+              <Form.Item name="remark" label={t("หมายเหตุ")}>
                 <Input.TextArea
                   rows={2}
                   maxLength={2000}
                   showCount
-                  placeholder="เช่น ยางล็อตนี้เปียก ต้องตากก่อนย่อย"
+                  placeholder={t("เช่น ยางล็อตนี้เปียก ต้องตากก่อนย่อย")}
                 />
               </Form.Item>
             </div>
 
             <div className={styles.formActions}>
-              <Button onClick={() => router.push(ROUTE_BASE)}>ยกเลิก</Button>
+              <Button onClick={() => router.push(ROUTE_BASE)}>{t("ยกเลิก")}</Button>
               <Button
                 type="primary"
                 htmlType="submit"
                 loading={createMutation.isPending}
               >
-                เปิดใบงาน
+                {t("เปิดใบงาน")}
               </Button>
             </div>
           </div>

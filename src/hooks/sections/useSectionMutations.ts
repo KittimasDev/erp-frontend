@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   createSection,
@@ -32,43 +34,46 @@ function errorText(error: Error, fallback: string) {
 export function useCreateSectionMutation() {
   const refresh = useRefresh();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationKey: ["master-data", "sections", "create"],
     mutationFn: (payload: CreateSectionRequest) =>
       createSection(getAccessToken(), payload),
     onSuccess: async (response) => {
       await refresh();
-      message.success(response.message || "สร้างแผนกย่อยสำเร็จแล้ว");
+      message.success(response.message || t("สร้างแผนกย่อยสำเร็จแล้ว"));
     },
-    onError: (error: Error) => message.error(errorText(error, "สร้างแผนกย่อยไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, t("สร้างแผนกย่อยไม่สำเร็จ"))),
   });
 }
 
 export function useUpdateSectionMutation() {
   const refresh = useRefresh();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationKey: ["master-data", "sections", "update"],
     mutationFn: ({ id, body }: { id: string; body: UpdateSectionRequest }) =>
       updateSection(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await refresh();
-      message.success(response.message || "แก้ไขแผนกย่อยสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขแผนกย่อยสำเร็จแล้ว"));
     },
-    onError: (error: Error) => message.error(errorText(error, "แก้ไขแผนกย่อยไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, t("แก้ไขแผนกย่อยไม่สำเร็จ"))),
   });
 }
 
 export function useDeleteSectionMutation() {
   const refresh = useRefresh();
   const { message } = App.useApp();
+  const t = useT();
   return useMutation({
     mutationKey: ["master-data", "sections", "delete"],
     mutationFn: (id: string) => deleteSection(getAccessToken(), id),
     onSuccess: async (response) => {
       await refresh();
-      message.success(response.message || "ลบแผนกย่อยสำเร็จแล้ว");
+      message.success(response.message || t("ลบแผนกย่อยสำเร็จแล้ว"));
     },
-    onError: (error: Error) => message.error(errorText(error, "ลบแผนกย่อยไม่สำเร็จ")),
+    onError: (error: Error) => message.error(errorText(error, t("ลบแผนกย่อยไม่สำเร็จ"))),
   });
 }

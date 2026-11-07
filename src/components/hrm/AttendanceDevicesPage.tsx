@@ -20,6 +20,7 @@ import type { ColumnsType } from "antd/es/table";
 import { CopyOutlined, PlusOutlined, ScanOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
   useAttendanceDeviceEventsQuery,
@@ -61,6 +62,7 @@ type CreateValues = { code: string; name: string; location?: string };
 /** หน้า /hrm/attendance-devices — ลงทะเบียนเครื่องสแกนนิ้ว/RFID (ได้ API key) และดู log สแกนดิบ */
 export default function AttendanceDevicesPage() {
   const { message } = App.useApp();
+  const t = useT();
   const [createOpen, setCreateOpen] = useState(false);
   const [issued, setIssued] = useState<AttendanceDeviceWithKey | null>(null);
   const [eventStatus, setEventStatus] = useState<string>();
@@ -75,9 +77,9 @@ export default function AttendanceDevicesPage() {
   const copyKey = async (key: string) => {
     try {
       await navigator.clipboard.writeText(key);
-      message.success("คัดลอก API key แล้ว");
+      message.success(t("คัดลอก API key แล้ว"));
     } catch {
-      message.error("คัดลอกไม่สำเร็จ — เลือกข้อความแล้วคัดลอกเอง");
+      message.error(t("คัดลอกไม่สำเร็จ — เลือกข้อความแล้วคัดลอกเอง"));
     }
   };
 
@@ -97,14 +99,14 @@ export default function AttendanceDevicesPage() {
 
   const deviceColumns: ColumnsType<AttendanceDevice> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
     {
-      title: "เครื่อง",
+      title: t("เครื่อง"),
       key: "name",
       render: (_v, d) => (
         <div>
@@ -116,9 +118,9 @@ export default function AttendanceDevicesPage() {
       ),
     },
     { title: "API key", key: "prefix", width: 150, render: (_v, d) => <code>{d.keyPrefix}…</code> },
-    { title: "ส่งข้อมูลล่าสุด", key: "seen", width: 180, render: (_v, d) => fmt(d.lastSeenAt) },
+    { title: t("ส่งข้อมูลล่าสุด"), key: "seen", width: 180, render: (_v, d) => fmt(d.lastSeenAt) },
     {
-      title: "ใช้งาน",
+      title: t("ใช้งาน"),
       key: "active",
       width: 100,
       render: (_v, d) => (
@@ -140,16 +142,16 @@ export default function AttendanceDevicesPage() {
       width: 140,
       render: (_v, d) => (
         <Popconfirm
-          title="ออก API key ใหม่?"
-          description="key เดิมของเครื่องนี้จะใช้ไม่ได้ทันที — ต้องตั้ง key ใหม่ในเครื่อง/ตัวกลาง"
-          okText="ออก key ใหม่"
-          cancelText="ยกเลิก"
+          title={t("ออก API key ใหม่?")}
+          description={t("key เดิมของเครื่องนี้จะใช้ไม่ได้ทันที — ต้องตั้ง key ใหม่ในเครื่อง/ตัวกลาง")}
+          okText={t("ออก key ใหม่")}
+          cancelText={t("ยกเลิก")}
           onConfirm={() =>
             rotate.mutate(d.id, { onSuccess: (res) => setIssued(res.data) })
           }
         >
           <Button size="small" loading={rotate.isPending && rotate.variables === d.id}>
-            หมุน key
+            {t("หมุน key")}
           </Button>
         </Popconfirm>
       ),
@@ -158,16 +160,16 @@ export default function AttendanceDevicesPage() {
 
   const eventColumns: ColumnsType<AttendanceDeviceEvent> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
-    { title: "เวลาสแกน", key: "scanned", width: 170, render: (_v, e) => fmt(e.scannedAt) },
-    { title: "เครื่อง", key: "device", width: 160, render: (_v, e) => e.deviceName ?? "—" },
+    { title: t("เวลาสแกน"), key: "scanned", width: 170, render: (_v, e) => fmt(e.scannedAt) },
+    { title: t("เครื่อง"), key: "device", width: 160, render: (_v, e) => e.deviceName ?? "—" },
     {
-      title: "พนักงาน",
+      title: t("พนักงาน"),
       key: "emp",
       render: (_v, e) => (
         <div>
@@ -176,14 +178,14 @@ export default function AttendanceDevicesPage() {
         </div>
       ),
     },
-    { title: "ทิศทาง", dataIndex: "direction", key: "direction", width: 90 },
+    { title: t("ทิศทาง"), dataIndex: "direction", key: "direction", width: 90 },
     {
-      title: "ผล",
+      title: t("ผล"),
       key: "status",
       width: 130,
-      render: (_v, e) => <Tag color={STATUS_COLOR[e.status]}>{DEVICE_SCAN_STATUS_LABEL[e.status]}</Tag>,
+      render: (_v, e) => <Tag color={STATUS_COLOR[e.status]}>{t(DEVICE_SCAN_STATUS_LABEL[e.status])}</Tag>,
     },
-    { title: "หมายเหตุ", key: "msg", render: (_v, e) => e.message ?? "" },
+    { title: t("หมายเหตุ"), key: "msg", render: (_v, e) => e.message ?? "" },
   ];
 
   return (
@@ -192,12 +194,12 @@ export default function AttendanceDevicesPage() {
         <PageHeader
           eyebrow="HRM · FINGER SCAN / RFID"
           icon={<ScanOutlined />}
-          title="เครื่องสแกนนิ้ว / RFID"
-          subtitle="ลงทะเบียนเครื่องแล้วให้เครื่อง/ตัวกลางยิงสแกนเข้าระบบ — ลงเวลาเข้า-ออกงานให้อัตโนมัติ"
+          title={t("เครื่องสแกนนิ้ว / RFID")}
+          subtitle={t("ลงทะเบียนเครื่องแล้วให้เครื่อง/ตัวกลางยิงสแกนเข้าระบบ — ลงเวลาเข้า-ออกงานให้อัตโนมัติ")}
           actions={
             <>
 <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            ลงทะเบียนเครื่อง
+            {t("ลงทะเบียนเครื่อง")}
           </Button>
             </>
           }
@@ -207,13 +209,12 @@ export default function AttendanceDevicesPage() {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          title="วิธีเชื่อมต่อ"
+          title={t("วิธีเชื่อมต่อ")}
           description={
             <div>
               <p style={{ margin: "0 0 6px" }}>
-                เครื่องต้องลงทะเบียนนิ้ว/บัตรด้วย <strong>รหัสพนักงาน</strong> ให้ตรงกับรหัสพนักงานในระบบ
-                (ไม่ตรง = ขึ้น &quot;ไม่พบพนักงาน&quot; ใน log) · ส่งซ้ำได้ปลอดภัย (ระบบกันซ้ำจาก eventId หรือ รหัส+เวลา) ·
-                สแกนซ้ำของคนเดิมภายใน 60 วินาทีไม่ลงเวลาอีก · เครื่องไม่แยกเข้า/ออกให้ใช้ AUTO
+                {t("เครื่องต้องลงทะเบียนนิ้ว/บัตรด้วย")} <strong>{t("รหัสพนักงาน")}</strong>{" "}
+                {t("ให้ตรงกับรหัสพนักงานในระบบ (ไม่ตรง = ขึ้น \"ไม่พบพนักงาน\" ใน log) · ส่งซ้ำได้ปลอดภัย (ระบบกันซ้ำจาก eventId หรือ รหัส+เวลา) · สแกนซ้ำของคนเดิมภายใน 60 วินาทีไม่ลงเวลาอีก · เครื่องไม่แยกเข้า/ออกให้ใช้ AUTO")}
               </p>
               <pre style={{ margin: 0, fontSize: 12, whiteSpace: "pre-wrap" }}>{SAMPLE}</pre>
             </div>
@@ -225,7 +226,7 @@ export default function AttendanceDevicesPage() {
             items={[
               {
                 key: "devices",
-                label: "เครื่อง",
+                label: t("เครื่อง"),
                 children: (
                   <Table
                     rowKey="id"
@@ -235,25 +236,25 @@ export default function AttendanceDevicesPage() {
                     loading={devicesQuery.isFetching}
                     pagination={false}
                     scroll={{ x: 700 }}
-                    locale={{ emptyText: "ยังไม่มีเครื่อง — กด ลงทะเบียนเครื่อง" }}
+                    locale={{ emptyText: t("ยังไม่มีเครื่อง — กด ลงทะเบียนเครื่อง") }}
                   />
                 ),
               },
               {
                 key: "events",
-                label: "log การสแกน",
+                label: t("log การสแกน"),
                 children: (
                   <>
                     <div style={{ marginBottom: 8 }}>
                       <Select
                         allowClear
-                        placeholder="ทุกผลลัพธ์"
+                        placeholder={t("ทุกผลลัพธ์")}
                         style={{ width: 200 }}
                         value={eventStatus}
                         onChange={setEventStatus}
                         options={(Object.keys(DEVICE_SCAN_STATUS_LABEL) as DeviceScanStatus[]).map((k) => ({
                           value: k,
-                          label: DEVICE_SCAN_STATUS_LABEL[k],
+                          label: t(DEVICE_SCAN_STATUS_LABEL[k]),
                         }))}
                       />
                     </div>
@@ -265,7 +266,7 @@ export default function AttendanceDevicesPage() {
                       loading={eventsQuery.isFetching}
                       pagination={{ pageSize: 20 }}
                       scroll={{ x: 800 }}
-                      locale={{ emptyText: "ยังไม่มีการสแกนเข้าระบบ" }}
+                      locale={{ emptyText: t("ยังไม่มีการสแกนเข้าระบบ") }}
                     />
                   </>
                 ),
@@ -276,9 +277,9 @@ export default function AttendanceDevicesPage() {
 
         <Modal
           open={createOpen}
-          title="ลงทะเบียนเครื่อง"
-          okText="ลงทะเบียน"
-          cancelText="ยกเลิก"
+          title={t("ลงทะเบียนเครื่อง")}
+          okText={t("ลงทะเบียน")}
+          cancelText={t("ยกเลิก")}
           confirmLoading={create.isPending}
           onCancel={() => setCreateOpen(false)}
           onOk={submit}
@@ -287,18 +288,18 @@ export default function AttendanceDevicesPage() {
           <Form form={form} layout="vertical" preserve={false}>
             <Form.Item
               name="code"
-              label="รหัสเครื่อง"
+              label={t("รหัสเครื่อง")}
               rules={[
-                { required: true, message: "ใส่รหัสเครื่อง" },
-                { pattern: /^[A-Za-z0-9_-]{1,50}$/, message: "ใช้ได้เฉพาะ A-Z a-z 0-9 _ -" },
+                { required: true, message: t("ใส่รหัสเครื่อง") },
+                { pattern: /^[A-Za-z0-9_-]{1,50}$/, message: t("ใช้ได้เฉพาะ A-Z a-z 0-9 _ -") },
               ]}
             >
-              <Input placeholder="เช่น GATE-1" maxLength={50} />
+              <Input placeholder={t("เช่น GATE-1")} maxLength={50} />
             </Form.Item>
-            <Form.Item name="name" label="ชื่อเครื่อง" rules={[{ required: true, whitespace: true, message: "ใส่ชื่อเครื่อง" }]}>
-              <Input maxLength={200} placeholder="เช่น เครื่องสแกนนิ้ว ประตูโรงงาน" />
+            <Form.Item name="name" label={t("ชื่อเครื่อง")} rules={[{ required: true, whitespace: true, message: t("ใส่ชื่อเครื่อง") }]}>
+              <Input maxLength={200} placeholder={t("เช่น เครื่องสแกนนิ้ว ประตูโรงงาน")} />
             </Form.Item>
-            <Form.Item name="location" label="ที่ตั้ง">
+            <Form.Item name="location" label={t("ที่ตั้ง")}>
               <Input maxLength={200} />
             </Form.Item>
           </Form>
@@ -306,16 +307,16 @@ export default function AttendanceDevicesPage() {
 
         <Modal
           open={Boolean(issued)}
-          title={`API key ของเครื่อง ${issued?.code ?? ""}`}
+          title={t("API key ของเครื่อง {code}", { code: issued?.code ?? "" })}
           onCancel={() => setIssued(null)}
-          footer={<Button type="primary" onClick={() => setIssued(null)}>เก็บ key แล้ว ปิด</Button>}
+          footer={<Button type="primary" onClick={() => setIssued(null)}>{t("เก็บ key แล้ว ปิด")}</Button>}
           mask={{ closable: false }}
         >
           <Alert
             type="warning"
             showIcon
             style={{ marginBottom: 12 }}
-            title="แสดงครั้งเดียวเท่านั้น — ปิดหน้าต่างนี้แล้วดูซ้ำไม่ได้ (ทำได้แค่ออก key ใหม่)"
+            title={t("แสดงครั้งเดียวเท่านั้น — ปิดหน้าต่างนี้แล้วดูซ้ำไม่ได้ (ทำได้แค่ออก key ใหม่)")}
           />
           <Input.TextArea readOnly autoSize value={issued?.apiKey} onFocus={(e) => e.target.select()} />
           <Button
@@ -323,7 +324,7 @@ export default function AttendanceDevicesPage() {
             icon={<CopyOutlined />}
             onClick={() => issued && void copyKey(issued.apiKey)}
           >
-            คัดลอก
+            {t("คัดลอก")}
           </Button>
         </Modal>
       </section>

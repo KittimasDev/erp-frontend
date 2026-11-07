@@ -28,6 +28,7 @@ import { getPayablePurchaseOrders } from "@/lib/api/payable-purchase-orders";
 import { fetchAllReportRows } from "@/lib/api/sales-reports";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import {
   PAYABLE_ITEM_STATUS_COLOR,
   PAYABLE_ITEM_STATUS_LABEL,
@@ -57,6 +58,7 @@ const emptySummary = { unpaid: 0, partial: 0, paid: 0, overdue: 0 };
 export default function PayablePurchaseOrdersPage() {
   const router = useRouter();
   const { message } = App.useApp();
+  const t = useT();
   const [page, setPage] = useState(1);
 
   // draft filters
@@ -130,7 +132,10 @@ export default function PayablePurchaseOrdersPage() {
       );
       if (all.truncated) {
         message.warning(
-          `มี ${all.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ ${all.rows.length.toLocaleString("th-TH")} รายการแรก`,
+          t("มี {total} รายการ — ไฟล์มีเฉพาะ {shown} รายการแรก", {
+            total: all.total.toLocaleString("th-TH"),
+            shown: all.rows.length.toLocaleString("th-TH"),
+          }),
         );
       }
       const filters = [
@@ -151,7 +156,7 @@ export default function PayablePurchaseOrdersPage() {
         }),
       );
     } catch {
-      message.error("ส่งออกรายการจ่ายเงินไม่สำเร็จ");
+      message.error(t("ส่งออกรายการจ่ายเงินไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -159,21 +164,21 @@ export default function PayablePurchaseOrdersPage() {
 
   const columns: ColumnsType<PayablePurchaseOrder> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่ PO",
+      title: t("เลขที่ PO"),
       dataIndex: "poNo",
       width: 140,
       render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
     },
-    { title: "วันที่ PO", dataIndex: "poDate", width: 110, render: formatThaiDate },
+    { title: t("วันที่ PO"), dataIndex: "poDate", width: 110, render: formatThaiDate },
     {
-      title: "ผู้ขาย (Supplier)",
+      title: t("ผู้ขาย (Supplier)"),
       key: "creditor",
       width: 220,
       render: (_, row) =>
@@ -187,32 +192,32 @@ export default function PayablePurchaseOrdersPage() {
         ),
     },
     {
-      title: "เงื่อนไขการชำระเงิน",
+      title: t("เงื่อนไขการชำระเงิน"),
       key: "paymentTerm",
       width: 200,
       render: (_, row) =>
         row.paymentTerm ? (
           <Space orientation="vertical" size={0}>
             <Tag color={PAYMENT_TERM_TYPE_COLOR[row.paymentTerm.termType]}>
-              {PAYMENT_TERM_TYPE_LABEL[row.paymentTerm.termType] ?? row.paymentTerm.termType}
+              {t(PAYMENT_TERM_TYPE_LABEL[row.paymentTerm.termType] ?? row.paymentTerm.termType)}
             </Tag>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {describeTerm(row.paymentTerm)}
             </Typography.Text>
           </Space>
         ) : (
-          <Typography.Text type="secondary">ไม่ระบุเงื่อนไข</Typography.Text>
+          <Typography.Text type="secondary">{t("ไม่ระบุเงื่อนไข")}</Typography.Text>
         ),
     },
     {
-      title: "ยอดเงินตาม PO",
+      title: t("ยอดเงินตาม PO"),
       dataIndex: "totalAmount",
       width: 140,
       align: "right",
       render: (value: number) => money.format(value),
     },
     {
-      title: "ค่าใช้จ่ายเพิ่มเติม (ตั้งหนี้แล้ว / ทั้งหมด)",
+      title: t("ค่าใช้จ่ายเพิ่มเติม (ตั้งหนี้แล้ว / ทั้งหมด)"),
       key: "extraCharges",
       width: 210,
       align: "right",
@@ -222,7 +227,7 @@ export default function PayablePurchaseOrdersPage() {
             {money.format(row.extraChargesInvoiced)} / {money.format(row.extraChargesAmount)}
             {row.extraChargesRemaining > 0 ? (
               <Typography.Text type="warning" style={{ display: "block", fontSize: 12 }}>
-                ยังไม่ได้ตั้งหนี้ {money.format(row.extraChargesRemaining)}
+                {t("ยังไม่ได้ตั้งหนี้")} {money.format(row.extraChargesRemaining)}
               </Typography.Text>
             ) : null}
           </span>
@@ -231,14 +236,14 @@ export default function PayablePurchaseOrdersPage() {
         ),
     },
     {
-      title: "ยอดที่ต้องชำระตามเงื่อนไข",
+      title: t("ยอดที่ต้องชำระตามเงื่อนไข"),
       dataIndex: "amountDue",
       width: 170,
       align: "right",
       render: (value: number) => <Typography.Text strong>{money.format(value)}</Typography.Text>,
     },
     {
-      title: "วันครบกำหนดชำระ",
+      title: t("วันครบกำหนดชำระ"),
       key: "dueDate",
       width: 180,
       align: "center",
@@ -246,7 +251,7 @@ export default function PayablePurchaseOrdersPage() {
         const aps = row.apDueDates ?? [];
         if (aps.length === 0) {
           return (
-            <Tooltip title="ประมาณการจากเงื่อนไขใน PO (ยังไม่มีใบตั้งหนี้)">
+            <Tooltip title={t("ประมาณการจากเงื่อนไขใน PO (ยังไม่มีใบตั้งหนี้)")}>
               <span>{formatThaiDate(row.dueDate)}</span>
             </Tooltip>
           );
@@ -273,7 +278,7 @@ export default function PayablePurchaseOrdersPage() {
             <span>
               {formatThaiDate(row.dueDate)}
               <Typography.Text type="secondary" style={{ display: "block", fontSize: 11 }}>
-                {aps.length} ใบตั้งหนี้
+                {t("{n} ใบตั้งหนี้", { n: aps.length })}
               </Typography.Text>
             </span>
           </Tooltip>
@@ -281,12 +286,12 @@ export default function PayablePurchaseOrdersPage() {
       },
     },
     {
-      title: "สถานะรายการ",
+      title: t("สถานะรายการ"),
       dataIndex: "payableStatus",
       width: 140,
       render: (value: PayableItemStatus) => (
         <Tag color={PAYABLE_ITEM_STATUS_COLOR[value] ?? "default"}>
-          {PAYABLE_ITEM_STATUS_LABEL[value] ?? value}
+          {t(PAYABLE_ITEM_STATUS_LABEL[value] ?? value)}
         </Tag>
       ),
     },
@@ -305,7 +310,7 @@ export default function PayablePurchaseOrdersPage() {
             router.push(`${DETAIL_BASE_PATH}/${row.id}`);
           }}
         >
-          ดูรายละเอียด
+          {t("ดูรายละเอียด")}
         </Button>
       ),
     },
@@ -316,8 +321,10 @@ export default function PayablePurchaseOrdersPage() {
       <PageHeader
         eyebrow="FINANCE · PAYABLES"
         icon={<FileTextOutlined />}
-        title="รายการจ่ายเงิน"
-        subtitle="ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้ (แสดงวันเร็วสุดถ้ามีหลายใบ) · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ"
+        title={t("รายการจ่ายเงิน")}
+        subtitle={t(
+          "ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้ (แสดงวันเร็วสุดถ้ามีหลายใบ) · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ",
+        )}
         actions={
           <>
 <ReportExportButtons
@@ -332,51 +339,51 @@ export default function PayablePurchaseOrdersPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.UNPAID}</span>
+          <span className={styles.statLabel}>{t(PAYABLE_ITEM_STATUS_LABEL.UNPAID)}</span>
           <span className={styles.statValue}>{summary.unpaid.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.PARTIAL}</span>
+          <span className={styles.statLabel}>{t(PAYABLE_ITEM_STATUS_LABEL.PARTIAL)}</span>
           <span className={styles.statValue}>{summary.partial.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.PAID}</span>
+          <span className={styles.statLabel}>{t(PAYABLE_ITEM_STATUS_LABEL.PAID)}</span>
           <span className={styles.statValue}>{summary.paid.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.OVERDUE}</span>
+          <span className={styles.statLabel}>{t(PAYABLE_ITEM_STATUS_LABEL.OVERDUE)}</span>
           <span className={styles.statValue}>{summary.overdue.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterRow}>
           <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-            <label>ค้นหาเลขที่ PO</label>
+            <label>{t("ค้นหาเลขที่ PO")}</label>
             <Input
               allowClear
-              placeholder="เลขที่ PO / รหัส / ชื่อผู้ขาย"
+              placeholder={t("เลขที่ PO / รหัส / ชื่อผู้ขาย")}
               value={dSearch}
               onChange={(event) => setDSearch(event.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ผู้ขาย (Supplier)</label>
+            <label>{t("ผู้ขาย (Supplier)")}</label>
             <Input
               allowClear
-              placeholder="รหัสหรือชื่อผู้ขาย"
+              placeholder={t("รหัสหรือชื่อผู้ขาย")}
               value={dSupplier}
               onChange={(event) => setDSupplier(event.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่ PO</label>
+            <label>{t("ช่วงวันที่ PO")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
@@ -387,38 +394,38 @@ export default function PayablePurchaseOrdersPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>เงื่อนไขการชำระเงิน</label>
+            <label>{t("เงื่อนไขการชำระเงิน")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dTermType}
               onChange={setDTermType}
               options={(Object.keys(TERM_TYPE_FILTER_LABEL) as PayableTermTypeFilter[]).map(
-                (value) => ({ value, label: TERM_TYPE_FILTER_LABEL[value] }),
+                (value) => ({ value, label: t(TERM_TYPE_FILTER_LABEL[value]) }),
               )}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะรายการ</label>
+            <label>{t("สถานะรายการ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dStatus}
               onChange={setDStatus}
               options={(Object.keys(PAYABLE_ITEM_STATUS_LABEL) as PayableItemStatus[]).map(
-                (value) => ({ value, label: PAYABLE_ITEM_STATUS_LABEL[value] }),
+                (value) => ({ value, label: t(PAYABLE_ITEM_STATUS_LABEL[value]) }),
               )}
             />
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button
               type="primary"
               className={styles.searchBtn}
               icon={<SearchOutlined />}
               onClick={applySearch}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -427,11 +434,11 @@ export default function PayablePurchaseOrdersPage() {
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รายการจ่ายเงิน</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("รายการจ่ายเงิน")}</h3>
           </div>
           <span className={masterStyles.tableCount}>
-            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")} รายการ
+            {t("{n} รายการ", { n: (listQuery.data?.total ?? 0).toLocaleString("th-TH") })}
           </span>
         </div>
 
@@ -439,7 +446,7 @@ export default function PayablePurchaseOrdersPage() {
           <Typography.Text type="danger">
             {listQuery.error instanceof Error
               ? listQuery.error.message
-              : "โหลดรายการจ่ายเงินไม่สำเร็จ"}
+              : t("โหลดรายการจ่ายเงินไม่สำเร็จ")}
           </Typography.Text>
         ) : (
           <Table
@@ -457,9 +464,10 @@ export default function PayablePurchaseOrdersPage() {
               total: listQuery.data?.total ?? 0,
               onChange: setPage,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
+              showTotal: (total) =>
+                t("ทั้งหมด {n} รายการ", { n: total.toLocaleString("th-TH") }),
             }}
-            locale={{ emptyText: "ไม่มีใบสั่งซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
+            locale={{ emptyText: t("ไม่มีใบสั่งซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก") }}
             onRow={(record) => ({
               onClick: () => router.push(`${DETAIL_BASE_PATH}/${record.id}`),
               style: { cursor: "pointer" },

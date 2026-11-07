@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -157,6 +160,8 @@ function buildSearchFromForm(values: SellerFilterFormValues): URLSearchParams {
 }
 
 export default function SellersPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -273,7 +278,7 @@ export default function SellersPage() {
 
   const columns: ColumnsType<Seller> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -284,7 +289,7 @@ export default function SellersPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "sellerCode",
       key: "sellerCode",
       width: 130,
@@ -293,7 +298,7 @@ export default function SellersPage() {
       ),
     },
     {
-      title: "ชื่อผู้ขาย",
+      title: t("ชื่อผู้ขาย"),
       dataIndex: "sellerName",
       key: "sellerName",
       render: (value: string) => (
@@ -303,7 +308,7 @@ export default function SellersPage() {
       ),
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "sellerTypeId",
       key: "sellerTypeId",
       width: 180,
@@ -314,7 +319,7 @@ export default function SellersPage() {
       ),
     },
     {
-      title: "โทรศัพท์",
+      title: t("โทรศัพท์"),
       dataIndex: "phone",
       key: "phone",
       width: 130,
@@ -323,7 +328,7 @@ export default function SellersPage() {
       ),
     },
     {
-      title: "ชำระเงิน",
+      title: t("ชำระเงิน"),
       dataIndex: "paymentMethod",
       key: "paymentMethod",
       width: 110,
@@ -332,7 +337,7 @@ export default function SellersPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -341,53 +346,53 @@ export default function SellersPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 170,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.sellerCode}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.sellerCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => openEditModal(record),
             },
             "divider",
             {
               key: "delete",
               icon: <DeleteOutlined />,
-              label: "ลบ",
+              label: t("ลบ"),
               danger: true,
               onClick: () => deleteMutation.mutate(record.id),
               confirm: {
-                title: "ลบผู้ขาย",
-                content: `ต้องการลบ "${record.sellerCode}" หรือไม่?`,
-                okText: "ลบ",
-                cancelText: "ยกเลิก",
+                title: t("ลบผู้ขาย"),
+                content: t('ต้องการลบ "{code}" หรือไม่?', { code: record.sellerCode }),
+                okText: t("ลบ"),
+                cancelText: t("ยกเลิก"),
               },
             },
           ]}
@@ -401,8 +406,8 @@ export default function SellersPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="ผู้ขายยาง"
-        subtitle="จัดการข้อมูลผู้ขายยางรถยนต์ใช้แล้ว ติดต่อ และวิธีชำระเงิน"
+        title={t("ผู้ขายยาง")}
+        subtitle={t("จัดการข้อมูลผู้ขายยางรถยนต์ใช้แล้ว ติดต่อ และวิธีชำระเงิน")}
         actions={
           <>
 <Button
@@ -412,7 +417,7 @@ export default function SellersPage() {
           icon={<PlusOutlined />}
           onClick={openCreateModal}
         >
-          เพิ่มผู้ขาย
+          {t("เพิ่มผู้ขาย")}
         </Button>
           </>
         }
@@ -423,7 +428,7 @@ export default function SellersPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "ผู้ขายทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("ผู้ขายทั้งหมด")}
             </span>
             <strong>{sellers.length}</strong>
           </div>
@@ -432,7 +437,7 @@ export default function SellersPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -440,7 +445,7 @@ export default function SellersPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -450,13 +455,13 @@ export default function SellersPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาผู้ขายยาง</h3>
-            <p>กรองด้วยรหัส ชื่อ ประเภท โทรศัพท์ และสถานะ</p>
+            <h3>{t("ค้นหาผู้ขายยาง")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ ประเภท โทรศัพท์ และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -470,28 +475,28 @@ export default function SellersPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสผู้ขาย">
+              <Form.Item name="code" label={t("รหัสผู้ขาย")}>
                 <Input
                   allowClear
-                  placeholder="เช่น SELL"
+                  placeholder={t("เช่น SELL")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อผู้ขาย">
-                <Input allowClear placeholder="เช่น รับซื้อยาง" />
+              <Form.Item name="name" label={t("ชื่อผู้ขาย")}>
+                <Input allowClear placeholder={t("เช่น รับซื้อยาง")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="sellerTypeId" label="ประเภทผู้ขาย">
+              <Form.Item name="sellerTypeId" label={t("ประเภทผู้ขาย")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   loading={sellerTypesQuery.isLoading}
                   options={sellerTypeOptions}
                 />
@@ -499,35 +504,35 @@ export default function SellersPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="phone" label="เบอร์โทรศัพท์">
-                <Input allowClear placeholder="เช่น 081" />
+              <Form.Item name="phone" label={t("เบอร์โทรศัพท์")}>
+                <Input allowClear placeholder={t("เช่น 081")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="taxId" label="เลขประจำตัวผู้เสียภาษี">
-                <Input allowClear placeholder="เช่น 1234" />
+              <Form.Item name="taxId" label={t("เลขประจำตัวผู้เสียภาษี")}>
+                <Input allowClear placeholder={t("เช่น 1234")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="paymentMethod" label="วิธีชำระเงิน">
+              <Form.Item name="paymentMethod" label={t("วิธีชำระเงิน")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={PAYMENT_METHOD_OPTIONS}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
@@ -542,7 +547,7 @@ export default function SellersPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -550,7 +555,7 @@ export default function SellersPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -563,15 +568,15 @@ export default function SellersPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>SELLER MANAGEMENT</div>
-            <h3>รายการผู้ขายยาง</h3>
+            <h3>{t("รายการผู้ขายยาง")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลผู้ขายยางทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลผู้ขายยางทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{sellers.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: sellers.length })}</div>
         </div>
 
         {sellersQuery.isError ? (
@@ -579,7 +584,7 @@ export default function SellersPage() {
             <Typography.Text type="danger">
               {sellersQuery.error instanceof Error
                 ? sellersQuery.error.message
-                : "โหลดข้อมูลผู้ขายไม่สำเร็จ"}
+                : t("โหลดข้อมูลผู้ขายไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -593,14 +598,14 @@ export default function SellersPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {total} รายการ", { total }),
               onChange: setPage,
             }}
             scroll={{ x: 1160 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบผู้ขายตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลผู้ขาย",
+                ? t("ไม่พบผู้ขายตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลผู้ขาย"),
             }}
           />
         )}

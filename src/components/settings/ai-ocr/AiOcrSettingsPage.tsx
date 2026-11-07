@@ -31,6 +31,8 @@ import {
   AI_OCR_SUGGESTED_MODELS,
   type UpdateAiOcrSettingsRequest,
 } from "@/types/ai-ocr-settings";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./AiOcrSettingsPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -49,17 +51,19 @@ const STATUS_TAG: Record<string, { color: string; label: string }> = {
   COOLDOWN: { color: "orange", label: "พักการเรียกชั่วคราว (โควต้าเต็ม)" },
 };
 
-function formatDateTime(value?: string | null): string {
+function formatDateTime(value: string | null | undefined, lang: string): string {
   if (!value) {
     return "—";
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "—"
-    : date.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+    : date.toLocaleString(lang === "en" ? "en-GB" : "th-TH", { dateStyle: "medium", timeStyle: "short" });
 }
 
 export default function AiOcrSettingsPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const settingsQuery = useAiOcrSettingsQuery();
   const updateSettings = useUpdateAiOcrSettingsMutation();
@@ -107,36 +111,23 @@ export default function AiOcrSettingsPage() {
         <PageHeader
           eyebrow="SETTINGS · AI OCR"
           icon={<RobotOutlined />}
-          title="ตั้งค่า AI อ่านเอกสาร"
-          subtitle="ให้ AI ช่วยอ่านค่าจากรูปใบชั่ง — อ่านไม่ได้เมื่อไหร่ระบบถอยไปใช้ตัวอ่านในเครื่องให้เอง"
+          title={t("ตั้งค่า AI อ่านเอกสาร")}
+          subtitle={t("ให้ AI ช่วยอ่านค่าจากรูปใบชั่ง — อ่านไม่ได้เมื่อไหร่ระบบถอยไปใช้ตัวอ่านในเครื่องให้เอง")}
         />
 
         <Alert
           type="info"
           showIcon
-          title="รูปใบชั่งจะถูกส่งออกไปนอกบริษัท"
-          description={
-            "เปิดสวิตช์นี้แล้ว รูปใบชั่งทุกใบที่สแกนจะถูกส่งไปยังบริการของ Google เพื่ออ่านค่า " +
-            "ซึ่งบนใบมีชื่อผู้ขาย ทะเบียนรถ ราคาต่อกิโล และยอดเงิน · " +
-            "เงื่อนไขของแพ็กเกจฟรีอนุญาตให้ผู้ให้บริการนำข้อมูลไปปรับปรุงผลิตภัณฑ์ได้ " +
-            "ต่างจากแพ็กเกจที่เสียเงิน — ถ้าข้อมูลชุดนี้ออกนอกบริษัทไม่ได้ ให้ปิดสวิตช์ไว้"
-          }
+          title={t("รูปใบชั่งจะถูกส่งออกไปนอกบริษัท")}
+          description={t("เปิดสวิตช์นี้แล้ว รูปใบชั่งทุกใบที่สแกนจะถูกส่งไปยังบริการของ Google เพื่ออ่านค่า ซึ่งบนใบมีชื่อผู้ขาย ทะเบียนรถ ราคาต่อกิโล และยอดเงิน · เงื่อนไขของแพ็กเกจฟรีอนุญาตให้ผู้ให้บริการนำข้อมูลไปปรับปรุงผลิตภัณฑ์ได้ ต่างจากแพ็กเกจที่เสียเงิน — ถ้าข้อมูลชุดนี้ออกนอกบริษัทไม่ได้ ให้ปิดสวิตช์ไว้")}
         />
 
         {masterKeyMissing ? (
           <Alert
             type="error"
             showIcon
-            title="เซิร์ฟเวอร์ยังตั้งค่ากุญแจสำหรับเข้ารหัสไม่ถูกต้อง"
-            description={
-              "ยังบันทึก API key ไม่ได้ จนกว่าผู้ดูแลระบบจะตั้ง SECRETS_ENCRYPTION_KEY " +
-              "ใน backend/.env แล้วรีสตาร์ท backend (แก้ .env อย่างเดียวไม่พอ ต้องรีสตาร์ท) · " +
-              "ค่านี้ต้องเป็นเลขฐานสิบหก 64 ตัว สร้างด้วยคำสั่ง openssl rand -hex 32 — " +
-              "ถ้าใส่ไว้แล้วยังขึ้นข้อความนี้ แปลว่ารูปแบบไม่ถูกต้อง · " +
-              "ย้ำว่า **นี่ไม่ใช่ API key ของ Gemini** แต่เป็นกุญแจของเซิร์ฟเวอร์ที่ใช้เข้ารหัสคีย์ก่อนเก็บ " +
-              "ส่วน API key ของ Gemini ให้วางในช่องด้านล่างหน้านี้ · " +
-              "ระหว่างนี้การอ่านใบชั่งยังใช้ตัวอ่านในเครื่องได้ตามปกติ"
-            }
+            title={t("เซิร์ฟเวอร์ยังตั้งค่ากุญแจสำหรับเข้ารหัสไม่ถูกต้อง")}
+            description={t("ยังบันทึก API key ไม่ได้ จนกว่าผู้ดูแลระบบจะตั้ง SECRETS_ENCRYPTION_KEY ใน backend/.env แล้วรีสตาร์ท backend (แก้ .env อย่างเดียวไม่พอ ต้องรีสตาร์ท) · ค่านี้ต้องเป็นเลขฐานสิบหก 64 ตัว สร้างด้วยคำสั่ง openssl rand -hex 32 — ถ้าใส่ไว้แล้วยังขึ้นข้อความนี้ แปลว่ารูปแบบไม่ถูกต้อง · ย้ำว่า **นี่ไม่ใช่ API key ของ Gemini** แต่เป็นกุญแจของเซิร์ฟเวอร์ที่ใช้เข้ารหัสคีย์ก่อนเก็บ ส่วน API key ของ Gemini ให้วางในช่องด้านล่างหน้านี้ · ระหว่างนี้การอ่านใบชั่งยังใช้ตัวอ่านในเครื่องได้ตามปกติ")}
           />
         ) : null}
 
@@ -144,24 +135,24 @@ export default function AiOcrSettingsPage() {
           <Alert
             type="warning"
             showIcon
-            title="โหลดการตั้งค่าไม่สำเร็จ"
-            description="ลองรีเฟรชหน้าอีกครั้ง"
+            title={t("โหลดการตั้งค่าไม่สำเร็จ")}
+            description={t("ลองรีเฟรชหน้าอีกครั้ง")}
           />
         ) : null}
 
         <div className={styles.card}>
           <div className={styles.sectionHead}>
-            <h3>การเชื่อมต่อ</h3>
-            <p>ใส่ API key ของ Gemini แล้วทดสอบก่อนเปิดใช้งานจริง</p>
+            <h3>{t("การเชื่อมต่อ")}</h3>
+            <p>{t("ใส่ API key ของ Gemini แล้วทดสอบก่อนเปิดใช้งานจริง")}</p>
           </div>
 
           <div className={styles.statusRow}>
             {statusTag ? (
-              <Tag color={statusTag.color}>{statusTag.label}</Tag>
+              <Tag color={statusTag.color}>{t(statusTag.label)}</Tag>
             ) : null}
             {settings?.lastTestAt ? (
               <span className={styles.testResult}>
-                ทดสอบล่าสุด {formatDateTime(settings.lastTestAt)} —{" "}
+                {t("ทดสอบล่าสุด")} {formatDateTime(settings.lastTestAt, lang)} —{" "}
                 {settings.lastTestMessage}
               </span>
             ) : null}
@@ -188,8 +179,8 @@ export default function AiOcrSettingsPage() {
                 name="apiKey"
                 extra={
                 hasApiKey
-                    ? `บันทึกไว้แล้ว (${settings?.apiKeyMasked ?? "ปิดบัง"}) · เว้นว่างไว้ = ใช้คีย์เดิม · คีย์ที่บันทึกแล้วจะไม่ถูกส่งกลับมาแสดงอีก`
-                    : "วางคีย์ที่ได้จาก Google AI Studio · คีย์จะถูกเข้ารหัสก่อนเก็บ และไม่ถูกส่งกลับมาแสดงอีก"
+                    ? t("บันทึกไว้แล้ว ({masked}) · เว้นว่างไว้ = ใช้คีย์เดิม · คีย์ที่บันทึกแล้วจะไม่ถูกส่งกลับมาแสดงอีก", { masked: settings?.apiKeyMasked ?? t("ปิดบัง") })
+                    : t("วางคีย์ที่ได้จาก Google AI Studio · คีย์จะถูกเข้ารหัสก่อนเก็บ และไม่ถูกส่งกลับมาแสดงอีก")
                 }
                 rules={[
                   {
@@ -200,7 +191,7 @@ export default function AiOcrSettingsPage() {
                       }
                       return Promise.reject(
                         new Error(
-                          "API key สั้นผิดปกติ — ถ้าต้องการล้างคีย์ให้กดปุ่มลบคีย์แทน",
+                          t("API key สั้นผิดปกติ — ถ้าต้องการล้างคีย์ให้กดปุ่มลบคีย์แทน"),
                         ),
                       );
                     },
@@ -209,7 +200,7 @@ export default function AiOcrSettingsPage() {
               >
                 <Input.Password
                   placeholder={
-                    settings?.apiKeyMasked ?? "ยังไม่ได้ตั้งค่า API key"
+                    settings?.apiKeyMasked ?? t("ยังไม่ได้ตั้งค่า API key")
                   }
                   autoComplete="off"
                   disabled={masterKeyMissing}
@@ -217,10 +208,10 @@ export default function AiOcrSettingsPage() {
               </Form.Item>
 
               <Popconfirm
-                title="ลบ API key ที่บันทึกไว้?"
-                description="ลบแล้วระบบจะปิดการใช้งาน AI และกลับไปใช้ตัวอ่านในเครื่อง"
-                okText="ลบคีย์"
-                cancelText="ยกเลิก"
+                title={t("ลบ API key ที่บันทึกไว้?")}
+                description={t("ลบแล้วระบบจะปิดการใช้งาน AI และกลับไปใช้ตัวอ่านในเครื่อง")}
+                okText={t("ลบคีย์")}
+                cancelText={t("ยกเลิก")}
                 okButtonProps={{ danger: true }}
                 onConfirm={() => deleteApiKey.mutate()}
                 disabled={!hasApiKey}
@@ -231,20 +222,19 @@ export default function AiOcrSettingsPage() {
                   disabled={!hasApiKey}
                   loading={deleteApiKey.isPending}
                 >
-                  ลบคีย์
+                  {t("ลบคีย์")}
                 </Button>
               </Popconfirm>
             </div>
 
             <Form.Item
-              label="โมเดล"
+              label={t("โมเดล")}
               name="model"
-              extra="เลือกจากรายการหรือพิมพ์ชื่อเองก็ได้ — ผู้ให้บริการเปลี่ยนชื่อและเลิกให้เรียกรุ่นเก่าเป็นระยะ ถ้าปุ่มทดสอบขึ้น HTTP 404 ให้เปลี่ยนมาใส่ชื่อรุ่นใหม่ตรงนี้ได้เลย ไม่ต้องรอแก้โปรแกรม"
+              extra={t("เลือกจากรายการหรือพิมพ์ชื่อเองก็ได้ — ผู้ให้บริการเปลี่ยนชื่อและเลิกให้เรียกรุ่นเก่าเป็นระยะ ถ้าปุ่มทดสอบขึ้น HTTP 404 ให้เปลี่ยนมาใส่ชื่อรุ่นใหม่ตรงนี้ได้เลย ไม่ต้องรอแก้โปรแกรม")}
               rules={[
                 {
                   pattern: /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/,
-                  message:
-                    "ใช้ได้เฉพาะตัวพิมพ์เล็ก ตัวเลข จุด และขีด เช่น gemini-3.6-flash",
+                  message: t("ใช้ได้เฉพาะตัวพิมพ์เล็ก ตัวเลข จุด และขีด เช่น gemini-3.6-flash"),
                 },
               ]}
             >
@@ -263,9 +253,9 @@ export default function AiOcrSettingsPage() {
             </Form.Item>
 
             <Form.Item
-              label="เวลารอสูงสุด (มิลลิวินาที)"
+              label={t("เวลารอสูงสุด (มิลลิวินาที)")}
               name="timeoutMs"
-              extra="เกินเวลานี้ระบบจะเลิกรอแล้วถอยไปใช้ตัวอ่านในเครื่อง — ตั้งสูงเกินไปคนหน้างานจะรอนาน"
+              extra={t("เกินเวลานี้ระบบจะเลิกรอแล้วถอยไปใช้ตัวอ่านในเครื่อง — ตั้งสูงเกินไปคนหน้างานจะรอนาน")}
             >
               <InputNumber
                 min={5000}
@@ -276,13 +266,13 @@ export default function AiOcrSettingsPage() {
             </Form.Item>
 
             <Form.Item
-              label="เปิดใช้ AI อ่านใบชั่ง"
+              label={t("เปิดใช้ AI อ่านใบชั่ง")}
               name="isEnabled"
               valuePropName="checked"
               extra={
                 hasApiKey
-                  ? "ปิดเมื่อไหร่ก็ได้ ระบบจะกลับไปใช้ตัวอ่านในเครื่องทันที"
-                  : "ต้องบันทึก API key ก่อนจึงจะเปิดได้"
+                  ? t("ปิดเมื่อไหร่ก็ได้ ระบบจะกลับไปใช้ตัวอ่านในเครื่องทันที")
+                  : t("ต้องบันทึก API key ก่อนจึงจะเปิดได้")
               }
             >
               <Switch disabled={!hasApiKey || masterKeyMissing} />
@@ -295,7 +285,7 @@ export default function AiOcrSettingsPage() {
                 loading={testConnection.isPending}
                 disabled={!hasApiKey || masterKeyMissing}
               >
-                ทดสอบการเชื่อมต่อ
+                {t("ทดสอบการเชื่อมต่อ")}
               </Button>
               <Button
                 type="primary"
@@ -303,7 +293,7 @@ export default function AiOcrSettingsPage() {
                 icon={<SaveOutlined />}
                 loading={updateSettings.isPending}
               >
-                บันทึก
+                {t("บันทึก")}
               </Button>
             </div>
           </Form>
@@ -312,13 +302,10 @@ export default function AiOcrSettingsPage() {
         <div className={styles.card}>
           <div className={styles.sectionHead}>
             <h3>
-              <ApiOutlined /> ทำงานยังไง
+              <ApiOutlined /> {t("ทำงานยังไง")}
             </h3>
             <p>
-              ทุกครั้งที่สแกนรูปใบชั่ง ระบบจะให้ AI อ่านก่อน · ถ้าปิดอยู่ ไม่มีคีย์
-              โควต้าเต็ม รอนานเกิน หรือตอบกลับมาผิดรูปแบบ ระบบจะถอยไปใช้ตัวอ่านในเครื่อง
-              (Tesseract) ให้เองโดยไม่ขัดจังหวะคนหน้างาน · หน้าต่างตรวจผลจะบอกทุกครั้งว่า
-              ใบนั้นใครเป็นคนอ่าน และถ้าถอยเพราะอะไรก็จะขึ้นเหตุผลให้เห็น
+              {t("ทุกครั้งที่สแกนรูปใบชั่ง ระบบจะให้ AI อ่านก่อน · ถ้าปิดอยู่ ไม่มีคีย์ โควต้าเต็ม รอนานเกิน หรือตอบกลับมาผิดรูปแบบ ระบบจะถอยไปใช้ตัวอ่านในเครื่อง (Tesseract) ให้เองโดยไม่ขัดจังหวะคนหน้างาน · หน้าต่างตรวจผลจะบอกทุกครั้งว่า ใบนั้นใครเป็นคนอ่าน และถ้าถอยเพราะอะไรก็จะขึ้นเหตุผลให้เห็น")}
             </p>
           </div>
         </div>

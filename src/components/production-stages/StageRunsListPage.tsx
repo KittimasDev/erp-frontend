@@ -19,6 +19,8 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { stageTypeLabel, type StageModuleConfig } from "./stage-modules";
 import styles from "./StageRunPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { tConvStatusLabel } from "@/types/material-conversion";
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +37,7 @@ export default function StageRunsListPage({
 }: {
   config: StageModuleConfig;
 }) {
+  const t = useT();
   const router = useRouter();
   const actions = useScreenActionPermissions(config.screenCode);
 
@@ -85,14 +88,14 @@ export default function StageRunsListPage({
 
   const columns: ColumnsType<StageRun> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 56,
       align: "center",
       render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่รอบ",
+      title: t("เลขที่รอบ"),
       dataIndex: "runNo",
       key: "runNo",
       render: (value: string, row) => (
@@ -115,38 +118,38 @@ export default function StageRunsListPage({
         value ? (
           <span>{value}</span>
         ) : (
-          <span className={styles.cellMuted}>ไม่ระบุ Batch</span>
+          <span className={styles.cellMuted}>{t("ไม่ระบุ Batch")}</span>
         ),
     },
     {
-      title: "ขั้นตอน",
+      title: t("ขั้นตอน"),
       dataIndex: "stageType",
       key: "stageType",
       render: (value: string) => <Tag>{stageTypeLabel(config, value)}</Tag>,
     },
     {
-      title: "วันที่",
+      title: t("วันที่"),
       dataIndex: "runDate",
       key: "runDate",
       render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
     },
     {
-      title: "วัตถุดิบเข้า",
+      title: t("วัตถุดิบเข้า"),
       key: "input",
       render: (_v, row) => (
         <div className={styles.cellStack}>
           <span>{row.inputItemCode ?? row.inputItemNameTh ?? "-"}</span>
           <span className={styles.cellMuted}>
-            แผน {fmtQty(row.inputQty)}
+            {t("แผน")} {fmtQty(row.inputQty)}
             {Number(row.inputActualQty) > 0
-              ? ` · ตัดจริง ${fmtQty(row.inputActualQty)}`
+              ? ` · ${t("ตัดจริง")} ${fmtQty(row.inputActualQty)}`
               : ""}
           </span>
         </div>
       ),
     },
     {
-      title: "ผลผลิตออก",
+      title: t("ผลผลิตออก"),
       key: "output",
       render: (_v, row) => (
         <div className={styles.cellStack}>
@@ -166,8 +169,8 @@ export default function StageRunsListPage({
       render: (_v, row) => {
         if (!row.yieldComparable) {
           return (
-            <Tooltip title="หน่วยของวัตถุดิบกับผลผลิตต่างกัน เทียบเป็นเปอร์เซ็นต์ไม่ได้">
-              <span className={styles.cellMuted}>เทียบไม่ได้</span>
+            <Tooltip title={t("หน่วยของวัตถุดิบกับผลผลิตต่างกัน เทียบเป็นเปอร์เซ็นต์ไม่ได้")}>
+              <span className={styles.cellMuted}>{t("เทียบไม่ได้")}</span>
             </Tooltip>
           );
         }
@@ -177,18 +180,18 @@ export default function StageRunsListPage({
         return (
           <span>
             {row.yieldPercent}%
-            {isPlanned ? <span className={styles.cellMuted}> (แผน)</span> : null}
+            {isPlanned ? <span className={styles.cellMuted}> ({t("แผน")})</span> : null}
           </span>
         );
       },
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       render: (value: string) => (
         <Tag color={STAGE_RUN_STATUS_COLOR[value] ?? "default"}>
-          {STAGE_RUN_STATUS_LABEL[value] ?? value}
+          {tConvStatusLabel(STAGE_RUN_STATUS_LABEL[value] ?? value)}
         </Tag>
       ),
     },
@@ -199,8 +202,8 @@ export default function StageRunsListPage({
       <section className={masterStyles.page}>
         <PageHeader
           eyebrow={config.eyebrow}
-          title={config.title}
-          subtitle={config.subtitle}
+          title={t(config.title)}
+          subtitle={t(config.subtitle)}
           actions={
             <>
 {actions.canAdd ? (
@@ -210,7 +213,7 @@ export default function StageRunsListPage({
               icon={<PlusOutlined className={masterStyles.plusIcon} />}
               onClick={() => router.push(`${config.routeBase}/create`)}
             >
-              สร้างรอบการทำงาน
+              {t("สร้างรอบการทำงาน")}
             </Button>
           ) : null}
             </>
@@ -218,21 +221,21 @@ export default function StageRunsListPage({
         />
 
         <div className={styles.summaryRow}>
-          <SummaryCard label="ร่าง (ในหน้านี้)" value={pageStats.draft} />
+          <SummaryCard label={t("ร่าง (ในหน้านี้)")} value={pageStats.draft} />
           <SummaryCard
-            label="กำลังทำงาน (ในหน้านี้)"
+            label={t("กำลังทำงาน (ในหน้านี้)")}
             value={pageStats.inProgress}
           />
-          <SummaryCard label="เสร็จแล้ว (ในหน้านี้)" value={pageStats.completed} />
-          <SummaryCard label="ทั้งหมด" value={total} accent />
+          <SummaryCard label={t("เสร็จแล้ว (ในหน้านี้)")} value={pageStats.completed} />
+          <SummaryCard label={t("ทั้งหมด")} value={total} accent />
         </div>
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
-              <div className={masterStyles.filterEyebrow}>ค้นหา</div>
-              <h3>รายการรอบการทำงาน</h3>
-              <p>ทั้งหมด {total} รอบ</p>
+              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
+              <h3>{t("รายการรอบการทำงาน")}</h3>
+              <p>{t("ทั้งหมด {n} รอบ", { n: total })}</p>
             </div>
           </div>
           <div className={masterStyles.filterForm}>
@@ -240,7 +243,7 @@ export default function StageRunsListPage({
               <Input
                 allowClear
                 prefix={<SearchOutlined />}
-                placeholder={config.runNoPlaceholder}
+                placeholder={t(config.runNoPlaceholder)}
                 value={runNo}
                 onChange={(e) => {
                   setRunNo(e.target.value);
@@ -249,7 +252,7 @@ export default function StageRunsListPage({
               />
               <Input
                 allowClear
-                placeholder="ค้นหาด้วย Batch"
+                placeholder={t("ค้นหาด้วย Batch")}
                 value={batchNo}
                 onChange={(e) => {
                   setBatchNo(e.target.value);
@@ -258,7 +261,7 @@ export default function StageRunsListPage({
               />
               <Select
                 allowClear
-                placeholder="ขั้นตอนทั้งหมด"
+                placeholder={t("ขั้นตอนทั้งหมด")}
                 value={stageType}
                 onChange={(value) => {
                   setStageType(value);
@@ -266,19 +269,19 @@ export default function StageRunsListPage({
                 }}
                 options={config.stageTypes.map((option) => ({
                   value: option.value,
-                  label: option.label,
+                  label: t(option.label),
                 }))}
               />
               <Select
                 allowClear
-                placeholder="สถานะทั้งหมด"
+                placeholder={t("สถานะทั้งหมด")}
                 value={status}
                 onChange={(value) => {
                   setStatus(value);
                   setPage(1);
                 }}
                 options={Object.entries(STAGE_RUN_STATUS_LABEL).map(
-                  ([value, label]) => ({ value, label }),
+                  ([value, label]) => ({ value, label: tConvStatusLabel(label) }),
                 )}
               />
               <DatePicker.RangePicker
@@ -288,7 +291,7 @@ export default function StageRunsListPage({
                   setPage(1);
                 }}
                 format="DD/MM/YYYY"
-                placeholder={["ตั้งแต่วันที่", "ถึงวันที่"]}
+                placeholder={[t("ตั้งแต่วันที่"), t("ถึงวันที่")]}
               />
             </div>
           </div>
@@ -297,10 +300,10 @@ export default function StageRunsListPage({
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>{config.title}</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t(config.title)}</h3>
             </div>
-            <span className={masterStyles.tableCount}>{total} รอบ</span>
+            <span className={masterStyles.tableCount}>{t("{n} รอบ", { n: total })}</span>
           </div>
           <Table
             className={masterStyles.dataTable}
@@ -308,14 +311,14 @@ export default function StageRunsListPage({
             columns={columns}
             dataSource={rows}
             loading={listQuery.isFetching}
-            locale={{ emptyText: "ยังไม่มีรอบการทำงาน" }}
+            locale={{ emptyText: t("ยังไม่มีรอบการทำงาน") }}
             pagination={{
               current: page,
               pageSize: PAGE_SIZE,
               total,
               onChange: setPage,
               showSizeChanger: false,
-              showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+              showTotal: (n) => t("ทั้งหมด {n} รายการ", { n }),
             }}
           />
         </div>

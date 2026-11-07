@@ -26,6 +26,7 @@ import {
   type PaymentJournalItem,
 } from "@/types/payment-journal";
 import PageHeader from "@/components/common/PageHeader";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PAYMENTS";
 const LIST_PATH = "/reports/journals/payments";
@@ -34,8 +35,9 @@ const PAYMENT_RECORD_PATH = "/finance/payables/payment-records";
 type Props = { id: string };
 
 /** วิธีจ่ายพร้อมรายละเอียด เช่น "โอนเงิน · กสิกรไทย 123-4-56789-0" */
-function methodText(item: PaymentJournalItem): string {
-  const label = PAYMENT_METHOD_LABEL[item.paymentMethod] ?? item.paymentMethod;
+function methodText(item: PaymentJournalItem, t: TFunction): string {
+  const rawLabel = PAYMENT_METHOD_LABEL[item.paymentMethod];
+  const label = rawLabel ? t(rawLabel) : item.paymentMethod;
   const bank = [item.bankName, item.bankAccountNumber].filter(Boolean).join(" ");
   return bank ? `${label} · ${bank}` : label;
 }
@@ -51,6 +53,7 @@ function buildPaymentDescription(entry: PaymentJournalItem): string {
 }
 
 export default function PaymentJournalDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const journalQuery = usePaymentJournalByDocQuery(id, Boolean(id));
@@ -81,7 +84,7 @@ export default function PaymentJournalDetailPage({ id }: Props) {
       const { printApJournalVoucherPdf } = await import("@/utils/generateApJournalVoucherPdf");
       await printApJournalVoucherPdf(voucherInput);
     } catch (e) {
-      message.error(e instanceof Error ? e.message : "พิมพ์เอกสารไม่สำเร็จ");
+      message.error(e instanceof Error ? e.message : t("พิมพ์เอกสารไม่สำเร็จ"));
     }
   };
 
@@ -91,7 +94,7 @@ export default function PaymentJournalDetailPage({ id }: Props) {
       const { downloadApJournalVoucherPdf } = await import("@/utils/generateApJournalVoucherPdf");
       await downloadApJournalVoucherPdf(voucherInput);
     } catch (e) {
-      message.error(e instanceof Error ? e.message : "ดาวน์โหลดไม่สำเร็จ");
+      message.error(e instanceof Error ? e.message : t("ดาวน์โหลดไม่สำเร็จ"));
     }
   };
 
@@ -109,11 +112,11 @@ export default function PaymentJournalDetailPage({ id }: Props) {
         <Typography.Text type="danger">
           {journalQuery.error instanceof Error
             ? journalQuery.error.message
-            : "ไม่พบรายการสมุดรายวันจ่าย"}
+            : t("ไม่พบรายการสมุดรายวันจ่าย")}
         </Typography.Text>
         <div style={{ marginTop: 16 }}>
           <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
-            กลับรายการ
+            {t("กลับรายการ")}
           </Button>
         </div>
       </Card>
@@ -136,66 +139,66 @@ export default function PaymentJournalDetailPage({ id }: Props) {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title={<>รายการจ่ายเงิน {entry.paymentNo ?? entry.voucher.no}</>}
+        title={<>{t("รายการจ่ายเงิน")} {entry.paymentNo ?? entry.voucher.no}</>}
         actions={
           <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
-              กลับรายการ
+              {t("กลับรายการ")}
             </Button>
-            <Tooltip title={canPrint ? undefined : "ไม่มีสิทธิ์พิมพ์"}>
+            <Tooltip title={canPrint ? undefined : t("ไม่มีสิทธิ์พิมพ์")}>
               <span>
                 <Button
                   icon={<PrinterOutlined />}
                   disabled={!canPrint}
                   onClick={() => void printVoucher()}
                 >
-                  พิมพ์เอกสาร
+                  {t("พิมพ์เอกสาร")}
                 </Button>
               </span>
             </Tooltip>
-            <Tooltip title={canPrint ? undefined : "ไม่มีสิทธิ์พิมพ์"}>
+            <Tooltip title={canPrint ? undefined : t("ไม่มีสิทธิ์พิมพ์")}>
               <span>
                 <Button
                   icon={<DownloadOutlined />}
                   disabled={!canPrint}
                   onClick={() => void downloadVoucher()}
                 >
-                  ดาวน์โหลด
+                  {t("ดาวน์โหลด")}
                 </Button>
               </span>
             </Tooltip>
             <Link href={`${PAYMENT_RECORD_PATH}/${entry.id}`}>
-              <Button type="primary">ไปที่บันทึกจ่ายเงิน</Button>
+              <Button type="primary">{t("ไปที่บันทึกจ่ายเงิน")}</Button>
             </Link>
           </>
         }
       />
 
-      <Card title="ข้อมูลเอกสาร" size="small">
+      <Card title={t("ข้อมูลเอกสาร")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
-          <Descriptions.Item label="วันที่จ่ายเงิน">{formatThaiDate(entry.paymentDate)}</Descriptions.Item>
-          <Descriptions.Item label="วันที่บัญชี">{formatThaiDate(entry.paymentDate)}</Descriptions.Item>
-          <Descriptions.Item label="เลขที่รายการจ่าย">{entry.paymentNo ?? "—"}</Descriptions.Item>
-          <Descriptions.Item label="ผู้ขาย">
+          <Descriptions.Item label={t("วันที่จ่ายเงิน")}>{formatThaiDate(entry.paymentDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่บัญชี")}>{formatThaiDate(entry.paymentDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("เลขที่รายการจ่าย")}>{entry.paymentNo ?? "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("ผู้ขาย")}>
             <Link href={`/finance/payables/creditors/${entry.creditorId}`}>
               {entry.creditorCode} {entry.creditorName}
             </Link>
           </Descriptions.Item>
-          <Descriptions.Item label="ใบสำคัญจ่าย">
+          <Descriptions.Item label={t("ใบสำคัญจ่าย")}>
             <Link href={`/finance/payables/payment-vouchers/${entry.voucher.id}`}>
               {entry.voucher.no}
             </Link>
           </Descriptions.Item>
-          <Descriptions.Item label="ประเภทการจ่าย">{entry.kindLabel}</Descriptions.Item>
-          <Descriptions.Item label="วิธีจ่าย" span={2}>
-            {methodText(entry)}
-            {entry.transactionRef ? ` · อ้างอิง ${entry.transactionRef}` : ""}
-            {entry.chequeNo ? ` · เช็คเลขที่ ${entry.chequeNo}` : ""}
+          <Descriptions.Item label={t("ประเภทการจ่าย")}>{PAYMENT_KIND_LABEL[entry.kind] ? t(PAYMENT_KIND_LABEL[entry.kind]) : entry.kindLabel}</Descriptions.Item>
+          <Descriptions.Item label={t("วิธีจ่าย")} span={2}>
+            {methodText(entry, t)}
+            {entry.transactionRef ? t(" · อ้างอิง {ref}", { ref: entry.transactionRef }) : ""}
+            {entry.chequeNo ? t(" · เช็คเลขที่ {no}", { no: entry.chequeNo }) : ""}
           </Descriptions.Item>
-          <Descriptions.Item label="เลขที่ PO">
+          <Descriptions.Item label={t("เลขที่ PO")}>
             {entry.po ? <Link href={`/purchase-orders/${entry.po.id}`}>{entry.po.no}</Link> : "—"}
           </Descriptions.Item>
-          <Descriptions.Item label="ใบขอจ่ายล่วงหน้า">
+          <Descriptions.Item label={t("ใบขอจ่ายล่วงหน้า")}>
             {entry.advanceRequest ? (
               <Link href={`/finance/payables/advance-requests/${entry.advanceRequest.id}`}>
                 {entry.advanceRequest.no}
@@ -204,14 +207,18 @@ export default function PaymentJournalDetailPage({ id }: Props) {
               "—"
             )}
           </Descriptions.Item>
-          <Descriptions.Item label="ใบตั้งหนี้ (AP)" span={2}>
+          <Descriptions.Item label={t("ใบตั้งหนี้ (AP)")} span={2}>
             {apText}
           </Descriptions.Item>
         </Descriptions>
         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
-          ยอดรวมก่อนหัก {money.format(entry.grossAmount)} · WHT {money.format(entry.whtAmount)} · จ่ายจริง{" "}
-          {money.format(entry.netAmount)} บาท · เดบิต {money.format(entry.totalDebit)} / เครดิต{" "}
-          {money.format(entry.totalCredit)}
+          {t("ยอดรวมก่อนหัก {gross} · WHT {wht} · จ่ายจริง {net} บาท · เดบิต {debit} / เครดิต {credit}", {
+            gross: money.format(entry.grossAmount),
+            wht: money.format(entry.whtAmount),
+            net: money.format(entry.netAmount),
+            debit: money.format(entry.totalDebit),
+            credit: money.format(entry.totalCredit),
+          })}
         </Typography.Paragraph>
       </Card>
 
@@ -220,7 +227,7 @@ export default function PaymentJournalDetailPage({ id }: Props) {
           items={[
             {
               key: "journal",
-              label: "รายละเอียดสมุดรายวันจ่าย",
+              label: t("รายละเอียดสมุดรายวันจ่าย"),
               children: (
                 <>
                   <JournalLinesTable doc={entry} voucherStyle />
@@ -229,9 +236,9 @@ export default function PaymentJournalDetailPage({ id }: Props) {
                       style={{ marginTop: 12 }}
                       type="error"
                       showIcon
-                      title={`ยังไม่ได้ผูก${entry.unmapped.join(", ")}`}
+                      title={t("ยังไม่ได้ผูก{items}", { items: entry.unmapped.join(", ") })}
                       description={
-                        <Link href="/masters/gl-accounts">ไปตั้งที่ ผังบัญชีและการผูกบัญชี</Link>
+                        <Link href="/masters/gl-accounts">{t("ไปตั้งที่ ผังบัญชีและการผูกบัญชี")}</Link>
                       }
                     />
                   ) : null}
@@ -240,7 +247,7 @@ export default function PaymentJournalDetailPage({ id }: Props) {
                       style={{ marginTop: 12 }}
                       type="error"
                       showIcon
-                      title="เดบิตไม่เท่ากับเครดิต — ตรวจยอดเอกสาร"
+                      title={t("เดบิตไม่เท่ากับเครดิต — ตรวจยอดเอกสาร")}
                     />
                   ) : null}
                 </>

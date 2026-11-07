@@ -11,6 +11,9 @@ import {
 } from "@/hooks/production-formulas/useProductionFormulaQueries";
 import type { ProductionFormulaLine } from "@/types/production-formula";
 import { FORMULA_LINE_ROLE_LABEL } from "@/types/production-formula";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage, type Language } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 /**
  * ดูสูตรจากหน้ารายละเอียดใบสั่งผลิต
@@ -44,19 +47,20 @@ type Props = {
   driverItemId?: string;
 };
 
-function fmtQty(value: string | number) {
+function fmtQty(value: string | number, lang: Language) {
   const num = Number(value);
   return Number.isNaN(num)
     ? String(value)
-    : num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+    : formatNumber(num, lang, 3);
 }
 
 export default function ProductionOrderFormulaModal(props: Props) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
       onCancel={props.onClose}
-      title={props.formulaId ? "สูตรที่ใช้วางแผนใบนี้" : "ดูสูตรการผลิต"}
+      title={props.formulaId ? t("สูตรที่ใช้วางแผนใบนี้") : t("ดูสูตรการผลิต")}
       footer={null}
       destroyOnHidden
       width={760}
@@ -72,6 +76,8 @@ function FormulaBody({
   targetQty,
   driverItemId,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const boundToOrder = Boolean(formulaId);
 
   /*
@@ -88,13 +94,13 @@ function FormulaBody({
 
   const picker = boundToOrder ? null : (
     <div>
-      <div style={{ marginBottom: 6, fontWeight: 600 }}>เลือกสูตรที่อยากดู</div>
+      <div style={{ marginBottom: 6, fontWeight: 600 }}>{t("เลือกสูตรที่อยากดู")}</div>
       <Select
         style={{ width: "100%" }}
         showSearch
         allowClear
         optionFilterProp="label"
-        placeholder="เลือกสูตรการผลิต"
+        placeholder={t("เลือกสูตรการผลิต")}
         loading={listQuery.isLoading}
         value={pickedId}
         onChange={setPickedId}
@@ -102,14 +108,14 @@ function FormulaBody({
           value: item.id,
           label: `${item.formulaCode} — ${item.nameTh}`,
         }))}
-        notFoundContent="ยังไม่มีสูตรในระบบ"
+        notFoundContent={t("ยังไม่มีสูตรในระบบ")}
       />
       <Alert
         style={{ marginTop: 10 }}
         type="info"
         showIcon
-        title="ใบนี้ไม่ได้คิดจากสูตร"
-        description="แผนบนใบถูกกรอกเอง — สูตรที่เปิดดูตรงนี้เป็นค่ามาตรฐานไว้เทียบเฉยๆ ไม่ได้ผูกกลับเข้าใบ"
+        title={t("ใบนี้ไม่ได้คิดจากสูตร")}
+        description={t("แผนบนใบถูกกรอกเอง — สูตรที่เปิดดูตรงนี้เป็นค่ามาตรฐานไว้เทียบเฉยๆ ไม่ได้ผูกกลับเข้าใบ")}
       />
     </div>
   );
@@ -123,9 +129,9 @@ function FormulaBody({
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <span>
-                ยังไม่มีสูตรในระบบ — ตั้งได้ที่{" "}
+                {t("ยังไม่มีสูตรในระบบ — ตั้งได้ที่")}{" "}
                 <Link href="/masters/production-formulas">
-                  ข้อมูลหลัก › สูตรการผลิต
+                  {t("ข้อมูลหลัก › สูตรการผลิต")}
                 </Link>
               </span>
             }
@@ -153,8 +159,8 @@ function FormulaBody({
         <Alert
           type="warning"
           showIcon
-          title="ดูสูตรไม่ได้"
-          description="สูตรที่อ้างอิงอาจถูกลบไปแล้ว — ตัวเลขแผนบนใบยังถูกต้อง เพราะถูกคิดและบันทึกลงใบตั้งแต่ตอนสร้าง"
+          title={t("ดูสูตรไม่ได้")}
+          description={t("สูตรที่อ้างอิงอาจถูกลบไปแล้ว — ตัวเลขแผนบนใบยังถูกต้อง เพราะถูกคิดและบันทึกลงใบตั้งแต่ตอนสร้าง")}
         />
       </div>
     );
@@ -167,14 +173,14 @@ function FormulaBody({
 
   const columns: ColumnsType<ProductionFormulaLine> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "lineRole",
       key: "lineRole",
       width: 130,
@@ -184,28 +190,28 @@ function FormulaBody({
             role === "OUTPUT" ? "green" : role === "INPUT" ? "blue" : "default"
           }
         >
-          {FORMULA_LINE_ROLE_LABEL[role] ?? role}
+          {FORMULA_LINE_ROLE_LABEL[role] ? t(FORMULA_LINE_ROLE_LABEL[role]) : role}
         </Tag>
       ),
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, row) => (
         <span>
           {row.itemNameTh ?? row.itemCode}
           {boundToOrder && row.itemId === driverItemId ? (
-            <Tag style={{ marginLeft: 6 }}>ตัวตั้ง</Tag>
+            <Tag style={{ marginLeft: 6 }}>{t("ตัวตั้ง")}</Tag>
           ) : null}
         </span>
       ),
     },
     {
-      title: "ต่อ 1 รอบ",
+      title: t("ต่อ 1 รอบ"),
       key: "quantity",
       width: 150,
       align: "right",
-      render: (_v, row) => `${fmtQty(row.quantity)} ${row.unitCode ?? ""}`,
+      render: (_v, row) => `${fmtQty(row.quantity, lang)} ${row.unitCode ?? ""}`,
     },
   ];
 
@@ -225,28 +231,28 @@ function FormulaBody({
         <Alert
           type="warning"
           showIcon
-          title={`สูตรถูกแก้หลังจากใบนี้ถูกวางแผน (ใบนี้ใช้รุ่น ${versionUsed} · ตอนนี้เป็นรุ่น ${formula.versionNo})`}
-          description="ตัวเลขด้านล่างคือสูตรรุ่นปัจจุบัน ไม่ใช่ชุดที่ใบนี้ใช้คิด — แผนบนใบยังถูกต้องเพราะถูกคิดและบันทึกไว้ตั้งแต่ตอนสร้าง"
+          title={t("สูตรถูกแก้หลังจากใบนี้ถูกวางแผน (ใบนี้ใช้รุ่น {used} · ตอนนี้เป็นรุ่น {current})", { used: versionUsed, current: formula.versionNo })}
+          description={t("ตัวเลขด้านล่างคือสูตรรุ่นปัจจุบัน ไม่ใช่ชุดที่ใบนี้ใช้คิด — แผนบนใบยังถูกต้องเพราะถูกคิดและบันทึกไว้ตั้งแต่ตอนสร้าง")}
         />
       ) : null}
 
       <Descriptions size="small" column={2} bordered>
-        <Descriptions.Item label="สูตร" span={2}>
+        <Descriptions.Item label={t("สูตร")} span={2}>
           {formula.formulaCode} — {formula.nameTh}
           {!formula.isActive ? (
-            <Tag style={{ marginLeft: 6 }}>ปิดใช้งานแล้ว</Tag>
+            <Tag style={{ marginLeft: 6 }}>{t("ปิดใช้งานแล้ว")}</Tag>
           ) : null}
         </Descriptions.Item>
-        <Descriptions.Item label="ขนาด 1 รอบ">
-          {formula.batchLabel ?? "ไม่ระบุ"}
+        <Descriptions.Item label={t("ขนาด 1 รอบ")}>
+          {formula.batchLabel ?? t("ไม่ระบุ")}
         </Descriptions.Item>
-        <Descriptions.Item label={boundToOrder ? "รุ่นที่ใบนี้ใช้" : "รุ่นปัจจุบัน"}>
+        <Descriptions.Item label={boundToOrder ? t("รุ่นที่ใบนี้ใช้") : t("รุ่นปัจจุบัน")}>
           {boundToOrder ? (versionUsed ?? "-") : formula.versionNo}
-          {versionChanged ? ` (ปัจจุบัน ${formula.versionNo})` : ""}
+          {versionChanged ? ` (${t("ปัจจุบัน {n}", { n: formula.versionNo })})` : ""}
         </Descriptions.Item>
         {boundToOrder ? (
-          <Descriptions.Item label="ตั้งเป้าไว้" span={2}>
-            {targetQty ? fmtQty(targetQty) : "-"}
+          <Descriptions.Item label={t("ตั้งเป้าไว้")} span={2}>
+            {targetQty ? fmtQty(targetQty, lang) : "-"}
           </Descriptions.Item>
         ) : null}
       </Descriptions>
@@ -260,9 +266,9 @@ function FormulaBody({
       />
 
       <div style={{ fontSize: 12 }}>
-        แก้สูตรได้ที่{" "}
-        <Link href="/masters/production-formulas">ข้อมูลหลัก › สูตรการผลิต</Link>{" "}
-        — การแก้จะไม่กระทบใบที่วางแผนไปแล้ว
+        {t("แก้สูตรได้ที่")}{" "}
+        <Link href="/masters/production-formulas">{t("ข้อมูลหลัก › สูตรการผลิต")}</Link>{" "}
+        {t("— การแก้จะไม่กระทบใบที่วางแผนไปแล้ว")}
       </div>
     </div>
   );

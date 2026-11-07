@@ -15,6 +15,8 @@ import { useCreatedApsQuery, usePendingChargesQuery, usePendingGrnsQuery } from 
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { getCreatedApsExport } from "@/lib/api/ap-documents";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
 import {
   AP_DOCUMENT_STATUS_COLOR,
   AP_DOCUMENT_STATUS_LABEL,
@@ -50,8 +52,12 @@ const ymd = (d?: Dayjs | null) => d?.format("YYYY-MM-DD");
 export default function ApInvoicesPage() {
   const config = AP_DOCUMENT_CONFIG.invoice;
   const router = useRouter();
+  const t = useT();
   const { message } = App.useApp();
   const perms = useScreenActionPermissions(config.screenCode);
+  const termOptions = TERM_OPTIONS.map((o) => ({ ...o, label: t(o.label) }));
+  const docStatusOptions = DOC_STATUS_OPTIONS.map((o) => ({ ...o, label: tStatus(o.label) }));
+  const payStatusOptions = PAY_STATUS_OPTIONS.map((o) => ({ ...o, label: tStatus(o.label) }));
 
   // ── ส่วนที่ 1: รอสร้างใบตั้งหนี้ ──
   const [pPage, setPPage] = useState(1);
@@ -152,7 +158,7 @@ export default function ApInvoicesPage() {
         ],
       });
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : "ส่งออกรายการใบตั้งหนี้ไม่สำเร็จ");
+      message.error(e instanceof Error && e.message ? e.message : t("ส่งออกรายการใบตั้งหนี้ไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -160,14 +166,14 @@ export default function ApInvoicesPage() {
 
   const pendingColumns: ColumnsType<PendingGrn> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (pPage - 1) * PENDING_PAGE_SIZE + index + 1,
     },
     {
-      title: "วันที่รับสินค้า",
+      title: t("วันที่รับสินค้า"),
       key: "date",
       width: 150,
       render: (_v, r) => (
@@ -175,20 +181,20 @@ export default function ApInvoicesPage() {
           {formatThaiDate(r.grnDate)}
           <br />
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            ยืนยัน {r.confirmedAt ? dayjs(r.confirmedAt).format("DD/MM/YYYY HH:mm") : "—"}
+            {t("ยืนยัน {time}", { time: r.confirmedAt ? dayjs(r.confirmedAt).format("DD/MM/YYYY HH:mm") : "—" })}
           </Typography.Text>
         </span>
       ),
     },
-    { title: "เลขที่ GRN", dataIndex: "grnNo", render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
+    { title: t("เลขที่ GRN"), dataIndex: "grnNo", render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
     {
-      title: "เลขที่ PO",
+      title: t("เลขที่ PO"),
       dataIndex: "poNo",
       render: (v: string, r) => <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link>,
     },
-    { title: "เลขที่รายการจ่ายเงิน", dataIndex: "poNo", key: "paymentList", render: (v: string) => v },
+    { title: t("เลขที่รายการจ่ายเงิน"), dataIndex: "poNo", key: "paymentList", render: (v: string) => v },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (
         <span>
@@ -197,18 +203,18 @@ export default function ApInvoicesPage() {
       ),
     },
     {
-      title: "มูลค่ารอสร้าง AP (รวมค่าใช้จ่าย)",
+      title: t("มูลค่ารอสร้าง AP (รวมค่าใช้จ่าย)"),
       dataIndex: "pendingAmount",
       align: "right",
       width: 180,
       render: (v: number) => money.format(v),
     },
-    { title: "เงื่อนไขการชำระ", key: "term", width: 160, render: (_v, r) => termText(r.paymentTerm) },
+    { title: t("เงื่อนไขการชำระ"), key: "term", width: 160, render: (_v, r) => termText(r.paymentTerm) },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 170,
-      render: () => <Tag color="gold">รอสร้างใบตั้งหนี้</Tag>,
+      render: () => <Tag color="gold">{t("รอสร้างใบตั้งหนี้")}</Tag>,
     },
     {
       title: "",
@@ -218,13 +224,13 @@ export default function ApInvoicesPage() {
         if (r.action === "CONTINUE_DRAFT" && r.draftApId) {
           return perms.canEdit ? (
             <Button size="small" onClick={() => router.push(`${config.basePath}/${r.draftApId}/edit`)}>
-              ดำเนินการต่อ
+              {t("ดำเนินการต่อ")}
             </Button>
           ) : null;
         }
         return perms.canAdd ? (
           <Button type="primary" size="small" onClick={() => router.push(`${config.basePath}/create?grnId=${r.grnId}`)}>
-            สร้างใบตั้งหนี้
+            {t("สร้างใบตั้งหนี้")}
           </Button>
         ) : null;
       },
@@ -233,15 +239,15 @@ export default function ApInvoicesPage() {
 
   const pendingChargeColumns: ColumnsType<PendingChargePo> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
-    { title: "เลขที่ PO", dataIndex: "poNo", width: 150, render: (v: string, r) => <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link> },
+    { title: t("เลขที่ PO"), dataIndex: "poNo", width: 150, render: (v: string, r) => <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link> },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (
         <span>
@@ -249,16 +255,16 @@ export default function ApInvoicesPage() {
         </span>
       ),
     },
-    { title: "ค่าใช้จ่ายตาม PO (ก่อน VAT)", dataIndex: "chargeAmountBeforeVat", align: "right", width: 190, render: (v: number) => money.format(v) },
-    { title: "ตั้งหนี้แล้ว", dataIndex: "allocatedAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
+    { title: t("ค่าใช้จ่ายตาม PO (ก่อน VAT)"), dataIndex: "chargeAmountBeforeVat", align: "right", width: 190, render: (v: number) => money.format(v) },
+    { title: t("ตั้งหนี้แล้ว"), dataIndex: "allocatedAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
     {
-      title: "ยังไม่ได้ตั้ง AP",
+      title: t("ยังไม่ได้ตั้ง AP"),
       dataIndex: "remainingAmount",
       align: "right",
       width: 150,
       render: (v: number) => <Typography.Text strong>{money.format(v)}</Typography.Text>,
     },
-    { title: "รายการที่เหลือ", dataIndex: "remainingCount", align: "center", width: 120 },
+    { title: t("รายการที่เหลือ"), dataIndex: "remainingCount", align: "center", width: 120 },
     {
       title: "",
       key: "action",
@@ -266,7 +272,7 @@ export default function ApInvoicesPage() {
       render: (_v, r) =>
         perms.canAdd ? (
           <Button type="primary" size="small" onClick={() => router.push(`${config.basePath}/create?poId=${r.purchaseOrderId}`)}>
-            สร้าง AP ค่าใช้จ่าย
+            {t("สร้าง AP ค่าใช้จ่าย")}
           </Button>
         ) : null,
     },
@@ -274,16 +280,16 @@ export default function ApInvoicesPage() {
 
   const createdColumns: ColumnsType<CreatedAp> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (cPage - 1) * CREATED_PAGE_SIZE + index + 1,
     },
-    { title: "เลขที่ AP", dataIndex: "docNo", width: 170, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
-    { title: "วันที่ตั้งหนี้", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("เลขที่ AP"), dataIndex: "docNo", width: 170, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
+    { title: t("วันที่ตั้งหนี้"), dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (
         <span>
@@ -291,13 +297,13 @@ export default function ApInvoicesPage() {
         </span>
       ),
     },
-    { title: "เลขที่ PO", dataIndex: "poNo", width: 130, render: (v?: string) => v ?? "—" },
-    { title: "เลขที่รายการจ่ายเงิน", dataIndex: "paymentListNo", width: 150, render: (v?: string) => v ?? "—" },
-    { title: "ยอดตั้งหนี้รวม VAT", dataIndex: "totalAmount", align: "right", width: 150, render: (v: number) => money.format(v) },
-    { title: "ยอดหักมัดจำ", dataIndex: "depositDeductAmount", align: "right", width: 120, render: (v: number) => money.format(v) },
-    { title: "ยอดคงเหลือ", dataIndex: "remainingAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
+    { title: t("เลขที่ PO"), dataIndex: "poNo", width: 130, render: (v?: string) => v ?? "—" },
+    { title: t("เลขที่รายการจ่ายเงิน"), dataIndex: "paymentListNo", width: 150, render: (v?: string) => v ?? "—" },
+    { title: t("ยอดตั้งหนี้รวม VAT"), dataIndex: "totalAmount", align: "right", width: 150, render: (v: number) => money.format(v) },
+    { title: t("ยอดหักมัดจำ"), dataIndex: "depositDeductAmount", align: "right", width: 120, render: (v: number) => money.format(v) },
+    { title: t("ยอดคงเหลือ"), dataIndex: "remainingAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
     {
-      title: "วันครบกำหนด",
+      title: t("วันครบกำหนด"),
       dataIndex: "dueDate",
       width: 150,
       render: (v: string | undefined, r: CreatedAp) => (
@@ -305,25 +311,28 @@ export default function ApInvoicesPage() {
           {formatThaiDate(v)}
           {r.dueDateMismatch ? (
             <Tooltip
-              title={`ฐานวันที่อาจผิด: ควรเป็น ${formatThaiDate(r.expectedDueDate)} (วันที่ใบแจ้งหนี้ Supplier + เครดิตวัน) — ตรวจและแก้เองถ้าจำเป็น ระบบไม่ปรับให้อัตโนมัติ`}
+              title={t(
+                "ฐานวันที่อาจผิด: ควรเป็น {date} (วันที่ใบแจ้งหนี้ Supplier + เครดิตวัน) — ตรวจและแก้เองถ้าจำเป็น ระบบไม่ปรับให้อัตโนมัติ",
+                { date: formatThaiDate(r.expectedDueDate) },
+              )}
             >
-              <Tag color="orange" style={{ marginLeft: 6 }}>ตรวจฐานวัน</Tag>
+              <Tag color="orange" style={{ marginLeft: 6 }}>{t("ตรวจฐานวัน")}</Tag>
             </Tooltip>
           ) : null}
         </>
       ),
     },
     {
-      title: "สถานะเอกสาร",
+      title: t("สถานะเอกสาร"),
       dataIndex: "status",
       width: 120,
-      render: (v: string) => <Tag color={AP_DOCUMENT_STATUS_COLOR[v] ?? "default"}>{AP_DOCUMENT_STATUS_LABEL[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={AP_DOCUMENT_STATUS_COLOR[v] ?? "default"}>{tStatus(AP_DOCUMENT_STATUS_LABEL[v] ?? v)}</Tag>,
     },
     {
-      title: "สถานะชำระเงิน",
+      title: t("สถานะชำระเงิน"),
       dataIndex: "paymentStatus",
       width: 130,
-      render: (v: string) => <Tag color={AP_PAYMENT_STATUS_COLOR[v] ?? "default"}>{AP_PAYMENT_STATUS_LABEL[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={AP_PAYMENT_STATUS_COLOR[v] ?? "default"}>{tStatus(AP_PAYMENT_STATUS_LABEL[v] ?? v)}</Tag>,
     },
     {
       title: "",
@@ -332,11 +341,11 @@ export default function ApInvoicesPage() {
       render: (_v, r) => (
         <Space>
           <Link href={`${config.basePath}/${r.id}`}>
-            <Button size="small">ดูรายละเอียด</Button>
+            <Button size="small">{t("ดูรายละเอียด")}</Button>
           </Link>
           {r.status === "DRAFT" && perms.canEdit ? (
             <Link href={`${config.basePath}/${r.id}/edit`}>
-              <Button size="small">แก้ไข</Button>
+              <Button size="small">{t("แก้ไข")}</Button>
             </Link>
           ) : null}
         </Space>
@@ -383,8 +392,8 @@ export default function ApInvoicesPage() {
       <PageHeader
         eyebrow="FINANCE · PAYABLES"
         icon={<FileTextOutlined />}
-        title="ใบตั้งหนี้เจ้าหนี้"
-        subtitle="GRN ที่ยืนยันแล้วรอตั้งหนี้ · ค่าใช้จ่ายเพิ่มเติมใน PO · และใบตั้งหนี้ที่สร้างแล้ว"
+        title={t("ใบตั้งหนี้เจ้าหนี้")}
+        subtitle={t("GRN ที่ยืนยันแล้วรอตั้งหนี้ · ค่าใช้จ่ายเพิ่มเติมใน PO · และใบตั้งหนี้ที่สร้างแล้ว")}
         actions={
           <>
 <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
@@ -394,44 +403,44 @@ export default function ApInvoicesPage() {
 
       <div className={`${styles.statRow} ${styles.statRow3}`}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>รอตั้งหนี้ GRN</span>
+          <span className={styles.statLabel}>{t("รอตั้งหนี้ GRN")}</span>
           <span className={styles.statValue}>{(pending.data?.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>รอตั้งค่าใช้จ่าย</span>
+          <span className={styles.statLabel}>{t("รอตั้งค่าใช้จ่าย")}</span>
           <span className={styles.statValue}>{(pendingCharges.data?.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>สร้างแล้ว</span>
+          <span className={styles.statLabel}>{t("สร้างแล้ว")}</span>
           <span className={styles.statValue}>{(created.data?.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รอสร้างใบตั้งหนี้</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("รอสร้างใบตั้งหนี้")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{(pending.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+          <span className={masterStyles.tableCount}>{t("{n} รายการ", { n: (pending.data?.total ?? 0).toLocaleString("th-TH") })}</span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่ GRN / PO / รายการจ่ายเงิน / ผู้ขาย"
+                placeholder={t("เลขที่ GRN / PO / รายการจ่ายเงิน / ผู้ขาย")}
                 value={pSearch}
                 onChange={(e) => setPSearch(e.target.value)}
                 onPressEnter={applyPending}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>วันที่รับสินค้า</label>
+              <label>{t("วันที่รับสินค้า")}</label>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
                 format="DD/MM/YYYY"
@@ -440,13 +449,13 @@ export default function ApInvoicesPage() {
               />
             </div>
             <div className={styles.filterItem}>
-              <label>เงื่อนไขการชำระ</label>
-              <Select allowClear placeholder="ทั้งหมด" value={pTerm} onChange={setPTerm} options={TERM_OPTIONS} />
+              <label>{t("เงื่อนไขการชำระ")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={pTerm} onChange={setPTerm} options={termOptions} />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearPending}>เคลียร์</Button>
+              <Button onClick={clearPending}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyPending}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
@@ -465,39 +474,39 @@ export default function ApInvoicesPage() {
             total: pending.data?.total ?? 0,
             onChange: setPPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1300 }}
-          locale={{ emptyText: "ไม่มีรายการรอสร้างใบตั้งหนี้" }}
+          locale={{ emptyText: t("ไม่มีรายการรอสร้างใบตั้งหนี้") }}
         />
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>PO ค้างค่าใช้จ่ายเพิ่มเติม</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("PO ค้างค่าใช้จ่ายเพิ่มเติม")}</h3>
           </div>
           <span className={masterStyles.tableCount}>
-            {(pendingCharges.data?.total ?? 0).toLocaleString("th-TH")} รายการ
+            {t("{n} รายการ", { n: (pendingCharges.data?.total ?? 0).toLocaleString("th-TH") })}
           </span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่ PO / ผู้ขาย"
+                placeholder={t("เลขที่ PO / ผู้ขาย")}
                 value={chSearch}
                 onChange={(e) => setChSearch(e.target.value)}
                 onPressEnter={applyCharges}
               />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearCharges}>เคลียร์</Button>
+              <Button onClick={clearCharges}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCharges}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
@@ -516,35 +525,35 @@ export default function ApInvoicesPage() {
             total: pendingCharges.data?.total ?? 0,
             onChange: setChPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1000 }}
-          locale={{ emptyText: "ไม่มี PO ที่ค้างค่าใช้จ่ายเพิ่มเติม" }}
+          locale={{ emptyText: t("ไม่มี PO ที่ค้างค่าใช้จ่ายเพิ่มเติม") }}
         />
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>ใบตั้งหนี้ที่สร้างแล้ว</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("ใบตั้งหนี้ที่สร้างแล้ว")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{(created.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+          <span className={masterStyles.tableCount}>{t("{n} รายการ", { n: (created.data?.total ?? 0).toLocaleString("th-TH") })}</span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่ AP / PO / รายการจ่ายเงิน / ผู้ขาย"
+                placeholder={t("เลขที่ AP / PO / รายการจ่ายเงิน / ผู้ขาย")}
                 value={cSearch}
                 onChange={(e) => setCSearch(e.target.value)}
                 onPressEnter={applyCreated}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>วันที่ตั้งหนี้</label>
+              <label>{t("วันที่ตั้งหนี้")}</label>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
                 format="DD/MM/YYYY"
@@ -553,7 +562,7 @@ export default function ApInvoicesPage() {
               />
             </div>
             <div className={styles.filterItem}>
-              <label>วันครบกำหนด</label>
+              <label>{t("วันครบกำหนด")}</label>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
                 format="DD/MM/YYYY"
@@ -562,23 +571,23 @@ export default function ApInvoicesPage() {
               />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะเอกสาร</label>
-              <Select allowClear placeholder="ทั้งหมด" value={cStatus} onChange={setCStatus} options={DOC_STATUS_OPTIONS} />
+              <label>{t("สถานะเอกสาร")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={cStatus} onChange={setCStatus} options={docStatusOptions} />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะชำระเงิน</label>
+              <label>{t("สถานะชำระเงิน")}</label>
               <Select
                 allowClear
-                placeholder="ทั้งหมด"
+                placeholder={t("ทั้งหมด")}
                 value={cPayStatus}
                 onChange={setCPayStatus}
-                options={PAY_STATUS_OPTIONS}
+                options={payStatusOptions}
               />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearCreated}>เคลียร์</Button>
+              <Button onClick={clearCreated}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCreated}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
@@ -597,10 +606,10 @@ export default function ApInvoicesPage() {
             total: created.data?.total ?? 0,
             onChange: setCPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1700 }}
-          locale={{ emptyText: "ยังไม่มีใบตั้งหนี้" }}
+          locale={{ emptyText: t("ยังไม่มีใบตั้งหนี้") }}
         />
       </div>
     </section>

@@ -3,6 +3,8 @@
 import { useState, type MouseEvent } from "react";
 import { Tooltip } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import styles from "./CollapsibleItemList.module.css";
 
 export type CollapsibleItem = {
@@ -44,6 +46,7 @@ export default function CollapsibleItemList({
 }: {
   items: CollapsibleItem[];
 }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
 
   if (!items.length) {
@@ -70,7 +73,7 @@ export default function CollapsibleItemList({
           }}
           onMouseDown={stopRowNav}
         >
-          {expanded ? "ย่อรายการ" : `+${extra} รายการเพิ่มเติม`}
+          {expanded ? t("ย่อรายการ") : t("+{n} รายการเพิ่มเติม", { n: extra })}
         </button>
       ) : null}
     </div>

@@ -13,6 +13,7 @@ import {
   useUpdateHazardClassMutation,
 } from "@/hooks/chemicals/useChemicals";
 import type { HazardClass, IncompatiblePair } from "@/types/chemicals";
+import { useT } from "@/lib/i18n/useT";
 
 const pairKey = (a: string, b: string) => (a <= b ? `${a}|${b}` : `${b}|${a}`);
 
@@ -27,6 +28,7 @@ function MatrixEditor({
   initial: IncompatiblePair[];
   canEdit: boolean;
 }) {
+  const t = useT();
   const [selected, setSelected] = useState(
     () => new Set(initial.map((p) => pairKey(p.hazardClassAId, p.hazardClassBId))),
   );
@@ -55,8 +57,7 @@ function MatrixEditor({
   return (
     <div>
       <p style={{ color: "#8a94a6", marginTop: 0 }}>
-        ติ๊กคู่ที่ <strong>ห้ามเก็บในตำแหน่งจัดเก็บเดียวกัน</strong> — ตอนรับของ/โอนย้ายที่ทำให้สองกลุ่มนี้อยู่ตำแหน่งเดียวกัน
-        ระบบจะเตือนให้ผู้ใช้รับทราบก่อน
+        {t("ติ๊กคู่ที่")} <strong>{t("ห้ามเก็บในตำแหน่งจัดเก็บเดียวกัน")}</strong> {t("— ตอนรับของ/โอนย้ายที่ทำให้สองกลุ่มนี้อยู่ตำแหน่งเดียวกัน ระบบจะเตือนให้ผู้ใช้รับทราบก่อน")}
       </p>
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", minWidth: 480 }}>
@@ -81,7 +82,7 @@ function MatrixEditor({
                         disabled={!canEdit}
                         checked={selected.has(pairKey(row.id, col.id))}
                         onChange={(e) => toggle(row.id, col.id, e.target.checked)}
-                        aria-label={`${row.nameTh} กับ ${col.nameTh} ห้ามเก็บรวม`}
+                        aria-label={t("{a} กับ {b} ห้ามเก็บรวม", { a: row.nameTh, b: col.nameTh })}
                       />
                     ) : null}
                   </td>
@@ -93,7 +94,7 @@ function MatrixEditor({
       </div>
       {canEdit ? (
         <Button type="primary" style={{ marginTop: 12 }} disabled={!dirty} loading={save.isPending} onClick={submit}>
-          บันทึกตารางห้ามเก็บรวม
+          {t("บันทึกตารางห้ามเก็บรวม")}
         </Button>
       ) : null}
     </div>
@@ -102,6 +103,7 @@ function MatrixEditor({
 
 /** แท็บ Hazard Class + ตารางห้ามเก็บรวม (Incompatible) */
 export default function HazardMatrixTab({ canEdit }: Props) {
+  const t = useT();
   const classesQuery = useHazardClassesQuery();
   const pairsQuery = useIncompatibilitiesQuery();
   const create = useCreateHazardClassMutation();
@@ -113,10 +115,10 @@ export default function HazardMatrixTab({ canEdit }: Props) {
   const activeClasses = useMemo(() => classes.filter((c) => c.isActive), [classes]);
 
   const columns: ColumnsType<HazardClass> = [
-    { title: "รหัส", dataIndex: "code", width: 180 },
-    { title: "ชื่อ Hazard Class", dataIndex: "nameTh" },
+    { title: t("รหัส"), dataIndex: "code", width: 180 },
+    { title: t("ชื่อ Hazard Class"), dataIndex: "nameTh" },
     {
-      title: "ใช้งาน",
+      title: t("ใช้งาน"),
       key: "active",
       width: 100,
       render: (_v, c) => (
@@ -135,7 +137,7 @@ export default function HazardMatrixTab({ canEdit }: Props) {
       <Alert
         type="info"
         showIcon
-        title="ชุดเริ่มต้น (ไวไฟ/ออกซิไดซ์/กรด/ด่าง/พิษ/ทำปฏิกิริยากับน้ำ) เป็นแนวทางทั่วไป — ตรวจและปรับตามข้อกำหนดความปลอดภัยของโรงงานก่อนใช้งานจริง"
+        title={t("ชุดเริ่มต้น (ไวไฟ/ออกซิไดซ์/กรด/ด่าง/พิษ/ทำปฏิกิริยากับน้ำ) เป็นแนวทางทั่วไป — ตรวจและปรับตามข้อกำหนดความปลอดภัยของโรงงานก่อนใช้งานจริง")}
       />
       <section>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -144,7 +146,7 @@ export default function HazardMatrixTab({ canEdit }: Props) {
           </Typography.Title>
           {canEdit ? (
             <Button icon={<PlusOutlined />} onClick={() => setAddOpen(true)}>
-              เพิ่ม Hazard Class
+              {t("เพิ่ม Hazard Class")}
             </Button>
           ) : null}
         </div>
@@ -158,7 +160,7 @@ export default function HazardMatrixTab({ canEdit }: Props) {
         />
       </section>
       <section>
-        <Typography.Title level={5}>ห้ามเก็บรวม (Incompatible)</Typography.Title>
+        <Typography.Title level={5}>{t("ห้ามเก็บรวม (Incompatible)")}</Typography.Title>
         {pairsQuery.data ? (
           <MatrixEditor
             key={`${activeClasses.map((c) => c.id).join(",")}-${pairsQuery.dataUpdatedAt}`}
@@ -170,9 +172,9 @@ export default function HazardMatrixTab({ canEdit }: Props) {
       </section>
       <Modal
         open={addOpen}
-        title="เพิ่ม Hazard Class"
-        okText="เพิ่ม"
-        cancelText="ยกเลิก"
+        title={t("เพิ่ม Hazard Class")}
+        okText={t("เพิ่ม")}
+        cancelText={t("ยกเลิก")}
         confirmLoading={create.isPending}
         onCancel={() => setAddOpen(false)}
         destroyOnHidden
@@ -193,15 +195,15 @@ export default function HazardMatrixTab({ canEdit }: Props) {
         <Form form={form} layout="vertical" preserve={false}>
           <Form.Item
             name="code"
-            label="รหัส"
+            label={t("รหัส")}
             rules={[
-              { required: true, message: "ใส่รหัส" },
-              { pattern: /^[A-Za-z0-9_]{1,50}$/, message: "ใช้ A-Z 0-9 _ เท่านั้น" },
+              { required: true, message: t("ใส่รหัส") },
+              { pattern: /^[A-Za-z0-9_]{1,50}$/, message: t("ใช้ A-Z 0-9 _ เท่านั้น") },
             ]}
           >
-            <Input placeholder="เช่น CORROSIVE" maxLength={50} />
+            <Input placeholder={t("เช่น CORROSIVE")} maxLength={50} />
           </Form.Item>
-          <Form.Item name="nameTh" label="ชื่อ" rules={[{ required: true, whitespace: true, message: "ใส่ชื่อ" }]}>
+          <Form.Item name="nameTh" label={t("ชื่อ")} rules={[{ required: true, whitespace: true, message: t("ใส่ชื่อ") }]}>
             <Input maxLength={255} />
           </Form.Item>
         </Form>

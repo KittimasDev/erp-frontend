@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
+import { useT } from "@/lib/i18n/useT";
 
 import { ApiError } from "@/lib/api/client";
 import {
@@ -64,6 +65,7 @@ function errorMessage(error: unknown, fallback: string) {
 export function useCreateMaterialConversionMutation() {
   const invalidate = useInvalidateRuns();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionsKey, "create"],
@@ -75,11 +77,11 @@ export function useCreateMaterialConversionMutation() {
       if (res.data.stepSkipWarning) {
         message.warning(res.message);
       } else {
-        message.success(res.message || "สร้างใบแปรสภาพวัตถุดิบสำเร็จ");
+        message.success(res.message || t("สร้างใบแปรสภาพวัตถุดิบสำเร็จ"));
       }
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "สร้างใบแปรสภาพวัตถุดิบไม่สำเร็จ"));
+      message.error(errorMessage(error, t("สร้างใบแปรสภาพวัตถุดิบไม่สำเร็จ")));
     },
   });
 }
@@ -87,6 +89,7 @@ export function useCreateMaterialConversionMutation() {
 export function useStartMaterialConversionMutation() {
   const invalidate = useInvalidateRuns();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionsKey, "start"],
@@ -94,10 +97,10 @@ export function useStartMaterialConversionMutation() {
       startMaterialConversion(getAccessToken(), vars.id, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เริ่มงานและตัดสต๊อกวัตถุดิบสำเร็จ");
+      message.success(res.message || t("เริ่มงานและตัดสต๊อกวัตถุดิบสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "เริ่มงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("เริ่มงานไม่สำเร็จ")));
     },
   });
 }
@@ -105,6 +108,7 @@ export function useStartMaterialConversionMutation() {
 export function useCompleteMaterialConversionMutation() {
   const invalidate = useInvalidateRuns();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionsKey, "complete"],
@@ -115,14 +119,14 @@ export function useCompleteMaterialConversionMutation() {
       // สมดุลมวลผิดปกติต้องขึ้นเป็นคำเตือน ไม่ใช่กลืนไปกับข้อความสำเร็จ
       if (res.data.massBalanceStatus === "EXCEEDS_INPUT") {
         message.warning(
-          res.data.massBalanceMessage || "ผลผลิตเกินวัตถุดิบ — ตรวจตัวเลขอีกครั้ง",
+          res.data.massBalanceMessage || t("ผลผลิตเกินวัตถุดิบ — ตรวจตัวเลขอีกครั้ง"),
         );
       } else {
-        message.success(res.message || "ปิดงานและรับผลผลิตเข้าคลังสำเร็จ");
+        message.success(res.message || t("ปิดงานและรับผลผลิตเข้าคลังสำเร็จ"));
       }
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ปิดงานไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ปิดงานไม่สำเร็จ")));
     },
   });
 }
@@ -130,6 +134,7 @@ export function useCompleteMaterialConversionMutation() {
 export function useCancelMaterialConversionMutation() {
   const invalidate = useInvalidateRuns();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionsKey, "cancel"],
@@ -137,10 +142,10 @@ export function useCancelMaterialConversionMutation() {
       cancelMaterialConversion(getAccessToken(), vars.id, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกเอกสารสำเร็จ");
+      message.success(res.message || t("ยกเลิกเอกสารสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ยกเลิกเอกสารไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ยกเลิกเอกสารไม่สำเร็จ")));
     },
   });
 }
@@ -150,6 +155,7 @@ export function useCancelMaterialConversionMutation() {
 export function useCreateRouteMutation() {
   const invalidate = useInvalidateRoutes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionRoutesKey, "create"],
@@ -157,10 +163,10 @@ export function useCreateRouteMutation() {
       createMaterialConversionRoute(getAccessToken(), body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "สร้างเส้นทางสำเร็จ");
+      message.success(res.message || t("สร้างเส้นทางสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "สร้างเส้นทางไม่สำเร็จ"));
+      message.error(errorMessage(error, t("สร้างเส้นทางไม่สำเร็จ")));
     },
   });
 }
@@ -168,6 +174,7 @@ export function useCreateRouteMutation() {
 export function useUpdateRouteMutation() {
   const invalidate = useInvalidateRoutes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionRoutesKey, "update"],
@@ -175,10 +182,10 @@ export function useUpdateRouteMutation() {
       updateMaterialConversionRoute(getAccessToken(), vars.id, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "แก้ไขเส้นทางสำเร็จ");
+      message.success(res.message || t("แก้ไขเส้นทางสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "แก้ไขเส้นทางไม่สำเร็จ"));
+      message.error(errorMessage(error, t("แก้ไขเส้นทางไม่สำเร็จ")));
     },
   });
 }
@@ -186,6 +193,7 @@ export function useUpdateRouteMutation() {
 export function useDeleteRouteMutation() {
   const invalidate = useInvalidateRoutes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionRoutesKey, "delete"],
@@ -193,10 +201,10 @@ export function useDeleteRouteMutation() {
       deleteMaterialConversionRoute(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ลบเส้นทางสำเร็จ");
+      message.success(res.message || t("ลบเส้นทางสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ลบเส้นทางไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ลบเส้นทางไม่สำเร็จ")));
     },
   });
 }
@@ -204,6 +212,7 @@ export function useDeleteRouteMutation() {
 export function useCreateRouteStepMutation() {
   const invalidate = useInvalidateRoutes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionRoutesKey, "step-create"],
@@ -211,10 +220,10 @@ export function useCreateRouteStepMutation() {
       createRouteStep(getAccessToken(), vars.routeId, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เพิ่มขั้นตอนสำเร็จ");
+      message.success(res.message || t("เพิ่มขั้นตอนสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "เพิ่มขั้นตอนไม่สำเร็จ"));
+      message.error(errorMessage(error, t("เพิ่มขั้นตอนไม่สำเร็จ")));
     },
   });
 }
@@ -222,6 +231,7 @@ export function useCreateRouteStepMutation() {
 export function useUpdateRouteStepMutation() {
   const invalidate = useInvalidateRoutes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionRoutesKey, "step-update"],
@@ -232,10 +242,10 @@ export function useUpdateRouteStepMutation() {
     }) => updateRouteStep(getAccessToken(), vars.routeId, vars.stepId, vars.body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "แก้ไขขั้นตอนสำเร็จ");
+      message.success(res.message || t("แก้ไขขั้นตอนสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "แก้ไขขั้นตอนไม่สำเร็จ"));
+      message.error(errorMessage(error, t("แก้ไขขั้นตอนไม่สำเร็จ")));
     },
   });
 }
@@ -243,6 +253,7 @@ export function useUpdateRouteStepMutation() {
 export function useDeleteRouteStepMutation() {
   const invalidate = useInvalidateRoutes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...materialConversionRoutesKey, "step-delete"],
@@ -250,10 +261,10 @@ export function useDeleteRouteStepMutation() {
       deleteRouteStep(getAccessToken(), vars.routeId, vars.stepId),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ลบขั้นตอนสำเร็จ");
+      message.success(res.message || t("ลบขั้นตอนสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ลบขั้นตอนไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ลบขั้นตอนไม่สำเร็จ")));
     },
   });
 }

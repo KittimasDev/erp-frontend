@@ -37,6 +37,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useT } from "@/lib/i18n/useT";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import AttendanceRecordModal from "@/components/hrm/AttendanceRecordModal";
 import {
@@ -94,6 +95,7 @@ export default function AttendancePage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const { message } = App.useApp();
+  const t = useT();
   const today = dayjs();
 
   // อ่าน origin หลัง hydrate โดยไม่ setState ใน effect
@@ -107,9 +109,9 @@ export default function AttendancePage() {
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(selfServiceUrl);
-      message.success("คัดลอกลิงก์แล้ว");
+      message.success(t("คัดลอกลิงก์แล้ว"));
     } catch {
-      message.warning("คัดลอกไม่สำเร็จ กรุณาคัดลอกด้วยตัวเอง");
+      message.warning(t("คัดลอกไม่สำเร็จ กรุณาคัดลอกด้วยตัวเอง"));
     }
   };
 
@@ -187,7 +189,7 @@ export default function AttendancePage() {
   const columns: ColumnsType<AttendanceRecord> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         fixed: "left",
         width: 64,
@@ -195,19 +197,19 @@ export default function AttendancePage() {
         render: (_, __, index) => (page - 1) * pageSize + index + 1,
       },
       {
-        title: "พนักงาน",
+        title: t("พนักงาน"),
         key: "employee",
         fixed: "left",
         width: 200,
         render: (_v, row) => (
           <div className={styles.employeeCell}>
             <strong>{row.displayName ?? "—"}</strong>
-            <span>{row.employeeCode ?? "ไม่มีรหัสพนักงาน"}</span>
+            <span>{row.employeeCode ?? t("ไม่มีรหัสพนักงาน")}</span>
           </div>
         ),
       },
       {
-        title: "แผนก",
+        title: t("แผนก"),
         dataIndex: "departmentName",
         key: "departmentName",
         width: 140,
@@ -215,28 +217,28 @@ export default function AttendancePage() {
         render: (value?: string) => value ?? "—",
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "attendanceDate",
         key: "attendanceDate",
         width: 110,
         render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
       },
       {
-        title: "กะ",
+        title: t("กะ"),
         key: "shift",
         width: 130,
         render: (_v, row) =>
           row.shiftName ? (
             <div className={styles.employeeCell}>
               <strong>{row.shiftName}</strong>
-              <span>เข้ากะ {row.shiftStartTime ?? "—"}</span>
+              <span>{t("เข้ากะ {time}", { time: row.shiftStartTime ?? "—" })}</span>
             </div>
           ) : (
-            <span className={styles.pending}>ยังไม่จัดกะ</span>
+            <span className={styles.pending}>{t("ยังไม่จัดกะ")}</span>
           ),
       },
       {
-        title: "เข้างาน",
+        title: t("เข้างาน"),
         dataIndex: "checkInAt",
         key: "checkInAt",
         width: 90,
@@ -244,7 +246,7 @@ export default function AttendancePage() {
         render: (value?: string) => formatTime(value),
       },
       {
-        title: "ออกงาน",
+        title: t("ออกงาน"),
         dataIndex: "checkOutAt",
         key: "checkOutAt",
         width: 90,
@@ -253,11 +255,11 @@ export default function AttendancePage() {
           value ? (
             formatTime(value)
           ) : (
-            <span className={styles.pending}>ยังไม่กดออก</span>
+            <span className={styles.pending}>{t("ยังไม่กดออก")}</span>
           ),
       },
       {
-        title: "รวม (ชม.)",
+        title: t("รวม (ชม.)"),
         dataIndex: "workHours",
         key: "workHours",
         width: 90,
@@ -265,7 +267,7 @@ export default function AttendancePage() {
         render: (value?: number) => formatHours(value),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
@@ -273,20 +275,20 @@ export default function AttendancePage() {
         render: (value: string, row) => (
           <Tag color={statusColor(value)}>
             {value === "ON_LEAVE" && row.leaveType
-              ? (LEAVE_TYPE_LABEL[row.leaveType] ?? "ลางาน")
+              ? t(LEAVE_TYPE_LABEL[row.leaveType] ?? "ลางาน")
               : value === "LATE" && row.lateMinutes
-                ? `สาย ${row.lateMinutes} นาที`
-                : (ATTENDANCE_STATUS_LABEL[value] ?? value)}
+                ? t("สาย {n} นาที", { n: row.lateMinutes })
+                : t(ATTENDANCE_STATUS_LABEL[value] ?? value)}
           </Tag>
         ),
       },
       {
-        title: "วิธีลงเวลา",
+        title: t("วิธีลงเวลา"),
         dataIndex: "source",
         key: "source",
         width: 120,
         render: (value?: string) =>
-          value ? (ATTENDANCE_SOURCE_LABEL[value] ?? value) : "—",
+          value ? t(ATTENDANCE_SOURCE_LABEL[value] ?? value) : "—",
       },
       {
         title: "IP",
@@ -296,7 +298,7 @@ export default function AttendancePage() {
         render: (value?: string) => value ?? "—",
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 150,
         align: "center",
@@ -304,8 +306,8 @@ export default function AttendancePage() {
         render: (_v, row) =>
           // แถวลาเป็นของเสมือนจากใบลา ต้องไปแก้ที่หน้าคำขอลาแทน
           row.isLeave ? (
-            <Tooltip title="มาจากใบลาที่อนุมัติแล้ว — แก้ที่หน้าคำขอลางาน">
-              <span className={styles.pending}>ใบลา</span>
+            <Tooltip title={t("มาจากใบลาที่อนุมัติแล้ว — แก้ที่หน้าคำขอลางาน")}>
+              <span className={styles.pending}>{t("ใบลา")}</span>
             </Tooltip>
           ) : (
             <Space size={4}>
@@ -315,7 +317,7 @@ export default function AttendancePage() {
                   type="primary"
                   onClick={() => openEdit(row)}
                 >
-                  ปิดกะ
+                  {t("ปิดกะ")}
                 </Button>
               ) : null}
               <Button
@@ -323,13 +325,13 @@ export default function AttendancePage() {
                 icon={<EditOutlined />}
                 onClick={() => openEdit(row)}
               >
-                แก้ไข
+                {t("แก้ไข")}
               </Button>
             </Space>
           ),
       },
     ],
-    [],
+    [t],
   );
 
   return (
@@ -338,27 +340,27 @@ export default function AttendancePage() {
         <PageHeader
           eyebrow="HRM"
           icon={<ClockCircleOutlined />}
-          title="บันทึกเวลาเข้า-ออกงาน"
-          subtitle="รายการลงเวลาของพนักงาน เรียงจากล่าสุด ดูได้ทั้งรายวันและทั้งเดือน พร้อมกราฟสรุป"
+          title={t("บันทึกเวลาเข้า-ออกงาน")}
+          subtitle={t("รายการลงเวลาของพนักงาน เรียงจากล่าสุด ดูได้ทั้งรายวันและทั้งเดือน พร้อมกราฟสรุป")}
         >
 <div className={styles.shareLink}>
-              <span>ลิงก์ให้พนักงานกดเข้า-ออกงาน</span>
+              <span>{t("ลิงก์ให้พนักงานกดเข้า-ออกงาน")}</span>
               <code>{selfServiceUrl}</code>
               <Button
                 size="small"
                 icon={<CopyOutlined />}
                 onClick={handleCopyLink}
               >
-                คัดลอก
+                {t("คัดลอก")}
               </Button>
             </div>
         </PageHeader>
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>
-            <span>ช่วงข้อมูล</span>
+            <span>{t("ช่วงข้อมูล")}</span>
             <Segmented
-              options={MODE_OPTIONS}
+              options={MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
               value={mode}
               onChange={(value) => setMode(value as RangeMode)}
             />
@@ -366,7 +368,7 @@ export default function AttendancePage() {
 
           {mode === "day" ? (
             <label className={styles.filterField}>
-              <span>วันที่</span>
+              <span>{t("วันที่")}</span>
               <DatePicker
                 allowClear={false}
                 value={day}
@@ -378,7 +380,7 @@ export default function AttendancePage() {
 
           {mode === "month" ? (
             <label className={styles.filterField}>
-              <span>เดือน</span>
+              <span>{t("เดือน")}</span>
               <DatePicker
                 picker="month"
                 allowClear={false}
@@ -391,7 +393,7 @@ export default function AttendancePage() {
 
           {mode === "custom" ? (
             <label className={styles.filterField}>
-              <span>ช่วงวันที่</span>
+              <span>{t("ช่วงวันที่")}</span>
               <DatePicker.RangePicker
                 allowClear={false}
                 value={customRange}
@@ -405,10 +407,10 @@ export default function AttendancePage() {
           ) : null}
 
           <label className={styles.filterField}>
-            <span>ค้นหาพนักงาน</span>
+            <span>{t("ค้นหาพนักงาน")}</span>
             <Input
               allowClear
-              placeholder="ชื่อ หรือ รหัสพนักงาน"
+              placeholder={t("ชื่อ หรือ รหัสพนักงาน")}
               prefix={<SearchOutlined />}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
@@ -419,18 +421,18 @@ export default function AttendancePage() {
           </label>
 
           <label className={styles.filterField}>
-            <span>สถานะ</span>
+            <span>{t("สถานะ")}</span>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               style={{ width: 140 }}
               options={[
-                { label: "ปกติ", value: "PRESENT" },
-                { label: "สาย", value: "LATE" },
-                { label: "ขาดงาน", value: "ABSENT" },
-                { label: "ลางาน", value: "ON_LEAVE" },
+                { label: t("ปกติ"), value: "PRESENT" },
+                { label: t("สาย"), value: "LATE" },
+                { label: t("ขาดงาน"), value: "ABSENT" },
+                { label: t("ลางาน"), value: "ON_LEAVE" },
               ]}
             />
           </label>
@@ -442,58 +444,58 @@ export default function AttendancePage() {
               void recordsQuery.refetch();
             }}
           >
-            รีเฟรช
+            {t("รีเฟรช")}
           </Button>
 
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-            บันทึกเวลาย้อนหลัง
+            {t("บันทึกเวลาย้อนหลัง")}
           </Button>
         </div>
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>พนักงานที่ลงเวลา</span>
+            <span>{t("พนักงานที่ลงเวลา")}</span>
             <strong>{summary?.totalEmployees ?? 0}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ลงเวลาปกติ</span>
+            <span>{t("ลงเวลาปกติ")}</span>
             <strong>{summary?.presentCount ?? 0}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>มาสาย</span>
+            <span>{t("มาสาย")}</span>
             <strong className={styles.warnValue}>
               {summary?.lateCount ?? 0}
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ยังไม่กดออกงาน</span>
+            <span>{t("ยังไม่กดออกงาน")}</span>
             <strong className={styles.warnValue}>
               {summary?.missingCheckOutCount ?? 0}
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ลางาน (วัน-คน)</span>
+            <span>{t("ลางาน (วัน-คน)")}</span>
             <strong className={styles.leaveValue}>
               {summary?.onLeaveCount ?? 0}
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ชั่วโมงทำงานเฉลี่ย</span>
-            <strong>{(summary?.avgWorkHours ?? 0).toFixed(2)} ชม.</strong>
+            <span>{t("ชั่วโมงทำงานเฉลี่ย")}</span>
+            <strong>{(summary?.avgWorkHours ?? 0).toFixed(2)} {t("ชม.")}</strong>
           </div>
         </div>
 
         <div className={styles.chartsGrid}>
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>จำนวนคนลงเวลาต่อวัน</h3>
-              <p>แยกพนักงานที่มาปกติกับมาสายในแต่ละวัน</p>
+              <h3>{t("จำนวนคนลงเวลาต่อวัน")}</h3>
+              <p>{t("แยกพนักงานที่มาปกติกับมาสายในแต่ละวัน")}</p>
             </div>
             <div className={styles.chartBody}>
               {dailyChartData.length === 0 ? (
                 <Empty
                   className={styles.emptyState}
-                  description="ไม่มีข้อมูลในช่วงนี้"
+                  description={t("ไม่มีข้อมูลในช่วงนี้")}
                 />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -524,14 +526,14 @@ export default function AttendancePage() {
                     <Bar
                       stackId="attendance"
                       dataKey="present"
-                      name="ปกติ"
+                      name={t("ปกติ")}
                       fill={GREEN}
                       radius={[0, 0, 0, 0]}
                     />
                     <Bar
                       stackId="attendance"
                       dataKey="late"
-                      name="สาย"
+                      name={t("สาย")}
                       fill={ORANGE}
                       radius={[4, 4, 0, 0]}
                     />
@@ -543,14 +545,14 @@ export default function AttendancePage() {
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>ชั่วโมงทำงานเฉลี่ยต่อวัน</h3>
-              <p>นับเฉพาะคนที่กดออกงานครบแล้ว</p>
+              <h3>{t("ชั่วโมงทำงานเฉลี่ยต่อวัน")}</h3>
+              <p>{t("นับเฉพาะคนที่กดออกงานครบแล้ว")}</p>
             </div>
             <div className={styles.chartBody}>
               {dailyChartData.length === 0 ? (
                 <Empty
                   className={styles.emptyState}
-                  description="ไม่มีข้อมูลในช่วงนี้"
+                  description={t("ไม่มีข้อมูลในช่วงนี้")}
                 />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -575,12 +577,12 @@ export default function AttendancePage() {
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
                       }}
-                      formatter={(value) => [`${value} ชม.`, "เฉลี่ย"]}
+                      formatter={(value) => [`${value} ${t("ชม.")}`, t("เฉลี่ย")]}
                     />
                     <Line
                       type="monotone"
                       dataKey="avgWorkHours"
-                      name="ชั่วโมงเฉลี่ย"
+                      name={t("ชั่วโมงเฉลี่ย")}
                       stroke={BLUE}
                       strokeWidth={2}
                       dot={{ r: 3 }}
@@ -593,14 +595,14 @@ export default function AttendancePage() {
 
           <div className={`${styles.chartCard} ${styles.chartCardWide}`}>
             <div className={styles.chartHeader}>
-              <h3>ชั่วโมงทำงานรวมรายบุคคล (สูงสุด 8 คน)</h3>
-              <p>ยอดสะสมในช่วงที่เลือก</p>
+              <h3>{t("ชั่วโมงทำงานรวมรายบุคคล (สูงสุด 8 คน)")}</h3>
+              <p>{t("ยอดสะสมในช่วงที่เลือก")}</p>
             </div>
             <div className={styles.chartBody}>
               {topEmployees.length === 0 ? (
                 <Empty
                   className={styles.emptyState}
-                  description="ไม่มีข้อมูลในช่วงนี้"
+                  description={t("ไม่มีข้อมูลในช่วงนี้")}
                 />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -633,7 +635,7 @@ export default function AttendancePage() {
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
                       }}
-                      formatter={(value) => [`${value} ชม.`, "รวม"]}
+                      formatter={(value) => [`${value} ${t("ชม.")}`, t("รวม")]}
                     />
                     <Bar
                       dataKey="totalWorkHours"
@@ -662,10 +664,10 @@ export default function AttendancePage() {
               onChange: (p, ps) => { setPage(p); setPageSize(ps); },
               showSizeChanger: true,
               pageSizeOptions: [10, 20, 50, 100],
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
             }}
             locale={{
-              emptyText: <Empty description="ไม่มีรายการลงเวลาในช่วงนี้" />,
+              emptyText: <Empty description={t("ไม่มีรายการลงเวลาในช่วงนี้")} />,
             }}
           />
         </div>

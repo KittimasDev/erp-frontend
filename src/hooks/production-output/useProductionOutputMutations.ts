@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   approveProductionOutputStockRequest,
   cancelProductionOutputStockRequest,
@@ -24,6 +26,7 @@ import { productionOutputStockRequestsQueryKey } from "./useProductionOutputQuer
 export function useCreateProductionOutputStockRequestMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["production-output", "stock-requests", "create"],
@@ -49,8 +52,8 @@ export function useCreateProductionOutputStockRequestMutation() {
         message:
           response.message ||
           (response.data.length > 1
-            ? `สร้างคำขอรับผลผลิต ${response.data.length} รายการสำเร็จแล้ว`
-            : "สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว"),
+            ? t("สร้างคำขอรับผลผลิต {n} รายการสำเร็จแล้ว", { n: response.data.length })
+            : t("สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว")),
         data: response.data,
       };
     },
@@ -67,7 +70,7 @@ export function useCreateProductionOutputStockRequestMutation() {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างคำขอรับผลผลิตไม่สำเร็จ",
+          : t("สร้างคำขอรับผลผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -76,6 +79,7 @@ export function useCreateProductionOutputStockRequestMutation() {
 export function useCreateProductionOutputStockRequestFromOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["production-output", "stock-requests", "from-order"],
@@ -102,15 +106,15 @@ export function useCreateProductionOutputStockRequestFromOrderMutation() {
       message.success(
         response.message ||
           (count > 1
-            ? `สร้างคำขอรับผลผลิต ${count} รายการสำเร็จแล้ว`
-            : "สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว"),
+            ? t("สร้างคำขอรับผลผลิต {n} รายการสำเร็จแล้ว", { n: count })
+            : t("สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว")),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างคำขอรับผลผลิตไม่สำเร็จ",
+          : t("สร้างคำขอรับผลผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -119,6 +123,7 @@ export function useCreateProductionOutputStockRequestFromOrderMutation() {
 export function useCancelProductionOutputStockRequestMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["production-output", "stock-requests", "cancel"],
@@ -128,11 +133,11 @@ export function useCancelProductionOutputStockRequestMutation() {
       await queryClient.invalidateQueries({
         queryKey: productionOutputStockRequestsQueryKey,
       });
-      message.success(response.message || "ยกเลิกคำขอแล้ว");
+      message.success(response.message || t("ยกเลิกคำขอแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกคำขอไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกคำขอไม่สำเร็จ"),
       );
     },
   });
@@ -141,6 +146,7 @@ export function useCancelProductionOutputStockRequestMutation() {
 export function useApproveProductionOutputStockRequestMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["production-output", "stock-requests", "approve"],
@@ -151,12 +157,12 @@ export function useApproveProductionOutputStockRequestMutation() {
         queryKey: productionOutputStockRequestsQueryKey,
       });
       message.success(
-        response.message || "อนุมัติและรับผลผลิตเข้าคลังสำเร็จแล้ว",
+        response.message || t("อนุมัติและรับผลผลิตเข้าคลังสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "อนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("อนุมัติไม่สำเร็จ"),
       );
     },
   });
@@ -165,6 +171,7 @@ export function useApproveProductionOutputStockRequestMutation() {
 export function useRejectProductionOutputStockRequestMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["production-output", "stock-requests", "reject"],
@@ -179,11 +186,11 @@ export function useRejectProductionOutputStockRequestMutation() {
       await queryClient.invalidateQueries({
         queryKey: productionOutputStockRequestsQueryKey,
       });
-      message.success(response.message || "ไม่อนุมัติคำขอแล้ว");
+      message.success(response.message || t("ไม่อนุมัติคำขอแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ไม่อนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ไม่อนุมัติไม่สำเร็จ"),
       );
     },
   });

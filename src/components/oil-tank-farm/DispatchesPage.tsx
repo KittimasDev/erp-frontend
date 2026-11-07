@@ -19,7 +19,9 @@ import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
-import { OIL_DOC_STATUS_LABEL, type OilDispatch } from "@/types/oil-tank-farm";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { oilDocStatusLabel, type OilDispatch } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -42,6 +44,7 @@ type Values = {
 };
 
 function CreateModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const [form] = Form.useForm<Values>();
   const create = useCreateOilDispatchMutation();
   const tanksQuery = useOilTanksQuery();
@@ -51,7 +54,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
   const trucksQuery = useTrucksQuery({});
   const tankId = Form.useWatch("tankId", form);
   const salesOrderId = Form.useWatch("salesOrderId", form);
-  const tank = (tanksQuery.data?.data ?? []).find((t) => t.id === tankId);
+  const tank = (tanksQuery.data?.data ?? []).find((tk) => tk.id === tankId);
   const orders = (salesOrdersQuery.data?.data ?? []).filter((so) => SO_OK.includes(so.status));
   const order = orders.find((o) => o.id === salesOrderId);
 
@@ -59,9 +62,9 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     <Modal
       open
       width={680}
-      title="เปิดรายการ Loading น้ำมัน"
-      okText="สร้างใบจ่าย"
-      cancelText="ยกเลิก"
+      title={t("เปิดรายการ Loading น้ำมัน")}
+      okText={t("สร้างใบจ่าย")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={create.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -87,22 +90,22 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     >
       <Form form={form} layout="vertical" initialValues={{ dispatchDate: dayjs() }}>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="dispatchDate" label="วันที่" rules={[{ required: true }]} style={{ flex: 1 }}>
+          <Form.Item name="dispatchDate" label={t("วันที่")} rules={[{ required: true }]} style={{ flex: 1 }}>
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
-          <Form.Item name="tankId" label="ถังที่จ่าย" rules={[{ required: true, message: "เลือกถัง" }]} style={{ flex: 1 }}>
-            <Select options={(tanksQuery.data?.data ?? []).filter((t) => t.status === "ACTIVE").map((t) => ({ value: t.id, label: `${t.tankNo} (พร้อมใช้ ${n(t.availableLiters ?? 0)})` }))} />
+          <Form.Item name="tankId" label={t("ถังที่จ่าย")} rules={[{ required: true, message: t("เลือกถัง") }]} style={{ flex: 1 }}>
+            <Select options={(tanksQuery.data?.data ?? []).filter((tk) => tk.status === "ACTIVE").map((tk) => ({ value: tk.id, label: `${tk.tankNo} (${t("พร้อมใช้")} ${n(tk.availableLiters ?? 0)})` }))} />
           </Form.Item>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="quantityLiters" label="ปริมาณ" rules={[{ required: true, message: "ใส่ปริมาณ" }]} style={{ flex: 1 }}>
+          <Form.Item name="quantityLiters" label={t("ปริมาณ")} rules={[{ required: true, message: t("ใส่ปริมาณ") }]} style={{ flex: 1 }}>
             <InputNumber min={0.001} max={tank ? Number(tank.availableLiters ?? 0) : undefined} precision={3} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="unitId" label="หน่วย" rules={[{ required: true, message: "เลือกหน่วย" }]} style={{ flex: 1 }}>
+          <Form.Item name="unitId" label={t("หน่วย")} rules={[{ required: true, message: t("เลือกหน่วย") }]} style={{ flex: 1 }}>
             <Select showSearch optionFilterProp="label" options={(unitsQuery.data?.data ?? []).map((u) => ({ value: u.id, label: u.code }))} />
           </Form.Item>
         </div>
-        <Form.Item name="salesOrderId" label="ใบสั่งขาย (ที่ยืนยันแล้ว)" extra="เลือกแล้วระบบดึงลูกค้าจากใบสั่งขายให้">
+        <Form.Item name="salesOrderId" label={t("ใบสั่งขาย (ที่ยืนยันแล้ว)")} extra={t("เลือกแล้วระบบดึงลูกค้าจากใบสั่งขายให้")}>
           <Select
             allowClear
             showSearch
@@ -111,7 +114,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             options={orders.map((o) => ({ value: o.id, label: `${o.soNo}${o.customer?.nameTh ? ` — ${o.customer.nameTh}` : ""}` }))}
           />
         </Form.Item>
-        <Form.Item name="customerId" label="ลูกค้า" extra={order ? "ใช้ลูกค้าของใบสั่งขายที่เลือก" : "ไม่ผูกใบสั่งขาย → เลือกลูกค้าเอง"}>
+        <Form.Item name="customerId" label={t("ลูกค้า")} extra={order ? t("ใช้ลูกค้าของใบสั่งขายที่เลือก") : t("ไม่ผูกใบสั่งขาย → เลือกลูกค้าเอง")}>
           <Select
             allowClear
             showSearch
@@ -122,7 +125,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
           />
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="truckId" label="รถบรรทุก (จากทะเบียนรถ)" style={{ flex: 1 }}>
+          <Form.Item name="truckId" label={t("รถบรรทุก (จากทะเบียนรถ)")} style={{ flex: 1 }}>
             <Select
               allowClear
               showSearch
@@ -138,22 +141,22 @@ function CreateModal({ onClose }: { onClose: () => void }) {
               }}
             />
           </Form.Item>
-          <Form.Item name="truckLicensePlate" label="ทะเบียนรถ" style={{ flex: 1 }}>
-            <Input maxLength={50} placeholder="พิมพ์เองได้ถ้าไม่มีในทะเบียนรถ" />
+          <Form.Item name="truckLicensePlate" label={t("ทะเบียนรถ")} style={{ flex: 1 }}>
+            <Input maxLength={50} placeholder={t("พิมพ์เองได้ถ้าไม่มีในทะเบียนรถ")} />
           </Form.Item>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="driverName" label="ชื่อคนขับ" style={{ flex: 1 }}>
+          <Form.Item name="driverName" label={t("ชื่อคนขับ")} style={{ flex: 1 }}>
             <Input maxLength={150} />
           </Form.Item>
-          <Form.Item name="weighbridgeTicketNo" label="เลขตั๋วชั่ง (ขาออก)" style={{ flex: 1 }} extra="แสดงน้ำมันสุทธิตามตั๋วเทียบกับลิตรที่จ่าย (ไม่บล็อก)">
+          <Form.Item name="weighbridgeTicketNo" label={t("เลขตั๋วชั่ง (ขาออก)")} style={{ flex: 1 }} extra={t("แสดงน้ำมันสุทธิตามตั๋วเทียบกับลิตรที่จ่าย (ไม่บล็อก)")}>
             <Input maxLength={50} />
           </Form.Item>
         </div>
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
-        <Alert type="info" showIcon title="สร้างใบแล้วระบบจองน้ำมันในถังไว้ให้ จนกว่าจะอนุมัติหรือยกเลิก · อนุมัติจ่ายตัดตาม Lot (FIFO) — Lot ที่ QC/COA ยังไม่ผ่านจ่ายไม่ได้" />
+        <Alert type="info" showIcon title={t("สร้างใบแล้วระบบจองน้ำมันในถังไว้ให้ จนกว่าจะอนุมัติหรือยกเลิก · อนุมัติจ่ายตัดตาม Lot (FIFO) — Lot ที่ QC/COA ยังไม่ผ่านจ่ายไม่ได้")} />
       </Form>
     </Modal>
   );
@@ -161,6 +164,8 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 /** หน้า /oil-tank-farm/dispatches — Oil Loading: จ่ายน้ำมันให้ลูกค้า ระบุรถ/คนขับ/ตั๋วชั่ง */
 export default function DispatchesPage() {
+  const t = useT();
+  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const query = useOilDispatchesQuery();
   const approve = useApproveOilDispatchMutation();
@@ -170,24 +175,24 @@ export default function DispatchesPage() {
 
   const columns: ColumnsType<OilDispatch> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: "ใบจ่าย", key: "no", width: 150, render: (_v, r) => <div><strong>{r.dispatchNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.dispatchDate).format("DD/MM/YYYY")}</div></div> },
-    { title: "ลูกค้า / ใบสั่งขาย", key: "c", render: (_v, r) => <div>{r.customerName ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.salesOrderNo ?? r.referenceDocNo ?? ""}</div></div> },
-    { title: "รถ / คนขับ", key: "t", width: 170, render: (_v, r) => <div>{r.truckLicensePlate ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.driverName ?? ""}</div></div> },
-    { title: "ถัง", dataIndex: "tankNo", width: 90 },
-    { title: "ปริมาณ", key: "q", width: 130, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },
+    { title: t("ใบจ่าย"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.dispatchNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.dispatchDate).format("DD/MM/YYYY")}</div></div> },
+    { title: t("ลูกค้า / ใบสั่งขาย"), key: "c", render: (_v, r) => <div>{r.customerName ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.salesOrderNo ?? r.referenceDocNo ?? ""}</div></div> },
+    { title: t("รถ / คนขับ"), key: "t", width: 170, render: (_v, r) => <div>{r.truckLicensePlate ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.driverName ?? ""}</div></div> },
+    { title: t("ถัง"), dataIndex: "tankNo", width: 90 },
+    { title: t("ปริมาณ"), key: "q", width: 130, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },
     {
-      title: "ตั๋วชั่ง",
+      title: t("ตั๋วชั่ง"),
       key: "w",
       width: 170,
-      render: (_v, r) => (r.weighbridgeTicketNo ? <div>{r.weighbridgeTicketNo}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.weighbridgeNetKg ? `สุทธิ ${n(r.weighbridgeNetKg)} กก.` : "ยังไม่มีน้ำหนักสุทธิ"}</div></div> : "—"),
+      render: (_v, r) => (r.weighbridgeTicketNo ? <div>{r.weighbridgeTicketNo}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.weighbridgeNetKg ? t("สุทธิ {w} กก.", { w: n(r.weighbridgeNetKg) }) : t("ยังไม่มีน้ำหนักสุทธิ")}</div></div> : "—"),
     },
-    { title: "สถานะ", key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{OIL_DOC_STATUS_LABEL[r.status] ?? r.status}</Tag> },
+    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
     {
       title: "",
       key: "act",
@@ -196,12 +201,12 @@ export default function DispatchesPage() {
         r.status === "DRAFT" ? (
           <div style={{ display: "flex", gap: 6 }}>
             {canApprove ? (
-              <Popconfirm title="อนุมัติจ่ายน้ำมัน?" description="ตัดน้ำมันจากถังตาม Lot (FIFO)" okText="อนุมัติ" cancelText="ยกเลิก" onConfirm={() => approve.mutate(r.id)}>
-                <Button size="small" type="primary" loading={approve.isPending && approve.variables === r.id}>อนุมัติจ่าย</Button>
+              <Popconfirm title={t("อนุมัติจ่ายน้ำมัน?")} description={t("ตัดน้ำมันจากถังตาม Lot (FIFO)")} okText={t("อนุมัติ")} cancelText={t("ยกเลิก")} onConfirm={() => approve.mutate(r.id)}>
+                <Button size="small" type="primary" loading={approve.isPending && approve.variables === r.id}>{t("อนุมัติจ่าย")}</Button>
               </Popconfirm>
             ) : null}
-            <Popconfirm title="ยกเลิกใบจ่าย? (ปล่อยที่จองคืน)" okText="ยกเลิกใบ" cancelText="ไม่" onConfirm={() => cancel.mutate(r.id)}>
-              <Button size="small" danger>ยกเลิก</Button>
+            <Popconfirm title={t("ยกเลิกใบจ่าย? (ปล่อยที่จองคืน)")} okText={t("ยกเลิกใบ")} cancelText={t("ไม่")} onConfirm={() => cancel.mutate(r.id)}>
+              <Button size="small" danger>{t("ยกเลิก")}</Button>
             </Popconfirm>
           </div>
         ) : null,
@@ -214,16 +219,16 @@ export default function DispatchesPage() {
         <PageHeader
           eyebrow="OIL TANK FARM · LOADING"
           icon={<CarOutlined />}
-          title="จ่ายน้ำมัน / Oil Loading"
-          subtitle="ระบุลูกค้า (หรือใบสั่งขาย) รถบรรทุก คนขับ ปริมาณ และตั๋วชั่ง · จองน้ำมันในถังตั้งแต่สร้างใบ"
+          title={t("จ่ายน้ำมัน / Oil Loading")}
+          subtitle={t("ระบุลูกค้า (หรือใบสั่งขาย) รถบรรทุก คนขับ ปริมาณ และตั๋วชั่ง · จองน้ำมันในถังตั้งแต่สร้างใบ")}
           actions={
             <>
-{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>เปิดรายการ Loading</Button> : <div />}
+{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>{t("เปิดรายการ Loading")}</Button> : <div />}
             </>
           }
         />
         <div className={styles.tableCard}>
-          <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} ใบ` }} scroll={{ x: 1100 }} locale={{ emptyText: "ยังไม่มีรายการ Loading" }} />
+          <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} ใบ", { n: total }) }} scroll={{ x: 1100 }} locale={{ emptyText: t("ยังไม่มีรายการ Loading") }} />
         </div>
         {creating ? <CreateModal onClose={() => setCreating(false)} /> : null}
       </section>

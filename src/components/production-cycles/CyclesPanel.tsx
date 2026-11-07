@@ -12,8 +12,10 @@ import {
   useProductionCyclesQuery,
   useUpdateProductionCycleMutation,
 } from "@/hooks/production-cycles/useProductionCycles";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
-import { CYCLE_PHASE_COLOR, CYCLE_PHASE_LABEL, type ProductionCycle } from "@/types/production-cycle";
+import { CYCLE_PHASE_COLOR, cyclePhaseLabel, type ProductionCycle } from "@/types/production-cycle";
 
 const fmtDate = (v: string) => dayjs(v).format("DD/MM/YYYY");
 
@@ -21,6 +23,7 @@ type FormValues = { startDate: dayjs.Dayjs; runDays: number; shutdownDays: numbe
 
 /** แก้รอบ — แสดงวันสิ้นสุดที่ระบบคำนวณให้แบบสด ๆ ก่อนกดบันทึก (รอบใหม่เกิดจากยืนยันรอบในตารางการผลิต) */
 function CycleEditModal({ cycle, onClose }: { cycle: ProductionCycle; onClose: () => void }) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const update = useUpdateProductionCycleMutation();
   const start = Form.useWatch("startDate", form) ?? dayjs(cycle.startDate);
@@ -32,9 +35,9 @@ function CycleEditModal({ cycle, onClose }: { cycle: ProductionCycle; onClose: (
   return (
     <Modal
       open
-      title={`แก้ไขรอบ ${cycle.cycleNo}`}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={getStoredLanguage() === "en" ? `Edit cycle ${cycle.cycleNo}` : `แก้ไขรอบ ${cycle.cycleNo}`}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={update.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -64,32 +67,32 @@ function CycleEditModal({ cycle, onClose }: { cycle: ProductionCycle; onClose: (
           remark: cycle.remark,
         }}
       >
-        <Form.Item name="startDate" label="วันแรกของช่วงผลิต" rules={[{ required: true, message: "เลือกวันเริ่ม" }]}>
+        <Form.Item name="startDate" label={t("วันแรกของช่วงผลิต")} rules={[{ required: true, message: t("เลือกวันเริ่ม") }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item name="runDays" label="จำนวนวันผลิต" rules={[{ required: true }]} style={{ flex: 1 }}>
+          <Form.Item name="runDays" label={t("จำนวนวันผลิต")} rules={[{ required: true }]} style={{ flex: 1 }}>
             <InputNumber min={1} max={365} precision={0} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="shutdownDays" label="จำนวนวัน Shutdown" rules={[{ required: true }]} style={{ flex: 1 }}>
+          <Form.Item name="shutdownDays" label={t("จำนวนวัน Shutdown")} rules={[{ required: true }]} style={{ flex: 1 }}>
             <InputNumber min={0} max={60} precision={0} style={{ width: "100%" }} />
           </Form.Item>
         </div>
         <p style={{ background: "#f6f8fb", padding: 10, borderRadius: 8 }}>
-          ผลิต <strong>{fmtDate(start.format("YYYY-MM-DD"))}</strong> ถึง <strong>{fmtDate(end.format("YYYY-MM-DD"))}</strong>
+          {t("ผลิต")} <strong>{fmtDate(start.format("YYYY-MM-DD"))}</strong> {getStoredLanguage() === "en" ? "to" : "ถึง"} <strong>{fmtDate(end.format("YYYY-MM-DD"))}</strong>
           {shutdownDays > 0 ? (
             <>
               {" "}
-              · Shutdown <strong>{fmtDate(end.add(1, "day").format("YYYY-MM-DD"))}</strong> ถึง{" "}
+              · Shutdown <strong>{fmtDate(end.add(1, "day").format("YYYY-MM-DD"))}</strong> {getStoredLanguage() === "en" ? "to" : "ถึง"}{" "}
               <strong>{fmtDate(sdEnd.format("YYYY-MM-DD"))}</strong>
             </>
           ) : null}
           <br />
           <span style={{ color: "#8a94a6", fontSize: 12 }}>
-            ใบสั่งผลิตที่สร้าง/เริ่มผลิตในช่วงนี้จะสังกัดรอบนี้อัตโนมัติ
+            {t("ใบสั่งผลิตที่สร้าง/เริ่มผลิตในช่วงนี้จะสังกัดรอบนี้อัตโนมัติ")}
           </span>
         </p>
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
       </Form>
@@ -102,6 +105,7 @@ function CycleEditModal({ cycle, onClose }: { cycle: ProductionCycle; onClose: (
  * รหัสรอบเป็นตัวเดียวกับรหัสในตารางแผน (CYC-YYYY-NN) · รอบเกิดจากยืนยันรอบในตารางการผลิตเท่านั้น
  */
 export default function CyclesPanel() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const query = useProductionCyclesQuery();
   const close = useCloseProductionCycleMutation();
@@ -113,36 +117,36 @@ export default function CyclesPanel() {
 
   const columns: ColumnsType<ProductionCycle> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "รหัสรอบ",
+      title: t("รหัสรอบ"),
       key: "no",
       render: (_v, c) => (
         <div>
           <Link href={`/production/cycles/${c.id}`}>
             <strong>{c.cycleNo}</strong>
           </Link>
-          <div style={{ fontSize: 12, color: "#8a94a6" }}>{c.orderCount} ใบสั่งผลิต</div>
+          <div style={{ fontSize: 12, color: "#8a94a6" }}>{t("{n} ใบสั่งผลิต", { n: c.orderCount })}</div>
         </div>
       ),
     },
     {
-      title: "ช่วงผลิต",
+      title: t("ช่วงผลิต"),
       key: "run",
-      render: (_v, c) => `${fmtDate(c.startDate)} – ${fmtDate(c.endDate)} (${c.runDays} วัน)`,
+      render: (_v, c) => `${fmtDate(c.startDate)} – ${fmtDate(c.endDate)} (${t("{n} วัน", { n: c.runDays })})`,
     },
     {
       title: "Shutdown",
       key: "sd",
-      render: (_v, c) => (c.shutdownDays > 0 ? `${fmtDate(c.shutdownStartDate)} – ${fmtDate(c.shutdownEndDate)} (${c.shutdownDays} วัน)` : "—"),
+      render: (_v, c) => (c.shutdownDays > 0 ? `${fmtDate(c.shutdownStartDate)} – ${fmtDate(c.shutdownEndDate)} (${t("{n} วัน", { n: c.shutdownDays })})` : "—"),
     },
     {
-      title: "ความคืบหน้า",
+      title: t("ความคืบหน้า"),
       key: "pg",
       width: 200,
       render: (_v, c) =>
@@ -150,14 +154,14 @@ export default function CyclesPanel() {
           <div>
             <Progress percent={c.runProgressPercent} size="small" showInfo={false} />
             <div style={{ fontSize: 12 }}>
-              วันที่ {c.runDayNumber}/{c.runDays} · เหลือ {c.remainingRunDays} วัน
+              {t("วันที่ {day}/{total} · เหลือ {left} วัน", { day: c.runDayNumber, total: c.runDays, left: c.remainingRunDays })}
             </div>
           </div>
         ) : (
           "—"
         ),
     },
-    { title: "สถานะ", key: "ph", width: 190, render: (_v, c) => <Tag color={CYCLE_PHASE_COLOR[c.phase]}>{CYCLE_PHASE_LABEL[c.phase] ?? c.phase}</Tag> },
+    { title: t("สถานะ"), key: "ph", width: 190, render: (_v, c) => <Tag color={CYCLE_PHASE_COLOR[c.phase]}>{cyclePhaseLabel(c.phase)}</Tag> },
     {
       title: "",
       key: "act",
@@ -165,15 +169,15 @@ export default function CyclesPanel() {
       render: (_v, c) => (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <Link href={`/production/cycles/${c.id}`}>
-            <Button size="small">สรุปรอบ</Button>
+            <Button size="small">{t("สรุปรอบ")}</Button>
           </Link>
           {canEdit && c.status === "OPEN" ? (
             <>
-              <Button size="small" onClick={() => setEditing(c)}>แก้ไข</Button>
-              <Popconfirm title="ปิดรอบนี้?" description="ปิดได้เมื่อไม่มีใบสั่งผลิตที่กำลังผลิตค้างอยู่" okText="ปิดรอบ" cancelText="ไม่" onConfirm={() => close.mutate({ id: c.id })}>
-                <Button size="small" type="primary" ghost>ปิดรอบ</Button>
+              <Button size="small" onClick={() => setEditing(c)}>{t("แก้ไข")}</Button>
+              <Popconfirm title={t("ปิดรอบนี้?")} description={t("ปิดได้เมื่อไม่มีใบสั่งผลิตที่กำลังผลิตค้างอยู่")} okText={t("ปิดรอบ")} cancelText={t("ไม่")} onConfirm={() => close.mutate({ id: c.id })}>
+                <Button size="small" type="primary" ghost>{t("ปิดรอบ")}</Button>
               </Popconfirm>
-              {c.orderCount === 0 ? <Button size="small" danger onClick={() => setCancelling(c)}>ยกเลิก</Button> : null}
+              {c.orderCount === 0 ? <Button size="small" danger onClick={() => setCancelling(c)}>{t("ยกเลิก")}</Button> : null}
             </>
           ) : null}
         </div>
@@ -189,21 +193,21 @@ export default function CyclesPanel() {
         dataSource={query.data?.data ?? []}
         loading={query.isLoading || query.isFetching}
         pagination={{ current: page, pageSize: 20, onChange: setPage, showSizeChanger: false }}
-        locale={{ emptyText: "ยังไม่มีรอบผลิตจริง — รอบเกิดจากการยืนยันรอบในแท็บ รายการรอบการผลิต" }}
+        locale={{ emptyText: t("ยังไม่มีรอบผลิตจริง — รอบเกิดจากการยืนยันรอบในแท็บ รายการรอบการผลิต") }}
         scroll={{ x: 1000 }}
       />
       {editing ? <CycleEditModal key={editing.id} cycle={editing} onClose={() => setEditing(null)} /> : null}
       <Modal
         open={Boolean(cancelling)}
-        title={`ยกเลิกรอบ ${cancelling?.cycleNo ?? ""}`}
-        okText="ยกเลิกรอบ"
+        title={getStoredLanguage() === "en" ? `Cancel cycle ${cancelling?.cycleNo ?? ""}` : `ยกเลิกรอบ ${cancelling?.cycleNo ?? ""}`}
+        okText={getStoredLanguage() === "en" ? "Cancel cycle" : "ยกเลิกรอบ"}
         okButtonProps={{ danger: true, disabled: reason.trim().length < 5 }}
-        cancelText="ไม่"
+        cancelText={t("ไม่")}
         confirmLoading={cancel.isPending}
         onCancel={() => { setCancelling(null); setReason(""); }}
         onOk={() => cancelling && cancel.mutate({ id: cancelling.id, reason: reason.trim() }, { onSuccess: () => { setCancelling(null); setReason(""); } })}
       >
-        <Input.TextArea rows={3} maxLength={2000} placeholder="เหตุผล (อย่างน้อย 5 ตัวอักษร)" value={reason} onChange={(e) => setReason(e.target.value)} />
+        <Input.TextArea rows={3} maxLength={2000} placeholder={t("เหตุผล (อย่างน้อย 5 ตัวอักษร)")} value={reason} onChange={(e) => setReason(e.target.value)} />
       </Modal>
     </>
   );

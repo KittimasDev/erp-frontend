@@ -12,6 +12,7 @@ import {
   updateLabSpec,
 } from "@/lib/api/lab-specs";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type { CreateLabSpecBody, UpdateLabSpecBody } from "@/types/laboratory";
 
 export const labSpecsKey = ["laboratory-specs"] as const;
@@ -49,29 +50,32 @@ function useSpecMutations() {
 }
 
 export function useCreateLabSpecMutation() {
+  const t = useT();
   const { done, fail } = useSpecMutations();
   return useMutation({
     mutationFn: (body: CreateLabSpecBody) => createLabSpec(getAccessToken(), body),
-    onSuccess: () => done("สร้าง Spec การตรวจแล้ว"),
-    onError: (e) => fail(e, "สร้าง Spec ไม่สำเร็จ"),
+    onSuccess: () => done(t("สร้าง Spec การตรวจแล้ว")),
+    onError: (e) => fail(e, t("สร้าง Spec ไม่สำเร็จ")),
   });
 }
 
 export function useUpdateLabSpecMutation() {
+  const t = useT();
   const { done, fail } = useSpecMutations();
   return useMutation({
     mutationFn: (vars: { id: string; body: UpdateLabSpecBody }) =>
       updateLabSpec(getAccessToken(), vars.id, vars.body),
-    onSuccess: () => done("บันทึก Spec การตรวจแล้ว"),
-    onError: (e) => fail(e, "บันทึก Spec ไม่สำเร็จ"),
+    onSuccess: () => done(t("บันทึก Spec การตรวจแล้ว")),
+    onError: (e) => fail(e, t("บันทึก Spec ไม่สำเร็จ")),
   });
 }
 
 export function useDeleteLabSpecMutation() {
+  const t = useT();
   const { done, fail } = useSpecMutations();
   return useMutation({
     mutationFn: (id: string) => deleteLabSpec(getAccessToken(), id),
-    onSuccess: () => done("ลบ Spec การตรวจแล้ว"),
-    onError: (e) => fail(e, "ลบ Spec ไม่สำเร็จ"),
+    onSuccess: () => done(t("ลบ Spec การตรวจแล้ว")),
+    onError: (e) => fail(e, t("ลบ Spec ไม่สำเร็จ")),
   });
 }

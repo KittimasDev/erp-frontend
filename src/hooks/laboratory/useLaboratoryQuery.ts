@@ -23,6 +23,7 @@ import {
   selectDataLength,
 } from "@/lib/query/count-query";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type {
   AddLabResultLine,
   CreateLabSampleBody,
@@ -42,6 +43,7 @@ export function useLabSamplesQuery(params?: LabSampleQueryParams) {
 }
 
 export function useCreateLabSampleMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   return useMutation({
@@ -49,12 +51,12 @@ export function useCreateLabSampleMutation() {
       createLabSample(getAccessToken(), body),
     onSuccess: (res) => {
       void queryClient.invalidateQueries({ queryKey: laboratoryQueryKey });
-      message.success(`ลงทะเบียนตัวอย่าง ${res.data.sampleNo} แล้ว`);
+      message.success(t("ลงทะเบียนตัวอย่าง {no} แล้ว", { no: res.data.sampleNo }));
       if (res.data.warning) message.warning(res.data.warning);
     },
     onError: (e) =>
       message.error(
-        e instanceof ApiError ? e.message : "ลงทะเบียนตัวอย่างไม่สำเร็จ",
+        e instanceof ApiError ? e.message : t("ลงทะเบียนตัวอย่างไม่สำเร็จ"),
       ),
   });
 }
@@ -73,46 +75,50 @@ function useLabMutationHelpers() {
 }
 
 export function useAddLabResultsMutation(sampleId: string) {
+  const t = useT();
   const { message, refresh, fail } = useLabMutationHelpers();
   return useMutation({
     mutationFn: (results: AddLabResultLine[]) =>
       addLabResults(getAccessToken(), sampleId, results),
     onSuccess: () => {
       refresh();
-      message.success("บันทึกผลตรวจแล้ว");
+      message.success(t("บันทึกผลตรวจแล้ว"));
     },
-    onError: (e) => fail(e, "บันทึกผลตรวจไม่สำเร็จ"),
+    onError: (e) => fail(e, t("บันทึกผลตรวจไม่สำเร็จ")),
   });
 }
 
 export function useUpdateLabResultMutation(sampleId: string) {
+  const t = useT();
   const { message, refresh, fail } = useLabMutationHelpers();
   return useMutation({
     mutationFn: (vars: { resultId: string; body: UpdateLabResultBody }) =>
       updateLabResult(getAccessToken(), sampleId, vars.resultId, vars.body),
     onSuccess: () => {
       refresh();
-      message.success("แก้ผลตรวจแล้ว");
+      message.success(t("แก้ผลตรวจแล้ว"));
     },
-    onError: (e) => fail(e, "แก้ผลตรวจไม่สำเร็จ"),
+    onError: (e) => fail(e, t("แก้ผลตรวจไม่สำเร็จ")),
   });
 }
 
 export function useDeleteLabResultMutation(sampleId: string) {
+  const t = useT();
   const { message, refresh, fail } = useLabMutationHelpers();
   return useMutation({
     mutationFn: (resultId: string) =>
       deleteLabResult(getAccessToken(), sampleId, resultId),
     onSuccess: () => {
       refresh();
-      message.success("ลบผลตรวจแล้ว");
+      message.success(t("ลบผลตรวจแล้ว"));
     },
-    onError: (e) => fail(e, "ลบผลตรวจไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ลบผลตรวจไม่สำเร็จ")),
   });
 }
 
 /** อนุมัติ/ตีกลับ — error ของรหัสผ่านผิดแสดงที่ฟอร์มผ่าน onError ของผู้เรียก */
 export function useReviewLabSampleMutation(sampleId: string) {
+  const t = useT();
   const { message, refresh } = useLabMutationHelpers();
   return useMutation({
     mutationFn: (vars: {
@@ -123,23 +129,24 @@ export function useReviewLabSampleMutation(sampleId: string) {
       refresh();
       message.success(
         vars.action === "approve"
-          ? "อนุมัติผลตรวจและออก COA แล้ว"
-          : "ตีกลับผลตรวจแล้ว",
+          ? t("อนุมัติผลตรวจและออก COA แล้ว")
+          : t("ตีกลับผลตรวจแล้ว"),
       );
     },
   });
 }
 
 export function useReissueLabCoaMutation(sampleId: string) {
+  const t = useT();
   const { message, refresh, fail } = useLabMutationHelpers();
   return useMutation({
     mutationFn: (reason: string) =>
       reissueLabCoa(getAccessToken(), sampleId, reason),
     onSuccess: (res) => {
       refresh();
-      message.success(`ออก COA เลขที่ ${res.data.coaNo} แล้ว`);
+      message.success(t("ออก COA เลขที่ {no} แล้ว", { no: res.data.coaNo }));
     },
-    onError: (e) => fail(e, "ออก COA ใหม่ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ออก COA ใหม่ไม่สำเร็จ")),
   });
 }
 

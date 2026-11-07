@@ -20,9 +20,12 @@ import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPan
 import LotQcModal from "@/components/inventory/LotQcModal";
 import { useReissueLabCoaMutation } from "@/hooks/laboratory/useLaboratoryQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import type { LabCoa } from "@/types/laboratory";
 import {
-  LAB_SAMPLE_STATUS_LABEL,
+  labCoaStatusLabel,
+  labSampleStatusLabel,
   LAB_SAMPLE_TYPE_LABEL,
   LOT_QC_COLOR,
   LOT_QC_LABEL,
@@ -45,6 +48,8 @@ function formatDateTime(value?: string) {
 }
 
 export default function LabSampleDetailPage({ id }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const { message } = App.useApp();
   const query = useLabSampleQuery(id);
@@ -61,7 +66,7 @@ export default function LabSampleDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -69,9 +74,9 @@ export default function LabSampleDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบตัวอย่าง
+        {t("ไม่พบตัวอย่าง")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/laboratory/samples">กลับรายการ</Link>
+          <Link href="/laboratory/samples">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -84,42 +89,42 @@ export default function LabSampleDetailPage({ id }: Props) {
 
   const coaColumns: ColumnsType<LabCoa> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ COA",
+      title: t("เลขที่ COA"),
       dataIndex: "coaNo",
       render: (v: string, r) => (
         <span>
-          {v} <Tag>ฉบับที่ {r.version}</Tag>
+          {v} <Tag>{t("ฉบับที่ {n}", { n: r.version })}</Tag>
         </span>
       ),
     },
     {
-      title: "ออกเมื่อ",
+      title: t("ออกเมื่อ"),
       dataIndex: "issuedAt",
       width: 140,
       render: formatDateTime,
     },
     {
-      title: "ผู้ออก",
+      title: t("ผู้ออก"),
       dataIndex: "issuedByName",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "st",
       render: (_v, r) =>
         r.status === "VOIDED" ? (
           <span>
-            <Tag color="default">ยกเลิก</Tag> {r.voidReason}
+            <Tag color="default">{labCoaStatusLabel("VOIDED", lang)}</Tag> {r.voidReason}
           </span>
         ) : (
-          <Tag color="success">ใช้งานอยู่</Tag>
+          <Tag color="success">{labCoaStatusLabel("ISSUED", lang)}</Tag>
         ),
     },
   ];
@@ -163,10 +168,10 @@ export default function LabSampleDetailPage({ id }: Props) {
           judgement: r.judgement,
         })),
       });
-      message.success("เปิด PDF COA แล้ว");
+      message.success(t("เปิด PDF COA แล้ว"));
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "พิมพ์ COA ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("พิมพ์ COA ไม่สำเร็จ"),
       );
     }
   };
@@ -178,22 +183,22 @@ export default function LabSampleDetailPage({ id }: Props) {
         icon={<ExperimentOutlined />}
         title={data.sampleNo}
         subtitle={<>{data.sampleType} · {formatDate(data.collectedDate)} ·{" "}
-            {LAB_SAMPLE_STATUS_LABEL[data.status] ?? data.status}</>}
+            {labSampleStatusLabel(data.status, lang)}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/laboratory/samples")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           {canApprove && data.status === "TESTING" ? (
             <>
               <Button danger onClick={() => setSignAction("reject")}>
-                ตีกลับผลตรวจ
+                {t("ตีกลับผลตรวจ")}
               </Button>
               <Button type="primary" onClick={() => setSignAction("approve")}>
-                อนุมัติผลตรวจ
+                {t("อนุมัติผลตรวจ")}
               </Button>
             </>
           ) : null}
@@ -203,7 +208,7 @@ export default function LabSampleDetailPage({ id }: Props) {
               icon={<FilePdfOutlined />}
               onClick={() => void printCoa()}
             >
-              พิมพ์ COA
+              {t("พิมพ์ COA")}
             </Button>
           ) : null}
           </>
@@ -214,7 +219,7 @@ export default function LabSampleDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลตัวอย่าง</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลตัวอย่าง")}</h2>
               <Tag
                 color={
                   data.status === "APPROVED"
@@ -224,23 +229,23 @@ export default function LabSampleDetailPage({ id }: Props) {
                       : "processing"
                 }
               >
-                {LAB_SAMPLE_STATUS_LABEL[data.status] ?? data.status}
+                {labSampleStatusLabel(data.status, lang)}
               </Tag>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.sampleNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ประเภท</span>
+                <span className={styles.metaLabel}>{t("ประเภท")}</span>
                 <div className={styles.metaValue}>
-                  {LAB_SAMPLE_TYPE_LABEL[data.sampleType] ?? data.sampleType}
+                  {t(LAB_SAMPLE_TYPE_LABEL[data.sampleType] ?? data.sampleType)}
                 </div>
               </div>
               {data.lotNo ? (
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>สินค้า / Lot</span>
+                  <span className={styles.metaLabel}>{t("สินค้า / Lot")}</span>
                   <div className={styles.metaValue}>
                     {data.itemNameTh ?? data.itemCode ?? "—"}
                     <div style={{ fontSize: 12 }}>
@@ -251,23 +256,23 @@ export default function LabSampleDetailPage({ id }: Props) {
                 </div>
               ) : null}
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่เก็บ</span>
+                <span className={styles.metaLabel}>{t("วันที่เก็บ")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.collectedDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เอกสารอ้างอิง</span>
+                <span className={styles.metaLabel}>{t("เอกสารอ้างอิง")}</span>
                 <div className={styles.metaValue}>
                   {data.referenceDocNo ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>หมายเหตุ</span>
+                <span className={styles.metaLabel}>{t("หมายเหตุ")}</span>
                 <div className={styles.metaValue}>{data.remark || "—"}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผลรีวิว</span>
+                <span className={styles.metaLabel}>{t("ผลรีวิว")}</span>
                 <div className={styles.metaValue}>
                   {data.reviewRemark || "—"}
                 </div>
@@ -277,45 +282,48 @@ export default function LabSampleDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ผลตรวจ</h2>
+              <h2 className={styles.sectionTitle}>{t("ผลตรวจ")}</h2>
             </div>
             <LabResultsSection sample={data} editable={editable} />
           </div>
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ไฟล์แนบ / รูปภาพผลตรวจ</h2>
+              <h2 className={styles.sectionTitle}>{t("ไฟล์แนบ / รูปภาพผลตรวจ")}</h2>
             </div>
             <DocumentAttachmentsPanel
               documentType="LAB_SAMPLE"
               documentId={data.id}
               canEdit={editable}
-              emptyText="ยังไม่มีไฟล์แนบ (ผลวิเคราะห์ ภาพถ่ายตัวอย่าง ฯลฯ)"
-              uploadLabel="แนบไฟล์ / รูปภาพ"
+              emptyText={t("ยังไม่มีไฟล์แนบ (ผลวิเคราะห์ ภาพถ่ายตัวอย่าง ฯลฯ)")}
+              uploadLabel={t("แนบไฟล์ / รูปภาพ")}
             />
           </div>
 
           {data.lotNo ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>สถานะสินค้า (Lot)</h2>
+                <h2 className={styles.sectionTitle}>{t("สถานะสินค้า (Lot)")}</h2>
               </div>
               <p style={{ margin: "0 0 8px" }}>
                 {data.itemNameTh ?? data.itemCode} · Lot {data.lotNo}
                 {data.batchNo ? ` · Batch ${data.batchNo}` : ""} ·{" "}
                 <Tag color={LOT_QC_COLOR[data.lotQcStatus ?? ""]}>
-                  {LOT_QC_LABEL[data.lotQcStatus ?? ""] ??
-                    data.lotQcStatus ??
-                    "—"}
+                  {t(
+                    LOT_QC_LABEL[data.lotQcStatus ?? ""] ??
+                      data.lotQcStatus ??
+                      "—",
+                  )}
                 </Tag>
               </p>
               <p style={{ color: "#8a94a6", margin: "0 0 8px" }}>
-                ผล Lab อนุมัติ → ปล่อย Lot ที่รอ QC · ตีกลับ → ปฏิเสธ Lot · Lot
-                ที่ QC ตัดสินไปแล้วไม่ถูกทับ
+                {t(
+                  "ผล Lab อนุมัติ → ปล่อย Lot ที่รอ QC · ตีกลับ → ปฏิเสธ Lot · Lot ที่ QC ตัดสินไปแล้วไม่ถูกทับ",
+                )}
               </p>
               {canApprove ? (
                 <Button onClick={() => setLotModal(true)}>
-                  จัดการสถานะ QC / Hold ของ Lot
+                  {t("จัดการสถานะ QC / Hold ของ Lot")}
                 </Button>
               ) : null}
             </div>
@@ -325,7 +333,7 @@ export default function LabSampleDetailPage({ id }: Props) {
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>
-                  ลายเซ็นอิเล็กทรอนิกส์และ COA
+                  {t("ลายเซ็นอิเล็กทรอนิกส์และ COA")}
                 </h2>
               </div>
               {(data.signatures ?? []).map((s) => (
@@ -343,7 +351,7 @@ export default function LabSampleDetailPage({ id }: Props) {
               ))}
               {data.failApproveReason ? (
                 <p style={{ margin: "0 0 8px" }}>
-                  <Tag color="warning">อนุมัติทั้งที่มีค่านอกเกณฑ์</Tag>
+                  <Tag color="warning">{t("อนุมัติทั้งที่มีค่านอกเกณฑ์")}</Tag>
                   {data.failApproveReason}
                 </p>
               ) : null}
@@ -362,8 +370,8 @@ export default function LabSampleDetailPage({ id }: Props) {
                   onClick={() => setReissueOpen(true)}
                 >
                   {currentCoa
-                    ? "ออก COA ใหม่ (ยกเลิกฉบับเดิม)"
-                    : "ออกเลขที่ COA"}
+                    ? t("ออก COA ใหม่ (ยกเลิกฉบับเดิม)")
+                    : t("ออกเลขที่ COA")}
                 </Button>
               ) : null}
             </div>
@@ -392,9 +400,9 @@ export default function LabSampleDetailPage({ id }: Props) {
       ) : null}
       <Modal
         open={reissueOpen}
-        title={currentCoa ? "ออก COA ใหม่" : "ออกเลขที่ COA"}
-        okText="ยืนยัน"
-        cancelText="ยกเลิก"
+        title={currentCoa ? t("ออก COA ใหม่") : t("ออกเลขที่ COA")}
+        okText={t("ยืนยัน")}
+        cancelText={t("ยกเลิก")}
         okButtonProps={{ disabled: reissueReason.trim().length < 5 }}
         confirmLoading={reissue.isPending}
         onCancel={() => setReissueOpen(false)}
@@ -409,13 +417,15 @@ export default function LabSampleDetailPage({ id }: Props) {
       >
         <p>
           {currentCoa
-            ? `ฉบับเดิม ${currentCoa.coaNo} จะถูกยกเลิกและเก็บไว้ในประวัติ`
-            : "ตัวอย่างนี้อนุมัติไปก่อนมีระบบเลขที่ COA — ออกเลขที่ให้ตอนนี้"}
+            ? t("ฉบับเดิม {no} จะถูกยกเลิกและเก็บไว้ในประวัติ", {
+                no: currentCoa.coaNo,
+              })
+            : t("ตัวอย่างนี้อนุมัติไปก่อนมีระบบเลขที่ COA — ออกเลขที่ให้ตอนนี้")}
         </p>
         <Input.TextArea
           rows={3}
           maxLength={2000}
-          placeholder="เหตุผล (อย่างน้อย 5 ตัวอักษร)"
+          placeholder={t("เหตุผล (อย่างน้อย 5 ตัวอักษร)")}
           value={reissueReason}
           onChange={(e) => setReissueReason(e.target.value)}
         />

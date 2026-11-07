@@ -9,6 +9,7 @@ import type {
   StageRun,
 } from "@/types/production-stage-run";
 import { OUTPUT_VARIANCE_WARN_PERCENT } from "@/lib/production/constants";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./StageRunPage.module.css";
 
 /**
@@ -43,6 +44,7 @@ type CompleteModalProps = {
 };
 
 function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
+  const t = useT();
   const { run } = props;
   const planned = Number(run.outputQty) || 0;
   const [actual, setActual] = useState<number | null>(planned);
@@ -66,33 +68,33 @@ function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
         className={styles.formSectionHint}
         type="warning"
         showIcon
-        title={`จะรับ ${fmtQty(value)} ${props.outputUnit} เข้า ${props.warehouseName} พร้อมสร้าง Lot ใหม่ — ย้อนกลับไม่ได้`}
+        title={t("จะรับ {qty} {unit} เข้า {warehouse} พร้อมสร้าง Lot ใหม่ — ย้อนกลับไม่ได้", { qty: fmtQty(value), unit: props.outputUnit, warehouse: props.warehouseName })}
       />
 
       <div className={styles.infoGrid}>
         <div className={styles.infoItem}>
-          <span className={styles.infoLabel}>วัตถุดิบที่ตัดไปจริง</span>
+          <span className={styles.infoLabel}>{t("วัตถุดิบที่ตัดไปจริง")}</span>
           <span className={styles.infoValue}>
             {fmtQty(consumed)} {props.inputUnit}
           </span>
         </div>
         <div className={styles.infoItem}>
-          <span className={styles.infoLabel}>ผลผลิตตามแผน</span>
+          <span className={styles.infoLabel}>{t("ผลผลิตตามแผน")}</span>
           <span className={styles.infoValue}>
             {fmtQty(planned)} {props.outputUnit}
           </span>
         </div>
         <div className={styles.infoItem}>
-          <span className={styles.infoLabel}>Yield ที่จะได้</span>
+          <span className={styles.infoLabel}>{t("Yield ที่จะได้")}</span>
           <span className={styles.infoValue}>
-            {previewYield === null ? "เทียบไม่ได้ (หน่วยต่างกัน)" : `${previewYield}%`}
+            {previewYield === null ? t("เทียบไม่ได้ (หน่วยต่างกัน)") : `${previewYield}%`}
           </span>
         </div>
       </div>
 
       <div className={styles.cellStack} style={{ marginTop: 12 }}>
         <span className={styles.infoLabel}>
-          ผลผลิตที่ชั่งได้จริง ({props.outputUnit})
+          {t("ผลผลิตที่ชั่งได้จริง")} ({props.outputUnit})
         </span>
         <InputNumber
           style={{ width: "100%" }}
@@ -104,26 +106,26 @@ function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
         />
         {bigVariance ? (
           <span className={styles.cellMuted}>
-            ต่างจากแผน {variance > 0 ? "+" : ""}
+            {t("ต่างจากแผน")} {variance > 0 ? "+" : ""}
             {fmtQty(variance)} {props.outputUnit} (
-            {variancePercent.toFixed(1)}%) — ใส่หมายเหตุไว้จะช่วยคนอ่านย้อนหลัง
+            {variancePercent.toFixed(1)}%) — {t("ใส่หมายเหตุไว้จะช่วยคนอ่านย้อนหลัง")}
           </span>
         ) : null}
       </div>
 
       <div className={styles.cellStack} style={{ marginTop: 12 }}>
-        <span className={styles.infoLabel}>หมายเหตุ (ไม่บังคับ)</span>
+        <span className={styles.infoLabel}>{t("หมายเหตุ (ไม่บังคับ)")}</span>
         <Input.TextArea
           rows={2}
           maxLength={500}
           value={remark}
           onChange={(e) => setRemark(e.target.value)}
-          placeholder="เช่น เครื่องอบเดินไม่เต็มรอบ ได้น้อยกว่าแผน"
+          placeholder={t("เช่น เครื่องอบเดินไม่เต็มรอบ ได้น้อยกว่าแผน")}
         />
       </div>
 
       <div className={styles.formActions}>
-        <Button onClick={props.onCancel}>ปิด</Button>
+        <Button onClick={props.onCancel}>{t("ปิด")}</Button>
         <Button
           type="primary"
           loading={props.loading}
@@ -134,7 +136,7 @@ function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
             })
           }
         >
-          ยืนยันเสร็จงาน
+          {t("ยืนยันเสร็จงาน")}
         </Button>
       </div>
     </>
@@ -142,10 +144,11 @@ function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
 }
 
 export function StageRunCompleteModal(props: CompleteModalProps) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
-      title={`ยืนยันเสร็จงาน ${props.run.runNo}`}
+      title={`${t("ยืนยันเสร็จงาน")} ${props.run.runNo}`}
       onCancel={props.onCancel}
       footer={null}
       destroyOnHidden
@@ -175,6 +178,7 @@ type CancelModalProps = {
 };
 
 function CancelModalBody(props: Omit<CancelModalProps, "open">) {
+  const t = useT();
   const [reason, setReason] = useState("");
   const trimmed = reason.trim();
   const ready = props.started ? trimmed.length >= CANCEL_REASON_MIN : true;
@@ -186,17 +190,17 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           className={styles.formSectionHint}
           type="warning"
           showIcon
-          title="วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก"
-          description="ของเข้าเครื่องไปแล้ว ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ"
+          title={t("วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก")}
+          description={t("ของเข้าเครื่องไปแล้ว ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ")}
         />
       ) : null}
 
       <div className={styles.cellStack}>
         <span className={styles.infoLabel}>
-          เหตุผลที่ยกเลิก
+          {t("เหตุผลที่ยกเลิก")}
           {props.started
-            ? ` (บังคับ อย่างน้อย ${CANCEL_REASON_MIN} ตัวอักษร)`
-            : " (ไม่บังคับ)"}
+            ? ` (${t("บังคับ อย่างน้อย {min} ตัวอักษร", { min: CANCEL_REASON_MIN })})`
+            : ` (${t("ไม่บังคับ")})`}
         </span>
         <Input.TextArea
           rows={3}
@@ -204,12 +208,12 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           showCount
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="เช่น กดเริ่มผิดรอบ เครื่องยังไม่พร้อม"
+          placeholder={t("เช่น กดเริ่มผิดรอบ เครื่องยังไม่พร้อม")}
         />
       </div>
 
       <div className={styles.formActions}>
-        <Button onClick={props.onCancel}>ไม่ยกเลิก</Button>
+        <Button onClick={props.onCancel}>{t("ไม่ยกเลิก")}</Button>
         <Button
           danger
           type="primary"
@@ -219,7 +223,7 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
             props.onConfirm({ cancelReason: trimmed || undefined })
           }
         >
-          ยกเลิกรอบงาน
+          {t("ยกเลิกรอบงาน")}
         </Button>
       </div>
     </>
@@ -227,10 +231,11 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
 }
 
 export function StageRunCancelModal(props: CancelModalProps) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
-      title={`ยกเลิกรอบงาน ${props.runNo}`}
+      title={`${t("ยกเลิกรอบงาน")} ${props.runNo}`}
       onCancel={props.onCancel}
       footer={null}
       destroyOnHidden

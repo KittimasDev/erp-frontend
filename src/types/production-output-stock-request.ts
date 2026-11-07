@@ -1,4 +1,6 @@
 import { PRODUCTION_ORDER_RUNNING_STATUSES } from "./production-order";
+import { stockPostingStatusLabel } from "./stock-posting-request";
+import { getStoredLanguage } from "@/lib/i18n/language";
 
 export const ProductionOutputRequestStatus = {
   PENDING_APPROVAL: "PENDING_APPROVAL",
@@ -19,6 +21,14 @@ export const PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL: Record<string, string> = {
   REJECTED: "ไม่อนุมัติ",
   CANCELLED: "ยกเลิก",
 };
+
+/** ป้ายสถานะคำขอตามภาษา ("ยกเลิก" = Cancelled, "ไม่อนุมัติ" = Rejected ไม่ชนกับปุ่ม) — ใช้ตอนเรนเดอร์ */
+export function productionOutputStatusLabel(status: string): string {
+  if (getStoredLanguage() === "en") {
+    return stockPostingStatusLabel(status, "en");
+  }
+  return PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[status] ?? status;
+}
 
 export type ProductionOutputStockRequestReference = {
   id: string;

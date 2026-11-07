@@ -20,6 +20,7 @@ import {
   useUpdateLabResultMutation,
 } from "@/hooks/laboratory/useLaboratoryQuery";
 import { useResolveLabSpecQuery } from "@/hooks/laboratory/useLabSpecs";
+import { useT } from "@/lib/i18n/useT";
 import {
   LAB_JUDGEMENT_COLOR,
   LAB_JUDGEMENT_LABEL,
@@ -54,6 +55,7 @@ function ResultEntryModal({
   sample: LabSample;
   onClose: () => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<EntryValues>();
   const specQuery = useResolveLabSpecQuery({
     sampleType: sample.sampleType,
@@ -100,9 +102,9 @@ function ResultEntryModal({
     <Modal
       open
       width={720}
-      title="บันทึกผลตรวจ"
-      okText="บันทึกผล"
-      cancelText="ยกเลิก"
+      title={t("บันทึกผลตรวจ")}
+      okText={t("บันทึกผล")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={add.isPending}
       onCancel={onClose}
       onOk={submit}
@@ -111,11 +113,11 @@ function ResultEntryModal({
         {spec ? (
           <>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              ตาม Spec: {spec.nameTh}
+              {t("ตาม Spec: {name}", { name: spec.nameTh })}
             </div>
             {pending.length === 0 ? (
               <p style={{ color: "#8a94a6" }}>
-                บันทึกครบทุกพารามิเตอร์ของ Spec แล้ว
+                {t("บันทึกครบทุกพารามิเตอร์ของ Spec แล้ว")}
               </p>
             ) : (
               pending.map((p) => (
@@ -132,13 +134,16 @@ function ResultEntryModal({
                     {p.parameterName}
                     {p.isRequired ? (
                       <Tag color="red" style={{ marginLeft: 6 }}>
-                        จำเป็น
+                        {t("จำเป็น")}
                       </Tag>
                     ) : null}
                     <div style={{ fontSize: 12, color: "#8a94a6" }}>
                       {p.specMin || p.specMax
-                        ? `เกณฑ์ ${p.specMin ?? "…"} – ${p.specMax ?? "…"}`
-                        : "ยังไม่ตั้งเกณฑ์"}
+                        ? t("เกณฑ์ {min} – {max}", {
+                            min: p.specMin ?? "…",
+                            max: p.specMax ?? "…",
+                          })
+                        : t("ยังไม่ตั้งเกณฑ์")}
                       {p.unit ? ` ${p.unit}` : ""}
                     </div>
                   </div>
@@ -146,7 +151,7 @@ function ResultEntryModal({
                     name={["spec", p.id]}
                     style={{ flex: 2, marginBottom: 0 }}
                   >
-                    <Input placeholder="ผลที่วัดได้" maxLength={100} />
+                    <Input placeholder={t("ผลที่วัดได้")} maxLength={100} />
                   </Form.Item>
                 </div>
               ))
@@ -157,13 +162,15 @@ function ResultEntryModal({
             type="info"
             showIcon
             style={{ marginBottom: 12 }}
-            title="ยังไม่มี Spec ของประเภท/สินค้านี้"
-            description="กรอกพารามิเตอร์และเกณฑ์เองด้านล่างได้ หรือให้ผู้ดูแลตั้ง Spec ที่หน้า Spec การตรวจ"
+            title={t("ยังไม่มี Spec ของประเภท/สินค้านี้")}
+            description={t(
+              "กรอกพารามิเตอร์และเกณฑ์เองด้านล่างได้ หรือให้ผู้ดูแลตั้ง Spec ที่หน้า Spec การตรวจ",
+            )}
           />
         )}
 
         <div style={{ fontWeight: 600, margin: "12px 0 6px" }}>
-          พารามิเตอร์อื่น (กรอกเอง)
+          {t("พารามิเตอร์อื่น (กรอกเอง)")}
         </div>
         <Form.List name="extra">
           {(fields, { add: addRow, remove }) => (
@@ -177,16 +184,16 @@ function ResultEntryModal({
                     name={[field.name, "parameterName"]}
                     style={{ flex: 3 }}
                   >
-                    <Input placeholder="พารามิเตอร์" maxLength={255} />
+                    <Input placeholder={t("พารามิเตอร์")} maxLength={255} />
                   </Form.Item>
                   <Form.Item
                     name={[field.name, "resultValue"]}
                     style={{ flex: 2 }}
                   >
-                    <Input placeholder="ผล" maxLength={100} />
+                    <Input placeholder={t("ผล")} maxLength={100} />
                   </Form.Item>
                   <Form.Item name={[field.name, "unit"]} style={{ flex: 1 }}>
-                    <Input placeholder="หน่วย" maxLength={50} />
+                    <Input placeholder={t("หน่วย")} maxLength={50} />
                   </Form.Item>
                   <Form.Item name={[field.name, "specMin"]} style={{ flex: 1 }}>
                     <Input placeholder="Min" maxLength={100} />
@@ -198,13 +205,13 @@ function ResultEntryModal({
                     type="text"
                     danger
                     icon={<DeleteOutlined />}
-                    aria-label="ลบแถว"
+                    aria-label={t("ลบแถว")}
                     onClick={() => remove(field.name)}
                   />
                 </div>
               ))}
               <Button icon={<PlusOutlined />} onClick={() => addRow({})}>
-                เพิ่มแถว
+                {t("เพิ่มแถว")}
               </Button>
             </>
           )}
@@ -232,13 +239,14 @@ function ResultEditModal({
     specMax?: string;
     remark?: string;
   }>();
+  const t = useT();
   const update = useUpdateLabResultMutation(sampleId);
   return (
     <Modal
       open
-      title={`แก้ผล — ${result.parameterName}`}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={t("แก้ผล — {name}", { name: result.parameterName })}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={update.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -272,13 +280,13 @@ function ResultEditModal({
       >
         <Form.Item
           name="resultValue"
-          label="ผลที่วัดได้"
-          rules={[{ required: true, message: "ใส่ผล" }]}
+          label={t("ผลที่วัดได้")}
+          rules={[{ required: true, message: t("ใส่ผล") }]}
         >
           <Input maxLength={100} />
         </Form.Item>
         <div style={{ display: "flex", gap: 8 }}>
-          <Form.Item name="unit" label="หน่วย" style={{ flex: 1 }}>
+          <Form.Item name="unit" label={t("หน่วย")} style={{ flex: 1 }}>
             <Input maxLength={50} />
           </Form.Item>
           <Form.Item name="specMin" label="Min" style={{ flex: 1 }}>
@@ -288,7 +296,7 @@ function ResultEditModal({
             <Input maxLength={100} />
           </Form.Item>
         </div>
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
       </Form>
@@ -299,6 +307,7 @@ function ResultEditModal({
 // ─── ตารางผลตรวจ ─────────────────────────────────────────────────────────────
 
 export default function LabResultsSection({ sample, editable }: Props) {
+  const t = useT();
   const remove = useDeleteLabResultMutation(sample.id);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<LabTestResult | null>(null);
@@ -317,10 +326,10 @@ export default function LabResultsSection({ sample, editable }: Props) {
   }, [results, specQuery.data]);
 
   const columns: ColumnsType<LabTestResult> = [
-    { title: "ลำดับ", width: 56, render: (_v, _r, i) => i + 1 },
-    { title: "พารามิเตอร์", dataIndex: "parameterName" },
+    { title: t("ลำดับ"), width: 56, render: (_v, _r, i) => i + 1 },
+    { title: t("พารามิเตอร์"), dataIndex: "parameterName" },
     {
-      title: "ผลตรวจ",
+      title: t("ผลตรวจ"),
       dataIndex: "resultValue",
       render: (v: string, r) =>
         r.judgement === "FAIL" ? (
@@ -329,7 +338,7 @@ export default function LabResultsSection({ sample, editable }: Props) {
           v
         ),
     },
-    { title: "หน่วย", dataIndex: "unit", render: (v?: string) => v ?? "—" },
+    { title: t("หน่วย"), dataIndex: "unit", render: (v?: string) => v ?? "—" },
     {
       title: "Min",
       dataIndex: "specMin",
@@ -343,11 +352,11 @@ export default function LabResultsSection({ sample, editable }: Props) {
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "ผลตัดสิน",
+      title: t("ผลตัดสิน"),
       dataIndex: "judgement",
       width: 110,
       render: (v: string) => (
-        <Tag color={LAB_JUDGEMENT_COLOR[v]}>{LAB_JUDGEMENT_LABEL[v] ?? v}</Tag>
+        <Tag color={LAB_JUDGEMENT_COLOR[v]}>{t(LAB_JUDGEMENT_LABEL[v] ?? v)}</Tag>
       ),
     },
   ];
@@ -361,20 +370,20 @@ export default function LabResultsSection({ sample, editable }: Props) {
           <Button
             size="small"
             icon={<EditOutlined />}
-            aria-label="แก้ผล"
+            aria-label={t("แก้ผล")}
             onClick={() => setEditing(r)}
           />
           <Popconfirm
-            title="ลบผลบรรทัดนี้?"
-            okText="ลบ"
-            cancelText="ยกเลิก"
+            title={t("ลบผลบรรทัดนี้?")}
+            okText={t("ลบ")}
+            cancelText={t("ยกเลิก")}
             onConfirm={() => remove.mutate(r.id)}
           >
             <Button
               size="small"
               danger
               icon={<DeleteOutlined />}
-              aria-label="ลบผล"
+              aria-label={t("ลบผล")}
             />
           </Popconfirm>
         </div>
@@ -389,8 +398,11 @@ export default function LabResultsSection({ sample, editable }: Props) {
           type="error"
           showIcon
           style={{ marginBottom: 8 }}
-          title={`มี ${fails.length} พารามิเตอร์ไม่ผ่านเกณฑ์: ${fails.map((r) => r.parameterName).join(", ")}`}
-          description="อนุมัติได้ แต่ต้องระบุเหตุผล · หรือตีกลับเพื่อปฏิเสธ Lot"
+          title={t("มี {n} พารามิเตอร์ไม่ผ่านเกณฑ์: {names}", {
+            n: fails.length,
+            names: fails.map((r) => r.parameterName).join(", "),
+          })}
+          description={t("อนุมัติได้ แต่ต้องระบุเหตุผล · หรือตีกลับเพื่อปฏิเสธ Lot")}
         />
       ) : null}
       {editable && missingRequired.length > 0 ? (
@@ -398,8 +410,10 @@ export default function LabResultsSection({ sample, editable }: Props) {
           type="warning"
           showIcon
           style={{ marginBottom: 8 }}
-          title={`ยังไม่มีผลพารามิเตอร์ที่จำเป็น: ${missingRequired.map((p) => p.parameterName).join(", ")}`}
-          description="เตือนเท่านั้น ไม่บล็อกการอนุมัติ"
+          title={t("ยังไม่มีผลพารามิเตอร์ที่จำเป็น: {names}", {
+            names: missingRequired.map((p) => p.parameterName).join(", "),
+          })}
+          description={t("เตือนเท่านั้น ไม่บล็อกการอนุมัติ")}
         />
       ) : null}
       <Table
@@ -408,7 +422,7 @@ export default function LabResultsSection({ sample, editable }: Props) {
         dataSource={results}
         pagination={false}
         size="small"
-        locale={{ emptyText: "ยังไม่มีผลตรวจ" }}
+        locale={{ emptyText: t("ยังไม่มีผลตรวจ") }}
       />
       {editable ? (
         <Button
@@ -417,7 +431,7 @@ export default function LabResultsSection({ sample, editable }: Props) {
           icon={<PlusOutlined />}
           onClick={() => setAdding(true)}
         >
-          บันทึกผลตรวจ
+          {t("บันทึกผลตรวจ")}
         </Button>
       ) : null}
       {adding ? (

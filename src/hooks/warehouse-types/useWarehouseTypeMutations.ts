@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
@@ -31,6 +32,7 @@ function useInvalidateWarehouseTypes() {
 export function useCreateWarehouseTypeMutation() {
   const invalidate = useInvalidateWarehouseTypes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "warehouse-types", "create"],
@@ -38,11 +40,11 @@ export function useCreateWarehouseTypeMutation() {
       createWarehouseType(getAccessToken(), body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "สร้างประเภทคลังสำเร็จแล้ว");
+      message.success(response.message || t("สร้างประเภทคลังสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างประเภทคลังไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างประเภทคลังไม่สำเร็จ"),
       );
     },
   });
@@ -51,6 +53,7 @@ export function useCreateWarehouseTypeMutation() {
 export function useUpdateWarehouseTypeMutation() {
   const invalidate = useInvalidateWarehouseTypes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "warehouse-types", "update"],
@@ -58,11 +61,11 @@ export function useUpdateWarehouseTypeMutation() {
       updateWarehouseType(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "แก้ไขประเภทคลังสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขประเภทคลังสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "แก้ไขประเภทคลังไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("แก้ไขประเภทคลังไม่สำเร็จ"),
       );
     },
   });
@@ -71,17 +74,18 @@ export function useUpdateWarehouseTypeMutation() {
 export function useDeleteWarehouseTypeMutation() {
   const invalidate = useInvalidateWarehouseTypes();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "warehouse-types", "delete"],
     mutationFn: (id: string) => deleteWarehouseType(getAccessToken(), id),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "ลบประเภทคลังสำเร็จแล้ว");
+      message.success(response.message || t("ลบประเภทคลังสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ลบประเภทคลังไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ลบประเภทคลังไม่สำเร็จ"),
       );
     },
   });

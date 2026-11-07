@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useEffect } from "react";
 import { Alert, Form, Input, InputNumber, Modal, Select, Switch } from "antd";
@@ -86,6 +87,7 @@ export default function WarehouseTypeFormModal({
   onCancel,
   onSubmit,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const isCreateMode = mode === "create";
   const inUse = !isCreateMode && (initialValue?.warehouseCount ?? 0) > 0;
@@ -151,8 +153,8 @@ export default function WarehouseTypeFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={640}
       centered
@@ -163,8 +165,8 @@ export default function WarehouseTypeFormModal({
           <div className={styles.eyebrow}>
             {isCreateMode ? "CREATE WAREHOUSE TYPE" : "EDIT WAREHOUSE TYPE"}
           </div>
-          <h2>{isCreateMode ? "เพิ่มประเภทคลัง" : "แก้ไขประเภทคลัง"}</h2>
-          <p>ตั้งชื่อและพฤติกรรมสต๊อกของคลังประเภทนี้</p>
+          <h2>{isCreateMode ? t("เพิ่มประเภทคลัง") : t("แก้ไขประเภทคลัง")}</h2>
+          <p>{t("ตั้งชื่อและพฤติกรรมสต๊อกของคลังประเภทนี้")}</p>
         </div>
       </div>
 
@@ -177,8 +179,8 @@ export default function WarehouseTypeFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลประเภท</strong>
-            <span>ชื่อแก้ได้เสมอ · รหัสแก้ได้เฉพาะตอนยังไม่มีคลังใช้</span>
+            <strong>{t("ข้อมูลประเภท")}</strong>
+            <span>{t("ชื่อแก้ได้เสมอ · รหัสแก้ได้เฉพาะตอนยังไม่มีคลังใช้")}</span>
           </div>
         </div>
 
@@ -189,62 +191,62 @@ export default function WarehouseTypeFormModal({
             style={{ marginBottom: 16 }}
             title={
               initialValue?.isSystem
-                ? "ประเภทของระบบ — แก้รหัสไม่ได้ แต่แก้ชื่อและธงได้"
-                : `มีคลัง ${initialValue?.warehouseCount ?? 0} แห่งใช้ประเภทนี้ — แก้รหัสไม่ได้`
+                ? t("ประเภทของระบบ — แก้รหัสไม่ได้ แต่แก้ชื่อและธงได้")
+                : t("มีคลัง {n} แห่งใช้ประเภทนี้ — แก้รหัสไม่ได้", { n: initialValue?.warehouseCount ?? 0 })
             }
           />
         ) : null}
 
         <Form.Item
-          label="รหัสประเภท"
+          label={t("รหัสประเภท")}
           name="code"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสประเภท" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกรหัสประเภท") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
-          extra="ระบบเก็บเป็นตัวพิมพ์ใหญ่"
+          extra={t("ระบบเก็บเป็นตัวพิมพ์ใหญ่")}
         >
           <Input
             size="large"
-            placeholder="เช่น QUARANTINE"
+            placeholder={t("เช่น QUARANTINE")}
             autoComplete="off"
             disabled={codeLocked}
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อประเภท"
+          label={t("ชื่อประเภท")}
           name="name"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อประเภท" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อประเภท") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
-          <Input size="large" placeholder="เช่น พื้นที่กักกัน" autoComplete="off" />
+          <Input size="large" placeholder={t("เช่น พื้นที่กักกัน")} autoComplete="off" />
         </Form.Item>
 
-        <Form.Item label="คำอธิบาย" name="description">
+        <Form.Item label={t("คำอธิบาย")} name="description">
           <Input.TextArea rows={2} autoComplete="off" />
         </Form.Item>
 
         <Form.Item
-          label="แสดงในเมนู"
+          label={t("แสดงในเมนู")}
           name="menuScope"
-          extra="คลังประเภทนี้จะขึ้นให้เลือกในเมนูโอนย้าย/ปรับปรุง/ตรวจนับของกลุ่มนั้น — เว้นว่าง = อยู่ในเมนูคลังวัตถุดิบ เฉพาะประเภทที่ตั้งเป็น FG ถึงไปอยู่เมนูคลังสินค้าสำเร็จรูป"
+          extra={t("คลังประเภทนี้จะขึ้นให้เลือกในเมนูโอนย้าย/ปรับปรุง/ตรวจนับของกลุ่มนั้น — เว้นว่าง = อยู่ในเมนูคลังวัตถุดิบ เฉพาะประเภทที่ตั้งเป็น FG ถึงไปอยู่เมนูคลังสินค้าสำเร็จรูป")}
         >
           <Select
             allowClear
             size="large"
-            placeholder="เมนูคลังวัตถุดิบ (ค่าเริ่มต้น)"
-            options={MENU_SCOPE_OPTIONS}
+            placeholder={t("เมนูคลังวัตถุดิบ (ค่าเริ่มต้น)")}
+            options={MENU_SCOPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
           />
         </Form.Item>
 
-        <Form.Item label="ลำดับการแสดงผล" name="sortOrder">
+        <Form.Item label={t("ลำดับการแสดงผล")} name="sortOrder">
           <InputNumber
             size="large"
             style={{ width: "100%" }}
-            placeholder="ไม่ระบุ = ต่อท้าย"
+            placeholder={t("ไม่ระบุ = ต่อท้าย")}
             precision={0}
           />
         </Form.Item>
@@ -252,8 +254,8 @@ export default function WarehouseTypeFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>พฤติกรรมสต๊อก</strong>
-            <span>ระบบดูจากธงเหล่านี้ ไม่ได้ดูจากชื่อรหัส</span>
+            <strong>{t("พฤติกรรมสต๊อก")}</strong>
+            <span>{t("ระบบดูจากธงเหล่านี้ ไม่ได้ดูจากชื่อรหัส")}</span>
           </div>
         </div>
 
@@ -266,12 +268,12 @@ export default function WarehouseTypeFormModal({
             <div className={styles.statusContent}>
               <div className={styles.statusIcon}>●</div>
               <div>
-                <strong>{flag.title}</strong>
-                <span>{flag.hint}</span>
+                <strong>{t(flag.title)}</strong>
+                <span>{t(flag.hint)}</span>
               </div>
             </div>
             <Form.Item name={flag.name} valuePropName="checked" noStyle>
-              <Switch checkedChildren="ใช่" unCheckedChildren="ไม่" />
+              <Switch checkedChildren={t("ใช่")} unCheckedChildren={t("ไม่")} />
             </Form.Item>
           </div>
         ))}
@@ -280,16 +282,16 @@ export default function WarehouseTypeFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
+              <strong>{t("สถานะใช้งาน")}</strong>
               <span>
                 {inUse
-                  ? "มีคลังใช้อยู่ ย้ายคลังไปประเภทอื่นก่อนจึงปิดได้"
-                  : "ปิดแล้วจะเลือกประเภทนี้ตอนสร้างคลังไม่ได้"}
+                  ? t("มีคลังใช้อยู่ ย้ายคลังไปประเภทอื่นก่อนจึงปิดได้")
+                  : t("ปิดแล้วจะเลือกประเภทนี้ตอนสร้างคลังไม่ได้")}
               </span>
             </div>
           </div>
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

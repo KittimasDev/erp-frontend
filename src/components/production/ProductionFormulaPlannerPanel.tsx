@@ -21,6 +21,9 @@ import type {
 } from "@/types/production-formula";
 import { FORMULA_LINE_ROLE_LABEL } from "@/types/production-formula";
 import styles from "./ProductionFormulaPlannerPanel.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 export type FormulaPlanResult = {
   inputs: ProductionFormulaScaleLine[];
@@ -52,7 +55,7 @@ type Props = {
 };
 
 function fmtQty(value: number) {
-  return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return formatNumber(value, getStoredLanguage(), 3);
 }
 
 /** อนุญาตเฉพาะตัวเลขและจุดทศนิยม (บล็อก e / + / - / ตัวอักษร) */
@@ -115,6 +118,7 @@ export default function ProductionFormulaPlannerPanel({
   multiplyByProductionDays = false,
   onMultiplyByProductionDays,
 }: Props) {
+  const t = useT();
   const selected = useMemo(
     () => formulas.find((formula) => formula.id === formulaId),
     [formulas, formulaId],
@@ -160,12 +164,12 @@ export default function ProductionFormulaPlannerPanel({
   const driverOptions = useMemo(() => {
     if (!selected) return [];
     const group = (role: string) => ({
-      label: FORMULA_LINE_ROLE_LABEL[role],
+      label: t(FORMULA_LINE_ROLE_LABEL[role]),
       options: selected.lines
         .filter((line) => line.lineRole === role)
         .map((line) => ({
           value: line.id,
-          label: `${line.itemNameTh ?? line.itemCode ?? "-"} · สูตร ${fmtQty(
+          label: `${line.itemNameTh ?? line.itemCode ?? "-"} · ${t("สูตร")} ${fmtQty(
             Number(line.quantity),
           )} ${line.unitCode ?? ""}`,
         })),
@@ -174,30 +178,30 @@ export default function ProductionFormulaPlannerPanel({
     return [group("OUTPUT"), group("INPUT"), group("WASTE")].filter(
       (item) => item.options.length > 0,
     );
-  }, [selected]);
+  }, [selected, t]);
 
   const columns: ColumnsType<ProductionFormulaScaleLine> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, row) => (
         <div className={styles.cellStack}>
           <span>{row.itemNameTh ?? row.itemCode ?? "-"}</span>
           {row.isDriver ? (
-            <span className={styles.driverNote}>ตัวตั้ง</span>
+            <span className={styles.driverNote}>{t("ตัวตั้ง")}</span>
           ) : null}
         </div>
       ),
     },
     {
-      title: "ตามสูตร (1 รอบ)",
+      title: t("ตามสูตร (1 รอบ)"),
       key: "formulaQty",
       width: 140,
       align: "right",
@@ -210,8 +214,8 @@ export default function ProductionFormulaPlannerPanel({
     {
       title:
         dayFactor > 1
-          ? `ประมาณการ (×${dayFactor} วัน)`
-          : "ประมาณการ",
+          ? t("ประมาณการ (×{n} วัน)", { n: dayFactor })
+          : t("ประมาณการ"),
       key: "plannedQty",
       width: 160,
       align: "right",
@@ -239,24 +243,24 @@ export default function ProductionFormulaPlannerPanel({
     <div className={styles.panel}>
       <div className={styles.head}>
         <div>
-          <div className={styles.eyebrow}>วางแผนจากสูตร</div>
-          <h4 className={styles.title}>เลือกสูตร ใส่จำนวน ระบบคิดให้ทั้งสองฝั่ง</h4>
+          <div className={styles.eyebrow}>{t("วางแผนจากสูตร")}</div>
+          <h4 className={styles.title}>{t("เลือกสูตร ใส่จำนวน ระบบคิดให้ทั้งสองฝั่ง")}</h4>
         </div>
         {applied ? (
-          <Tag color="green">เติมลงฟอร์มแล้ว</Tag>
+          <Tag color="green">{t("เติมลงฟอร์มแล้ว")}</Tag>
         ) : scale && scale.factor !== null ? (
-          <Tag>ยังไม่ได้เติมลงฟอร์ม</Tag>
+          <Tag>{t("ยังไม่ได้เติมลงฟอร์ม")}</Tag>
         ) : null}
       </div>
 
       <div className={styles.controls}>
         <label className={styles.field}>
-          <span className={styles.label}>สูตรที่ใช้</span>
+          <span className={styles.label}>{t("สูตรที่ใช้")}</span>
           <Select
             allowClear
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกสูตรการผลิต"
+            placeholder={t("เลือกสูตรการผลิต")}
             loading={loading}
             value={formulaId}
             disabled={disabled}
@@ -281,12 +285,12 @@ export default function ProductionFormulaPlannerPanel({
         </label>
 
         <label className={styles.field}>
-          <span className={styles.label}>ตั้งจากบรรทัด</span>
-          <Tooltip title="เลือกผลผลิตคือ “อยากได้เท่านี้ ต้องใช้อะไร” · เลือกวัตถุดิบคือ “มีเท่านี้ จะได้อะไร”">
+          <span className={styles.label}>{t("ตั้งจากบรรทัด")}</span>
+          <Tooltip title={t("เลือกผลผลิตคือ “อยากได้เท่านี้ ต้องใช้อะไร” · เลือกวัตถุดิบคือ “มีเท่านี้ จะได้อะไร”")}>
             <Select
               showSearch
               optionFilterProp="label"
-              placeholder={formulaId ? "เลือกบรรทัด" : "เลือกสูตรก่อน"}
+              placeholder={formulaId ? t("เลือกบรรทัด") : t("เลือกสูตรก่อน")}
               disabled={disabled || !formulaId}
               value={driverLineId}
               onChange={onDriverLineId}
@@ -296,7 +300,7 @@ export default function ProductionFormulaPlannerPanel({
         </label>
 
         <label className={styles.field}>
-          <span className={styles.label}>จำนวนที่ต้องการ</span>
+          <span className={styles.label}>{t("จำนวนที่ต้องการ")}</span>
           <InputNumber
             style={{ width: "100%" }}
             min={0.001}
@@ -332,7 +336,7 @@ export default function ProductionFormulaPlannerPanel({
               });
             }}
           >
-            ใช้ค่านี้เป็นแผน
+            {t("ใช้ค่านี้เป็นแผน")}
           </Button>
         </div>
       </div>
@@ -344,18 +348,18 @@ export default function ProductionFormulaPlannerPanel({
           onChange={(e) => onMultiplyByProductionDays(e.target.checked)}
           style={{ marginBottom: 8 }}
         >
-          คูณจำนวนวันผลิต
+          {t("คูณจำนวนวันผลิต")}
           {productionDayCount > 1
-            ? ` (${productionDayCount} วัน)`
-            : " — เลือกช่วงวันที่ผลิตก่อน"}
+            ? ` ${t("({n} วัน)", { n: productionDayCount })}`
+            : ` ${t("— เลือกช่วงวันที่ผลิตก่อน")}`}
         </Checkbox>
       ) : null}
 
       {selected?.batchLabel ? (
         <div className={styles.batchLabel}>
-          ขนาด 1 รอบตามสูตร: {selected.batchLabel}
+          {t("ขนาด 1 รอบตามสูตร:")} {selected.batchLabel}
           {dayFactor > 1
-            ? ` · แผนนี้คูณ ${dayFactor} วันผลิตแล้ว`
+            ? ` · ${t("แผนนี้คูณ {n} วันผลิตแล้ว", { n: dayFactor })}`
             : null}
         </div>
       ) : null}
@@ -365,7 +369,7 @@ export default function ProductionFormulaPlannerPanel({
           className={styles.notice}
           type="info"
           showIcon
-          title="ยังคิดประมาณการไม่ได้"
+          title={t("ยังคิดประมาณการไม่ได้")}
           description={scale.reason}
         />
       ) : null}
@@ -375,8 +379,8 @@ export default function ProductionFormulaPlannerPanel({
           className={styles.notice}
           type="warning"
           showIcon
-          title="จำนวนที่ตั้งไว้น้อยเกินไป"
-          description="มีบรรทัดที่คิดแล้วปัดเหลือ 0 ซึ่งบันทึกเป็นใบสั่งผลิตไม่ได้ (ระบบบังคับอย่างน้อย 0.001) — เพิ่มจำนวนที่ต้องการ หรือตัดบรรทัดนั้นออกจากสูตร"
+          title={t("จำนวนที่ตั้งไว้น้อยเกินไป")}
+          description={t("มีบรรทัดที่คิดแล้วปัดเหลือ 0 ซึ่งบันทึกเป็นใบสั่งผลิตไม่ได้ (ระบบบังคับอย่างน้อย 0.001) — เพิ่มจำนวนที่ต้องการ หรือตัดบรรทัดนั้นออกจากสูตร")}
         />
       ) : null}
 
@@ -385,7 +389,7 @@ export default function ProductionFormulaPlannerPanel({
           className={styles.notice}
           type="warning"
           showIcon
-          title="ข้อสังเกตของสูตรนี้"
+          title={t("ข้อสังเกตของสูตรนี้")}
           description={
             <ul className={styles.warnList}>
               {selected.warnings.map((warning) => (
@@ -400,9 +404,9 @@ export default function ProductionFormulaPlannerPanel({
         <div className={styles.tables}>
           <div className={styles.tableBlock}>
             <div className={styles.tableTitle}>
-              ผลผลิตที่คาดว่าจะได้
+              {t("ผลผลิตที่คาดว่าจะได้")}
               {grouped.wastes.length > 0 ? (
-                <span className={styles.muted}> (ของเสียแยกตารางล่าง)</span>
+                <span className={styles.muted}> {t("(ของเสียแยกตารางล่าง)")}</span>
               ) : null}
             </div>
             <Table
@@ -415,7 +419,7 @@ export default function ProductionFormulaPlannerPanel({
           </div>
 
           <div className={styles.tableBlock}>
-            <div className={styles.tableTitle}>วัตถุดิบที่ต้องใช้</div>
+            <div className={styles.tableTitle}>{t("วัตถุดิบที่ต้องใช้")}</div>
             <Table
               size="small"
               rowKey="lineId"
@@ -428,7 +432,7 @@ export default function ProductionFormulaPlannerPanel({
           {grouped.wastes.length > 0 ? (
             <div className={styles.tableBlock}>
               <div className={styles.tableTitle}>
-                ของเสีย <span className={styles.muted}>(ไม่เข้าคลัง)</span>
+                {t("ของเสีย")} <span className={styles.muted}>{t("(ไม่เข้าคลัง)")}</span>
               </div>
               <Table
                 size="small"

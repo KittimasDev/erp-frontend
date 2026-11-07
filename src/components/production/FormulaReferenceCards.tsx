@@ -7,6 +7,9 @@ import { PlusOutlined } from "@ant-design/icons";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ProductionFormula } from "@/types/production-formula";
 import styles from "./FormulaReferenceCards.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage, type Language } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 /**
  * การ์ดสูตรอ้างอิงฝั่งซ้าย — ให้เห็นสูตรก่อนตัดสินใจ
@@ -31,11 +34,11 @@ type Props = {
   disabled?: boolean;
 };
 
-function fmtQty(value: string | number) {
+function fmtQty(value: string | number, lang: Language) {
   const num = Number(value);
   return Number.isNaN(num)
     ? String(value)
-    : num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+    : formatNumber(num, lang, 3);
 }
 
 function LineList({
@@ -45,6 +48,7 @@ function LineList({
   formula: ProductionFormula;
   role: string;
 }) {
+  const lang = useLanguage();
   const lines = formula.lines.filter((line) => line.lineRole === role);
   if (lines.length === 0) {
     return <div className={styles.emptyLine}>-</div>;
@@ -57,7 +61,7 @@ function LineList({
             {line.itemNameTh ?? line.itemCode}
           </span>
           <span className={styles.lineQty}>
-            {fmtQty(line.quantity)} {line.unitCode ?? ""}
+            {fmtQty(line.quantity, lang)} {line.unitCode ?? ""}
           </span>
         </li>
       ))}
@@ -66,13 +70,14 @@ function LineList({
 }
 
 function FormulaHead({ formula }: { formula: ProductionFormula }) {
+  const t = useT();
   return (
     <>
       <div className={styles.cardHead}>
         <span className={styles.cardName}>{formula.nameTh}</span>
         {formula.versionNo > 1 ? (
-          <Tooltip title="เลขรุ่นบวกขึ้นทุกครั้งที่แก้บรรทัดในสูตร">
-            <Tag>รุ่น {formula.versionNo}</Tag>
+          <Tooltip title={t("เลขรุ่นบวกขึ้นทุกครั้งที่แก้บรรทัดในสูตร")}>
+            <Tag>{t("รุ่น {n}", { n: formula.versionNo })}</Tag>
           </Tooltip>
         ) : null}
       </div>
@@ -85,17 +90,18 @@ function FormulaHead({ formula }: { formula: ProductionFormula }) {
 }
 
 function FormulaRecipe({ formula }: { formula: ProductionFormula }) {
+  const t = useT();
   return (
     <>
-      <div className={styles.sectionLabel}>ผลผลิตที่ได้</div>
+      <div className={styles.sectionLabel}>{t("ผลผลิตที่ได้")}</div>
       <LineList formula={formula} role="OUTPUT" />
 
-      <div className={styles.sectionLabel}>วัตถุดิบที่ต้องใช้</div>
+      <div className={styles.sectionLabel}>{t("วัตถุดิบที่ต้องใช้")}</div>
       <LineList formula={formula} role="INPUT" />
 
       {formula.lines.some((line) => line.lineRole === "WASTE") ? (
         <>
-          <div className={styles.sectionLabel}>ของเสีย</div>
+          <div className={styles.sectionLabel}>{t("ของเสีย")}</div>
           <LineList formula={formula} role="WASTE" />
         </>
       ) : null}
@@ -104,6 +110,7 @@ function FormulaRecipe({ formula }: { formula: ProductionFormula }) {
 }
 
 function CreateFormulaButton({ compact }: { compact?: boolean }) {
+  const t = useT();
   return (
     <Button
       size="small"
@@ -111,15 +118,16 @@ function CreateFormulaButton({ compact }: { compact?: boolean }) {
       icon={<PlusOutlined />}
       href={CREATE_FORMULA_HREF}
     >
-      {compact ? "สร้าง" : "สร้างสูตร"}
+      {compact ? t("สร้าง") : t("สร้างสูตร")}
     </Button>
   );
 }
 
 function PanelHeader({ canAdd }: { canAdd: boolean }) {
+  const t = useT();
   return (
     <div className={styles.panelHeader}>
-      <div className={styles.panelTitle}>สูตรการผลิตมาตรฐาน</div>
+      <div className={styles.panelTitle}>{t("สูตรการผลิตมาตรฐาน")}</div>
       {canAdd ? <CreateFormulaButton compact /> : null}
     </div>
   );
@@ -132,6 +140,7 @@ export default function FormulaReferenceCards({
   loading,
   disabled,
 }: Props) {
+  const t = useT();
   const formulaActions = useScreenActionPermissions("PRODUCTION_FORMULAS");
   const [previewId, setPreviewId] = useState<string | undefined>();
   const active = formulas.filter((formula) => formula.isActive);
@@ -144,7 +153,7 @@ export default function FormulaReferenceCards({
         <PanelHeader canAdd={formulaActions.canAdd} />
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="ยังไม่มีสูตร — ตั้งได้ที่ ข้อมูลหลัก › สูตรการผลิต"
+          description={t("ยังไม่มีสูตร — ตั้งได้ที่ ข้อมูลหลัก › สูตรการผลิต")}
         />
         {formulaActions.canAdd ? (
           <div className={styles.emptyAction}>
@@ -159,7 +168,7 @@ export default function FormulaReferenceCards({
     <div className={styles.panel}>
       <PanelHeader canAdd={formulaActions.canAdd} />
       {compact ? (
-        <p className={styles.compactHint}>กดแถวเพื่อดูสูตรเต็ม แล้วเลือกใช้</p>
+        <p className={styles.compactHint}>{t("กดแถวเพื่อดูสูตรเต็ม แล้วเลือกใช้")}</p>
       ) : null}
       <div className={styles.cardScroll}>
         {active.map((formula) => {
@@ -192,14 +201,14 @@ export default function FormulaReferenceCards({
         title={
           preview
             ? `${preview.formulaCode} — ${preview.nameTh}`
-            : "สูตรการผลิต"
+            : t("สูตรการผลิต")
         }
         destroyOnHidden
         width={760}
         footer={
           preview ? (
             <>
-              <Button onClick={() => setPreviewId(undefined)}>ปิด</Button>
+              <Button onClick={() => setPreviewId(undefined)}>{t("ปิด")}</Button>
               <Button
                 type="primary"
                 disabled={disabled}
@@ -208,7 +217,7 @@ export default function FormulaReferenceCards({
                   setPreviewId(undefined);
                 }}
               >
-                ใช้สูตรนี้
+                {t("ใช้สูตรนี้")}
               </Button>
             </>
           ) : null
@@ -217,7 +226,7 @@ export default function FormulaReferenceCards({
         {preview ? (
           <div className={styles.modalRecipe}>
             {preview.versionNo > 1 ? (
-              <Tag style={{ marginBottom: 8 }}>รุ่น {preview.versionNo}</Tag>
+              <Tag style={{ marginBottom: 8 }}>{t("รุ่น {n}", { n: preview.versionNo })}</Tag>
             ) : null}
             {preview.batchLabel ? (
               <div className={styles.batchLabel}>{preview.batchLabel}</div>

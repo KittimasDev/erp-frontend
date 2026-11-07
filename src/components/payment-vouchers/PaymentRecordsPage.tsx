@@ -30,15 +30,16 @@ import {
 } from "@/types/payment-vouchers";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import { useT } from "@/lib/i18n/useT";
 import { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } from "./PaymentMethodFields";
-import { PAYMENT_RECORDS_PATH, fmtMoney, kindLabel } from "./paymentVoucherUtils";
+import { tFin, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel } from "./paymentVoucherUtils";
 import PageHeader from "@/components/common/PageHeader";
 
 const PAYABLE_PAGE_SIZE = 5;
 const PAID_PAGE_SIZE = 10;
 
-const KIND_OPTIONS = Object.entries(PV_KIND_LABEL).map(([value, label]) => ({ value, label }));
-const STATUS_OPTIONS = Object.entries(PAYMENT_RECORD_STATUS_LABEL).map(([value, label]) => ({ value, label }));
+const KIND_OPTIONS_BASE = Object.entries(PV_KIND_LABEL).map(([value, label]) => ({ value, label }));
+const STATUS_OPTIONS_BASE = Object.entries(PAYMENT_RECORD_STATUS_LABEL).map(([value, label]) => ({ value, label }));
 
 type DateRange = [Dayjs | null, Dayjs | null] | null;
 
@@ -47,8 +48,11 @@ type DateRange = [Dayjs | null, Dayjs | null] | null;
  * ส่วนล่าง: รายการที่บันทึกจ่ายแล้ว + Export · ค้นหา/กรอง/แบ่งหน้าแยกกัน
  */
 export default function PaymentRecordsPage() {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
+  const KIND_OPTIONS = KIND_OPTIONS_BASE.map((o) => ({ ...o, label: t(o.label) }));
+  const STATUS_OPTIONS = STATUS_OPTIONS_BASE.map((o) => ({ ...o, label: tFin(o.label) }));
   const perms = useScreenActionPermissions("FINANCE_PAYMENT_RECORDS");
 
   // ── ส่วนที่ 1: รอบันทึกจ่ายเงิน ──
@@ -85,27 +89,27 @@ export default function PaymentRecordsPage() {
     try {
       const rows = (await getPaymentRecordsExport(getAccessToken(), filters)).data;
       const filterText = [
-        filters.search ? `ค้นหา: ${filters.search}` : null,
+        filters.search ? `${t("ค้นหา")}: ${filters.search}` : null,
         filters.paymentDateFrom || filters.paymentDateTo
-          ? `วันที่จ่าย: ${formatThaiDate(filters.paymentDateFrom)} - ${formatThaiDate(filters.paymentDateTo)}`
+          ? `${t("วันที่จ่าย")}: ${formatThaiDate(filters.paymentDateFrom)} - ${formatThaiDate(filters.paymentDateTo)}`
           : null,
-        filters.paymentMethod ? `วิธีชำระ: ${paymentMethodLabel(filters.paymentMethod)}` : null,
-        filters.status ? `สถานะ: ${PAYMENT_RECORD_STATUS_LABEL[filters.status] ?? filters.status}` : null,
+        filters.paymentMethod ? `${t("วิธีชำระ")}: ${paymentMethodLabel(filters.paymentMethod)}` : null,
+        filters.status ? `${t("สถานะ")}: ${PAYMENT_RECORD_STATUS_LABEL[filters.status] ? tFin(PAYMENT_RECORD_STATUS_LABEL[filters.status]) : filters.status}` : null,
       ].filter((v): v is string => Boolean(v));
       const total = rows.reduce((sum, r) => sum + Number(r.amount), 0);
       await downloadTabularReport(format, {
-        title: "รายการที่บันทึกจ่ายแล้ว",
+        title: t("รายการที่บันทึกจ่ายแล้ว"),
         filename: `payment-records-${dayjs().format("YYYYMMDD-HHmm")}`,
-        meta: [`ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`, ...filterText, `ทั้งหมด ${rows.length} รายการ · รวม ${fmtMoney(total)} บาท`],
+        meta: [`${t("ออกรายงาน")} ${dayjs().format("DD/MM/YYYY HH:mm")}`, ...filterText, t("ทั้งหมด {n} รายการ · รวม {amount} บาท", { n: rows.length, amount: fmtMoney(total) })],
         headers: [
-          "เลขที่รายการจ่าย",
-          "วันที่จ่ายจริง",
-          "เลขที่ PV",
-          "ผู้ขาย",
-          "วิธีชำระเงิน",
-          "จำนวนเงินที่จ่ายจริง",
-          "เลขอ้างอิงธุรกรรม",
-          "สถานะ",
+          t("เลขที่รายการจ่าย"),
+          t("วันที่จ่ายจริง"),
+          t("เลขที่ PV"),
+          t("ผู้ขาย"),
+          t("วิธีชำระเงิน"),
+          t("จำนวนเงินที่จ่ายจริง"),
+          t("เลขอ้างอิงธุรกรรม"),
+          t("สถานะ"),
         ],
         rows: rows.map((r) => [
           r.paymentNo ?? "",
@@ -115,21 +119,21 @@ export default function PaymentRecordsPage() {
           paymentMethodLabel(r.paymentMethod),
           fmtMoney(r.amount),
           r.transactionRef ?? "",
-          PAYMENT_RECORD_STATUS_LABEL[r.status] ?? r.status,
+          PAYMENT_RECORD_STATUS_LABEL[r.status] ? tFin(PAYMENT_RECORD_STATUS_LABEL[r.status]) : r.status,
         ]),
         pdfColumns: [
-          { header: "เลขที่รายการจ่าย", cells: [0], width: 95 },
-          { header: "วันที่จ่าย", cells: [1], width: 70 },
-          { header: "เลขที่ PV", cells: [2], width: 100 },
-          { header: "ผู้ขาย", cells: [3], width: 160 },
-          { header: "วิธีชำระ", cells: [4], width: 60 },
-          { header: "จ่ายจริง", cells: [5], width: 85, align: "right", numeric: true },
-          { header: "เลขอ้างอิง", cells: [6], width: 100 },
-          { header: "สถานะ", cells: [7], width: 76 },
+          { header: t("เลขที่รายการจ่าย"), cells: [0], width: 95 },
+          { header: t("วันที่จ่าย"), cells: [1], width: 70 },
+          { header: t("เลขที่ PV"), cells: [2], width: 100 },
+          { header: t("ผู้ขาย"), cells: [3], width: 160 },
+          { header: t("วิธีชำระ"), cells: [4], width: 60 },
+          { header: t("จ่ายจริง"), cells: [5], width: 85, align: "right", numeric: true },
+          { header: t("เลขอ้างอิง"), cells: [6], width: 100 },
+          { header: t("สถานะ"), cells: [7], width: 76 },
         ],
       });
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : "ส่งออกรายการที่บันทึกจ่ายแล้วไม่สำเร็จ");
+      message.error(e instanceof Error && e.message ? e.message : t("ส่งออกรายการที่บันทึกจ่ายแล้วไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -137,32 +141,32 @@ export default function PaymentRecordsPage() {
 
   const payableColumns: ColumnsType<SupplierPaymentVoucher> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (pPage - 1) * PAYABLE_PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่ PV",
+      title: t("เลขที่ PV"),
       dataIndex: "voucherNo",
       render: (v: string, r) => <Link href={`/finance/payables/payment-vouchers/${r.id}`}>{v}</Link>,
     },
-    { title: "วันที่ PV", dataIndex: "voucherDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่ PV"), dataIndex: "voucherDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (r.creditor ? `${r.creditor.creditorCode} ${r.creditor.nameTh}` : "—"),
     },
-    { title: "ประเภทการจ่าย", dataIndex: "paymentKind", width: 120, render: (v?: string) => kindLabel(v) },
-    { title: "วันที่ต้องการจ่าย", dataIndex: "desiredPayDate", width: 130, render: (v?: string) => formatThaiDate(v) },
-    { title: "วิธีชำระ", dataIndex: "paymentMethod", width: 110, render: (v: string) => paymentMethodLabel(v) },
-    { title: "ยอดสุทธิที่ต้องจ่าย", dataIndex: "netAmount", align: "right", width: 150, render: (v: string) => fmtMoney(v) },
+    { title: t("ประเภทการจ่าย"), dataIndex: "paymentKind", width: 120, render: (v?: string) => kindLabel(v) },
+    { title: t("วันที่ต้องการจ่าย"), dataIndex: "desiredPayDate", width: 130, render: (v?: string) => formatThaiDate(v) },
+    { title: t("วิธีชำระ"), dataIndex: "paymentMethod", width: 110, render: (v: string) => paymentMethodLabel(v) },
+    { title: t("ยอดสุทธิที่ต้องจ่าย"), dataIndex: "netAmount", align: "right", width: 150, render: (v: string) => fmtMoney(v) },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       width: 150,
-      render: (v: string) => <Tag color={VOUCHER_STATUS_COLOR[v]}>{VOUCHER_STATUS_LABEL[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={VOUCHER_STATUS_COLOR[v]}>{VOUCHER_STATUS_LABEL[v] ? tFin(VOUCHER_STATUS_LABEL[v]) : v}</Tag>,
     },
     {
       title: "",
@@ -171,7 +175,7 @@ export default function PaymentRecordsPage() {
       render: (_v, r) =>
         perms.canAdd ? (
           <Button type="primary" size="small" onClick={() => router.push(`${PAYMENT_RECORDS_PATH}/create?voucherId=${r.id}`)}>
-            บันทึกจ่ายเงิน
+            {tFin("บันทึกจ่ายเงิน")}
           </Button>
         ) : null,
     },
@@ -179,28 +183,28 @@ export default function PaymentRecordsPage() {
 
   const recordColumns: ColumnsType<PaymentRecord> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (rPage - 1) * PAID_PAGE_SIZE + index + 1,
     },
-    { title: "เลขที่รายการจ่าย", dataIndex: "paymentNo", width: 150, render: (v?: string) => <Typography.Text strong>{v ?? "—"}</Typography.Text> },
-    { title: "วันที่จ่ายจริง", dataIndex: "paymentDate", width: 120, render: (v: string) => formatThaiDate(v) },
-    { title: "เลขที่ PV", dataIndex: "voucherNo", width: 160 },
+    { title: t("เลขที่รายการจ่าย"), dataIndex: "paymentNo", width: 150, render: (v?: string) => <Typography.Text strong>{v ?? "—"}</Typography.Text> },
+    { title: t("วันที่จ่ายจริง"), dataIndex: "paymentDate", width: 120, render: (v: string) => formatThaiDate(v) },
+    { title: t("เลขที่ PV"), dataIndex: "voucherNo", width: 160 },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (r.creditor ? `${r.creditor.creditorCode} ${r.creditor.nameTh}` : "—"),
     },
-    { title: "วิธีชำระ", dataIndex: "paymentMethod", width: 110, render: (v: string) => paymentMethodLabel(v) },
-    { title: "จำนวนเงินที่จ่ายจริง", dataIndex: "amount", align: "right", width: 160, render: (v: string) => fmtMoney(v) },
-    { title: "เลขอ้างอิงธุรกรรม", dataIndex: "transactionRef", render: (v?: string) => v ?? "—" },
+    { title: t("วิธีชำระ"), dataIndex: "paymentMethod", width: 110, render: (v: string) => paymentMethodLabel(v) },
+    { title: t("จำนวนเงินที่จ่ายจริง"), dataIndex: "amount", align: "right", width: 160, render: (v: string) => fmtMoney(v) },
+    { title: t("เลขอ้างอิงธุรกรรม"), dataIndex: "transactionRef", render: (v?: string) => v ?? "—" },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       width: 110,
-      render: (v: string) => <Tag color={PAYMENT_RECORD_STATUS_COLOR[v]}>{PAYMENT_RECORD_STATUS_LABEL[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={PAYMENT_RECORD_STATUS_COLOR[v]}>{PAYMENT_RECORD_STATUS_LABEL[v] ? tFin(PAYMENT_RECORD_STATUS_LABEL[v]) : v}</Tag>,
     },
     {
       title: "",
@@ -209,7 +213,7 @@ export default function PaymentRecordsPage() {
       render: (_v, r) => (
         // PV จากคิว → หน้ารายละเอียดรายการจ่ายใหม่ (id = รายการจ่าย) · PV เดิมจากใบสั่งซื้อ → หน้า PV เดิม
         <Link href={r.viaQueue ? `${PAYMENT_RECORDS_PATH}/${r.id}` : `/purchase-payments/${r.voucherId}`}>
-          <Button size="small">ดูรายละเอียด</Button>
+          <Button size="small">{t("ดูรายละเอียด")}</Button>
         </Link>
       ),
     },
@@ -243,8 +247,8 @@ export default function PaymentRecordsPage() {
       <PageHeader
         eyebrow="FINANCE · PAYABLES"
         icon={<FileTextOutlined />}
-        title="บันทึกจ่ายเงิน"
-        subtitle="ใบสำคัญจ่ายที่อนุมัติแล้วรอบันทึกจ่ายจริง และรายการที่บันทึกจ่ายแล้ว"
+        title={t("บันทึกจ่ายเงิน")}
+        subtitle={t("ใบสำคัญจ่ายที่อนุมัติแล้วรอบันทึกจ่ายจริง และรายการที่บันทึกจ่ายแล้ว")}
         actions={
           <>
 <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
@@ -254,45 +258,45 @@ export default function PaymentRecordsPage() {
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>รอบันทึกจ่าย</span>
+          <span className={styles.statLabel}>{t("รอบันทึกจ่าย")}</span>
           <span className={styles.statValue}>{(payable.data?.data.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>จ่ายแล้ว</span>
+          <span className={styles.statLabel}>{t("จ่ายแล้ว")}</span>
           <span className={styles.statValue}>{(records.data?.data.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รอบันทึกจ่ายเงิน</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("รอบันทึกจ่ายเงิน")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{(payable.data?.data.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+          <span className={masterStyles.tableCount}>{(payable.data?.data.total ?? 0).toLocaleString("th-TH")} {t("รายการ")}</span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่ PV / ชื่อผู้ขาย"
+                placeholder={t("เลขที่ PV / ชื่อผู้ขาย")}
                 value={pSearch}
                 onChange={(e) => setPSearch(e.target.value)}
                 onPressEnter={applyPayable}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>ประเภทการจ่าย</label>
-              <Select allowClear placeholder="ทั้งหมด" value={pKind} onChange={setPKind} options={KIND_OPTIONS} />
+              <label>{t("ประเภทการจ่าย")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={pKind} onChange={setPKind} options={KIND_OPTIONS} />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearPayable}>เคลียร์</Button>
+              <Button onClick={clearPayable}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyPayable}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
@@ -311,49 +315,49 @@ export default function PaymentRecordsPage() {
             total: payable.data?.data.total ?? 0,
             onChange: setPPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1100 }}
-          locale={{ emptyText: "ไม่มีใบสำคัญจ่ายที่รอบันทึกจ่ายเงิน" }}
+          locale={{ emptyText: t("ไม่มีใบสำคัญจ่ายที่รอบันทึกจ่ายเงิน") }}
         />
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>บันทึกจ่ายแล้ว</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("บันทึกจ่ายแล้ว")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{(records.data?.data.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+          <span className={masterStyles.tableCount}>{(records.data?.data.total ?? 0).toLocaleString("th-TH")} {t("รายการ")}</span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่รายการจ่าย / เลขที่ PV / ชื่อผู้ขาย"
+                placeholder={t("เลขที่รายการจ่าย / เลขที่ PV / ชื่อผู้ขาย")}
                 value={rSearch}
                 onChange={(e) => setRSearch(e.target.value)}
                 onPressEnter={applyRecords}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>วันที่จ่าย</label>
+              <label>{t("วันที่จ่าย")}</label>
               <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={rRange} onChange={setRRange} />
             </div>
             <div className={styles.filterItem}>
-              <label>วิธีชำระ</label>
-              <Select allowClear placeholder="ทั้งหมด" value={rMethod} onChange={setRMethod} options={PAYMENT_METHOD_OPTIONS} />
+              <label>{t("วิธีชำระ")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={rMethod} onChange={setRMethod} options={PAYMENT_METHOD_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะ</label>
-              <Select allowClear placeholder="ทั้งหมด" value={rStatus} onChange={setRStatus} options={STATUS_OPTIONS} />
+              <label>{t("สถานะ")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={rStatus} onChange={setRStatus} options={STATUS_OPTIONS} />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearRecords}>เคลียร์</Button>
+              <Button onClick={clearRecords}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyRecords}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
@@ -372,10 +376,10 @@ export default function PaymentRecordsPage() {
             total: records.data?.data.total ?? 0,
             onChange: setRPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1200 }}
-          locale={{ emptyText: "ยังไม่มีรายการที่บันทึกจ่าย" }}
+          locale={{ emptyText: t("ยังไม่มีรายการที่บันทึกจ่าย") }}
         />
       </div>
     </section>

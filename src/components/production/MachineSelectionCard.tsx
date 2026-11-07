@@ -4,6 +4,9 @@ import { Alert, Card, Select, Space, Tag, Typography } from "antd";
 
 import { useEquipmentQuery } from "@/hooks/maintenance/useMaintenance";
 import type { ProductionFormula } from "@/types/production-formula";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 type Props = {
   formula?: ProductionFormula;
@@ -18,6 +21,8 @@ type Props = {
  * เก็บเป็น Snapshot ที่ใบ — แก้สูตรหรือ Master ภายหลังไม่กระทบใบนี้
  */
 export default function MachineSelectionCard({ formula, choices, onChange }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const equipmentIds = formula?.recordingConfig?.equipmentIds ?? [];
   const equipmentQuery = useEquipmentQuery({});
   if (!formula || equipmentIds.length === 0) return null;
@@ -27,16 +32,18 @@ export default function MachineSelectionCard({ formula, choices, onChange }: Pro
   const capacityText = (id: string) => {
     const e = byId.get(id);
     return e?.capacity != null
-      ? `${e.capacity.toLocaleString("th-TH")} ${e.capacityUnitLabel ?? ""}/ชม.`
-      : "ยังไม่ตั้ง Capacity";
+      ? `${formatNumber(e.capacity, lang)} ${e.capacityUnitLabel ?? ""}${t("/ชม.")}`
+      : t("ยังไม่ตั้ง Capacity");
   };
   const chosenIds = new Set(equipmentIds.map((id) => choices[id] ?? id));
 
   return (
-    <Card size="small" title="เครื่องจักรที่ใช้ในใบสั่งผลิต" style={{ marginTop: 16 }}>
+    <Card size="small" title={t("เครื่องจักรที่ใช้ในใบสั่งผลิต")} style={{ marginTop: 16 }}>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-        ดึงตามสูตร {formula.formulaCode} — เปลี่ยนเป็นเครื่องอื่นที่เป็นประเภทเดียวกันได้
-        (เลือกได้เฉพาะเครื่องที่เปิดใช้งาน)
+        {t(
+          "ดึงตามสูตร {code} — เปลี่ยนเป็นเครื่องอื่นที่เป็นประเภทเดียวกันได้ (เลือกได้เฉพาะเครื่องที่เปิดใช้งาน)",
+          { code: formula.formulaCode },
+        )}
       </Typography.Paragraph>
       <Space direction="vertical" size={10} style={{ width: "100%" }}>
         {equipmentIds.map((formulaEquipmentId) => {
@@ -57,7 +64,7 @@ export default function MachineSelectionCard({ formula, choices, onChange }: Pro
               ? [
                   {
                     value: original.id,
-                    label: `${original.equipmentCode} — ${original.name} (ตามสูตร)${original.status === "ACTIVE" ? "" : " · ไม่พร้อมใช้งาน"}`,
+                    label: `${original.equipmentCode} — ${original.name} (${t("ตามสูตร")})${original.status === "ACTIVE" ? "" : ` · ${t("ไม่พร้อมใช้งาน")}`}`,
                     disabled: original.status !== "ACTIVE",
                   },
                 ]
@@ -71,10 +78,10 @@ export default function MachineSelectionCard({ formula, choices, onChange }: Pro
           return (
             <div key={formulaEquipmentId}>
               <Space size={8} wrap style={{ marginBottom: 4 }}>
-                <Typography.Text strong>{original?.equipmentCode ?? "เครื่องในสูตร"}</Typography.Text>
+                <Typography.Text strong>{original?.equipmentCode ?? t("เครื่องในสูตร")}</Typography.Text>
                 {original?.equipmentTypeName ? <Tag>{original.equipmentTypeName}</Tag> : null}
-                <Tag color="geekblue">กำลังผลิต {capacityText(chosenId)}</Tag>
-                {chosenId !== formulaEquipmentId ? <Tag color="orange">สลับจากเครื่องในสูตร</Tag> : null}
+                <Tag color="geekblue">{lang === "en" ? "Capacity" : "กำลังผลิต"} {capacityText(chosenId)}</Tag>
+                {chosenId !== formulaEquipmentId ? <Tag color="orange">{t("สลับจากเครื่องในสูตร")}</Tag> : null}
               </Space>
               <Select
                 style={{ width: "100%" }}
@@ -93,11 +100,11 @@ export default function MachineSelectionCard({ formula, choices, onChange }: Pro
               />
               {!original?.equipmentTypeId ? (
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  เครื่องนี้ยังไม่ได้ตั้งประเภทเครื่องจักร จึงสลับเป็นเครื่องอื่นไม่ได้
+                  {t("เครื่องนี้ยังไม่ได้ตั้งประเภทเครื่องจักร จึงสลับเป็นเครื่องอื่นไม่ได้")}
                 </Typography.Text>
               ) : sameType.length === 0 && chosen ? (
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  ไม่มีเครื่องอื่นประเภทเดียวกันที่พร้อมใช้งาน
+                  {t("ไม่มีเครื่องอื่นประเภทเดียวกันที่พร้อมใช้งาน")}
                 </Typography.Text>
               ) : null}
             </div>
@@ -108,7 +115,7 @@ export default function MachineSelectionCard({ formula, choices, onChange }: Pro
         type="info"
         showIcon
         style={{ marginTop: 12 }}
-        title="Capacity และฟิลด์บันทึกถูกเก็บเป็น Snapshot ที่ใบนี้ — แก้สูตร/Master ภายหลังไม่กระทบใบที่สร้างแล้ว"
+        title={t("Capacity และฟิลด์บันทึกถูกเก็บเป็น Snapshot ที่ใบนี้ — แก้สูตร/Master ภายหลังไม่กระทบใบที่สร้างแล้ว")}
       />
     </Card>
   );

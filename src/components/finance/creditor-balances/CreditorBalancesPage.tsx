@@ -23,6 +23,8 @@ import { getCreditorBalances } from "@/lib/api/creditor-balances";
 import { fetchAllReportRows } from "@/lib/api/sales-reports";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import {
   CREDITOR_BALANCE_PAYMENT_STATUS_COLOR,
   CREDITOR_BALANCE_PAYMENT_STATUS_LABEL,
@@ -43,6 +45,8 @@ const PAGE_SIZE = 20;
 const PO_DETAIL_PATH = "/finance/payables/creditors";
 
 function ExpandedPos({ creditorId }: { creditorId: string }) {
+  const t = useT();
+  const lang = useLanguage();
   const query = useCreditorBalancePosQuery(creditorId, true);
   const columns: ColumnsType<CreditorBalancePoLine> = [
     {
@@ -53,57 +57,57 @@ function ExpandedPos({ creditorId }: { creditorId: string }) {
       render: (_v, _r, i) => i + 1,
     },
     {
-      title: "เลขที่ PO",
+      title: t("เลขที่ PO"),
       dataIndex: "poNo",
       render: (v: string, r) => <Link href={`${PO_DETAIL_PATH}/${r.purchaseOrderId}`}>{v}</Link>,
     },
-    { title: "วันที่ PO", dataIndex: "poDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่ PO"), dataIndex: "poDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
-      title: "เงื่อนไขการชำระเงิน",
+      title: t("เงื่อนไขการชำระเงิน"),
       dataIndex: "termLabel",
       render: (v: string | null, r) =>
         v ??
         (r.termType
-          ? (PAYMENT_TERM_TYPE_LABEL[r.termType as PaymentTermType] ?? r.termType)
+          ? t(PAYMENT_TERM_TYPE_LABEL[r.termType as PaymentTermType] ?? r.termType)
           : "—"),
     },
     {
-      title: "ยอดตาม PO",
+      title: t("ยอดตาม PO"),
       dataIndex: "poTotalAmount",
       align: "right",
       render: (v: number) => money.format(v),
     },
     {
-      title: "ยอดหลังปรับหนี้",
+      title: t("ยอดหลังปรับหนี้"),
       dataIndex: "amountAfterAdjustment",
       align: "right",
       render: (v: number, r) => (r.lineStatus === "NOT_INVOICED" ? "—" : money.format(v)),
     },
     {
-      title: "ยอดชำระแล้ว",
+      title: t("ยอดชำระแล้ว"),
       dataIndex: "paidAmount",
       align: "right",
       render: (v: number, r) => (r.lineStatus === "NOT_INVOICED" ? "—" : money.format(v)),
     },
     {
-      title: "ยอดคงเหลือ",
+      title: lang === "en" ? "Remaining amount" : "ยอดคงเหลือ",
       dataIndex: "remainingAmount",
       align: "right",
       render: (v: number, r) => (r.lineStatus === "NOT_INVOICED" ? "—" : money.format(v)),
     },
     {
-      title: "วันครบกำหนด",
+      title: t("วันครบกำหนด"),
       dataIndex: "dueDate",
       width: 120,
       render: (v: string | null) => formatThaiDate(v),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "lineStatus",
       width: 130,
       render: (v: string) => (
         <Tag color={CREDITOR_BALANCE_PO_LINE_STATUS_COLOR[v] ?? "default"}>
-          {CREDITOR_BALANCE_PO_LINE_STATUS_LABEL[v] ?? v}
+          {t(CREDITOR_BALANCE_PO_LINE_STATUS_LABEL[v] ?? v)}
         </Tag>
       ),
     },
@@ -116,7 +120,7 @@ function ExpandedPos({ creditorId }: { creditorId: string }) {
       columns={columns}
       dataSource={query.data ?? []}
       pagination={false}
-      locale={{ emptyText: "ไม่มีใบสั่งซื้อ" }}
+      locale={{ emptyText: t("ไม่มีใบสั่งซื้อ") }}
       scroll={{ x: 1100 }}
     />
   );
@@ -125,6 +129,7 @@ function ExpandedPos({ creditorId }: { creditorId: string }) {
 /** รายการเจ้าหนี้ตามผู้ขาย — อ่านอย่างเดียว */
 export default function CreditorBalancesPage() {
   const { message } = App.useApp();
+  const t = useT();
   const [page, setPage] = useState(1);
   const [dSearch, setDSearch] = useState("");
   const [dCreditorId, setDCreditorId] = useState<string | undefined>();
@@ -193,7 +198,10 @@ export default function CreditorBalancesPage() {
       );
       if (all.truncated) {
         message.warning(
-          `มี ${all.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ ${all.rows.length.toLocaleString("th-TH")} รายการแรก`,
+          t("มี {total} รายการ — ไฟล์มีเฉพาะ {shown} รายการแรก", {
+            total: all.total.toLocaleString("th-TH"),
+            shown: all.rows.length.toLocaleString("th-TH"),
+          }),
         );
       }
       const now = new Date();
@@ -245,7 +253,7 @@ export default function CreditorBalancesPage() {
         ]),
       });
     } catch {
-      message.error("ส่งออกรายการเจ้าหนี้ไม่สำเร็จ");
+      message.error(t("ส่งออกรายการเจ้าหนี้ไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -253,14 +261,14 @@ export default function CreditorBalancesPage() {
 
   const columns: ColumnsType<CreditorBalanceRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (
         <span>
@@ -268,43 +276,43 @@ export default function CreditorBalancesPage() {
         </span>
       ),
     },
-    { title: "จำนวน PO", dataIndex: "poCount", width: 100, align: "right" },
-    { title: "เงื่อนไขเครดิต", dataIndex: "creditTermsLabel", width: 160 },
+    { title: t("จำนวน PO"), dataIndex: "poCount", width: 100, align: "right" },
+    { title: t("เงื่อนไขเครดิต"), dataIndex: "creditTermsLabel", width: 160 },
     {
-      title: "ยอดเจ้าหนี้คงค้าง",
+      title: t("ยอดเจ้าหนี้คงค้าง"),
       dataIndex: "apRemaining",
       align: "right",
       width: 140,
       render: (v: number) => money.format(v),
     },
     {
-      title: "เครดิตที่ได้รับ",
+      title: t("เครดิตที่ได้รับ"),
       dataIndex: "creditReceived",
       align: "right",
       width: 130,
       render: (v: number) => money.format(v),
     },
     {
-      title: "เครดิตที่ใช้แล้ว",
+      title: t("เครดิตที่ใช้แล้ว"),
       dataIndex: "creditUsed",
       align: "right",
       width: 130,
       render: (v: number) => money.format(v),
     },
     {
-      title: "เครดิตคงเหลือ",
+      title: t("เครดิตคงเหลือ"),
       dataIndex: "creditRemaining",
       align: "right",
       width: 130,
       render: (v: number) => money.format(v),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "paymentStatus",
       width: 120,
       render: (v: string) => (
         <Tag color={CREDITOR_BALANCE_PAYMENT_STATUS_COLOR[v] ?? "default"}>
-          {CREDITOR_BALANCE_PAYMENT_STATUS_LABEL[v] ?? v}
+          {t(CREDITOR_BALANCE_PAYMENT_STATUS_LABEL[v] ?? v)}
         </Tag>
       ),
     },
@@ -322,8 +330,8 @@ export default function CreditorBalancesPage() {
       <PageHeader
         eyebrow="FINANCE · PAYABLES"
         icon={<FileTextOutlined />}
-        title="รายการเจ้าหนี้"
-        subtitle="สรุปยอดค้างจ่ายและเครดิตผู้ขาย ตาม Supplier (ดูอย่างเดียว)"
+        title={t("รายการเจ้าหนี้")}
+        subtitle={t("สรุปยอดค้างจ่ายและเครดิตผู้ขาย ตาม Supplier (ดูอย่างเดียว)")}
         actions={
           <>
 <ReportExportButtons
@@ -338,57 +346,57 @@ export default function CreditorBalancesPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดเจ้าหนี้คงค้างรวม</span>
+          <span className={styles.statLabel}>{t("ยอดเจ้าหนี้คงค้างรวม")}</span>
           <span className={styles.statValue}>
             {summaryQuery.isLoading ? "…" : money.format(summary?.totalApRemaining ?? 0)}
           </span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดเจ้าหนี้เกินกำหนด</span>
+          <span className={styles.statLabel}>{t("ยอดเจ้าหนี้เกินกำหนด")}</span>
           <span
             className={styles.statValue}
             style={(summary?.totalOverdue ?? 0) > 0 ? { color: "#cf1322" } : undefined}
           >
             {summaryQuery.isLoading ? "…" : money.format(summary?.totalOverdue ?? 0)}
           </span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>เครดิต Supplier คงเหลือ</span>
+          <span className={styles.statLabel}>{t("เครดิต Supplier คงเหลือ")}</span>
           <span className={styles.statValue}>
             {summaryQuery.isLoading ? "…" : money.format(summary?.totalSupplierCreditRemaining ?? 0)}
           </span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>มัดจำคงเหลือยังไม่หัก AP</span>
+          <span className={styles.statLabel}>{t("มัดจำคงเหลือยังไม่หัก AP")}</span>
           <span className={styles.statValue}>
             {summaryQuery.isLoading ? "…" : money.format(summary?.totalDepositAvailable ?? 0)}
           </span>
-          <span className={styles.statHint}>บาท</span>
+          <span className={styles.statHint}>{t("บาท")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterRow}>
           <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="ชื่อ/รหัสผู้ขาย หรือเลขที่ PO"
+              placeholder={t("ชื่อ/รหัสผู้ขาย หรือเลขที่ PO")}
               value={dSearch}
               onChange={(e) => setDSearch(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ผู้ขาย</label>
+            <label>{t("ผู้ขาย")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dCreditorId}
               onChange={setDCreditorId}
               options={(vendorsQuery.data?.data ?? []).map((v) => ({
@@ -398,7 +406,7 @@ export default function CreditorBalancesPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่</label>
+            <label>{t("ช่วงวันที่")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
@@ -407,34 +415,34 @@ export default function CreditorBalancesPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>เงื่อนไขชำระ</label>
+            <label>{t("เงื่อนไขชำระ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dTermType}
               onChange={setDTermType}
               options={[
-                { value: "ADVANCE", label: "ล่วงหน้า / มัดจำ" },
-                { value: "ON_RECEIPT", label: "จ่ายเมื่อรับสินค้า" },
-                { value: "CREDIT", label: "เครดิต" },
+                { value: "ADVANCE", label: t("ล่วงหน้า / มัดจำ") },
+                { value: "ON_RECEIPT", label: t("จ่ายเมื่อรับสินค้า") },
+                { value: "CREDIT", label: t("เครดิต") },
               ]}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะชำระ</label>
+            <label>{t("สถานะชำระ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dPaymentStatus}
               onChange={setDPaymentStatus}
               options={Object.entries(CREDITOR_BALANCE_PAYMENT_STATUS_LABEL).map(([value, label]) => ({
                 value,
-                label,
+                label: t(label),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>เฉพาะมียอดค้าง/เครดิต</label>
+            <label>{t("เฉพาะมียอดค้าง/เครดิต")}</label>
             <div style={{ display: "flex", alignItems: "center", minHeight: 32 }}>
               <Switch
                 checked={hasBalanceOrCredit}
@@ -446,9 +454,9 @@ export default function CreditorBalancesPage() {
             </div>
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -457,11 +465,11 @@ export default function CreditorBalancesPage() {
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รายการเจ้าหนี้</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("รายการเจ้าหนี้")}</h3>
           </div>
           <span className={masterStyles.tableCount}>
-            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")} ผู้ขาย
+            {t("{n} ผู้ขาย", { n: (listQuery.data?.total ?? 0).toLocaleString("th-TH") })}
           </span>
         </div>
         <Table
@@ -478,14 +486,16 @@ export default function CreditorBalancesPage() {
             pageSize: PAGE_SIZE,
             total: listQuery.data?.total ?? 0,
             onChange: setPage,
-            showTotal: (t) => `ทั้งหมด ${t} ผู้ขาย`,
+            showTotal: (total) => t("ทั้งหมด {n} ผู้ขาย", { n: total }),
           }}
           scroll={{ x: 1100 }}
-          locale={{ emptyText: "ไม่พบรายการเจ้าหนี้" }}
+          locale={{ emptyText: t("ไม่พบรายการเจ้าหนี้") }}
         />
         <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-          ยอดเจ้าหนี้คงค้างคิดจากใบตั้งหนี้ที่อนุมัติแล้ว ไม่รวม PO ที่ยังไม่ตั้งหนี้ และไม่หักเครดิตผู้ขายที่ยังไม่ใช้ · ขยายแถวเพื่อดูรายการ PO ·{" "}
-          <Link href={CREDITOR_BALANCES_PATH}>รีเฟรช</Link>
+          {t(
+            "ยอดเจ้าหนี้คงค้างคิดจากใบตั้งหนี้ที่อนุมัติแล้ว ไม่รวม PO ที่ยังไม่ตั้งหนี้ และไม่หักเครดิตผู้ขายที่ยังไม่ใช้ · ขยายแถวเพื่อดูรายการ PO ·",
+          )}{" "}
+          <Link href={CREDITOR_BALANCES_PATH}>{t("รีเฟรช")}</Link>
         </Typography.Paragraph>
       </div>
     </section>

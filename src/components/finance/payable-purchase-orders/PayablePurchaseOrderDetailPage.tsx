@@ -18,6 +18,7 @@ import {
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import { useT } from "@/lib/i18n/useT";
 import { usePayablePurchaseOrderQuery } from "@/hooks/payable-purchase-orders/usePayablePurchaseOrders";
 import { AP_VAT_MODE_LABEL } from "@/types/ap-documents";
 import {
@@ -57,6 +58,7 @@ type Props = { id: string };
 
 export default function PayablePurchaseOrderDetailPage({ id }: Props) {
   const router = useRouter();
+  const t = useT();
   const query = usePayablePurchaseOrderQuery(id);
   const po = query.data;
 
@@ -65,13 +67,13 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
     return (
       <Result
         status="404"
-        title="ไม่พบรายการจ่ายเงิน"
+        title={t("ไม่พบรายการจ่ายเงิน")}
         subTitle={
           query.error instanceof Error
             ? query.error.message
-            : "ใบสั่งซื้อนี้อาจยังไม่ผ่านอนุมัติหรือถูกยกเลิกแล้ว"
+            : t("ใบสั่งซื้อนี้อาจยังไม่ผ่านอนุมัติหรือถูกยกเลิกแล้ว")
         }
-        extra={<Button onClick={() => router.push(LIST_PATH)}>กลับรายการ</Button>}
+        extra={<Button onClick={() => router.push(LIST_PATH)}>{t("กลับรายการ")}</Button>}
       />
     );
   }
@@ -79,22 +81,22 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
   const sections: DetailSection[] = [
     {
       key: "purchaseOrder",
-      title: "ข้อมูลใบสั่งซื้อ (PO)",
+      title: t("ข้อมูลใบสั่งซื้อ (PO)"),
       visible: true,
       render: () => <PurchaseOrderSection po={po} />,
     },
     {
       key: "financialSummary",
-      title: "สรุปยอดเงิน",
+      title: t("สรุปยอดเงิน"),
       visible: true,
       render: () => <FinancialSummarySection po={po} />,
     },
     {
       key: "paymentTerm",
-      title: "เงื่อนไขการชำระเงิน",
+      title: t("เงื่อนไขการชำระเงิน"),
       extra: po.paymentTerm ? (
         <Tag color={PAYMENT_TERM_TYPE_COLOR[po.paymentTerm.termType]}>
-          {PAYMENT_TERM_TYPE_LABEL[po.paymentTerm.termType] ?? po.paymentTerm.termType}
+          {t(PAYMENT_TERM_TYPE_LABEL[po.paymentTerm.termType] ?? po.paymentTerm.termType)}
         </Tag>
       ) : null,
       visible: true,
@@ -102,13 +104,13 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
     },
     {
       key: "apDueDates",
-      title: "วันครบกำหนดตามใบตั้งหนี้",
+      title: t("วันครบกำหนดตามใบตั้งหนี้"),
       visible: (po.apDueDates?.length ?? 0) > 0,
       render: () => <ApDueDatesSection aps={po.apDueDates ?? []} />,
     },
     {
       key: "paymentPlan",
-      title: "แผนการจ่ายเงิน",
+      title: t("แผนการจ่ายเงิน"),
       visible: po.paymentPlan.installments.length > 0,
       render: () => <PaymentPlanSection po={po} />,
     },
@@ -117,12 +119,14 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title={<>รายการจ่ายเงิน {po.poNo}</>}
+        title={<>{t("รายการจ่ายเงิน")} {po.poNo}</>}
         meta={
           <>
 <Tag color={PAYABLE_ITEM_STATUS_COLOR[po.payableStatus] ?? "default"}>
-              {PAYABLE_ITEM_STATUS_LABEL[po.payableStatus as PayableItemStatus] ??
-                po.payableStatus}
+              {t(
+                PAYABLE_ITEM_STATUS_LABEL[po.payableStatus as PayableItemStatus] ??
+                  po.payableStatus,
+              )}
             </Tag>
           </>
         }
@@ -130,11 +134,11 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
           <>
             {po.paymentTerm?.termType === "ADVANCE" && po.payableStatus !== "PAID" ? (
               <Button type="primary" onClick={() => router.push(ADVANCE_REQUESTS_PATH)}>
-                ขอจ่ายมัดจำ
+                {t("ขอจ่ายมัดจำ")}
               </Button>
             ) : null}
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
-              กลับ
+              {t("กลับ")}
             </Button>
           
           </>
@@ -145,8 +149,10 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
         <Alert
           type="info"
           showIcon
-          title="สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ"
-          description="หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้ · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ และดูว่างวดที่ยังค้างเลยกำหนดหรือยัง"
+          title={t("สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ")}
+          description={t(
+            "หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้ · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ และดูว่างวดที่ยังค้างเลยกำหนดหรือยัง",
+          )}
         />
       </Card>
 
@@ -162,10 +168,11 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
 }
 
 function PurchaseOrderSection({ po }: { po: PayablePurchaseOrderDetail }) {
+  const t = useT();
   const columns: ColumnsType<PayablePurchaseOrderLine> = [
     { title: "#", key: "seq", width: 48, align: "center", render: (_, __, index) => index + 1 },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_, line) => (
         <div>
@@ -182,7 +189,7 @@ function PurchaseOrderSection({ po }: { po: PayablePurchaseOrderDetail }) {
       ),
     },
     {
-      title: "จำนวน",
+      title: t("จำนวน"),
       key: "quantity",
       width: 130,
       align: "right",
@@ -190,21 +197,21 @@ function PurchaseOrderSection({ po }: { po: PayablePurchaseOrderDetail }) {
         `${line.quantity.toLocaleString("th-TH", { maximumFractionDigits: 3 })} ${line.unitName ?? ""}`,
     },
     {
-      title: "ราคาต่อหน่วย",
+      title: t("ราคาต่อหน่วย"),
       dataIndex: "unitPrice",
       width: 130,
       align: "right",
       render: (value: number) => money.format(value),
     },
     {
-      title: "ส่วนลด",
+      title: t("ส่วนลด"),
       dataIndex: "discountAmount",
       width: 110,
       align: "right",
       render: (value: number) => (value ? money.format(value) : "—"),
     },
     {
-      title: "ยอดรวม",
+      title: t("ยอดรวม"),
       dataIndex: "amount",
       width: 140,
       align: "right",
@@ -215,38 +222,38 @@ function PurchaseOrderSection({ po }: { po: PayablePurchaseOrderDetail }) {
   return (
     <>
       <Descriptions column={{ xs: 1, sm: 2, lg: 3 }} bordered size="small" style={{ marginBottom: 16 }}>
-        <Descriptions.Item label="เลขที่ PO">
+        <Descriptions.Item label={t("เลขที่ PO")}>
           <Typography.Text strong>{po.poNo}</Typography.Text>
         </Descriptions.Item>
-        <Descriptions.Item label="วันที่ PO">{formatThaiDate(po.poDate)}</Descriptions.Item>
-        <Descriptions.Item label="สถานะ PO">
-          {PURCHASE_ORDER_STATUS_LABEL[po.poStatus] ?? po.poStatus}
+        <Descriptions.Item label={t("วันที่ PO")}>{formatThaiDate(po.poDate)}</Descriptions.Item>
+        <Descriptions.Item label={t("สถานะ PO")}>
+          {t(PURCHASE_ORDER_STATUS_LABEL[po.poStatus] ?? po.poStatus)}
         </Descriptions.Item>
-        <Descriptions.Item label="ผู้ขาย (Supplier)" span={2}>
+        <Descriptions.Item label={t("ผู้ขาย (Supplier)")} span={2}>
           {po.creditor ? `${po.creditor.creditorCode} — ${po.creditor.nameTh}` : "—"}
         </Descriptions.Item>
-        <Descriptions.Item label="มูลค่ารวมตาม PO">
+        <Descriptions.Item label={t("มูลค่ารวมตาม PO")}>
           <Typography.Text strong>{money.format(po.totalAmount)}</Typography.Text>
         </Descriptions.Item>
-        <Descriptions.Item label="วันที่ส่งมอบ">{formatThaiDate(po.expectedDeliveryDate)}</Descriptions.Item>
-        <Descriptions.Item label="สถานะรับสินค้า">
-          {PO_DELIVERY_RECEIVE_STATUS_LABEL[po.receiveStatus] ?? po.receiveStatus}
+        <Descriptions.Item label={t("วันที่ส่งมอบ")}>{formatThaiDate(po.expectedDeliveryDate)}</Descriptions.Item>
+        <Descriptions.Item label={t("สถานะรับสินค้า")}>
+          {t(PO_DELIVERY_RECEIVE_STATUS_LABEL[po.receiveStatus] ?? po.receiveStatus)}
         </Descriptions.Item>
-        <Descriptions.Item label="วันที่อนุมัติ">
+        <Descriptions.Item label={t("วันที่อนุมัติ")}>
           {po.approvedAt ? formatThaiDate(po.approvedAt.slice(0, 10)) : "—"}
         </Descriptions.Item>
         {po.paymentMethod ? (
-          <Descriptions.Item label="วิธีชำระเงิน">
-            {SUPPLIER_PAYMENT_METHOD_LABEL[po.paymentMethod] ?? po.paymentMethod}
+          <Descriptions.Item label={t("วิธีชำระเงิน")}>
+            {t(SUPPLIER_PAYMENT_METHOD_LABEL[po.paymentMethod] ?? po.paymentMethod)}
           </Descriptions.Item>
         ) : null}
         {po.remark ? (
-          <Descriptions.Item label="หมายเหตุ" span={3}>
+          <Descriptions.Item label={t("หมายเหตุ")} span={3}>
             {po.remark}
           </Descriptions.Item>
         ) : null}
       </Descriptions>
-      <Typography.Title level={5}>รายการสินค้า</Typography.Title>
+      <Typography.Title level={5}>{t("รายการสินค้า")}</Typography.Title>
       <Table
         rowKey="id"
         size="small"
@@ -260,41 +267,43 @@ function PurchaseOrderSection({ po }: { po: PayablePurchaseOrderDetail }) {
 }
 
 function FinancialSummarySection({ po }: { po: PayablePurchaseOrderDetail }) {
+  const t = useT();
   return (
     <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-      <Descriptions.Item label="ยอดก่อน VAT">{money.format(po.amountBeforeVat)}</Descriptions.Item>
+      <Descriptions.Item label={t("ยอดก่อน VAT")}>{money.format(po.amountBeforeVat)}</Descriptions.Item>
       {po.discountAmount > 0 ? (
-        <Descriptions.Item label="ส่วนลด">{money.format(po.discountAmount)}</Descriptions.Item>
+        <Descriptions.Item label={t("ส่วนลด")}>{money.format(po.discountAmount)}</Descriptions.Item>
       ) : null}
-      <Descriptions.Item label={`VAT (${AP_VAT_MODE_LABEL[po.vatMode] ?? po.vatMode})`}>
+      <Descriptions.Item label={`VAT (${t(AP_VAT_MODE_LABEL[po.vatMode] ?? po.vatMode)})`}>
         {money.format(po.vatAmount)}
       </Descriptions.Item>
       {po.extraChargesAmount > 0 ? (
         <>
-          <Descriptions.Item label="ค่าสินค้า (รวม VAT)">{money.format(po.goodsAmount)}</Descriptions.Item>
-          <Descriptions.Item label="ค่าใช้จ่ายเพิ่มเติม (รวม VAT)">
-            {money.format(po.extraChargesAmount)} · ตั้งหนี้แล้ว {money.format(po.extraChargesInvoiced)} · คงเหลือ{" "}
+          <Descriptions.Item label={t("ค่าสินค้า (รวม VAT)")}>{money.format(po.goodsAmount)}</Descriptions.Item>
+          <Descriptions.Item label={t("ค่าใช้จ่ายเพิ่มเติม (รวม VAT)")}>
+            {money.format(po.extraChargesAmount)} · {t("ตั้งหนี้แล้ว")} {money.format(po.extraChargesInvoiced)} · {t("คงเหลือ")}{" "}
             {money.format(po.extraChargesRemaining)}
           </Descriptions.Item>
         </>
       ) : null}
-      <Descriptions.Item label="ยอดสุทธิ PO">
+      <Descriptions.Item label={t("ยอดสุทธิ PO")}>
         <Typography.Text strong>{money.format(po.totalAmount)}</Typography.Text>
       </Descriptions.Item>
-      <Descriptions.Item label="ยอดที่ต้องชำระตามเงื่อนไข">
+      <Descriptions.Item label={t("ยอดที่ต้องชำระตามเงื่อนไข")}>
         <Typography.Text strong style={{ fontSize: 16 }}>
           {money.format(po.amountDue)}
         </Typography.Text>
         {po.paymentPlan.termType === "ADVANCE" && po.amountDue < po.totalAmount ? (
-          <Typography.Text type="secondary"> (งวดมัดจำ)</Typography.Text>
+          <Typography.Text type="secondary"> ({t("งวดมัดจำ")})</Typography.Text>
         ) : null}
       </Descriptions.Item>
-      <Descriptions.Item label="สกุลเงิน">{po.currency === "THB" ? "บาท (THB)" : po.currency}</Descriptions.Item>
+      <Descriptions.Item label={t("สกุลเงิน")}>{po.currency === "THB" ? t("บาท (THB)") : po.currency}</Descriptions.Item>
     </Descriptions>
   );
 }
 
 function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
+  const t = useT();
   const term = po.paymentTerm;
   const plan = po.paymentPlan;
   if (!term) {
@@ -302,8 +311,8 @@ function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
       <Alert
         type="warning"
         showIcon
-        title="PO ไม่ระบุเงื่อนไขชำระ"
-        description="ถือยอดเต็มตาม PO และยังไม่มีกำหนดชำระ"
+        title={t("PO ไม่ระบุเงื่อนไขชำระ")}
+        description={t("ถือยอดเต็มตาม PO และยังไม่มีกำหนดชำระ")}
       />
     );
   }
@@ -315,24 +324,26 @@ function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
     const balance = plan.installments.find((item) => item.kind === "BALANCE");
     return (
       <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-        <Descriptions.Item label="เงื่อนไข" span={2}>
+        <Descriptions.Item label={t("เงื่อนไข")} span={2}>
           {termName}
         </Descriptions.Item>
-        <Descriptions.Item label="เปอร์เซ็นต์มัดจำ">{plan.depositPercent ?? 100}%</Descriptions.Item>
-        <Descriptions.Item label="ยอดมัดจำที่ต้องชำระ">
+        <Descriptions.Item label={t("เปอร์เซ็นต์มัดจำ")}>{plan.depositPercent ?? 100}%</Descriptions.Item>
+        <Descriptions.Item label={t("ยอดมัดจำที่ต้องชำระ")}>
           <Typography.Text strong>{money.format(plan.depositAmount ?? 0)}</Typography.Text>
         </Descriptions.Item>
-        <Descriptions.Item label="ยอดส่วนที่เหลือตามแผน">
-          {balance ? money.format(plan.remainingAmount ?? 0) : "— (ชำระเต็มจำนวนล่วงหน้า)"}
+        <Descriptions.Item label={t("ยอดส่วนที่เหลือตามแผน")}>
+          {balance ? money.format(plan.remainingAmount ?? 0) : t("— (ชำระเต็มจำนวนล่วงหน้า)")}
         </Descriptions.Item>
-        <Descriptions.Item label="กำหนดชำระตาม PO">
+        <Descriptions.Item label={t("กำหนดชำระตาม PO")}>
           <div>
-            มัดจำ: {deposit?.dueNote ?? "ชำระก่อนรับสินค้า"}
-            {po.expectedDeliveryDate ? ` (กำหนดส่งมอบ ${formatThaiDate(po.expectedDeliveryDate)})` : ""}
+            {t("มัดจำ")}: {deposit?.dueNote ?? t("ชำระก่อนรับสินค้า")}
+            {po.expectedDeliveryDate
+              ? ` (${t("กำหนดส่งมอบ")} ${formatThaiDate(po.expectedDeliveryDate)})`
+              : ""}
           </div>
           {balance ? (
             <div>
-              ส่วนที่เหลือ: {balance.dueNote}
+              {t("ส่วนที่เหลือ")}: {balance.dueNote}
               {balance.dueDate ? ` (${formatThaiDate(balance.dueDate)})` : ""}
             </div>
           ) : null}
@@ -344,14 +355,14 @@ function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
   if (term.termType === "ON_RECEIPT") {
     return (
       <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-        <Descriptions.Item label="เงื่อนไข" span={2}>
+        <Descriptions.Item label={t("เงื่อนไข")} span={2}>
           {termName}
         </Descriptions.Item>
-        <Descriptions.Item label="ยอดที่ต้องชำระตาม PO">
+        <Descriptions.Item label={t("ยอดที่ต้องชำระตาม PO")}>
           <Typography.Text strong>{money.format(po.totalAmount)}</Typography.Text>
         </Descriptions.Item>
-        <Descriptions.Item label="เงื่อนไขชำระ">ชำระเต็มจำนวนเมื่อรับสินค้า</Descriptions.Item>
-        <Descriptions.Item label="วันส่งมอบตาม PO">
+        <Descriptions.Item label={t("เงื่อนไขชำระ")}>{t("ชำระเต็มจำนวนเมื่อรับสินค้า")}</Descriptions.Item>
+        <Descriptions.Item label={t("วันส่งมอบตาม PO")}>
           {formatThaiDate(po.expectedDeliveryDate)}
         </Descriptions.Item>
       </Descriptions>
@@ -362,49 +373,50 @@ function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
   const credit = plan.installments.find((item) => item.kind === "CREDIT");
   return (
     <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-      <Descriptions.Item label="เงื่อนไข" span={2}>
+      <Descriptions.Item label={t("เงื่อนไข")} span={2}>
         {termName}
       </Descriptions.Item>
-      <Descriptions.Item label="จำนวนวันเครดิต">{plan.creditDays ?? term.creditDays} วัน</Descriptions.Item>
-      <Descriptions.Item label="ฐานวันที่เริ่มนับเครดิต">
+      <Descriptions.Item label={t("จำนวนวันเครดิต")}>{t("{n} วัน", { n: plan.creditDays ?? term.creditDays })}</Descriptions.Item>
+      <Descriptions.Item label={t("ฐานวันที่เริ่มนับเครดิต")}>
         {fromAp
-          ? "ตามวันครบกำหนดของใบตั้งหนี้ (นับจากวันที่ใบแจ้งหนี้ Supplier)"
+          ? t("ตามวันครบกำหนดของใบตั้งหนี้ (นับจากวันที่ใบแจ้งหนี้ Supplier)")
           : plan.creditBaseSource
-            ? `${CREDIT_BASE_SOURCE_LABEL[plan.creditBaseSource]} — ${formatThaiDate(plan.creditBaseDate)}`
+            ? `${t(CREDIT_BASE_SOURCE_LABEL[plan.creditBaseSource])} — ${formatThaiDate(plan.creditBaseDate)}`
             : "—"}
       </Descriptions.Item>
       {po.dueDate ? (
-        <Descriptions.Item label="วันครบกำหนดชำระ">
+        <Descriptions.Item label={t("วันครบกำหนดชำระ")}>
           <Typography.Text strong>{formatThaiDate(po.dueDate)}</Typography.Text>
           {fromAp && (po.apDueDates?.length ?? 0) > 1 ? (
-            <Typography.Text type="secondary"> (เร็วสุดจาก {po.apDueDates.length} ใบ)</Typography.Text>
+            <Typography.Text type="secondary"> ({t("เร็วสุดจาก {n} ใบ", { n: po.apDueDates.length })})</Typography.Text>
           ) : null}
         </Descriptions.Item>
       ) : credit?.dueDate ? (
-        <Descriptions.Item label="วันครบกำหนดชำระ (ประมาณการ)">
+        <Descriptions.Item label={t("วันครบกำหนดชำระ (ประมาณการ)")}>
           <Typography.Text strong>{formatThaiDate(credit.dueDate)}</Typography.Text>
         </Descriptions.Item>
       ) : null}
-      <Descriptions.Item label="ยอดที่ต้องชำระ">{money.format(po.totalAmount)}</Descriptions.Item>
+      <Descriptions.Item label={t("ยอดที่ต้องชำระ")}>{money.format(po.totalAmount)}</Descriptions.Item>
     </Descriptions>
   );
 }
 
 function ApDueDatesSection({ aps }: { aps: PayableApDueDate[] }) {
+  const t = useT();
   const columns: ColumnsType<PayableApDueDate> = [
     {
-      title: "เลขที่ใบตั้งหนี้",
+      title: t("เลขที่ใบตั้งหนี้"),
       dataIndex: "docNo",
       render: (no, row) => <Link href={`/finance/payables/ap-invoices/${row.id}`}>{no}</Link>,
     },
     {
-      title: "วันครบกำหนด",
+      title: t("วันครบกำหนด"),
       dataIndex: "dueDate",
       width: 140,
       render: (v: string) => formatThaiDate(v),
     },
     {
-      title: "ยอดตั้งหนี้",
+      title: t("ยอดตั้งหนี้"),
       dataIndex: "totalAmount",
       width: 140,
       align: "right",
@@ -414,7 +426,7 @@ function ApDueDatesSection({ aps }: { aps: PayableApDueDate[] }) {
   return (
     <>
       <Typography.Paragraph type="secondary">
-        หลังตั้งหนี้แล้วใช้วันครบกำหนดของแต่ละใบตั้งหนี้เป็นหลัก (สอดคล้องกับหน้า AP และใบวางบิล)
+        {t("หลังตั้งหนี้แล้วใช้วันครบกำหนดของแต่ละใบตั้งหนี้เป็นหลัก (สอดคล้องกับหน้า AP และใบวางบิล)")}
       </Typography.Paragraph>
       <Table rowKey="id" size="small" columns={columns} dataSource={aps} pagination={false} />
     </>
@@ -422,28 +434,29 @@ function ApDueDatesSection({ aps }: { aps: PayableApDueDate[] }) {
 }
 
 function PaymentPlanSection({ po }: { po: PayablePurchaseOrderDetail }) {
+  const t = useT();
   const installments = po.paymentPlan.installments;
   const total = installments.reduce((sum, item) => sum + item.amount, 0);
 
   const columns: ColumnsType<PaymentInstallment> = [
-    { title: "งวด", dataIndex: "seq", width: 64, align: "center" },
-    { title: "รายการ", dataIndex: "label" },
+    { title: t("งวด"), dataIndex: "seq", width: 64, align: "center" },
+    { title: t("รายการ"), dataIndex: "label" },
     {
-      title: "สัดส่วน",
+      title: t("สัดส่วน"),
       dataIndex: "percent",
       width: 100,
       align: "right",
       render: (value: number) => `${value.toLocaleString("th-TH", { maximumFractionDigits: 2 })}%`,
     },
     {
-      title: "จำนวนเงิน",
+      title: t("จำนวนเงิน"),
       dataIndex: "amount",
       width: 150,
       align: "right",
       render: (value: number) => money.format(value),
     },
     {
-      title: "กำหนดชำระ",
+      title: t("กำหนดชำระ"),
       key: "due",
       width: 260,
       render: (_, item) => (
@@ -461,8 +474,8 @@ function PaymentPlanSection({ po }: { po: PayablePurchaseOrderDetail }) {
     <>
       <Typography.Paragraph type="secondary">
         {po.paymentPlan.creditBaseSource === "AP_INVOICE"
-          ? "แผนตามใบตั้งหนี้ที่ผูก PO — วันครบกำหนดแยกตามแต่ละใบ"
-          : "แผนการจ่ายตามเงื่อนไขใน PO (ประมาณการ) — ไม่ใช่ประวัติการจ่ายเงินจริง"}
+          ? t("แผนตามใบตั้งหนี้ที่ผูก PO — วันครบกำหนดแยกตามแต่ละใบ")
+          : t("แผนการจ่ายตามเงื่อนไขใน PO (ประมาณการ) — ไม่ใช่ประวัติการจ่ายเงินจริง")}
       </Typography.Paragraph>
       <Table
         rowKey="seq"
@@ -474,7 +487,7 @@ function PaymentPlanSection({ po }: { po: PayablePurchaseOrderDetail }) {
         summary={() => (
           <Table.Summary.Row>
             <Table.Summary.Cell index={0} colSpan={3} align="right">
-              <Typography.Text strong>รวมตามแผน</Typography.Text>
+              <Typography.Text strong>{t("รวมตามแผน")}</Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={3} align="right">
               <Typography.Text strong>{money.format(total)}</Typography.Text>

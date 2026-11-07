@@ -1,4 +1,6 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -164,6 +166,8 @@ function buildSearchFromForm(
 }
 
 export default function WarehousesPage() {
+  const t = useT();
+  const language = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -247,7 +251,7 @@ export default function WarehousesPage() {
 
   const columns: ColumnsType<Warehouse> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -258,7 +262,7 @@ export default function WarehousesPage() {
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "warehouseCode",
       key: "warehouseCode",
       width: 140,
@@ -267,7 +271,7 @@ export default function WarehousesPage() {
       ),
     },
     {
-      title: "ชื่อคลัง",
+      title: t("ชื่อคลัง"),
       dataIndex: "warehouseName",
       key: "warehouseName",
       render: (value: string) => (
@@ -277,7 +281,7 @@ export default function WarehousesPage() {
       ),
     },
     {
-      title: "ประเภทคลัง",
+      title: t("ประเภทคลัง"),
       key: "warehouseType",
       width: 200,
       render: (_value, record) => {
@@ -289,23 +293,23 @@ export default function WarehousesPage() {
               {type ? type.name : code || "-"}
             </span>
             {record.isDefaultReturnInspection ? (
-              <Tag color="gold">รอตรวจของคืนตั้งต้น</Tag>
+              <Tag color="gold">{t("รอตรวจของคืนตั้งต้น")}</Tag>
             ) : null}
           </Space>
         );
       },
     },
     {
-      title: "ยอดติดลบ",
+      title: t("ยอดติดลบ"),
       dataIndex: "allowNegativeStock",
       key: "allowNegativeStock",
       width: 110,
       align: "center",
       render: (value: boolean) =>
         value ? (
-          <Tag color="warning">อนุญาต</Tag>
+          <Tag color="warning">{t("อนุญาต")}</Tag>
         ) : (
-          <Tag>ไม่อนุญาต</Tag>
+          <Tag>{t("ไม่อนุญาต")}</Tag>
         ),
     },
     {
@@ -315,10 +319,10 @@ export default function WarehousesPage() {
       width: 100,
       align: "center",
       render: (value: boolean) =>
-        value ? <Tag color="processing">ต้องผ่าน</Tag> : <Tag>ไม่ต้อง</Tag>,
+        value ? <Tag color="processing">{t("ต้องผ่าน")}</Tag> : <Tag>{t("ไม่ต้อง")}</Tag>,
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -327,39 +331,39 @@ export default function WarehousesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(language === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.warehouseCode}`}
+          ariaLabel={t("เมนูจัดการ {code}", { code: record.warehouseCode })}
           actions={[
             {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => router.push(`/warehouses/${record.id}/edit`),
             },
             "divider",
@@ -367,20 +371,20 @@ export default function WarehousesPage() {
               ? {
                   key: "deactivate",
                   icon: <StopOutlined />,
-                  label: "ปิดการใช้งาน",
+                  label: t("ปิดการใช้งาน"),
                   danger: true,
                   onClick: () => deactivateMutation.mutate(record.id),
                   confirm: {
-                    title: "ปิดใช้งานคลังสินค้า",
-                    content: `ต้องการปิดใช้งาน "${record.warehouseCode}" หรือไม่?`,
-                    okText: "ปิดใช้งาน",
-                    cancelText: "ยกเลิก",
+                    title: t("ปิดใช้งานคลังสินค้า"),
+                    content: t("ต้องการปิดใช้งาน \"{code}\" หรือไม่?", { code: record.warehouseCode }),
+                    okText: t("ปิดใช้งาน"),
+                    cancelText: t("ยกเลิก"),
                   },
                 }
               : {
                   key: "activate",
                   icon: <CheckCircleOutlined />,
-                  label: "เปิดใช้งาน",
+                  label: t("เปิดใช้งาน"),
                   onClick: () => activateMutation.mutate(record.id),
                 },
           ]}
@@ -394,8 +398,8 @@ export default function WarehousesPage() {
       <section className={styles.page}>
       <PageHeader
         eyebrow="MASTER DATA"
-        title="คลังสินค้า"
-        subtitle="จัดการคลังสินค้า กลุ่มคลัง และการตั้งค่าสต็อก/QC"
+        title={t("คลังสินค้า")}
+        subtitle={t("จัดการคลังสินค้า กลุ่มคลัง และการตั้งค่าสต็อก/QC")}
         actions={
           <>
 <Button
@@ -405,7 +409,7 @@ export default function WarehousesPage() {
           icon={<PlusOutlined />}
           onClick={() => setCreateOpen(true)}
         >
-          เพิ่มคลังสินค้า
+          {t("เพิ่มคลังสินค้า")}
         </Button>
           </>
         }
@@ -416,7 +420,7 @@ export default function WarehousesPage() {
           <div className={styles.summaryIcon}>Σ</div>
           <div>
             <span className={styles.summaryLabel}>
-              {hasFilters ? "ผลค้นหา" : "คลังทั้งหมด"}
+              {hasFilters ? t("ผลค้นหา") : t("คลังทั้งหมด")}
             </span>
             <strong>{warehouses.length}</strong>
           </div>
@@ -425,7 +429,7 @@ export default function WarehousesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
           <div className={styles.summaryIcon}>✓</div>
           <div>
-            <span className={styles.summaryLabel}>สถานะใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("สถานะใช้งาน")}</span>
             <strong>{activeCount}</strong>
           </div>
         </div>
@@ -433,7 +437,7 @@ export default function WarehousesPage() {
         <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
           <div className={styles.summaryIcon}>—</div>
           <div>
-            <span className={styles.summaryLabel}>ปิดใช้งาน</span>
+            <span className={styles.summaryLabel}>{t("ปิดใช้งาน")}</span>
             <strong>{inactiveCount}</strong>
           </div>
         </div>
@@ -443,13 +447,13 @@ export default function WarehousesPage() {
         <div className={styles.filterHeader}>
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
-            <h3>ค้นหาคลังสินค้า</h3>
-            <p>กรองด้วยรหัส ชื่อ กลุ่ม รายละเอียด และสถานะ</p>
+            <h3>{t("ค้นหาคลังสินค้า")}</h3>
+            <p>{t("กรองด้วยรหัส ชื่อ กลุ่ม รายละเอียด และสถานะ")}</p>
           </div>
 
           {hasFilters ? (
             <Tag className={styles.filterActiveTag} color="success">
-              กำลังกรอง
+              {t("กำลังกรอง")}
             </Tag>
           ) : null}
         </div>
@@ -463,28 +467,28 @@ export default function WarehousesPage() {
         >
           <Row gutter={[16, 4]}>
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="code" label="รหัสคลัง">
+              <Form.Item name="code" label={t("รหัสคลัง")}>
                 <Input
                   allowClear
-                  placeholder="เช่น RAW"
+                  placeholder={t("เช่น RAW")}
                   prefix={<SearchOutlined />}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="name" label="ชื่อคลัง">
-                <Input allowClear placeholder="เช่น วัตถุดิบ" />
+              <Form.Item name="name" label={t("ชื่อคลัง")}>
+                <Input allowClear placeholder={t("เช่น วัตถุดิบ")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="warehouseGroup" label="ประเภทคลัง">
+              <Form.Item name="warehouseGroup" label={t("ประเภทคลัง")}>
                 <Select
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={(warehouseTypesQuery.data?.data ?? []).map(
                     (type) => ({
                       value: type.code,
@@ -496,32 +500,32 @@ export default function WarehousesPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="description" label="รายละเอียด">
-                <Input allowClear placeholder="เช่น โรงงาน" />
+              <Form.Item name="description" label={t("รายละเอียด")}>
+                <Input allowClear placeholder={t("เช่น โรงงาน")} />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="isActive" label="สถานะ">
+              <Form.Item name="isActive" label={t("สถานะ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ใช้งาน" },
-                    { value: false, label: "ปิดใช้งาน" },
+                    { value: true, label: t("ใช้งาน") },
+                    { value: false, label: t("ปิดใช้งาน") },
                   ]}
                 />
               </Form.Item>
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="allowNegativeStock" label="ยอดติดลบ">
+              <Form.Item name="allowNegativeStock" label={t("ยอดติดลบ")}>
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "อนุญาต" },
-                    { value: false, label: "ไม่อนุญาต" },
+                    { value: true, label: t("อนุญาต") },
+                    { value: false, label: t("ไม่อนุญาต") },
                   ]}
                 />
               </Form.Item>
@@ -531,10 +535,10 @@ export default function WarehousesPage() {
               <Form.Item name="isQcRequired" label="QC">
                 <Select
                   allowClear
-                  placeholder="ทั้งหมด"
+                  placeholder={t("ทั้งหมด")}
                   options={[
-                    { value: true, label: "ต้องผ่าน" },
-                    { value: false, label: "ไม่ต้อง" },
+                    { value: true, label: t("ต้องผ่าน") },
+                    { value: false, label: t("ไม่ต้อง") },
                   ]}
                 />
               </Form.Item>
@@ -549,7 +553,7 @@ export default function WarehousesPage() {
                     icon={<SearchOutlined />}
                     className={styles.filterSearchButton}
                   >
-                    ค้นหา
+                    {t("ค้นหา")}
                   </Button>
 
                   <Button
@@ -557,7 +561,7 @@ export default function WarehousesPage() {
                     onClick={handleClearFilters}
                     disabled={!hasFilters}
                   >
-                    ล้างค่า
+                    {t("ล้างค่า")}
                   </Button>
                 </Space>
               </Form.Item>
@@ -570,15 +574,15 @@ export default function WarehousesPage() {
         <div className={styles.tableHeader}>
           <div>
             <div className={styles.tableEyebrow}>WAREHOUSE MANAGEMENT</div>
-            <h3>รายการคลังสินค้า</h3>
+            <h3>{t("รายการคลังสินค้า")}</h3>
             <p>
               {hasFilters
-                ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                : "ข้อมูลคลังสินค้าทั้งหมดที่ใช้ภายในระบบ"}
+                ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                : t("ข้อมูลคลังสินค้าทั้งหมดที่ใช้ภายในระบบ")}
             </p>
           </div>
 
-          <div className={styles.tableCount}>{warehouses.length} รายการ</div>
+          <div className={styles.tableCount}>{t("{n} รายการ", { n: warehouses.length })}</div>
         </div>
 
         {warehousesQuery.isError ? (
@@ -586,7 +590,7 @@ export default function WarehousesPage() {
             <Typography.Text type="danger">
               {warehousesQuery.error instanceof Error
                 ? warehousesQuery.error.message
-                : "โหลดข้อมูลคลังสินค้าไม่สำเร็จ"}
+                : t("โหลดข้อมูลคลังสินค้าไม่สำเร็จ")}
             </Typography.Text>
           </div>
         ) : (
@@ -600,14 +604,14 @@ export default function WarehousesPage() {
               current: page,
               pageSize,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 1110 }}
             locale={{
               emptyText: hasFilters
-                ? "ไม่พบคลังสินค้าตามเงื่อนไขที่ค้นหา"
-                : "ยังไม่มีข้อมูลคลังสินค้า",
+                ? t("ไม่พบคลังสินค้าตามเงื่อนไขที่ค้นหา")
+                : t("ยังไม่มีข้อมูลคลังสินค้า"),
             }}
           />
         )}

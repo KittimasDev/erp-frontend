@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
+import { useT } from "@/lib/i18n/useT";
 
 import { ApiError } from "@/lib/api/client";
 import {
@@ -57,6 +58,7 @@ function useInvalidateProductionOrders() {
 export function useCreateProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "create"],
@@ -64,11 +66,11 @@ export function useCreateProductionOrderMutation() {
       createProductionOrder(getAccessToken(), body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "สร้างใบสั่งผลิตสำเร็จแล้ว");
+      message.success(response.message || t("สร้างใบสั่งผลิตสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างใบสั่งผลิตไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างใบสั่งผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -77,6 +79,7 @@ export function useCreateProductionOrderMutation() {
 export function useConsolidatedCreateProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "consolidated-create"],
@@ -84,13 +87,13 @@ export function useConsolidatedCreateProductionOrderMutation() {
       consolidatedCreateProductionOrder(getAccessToken(), body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "สร้างใบสั่งผลิตรวมสำเร็จแล้ว");
+      message.success(response.message || t("สร้างใบสั่งผลิตรวมสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างใบสั่งผลิตรวมไม่สำเร็จ",
+          : t("สร้างใบสั่งผลิตรวมไม่สำเร็จ"),
       );
     },
   });
@@ -99,6 +102,7 @@ export function useConsolidatedCreateProductionOrderMutation() {
 export function useAllocateProductionOrderOutputMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message, notification } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "allocate-output"],
@@ -111,20 +115,20 @@ export function useAllocateProductionOrderOutputMutation() {
     }) => allocateProductionOrderOutput(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "จัดสรรผลผลิตสำเร็จแล้ว");
+      message.success(response.message || t("จัดสรรผลผลิตสำเร็จแล้ว"));
       const failed = response.data.reserveResults.filter((row) => !row.reserved);
       if (failed.length) {
         notification.warning({
-          title: "จองสต๊อกบางใบสั่งขายไม่สำเร็จ",
+          title: t("จองสต๊อกบางใบสั่งขายไม่สำเร็จ"),
           description: failed
-            .map((row) => `${row.salesOrderNo ?? row.salesOrderId}: ${row.message ?? "ไม่สำเร็จ"}`)
+            .map((row) => `${row.salesOrderNo ?? row.salesOrderId}: ${row.message ?? t("ไม่สำเร็จ")}`)
             .join(" · "),
         });
       }
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "จัดสรรผลผลิตไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("จัดสรรผลผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -133,6 +137,7 @@ export function useAllocateProductionOrderOutputMutation() {
 export function useBulkCreateProductionOrdersMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "bulk-create"],
@@ -140,13 +145,13 @@ export function useBulkCreateProductionOrdersMutation() {
       bulkCreateProductionOrders(getAccessToken(), body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "สร้างใบสั่งผลิตหลายใบสำเร็จแล้ว");
+      message.success(response.message || t("สร้างใบสั่งผลิตหลายใบสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างใบสั่งผลิตหลายใบไม่สำเร็จ",
+          : t("สร้างใบสั่งผลิตหลายใบไม่สำเร็จ"),
       );
     },
   });
@@ -155,6 +160,7 @@ export function useBulkCreateProductionOrdersMutation() {
 export function useCancelProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "cancel"],
@@ -162,11 +168,11 @@ export function useCancelProductionOrderMutation() {
       cancelProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "ยกเลิกใบสั่งผลิตแล้ว");
+      message.success(response.message || t("ยกเลิกใบสั่งผลิตแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกไม่สำเร็จ"),
       );
     },
   });
@@ -175,6 +181,7 @@ export function useCancelProductionOrderMutation() {
 export function useStartProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "start"],
@@ -187,11 +194,11 @@ export function useStartProductionOrderMutation() {
     }) => startProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "เริ่มผลิตสำเร็จแล้ว");
+      message.success(response.message || t("เริ่มผลิตสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "เริ่มผลิตไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เริ่มผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -200,6 +207,7 @@ export function useStartProductionOrderMutation() {
 export function useCompleteProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "complete"],
@@ -212,11 +220,11 @@ export function useCompleteProductionOrderMutation() {
     }) => completeProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "ยืนยันเสร็จสิ้นการผลิตสำเร็จแล้ว");
+      message.success(response.message || t("ยืนยันเสร็จสิ้นการผลิตสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยืนยันเสร็จสิ้นไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยืนยันเสร็จสิ้นไม่สำเร็จ"),
       );
     },
   });
@@ -225,6 +233,7 @@ export function useCompleteProductionOrderMutation() {
 export function usePauseProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "pause"],
@@ -232,11 +241,11 @@ export function usePauseProductionOrderMutation() {
       pauseProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "หยุดเดินเครื่องชั่วคราวแล้ว");
+      message.success(response.message || t("หยุดเดินเครื่องชั่วคราวแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "หยุดเดินเครื่องไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("หยุดเดินเครื่องไม่สำเร็จ"),
       );
     },
   });
@@ -245,6 +254,7 @@ export function usePauseProductionOrderMutation() {
 export function useResumeProductionOrderMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "resume"],
@@ -257,11 +267,11 @@ export function useResumeProductionOrderMutation() {
     }) => resumeProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "กลับมาเดินเครื่องแล้ว");
+      message.success(response.message || t("กลับมาเดินเครื่องแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "กลับมาเดินเครื่องไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("กลับมาเดินเครื่องไม่สำเร็จ"),
       );
     },
   });
@@ -270,6 +280,7 @@ export function useResumeProductionOrderMutation() {
 export function useRecordProductionOrderDowntimeMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "downtime", "start"],
@@ -277,11 +288,11 @@ export function useRecordProductionOrderDowntimeMutation() {
       recordProductionOrderDowntime(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "บันทึก Downtime สำเร็จแล้ว");
+      message.success(response.message || t("บันทึก Downtime สำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึก Downtime ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึก Downtime ไม่สำเร็จ"),
       );
     },
   });
@@ -290,6 +301,7 @@ export function useRecordProductionOrderDowntimeMutation() {
 export function useEndProductionOrderDowntimeMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "downtime", "end"],
@@ -304,11 +316,11 @@ export function useEndProductionOrderDowntimeMutation() {
     }) => endProductionOrderDowntime(getAccessToken(), id, downtimeId, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "ปิดรายการ Downtime สำเร็จแล้ว");
+      message.success(response.message || t("ปิดรายการ Downtime สำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ปิดรายการไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ปิดรายการไม่สำเร็จ"),
       );
     },
   });
@@ -317,6 +329,7 @@ export function useEndProductionOrderDowntimeMutation() {
 export function useAddProductionOrderLogMutation() {
   const invalidate = useInvalidateProductionOrders();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "log"],
@@ -329,11 +342,11 @@ export function useAddProductionOrderLogMutation() {
     }) => addProductionOrderLog(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "บันทึกข้อมูลการผลิตสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกข้อมูลการผลิตสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกไม่สำเร็จ"),
       );
     },
   });

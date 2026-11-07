@@ -6,6 +6,7 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/oil-tank-farm";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type {
   CreateOilDispatchBody,
   CreateOilReceivingBody,
@@ -44,6 +45,7 @@ function useOilMutation<TVars, TRes extends { message: string }>(
   fallbackError: string,
 ) {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -54,7 +56,7 @@ function useOilMutation<TVars, TRes extends { message: string }>(
       void queryClient.invalidateQueries({ queryKey: ["inventory"] });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : fallbackError);
+      message.error(error instanceof ApiError ? error.message : t(fallbackError));
     },
   });
 }

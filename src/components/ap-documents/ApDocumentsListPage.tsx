@@ -15,6 +15,8 @@ import { useApDocumentsQuery } from "@/hooks/ap-documents/useApDocuments";
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { getApDocuments } from "@/lib/api/ap-documents";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
 import {
   AP_DOCUMENT_STATUS_COLOR,
   AP_DOCUMENT_STATUS_LABEL,
@@ -27,7 +29,7 @@ import {
 } from "@/types/ap-documents";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 
-import { AP_DOCUMENT_CONFIG, formatThaiDate, money } from "./apDocumentConfig";
+import { AP_DOCUMENT_CONFIG, apShortLabel, formatThaiDate, money } from "./apDocumentConfig";
 import PageHeader from "@/components/common/PageHeader";
 
 type Props = { kind: ApDocumentKind };
@@ -44,6 +46,7 @@ const USAGE_OPTIONS: Record<"debitNote" | "creditNote", string[]> = {
 export default function ApDocumentsListPage({ kind }: Props) {
   const config = AP_DOCUMENT_CONFIG[kind];
   const router = useRouter();
+  const t = useT();
   const { message } = App.useApp();
   const { canAdd, canEdit, canApprove } = useScreenActionPermissions(config.screenCode);
   const isCredit = kind === "creditNote";
@@ -179,36 +182,36 @@ export default function ApDocumentsListPage({ kind }: Props) {
             ],
       });
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : `ส่งออกรายการ${config.shortLabel}ไม่สำเร็จ`);
+      message.error(e instanceof Error && e.message ? e.message : t("ส่งออกรายการ{label}ไม่สำเร็จ", { label: apShortLabel(config) }));
     } finally {
       setDownloading(null);
     }
   };
 
   const actionLabel = (row: ApDocument) => {
-    if (row.status === "PENDING_APPROVAL" && canApprove) return "พิจารณาอนุมัติ";
+    if (row.status === "PENDING_APPROVAL" && canApprove) return t("พิจารณาอนุมัติ");
     if (row.status === "APPROVED" && row.usageStatus && !["USED", "REFUNDED", "CREDIT_USED"].includes(row.usageStatus)) {
-      return "ดำเนินการ";
+      return t("ดำเนินการ");
     }
     return null;
   };
 
   const columns: ColumnsType<ApDocument> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่",
+      title: t("เลขที่"),
       dataIndex: "docNo",
       render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
     },
-    { title: "วันที่", dataIndex: "docDate", width: 110, render: formatThaiDate },
+    { title: t("วันที่"), dataIndex: "docDate", width: 110, render: formatThaiDate },
     {
-      title: "เจ้าหนี้",
+      title: t("เจ้าหนี้"),
       key: "creditor",
       render: (_, row) => (
         <span>
@@ -218,12 +221,12 @@ export default function ApDocumentsListPage({ kind }: Props) {
     },
     kind === "invoice"
       ? {
-          title: "ใบสั่งซื้อ",
+          title: t("ใบสั่งซื้อ"),
           dataIndex: "purchaseOrderNo",
           render: (value: string | null) => value || "—",
         }
       : {
-          title: "เอกสารอ้างอิง",
+          title: t("เอกสารอ้างอิง"),
           key: "reference",
           render: (_, row) => (
             <span>
@@ -232,7 +235,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
                 <>
                   <br />
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    เอกสารผู้ขาย {row.supplierDocNo}
+                    {t("เอกสารผู้ขาย {no}", { no: row.supplierDocNo })}
                   </Typography.Text>
                 </>
               ) : null}
@@ -242,7 +245,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
     ...(isNote
       ? [
           {
-            title: "เหตุผล",
+            title: t("เหตุผล"),
             dataIndex: "reason",
             ellipsis: true,
             width: 200,
@@ -251,7 +254,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
         ]
       : []),
     {
-      title: kind === "invoice" ? "ยอดตั้งหนี้" : kind === "debitNote" ? "ยอดเพิ่มหนี้" : "ยอดลดหนี้",
+      title: t(kind === "invoice" ? "ยอดตั้งหนี้" : kind === "debitNote" ? "ยอดเพิ่มหนี้" : "ยอดลดหนี้"),
       dataIndex: "totalAmount",
       align: "right",
       render: (value: number) => money.format(value),
@@ -259,13 +262,13 @@ export default function ApDocumentsListPage({ kind }: Props) {
     ...(isCredit
       ? [
           {
-            title: "วิธีจัดการยอด",
+            title: t("วิธีจัดการยอด"),
             dataIndex: "settlementMethod",
             width: 170,
-            render: (value: string) => AP_SETTLEMENT_METHOD_LABEL[value] ?? value,
+            render: (value: string) => t(AP_SETTLEMENT_METHOD_LABEL[value] ?? value),
           } as ColumnsType<ApDocument>[number],
           {
-            title: "ยอดคงเหลือที่ยังไม่ได้ดำเนินการ",
+            title: t("ยอดคงเหลือที่ยังไม่ได้ดำเนินการ"),
             dataIndex: "outstandingAmount",
             align: "right",
             width: 170,
@@ -275,30 +278,30 @@ export default function ApDocumentsListPage({ kind }: Props) {
         ]
       : []),
     {
-      title: "สถานะเอกสาร",
+      title: t("สถานะเอกสาร"),
       dataIndex: "status",
       width: 120,
       render: (value: string) => (
         <Tag color={AP_DOCUMENT_STATUS_COLOR[value] ?? "default"}>
-          {AP_DOCUMENT_STATUS_LABEL[value] ?? value}
+          {tStatus(AP_DOCUMENT_STATUS_LABEL[value] ?? value)}
         </Tag>
       ),
     },
     ...(isNote
       ? [
           {
-            title: "สถานะการนำไปใช้",
+            title: t("สถานะการนำไปใช้"),
             dataIndex: "usageStatus",
             width: 140,
             render: (value: string | null | undefined) =>
               value ? (
-                <Tag color={AP_USAGE_STATUS_COLOR[value] ?? "default"}>{AP_USAGE_STATUS_LABEL[value] ?? value}</Tag>
+                <Tag color={AP_USAGE_STATUS_COLOR[value] ?? "default"}>{tStatus(AP_USAGE_STATUS_LABEL[value] ?? value)}</Tag>
               ) : (
                 "—"
               ),
           } as ColumnsType<ApDocument>[number],
           {
-            title: "จัดการ",
+            title: t("จัดการ"),
             key: "actions",
             width: 190,
             fixed: "right",
@@ -308,11 +311,11 @@ export default function ApDocumentsListPage({ kind }: Props) {
               return (
                 <Space size={4} onClick={(event) => event.stopPropagation()}>
                   <Button size="small" onClick={() => router.push(`${config.basePath}/${row.id}`)}>
-                    ดูรายละเอียด
+                    {t("ดูรายละเอียด")}
                   </Button>
                   {editable ? (
                     <Button size="small" onClick={() => router.push(`${config.basePath}/${row.id}/edit`)}>
-                      แก้ไข
+                      {t("แก้ไข")}
                     </Button>
                   ) : null}
                   {next ? (
@@ -330,9 +333,9 @@ export default function ApDocumentsListPage({ kind }: Props) {
 
   const subtitle =
     kind === "debitNote"
-      ? "ใบเพิ่มหนี้ออกได้จากใบตั้งหนี้ที่อนุมัติแล้วเท่านั้น · อนุมัติแล้วยังไม่กระทบยอด AP จนกว่าจะกด “ปรับหนี้” ที่ใบตั้งหนี้"
+      ? t("ใบเพิ่มหนี้ออกได้จากใบตั้งหนี้ที่อนุมัติแล้วเท่านั้น · อนุมัติแล้วยังไม่กระทบยอด AP จนกว่าจะกด “ปรับหนี้” ที่ใบตั้งหนี้")
       : isCredit
-        ? "สร้างและอนุมัติใบลดหนี้ไว้ล่วงหน้าได้ ยอด AP จะเปลี่ยนเมื่อยืนยันนำไปใช้เท่านั้น (หักยอดเจ้าหนี้ / รับเงินคืน / เก็บเป็นเครดิตผู้ขาย)"
+        ? t("สร้างและอนุมัติใบลดหนี้ไว้ล่วงหน้าได้ ยอด AP จะเปลี่ยนเมื่อยืนยันนำไปใช้เท่านั้น (หักยอดเจ้าหนี้ / รับเงินคืน / เก็บเป็นเครดิตผู้ขาย)")
         : undefined;
 
   return (
@@ -340,7 +343,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
       <PageHeader
         eyebrow="FINANCE · PAYABLES"
         icon={<FileTextOutlined />}
-        title={config.title}
+        title={t(config.title)}
         subtitle={subtitle}
         actions={
           <>
@@ -354,7 +357,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
               icon={<PlusOutlined />}
               onClick={() => router.push(`${config.basePath}/create`)}
             >
-              สร้าง{config.shortLabel}
+              {t("สร้าง{label}", { label: apShortLabel(config) })}
             </Button>
           ) : null}
         </Space>
@@ -364,33 +367,33 @@ export default function ApDocumentsListPage({ kind }: Props) {
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>
             {(listQuery.data?.total ?? 0).toLocaleString("th-TH")}
           </span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterRow}>
           <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="เลขที่ / เลขที่ผู้ขาย / ชื่อเจ้าหนี้"
+              placeholder={t("เลขที่ / เลขที่ผู้ขาย / ชื่อเจ้าหนี้")}
               value={dSearch}
               onChange={(event) => setDSearch(event.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>เจ้าหนี้</label>
+            <label>{t("เจ้าหนี้")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dCreditorId}
               onChange={setDCreditorId}
               options={(vendorsQuery.data?.data ?? []).map((vendor) => ({
@@ -400,7 +403,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่เอกสาร</label>
+            <label>{t("ช่วงวันที่เอกสาร")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               format="DD/MM/YYYY"
@@ -411,57 +414,57 @@ export default function ApDocumentsListPage({ kind }: Props) {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะเอกสาร</label>
+            <label>{t("สถานะเอกสาร")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={dStatus}
               onChange={setDStatus}
               options={Object.entries(AP_DOCUMENT_STATUS_LABEL).map(([value, label]) => ({
                 value,
-                label,
+                label: tStatus(label),
               }))}
             />
           </div>
           {isNote ? (
             <div className={styles.filterItem}>
-              <label>สถานะการนำไปใช้</label>
+              <label>{t("สถานะการนำไปใช้")}</label>
               <Select
                 allowClear
-                placeholder="ทั้งหมด"
+                placeholder={t("ทั้งหมด")}
                 value={dUsageStatus}
                 onChange={setDUsageStatus}
                 options={USAGE_OPTIONS[kind as "debitNote" | "creditNote"].map((value) => ({
                   value,
-                  label: AP_USAGE_STATUS_LABEL[value],
+                  label: tStatus(AP_USAGE_STATUS_LABEL[value]),
                 }))}
               />
             </div>
           ) : null}
           {isCredit ? (
             <div className={styles.filterItem}>
-              <label>วิธีจัดการยอด</label>
+              <label>{t("วิธีจัดการยอด")}</label>
               <Select
                 allowClear
-                placeholder="ทั้งหมด"
+                placeholder={t("ทั้งหมด")}
                 value={dSettlementMethod}
                 onChange={setDSettlementMethod}
                 options={Object.entries(AP_SETTLEMENT_METHOD_LABEL).map(([value, label]) => ({
                   value,
-                  label,
+                  label: t(label),
                 }))}
               />
             </div>
           ) : null}
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button
               type="primary"
               className={styles.searchBtn}
               icon={<SearchOutlined />}
               onClick={applySearch}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -470,11 +473,11 @@ export default function ApDocumentsListPage({ kind }: Props) {
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>{config.title}</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t(config.title)}</h3>
           </div>
           <span className={masterStyles.tableCount}>
-            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")} รายการ
+            {t("{n} รายการ", { n: (listQuery.data?.total ?? 0).toLocaleString("th-TH") })}
           </span>
         </div>
         <Table

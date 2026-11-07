@@ -6,6 +6,9 @@ import { Alert, Checkbox, Drawer, Modal, Popover, Space, Spin, Table, Tag, Typog
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import type { Language } from "@/lib/i18n/translate";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 import type {
   DocumentExportHistory,
   ExportBatchKind,
@@ -15,6 +18,12 @@ import type {
 } from "@/types/journal-export";
 
 const formatDateTime = (value?: string) => (value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "—");
+
+/** "ส่งแล้ว" / "ยังไม่ส่ง" ของสถานะส่งออก Express (ไทยตามเดิม · อังกฤษ Exported / Not exported) */
+export function expressSentLabel(sent: boolean, lang: Language): string {
+  if (lang === "en") return sent ? "Exported" : "Not exported";
+  return sent ? "ส่งแล้ว" : "ยังไม่ส่ง";
+}
 
 const KIND_LABEL: Record<ExportBatchKind, { text: string; color: string }> = {
   NEW: { text: "ส่งครั้งแรก", color: "green" },
@@ -54,6 +63,10 @@ export function ExpressExportDialog({
   onClose,
   extraNote,
 }: ExpressExportDialogProps) {
+  const t = useT();
+  const lang = useLanguage();
+  /** หน่วยนับ — ไทยใช้ตามที่ส่งมา อังกฤษแปลเป็น documents / entries */
+  const unitText = lang === "en" ? (unit === "เอกสาร" ? "documents" : "entries") : unit;
   const [confirmReexport, setConfirmReexport] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -70,7 +83,7 @@ export function ExpressExportDialog({
   const error = previewQuery.error
     ? previewQuery.error instanceof Error
       ? previewQuery.error.message
-      : "ตรวจรายการก่อนส่งออกไม่สำเร็จ"
+      : t("ตรวจรายการก่อนส่งออกไม่สำเร็จ")
     : null;
 
   const close = () => {
@@ -99,8 +112,8 @@ export function ExpressExportDialog({
     <Modal
       open={open}
       title={title}
-      okText={preview ? `ส่งออก ${willExport.toLocaleString("th-TH")} ${unit}` : "ส่งออก"}
-      cancelText="ยกเลิก"
+      okText={preview ? t("ส่งออก {n} {unit}", { n: willExport.toLocaleString("th-TH"), unit: unitText }) : t("ส่งออก")}
+      cancelText={t("ยกเลิก")}
       onOk={() => void handleOk()}
       onCancel={sending ? undefined : close}
       okButtonProps={{ disabled: !preview || blockedByNoSelection, loading: sending }}
@@ -119,21 +132,21 @@ export function ExpressExportDialog({
         {preview ? (
           <>
             <Typography.Text>
-              ทั้งหมด <strong>{preview.totalDocs.toLocaleString("th-TH")}</strong> {unit} · ยังไม่เคยส่ง{" "}
-              <strong>{preview.newCount.toLocaleString("th-TH")}</strong> · เคยส่งแล้ว{" "}
+              {t("ทั้งหมด")} <strong>{preview.totalDocs.toLocaleString("th-TH")}</strong> {unitText} · {t("ยังไม่เคยส่ง")}{" "}
+              <strong>{preview.newCount.toLocaleString("th-TH")}</strong> · {t("เคยส่งแล้ว")}{" "}
               <strong>{preview.alreadyExportedCount.toLocaleString("th-TH")}</strong>
             </Typography.Text>
             {hasExported ? (
               <Alert
                 type="warning"
                 showIcon
-                title={`มี ${preview.alreadyExportedCount.toLocaleString("th-TH")} ${unit}ที่เคยส่งออกไป Express แล้ว`}
+                title={t("มี {n} {unit}ที่เคยส่งออกไป Express แล้ว", { n: preview.alreadyExportedCount.toLocaleString("th-TH"), unit: unitText })}
                 description={
                   <div>
-                    การส่งซ้ำ<strong>ไม่เปลี่ยนสถานะ</strong>และไม่สร้างรายการบัญชีใหม่ใน ERP — เป็นการสร้างไฟล์ CSV ใหม่เท่านั้น
+                    {t("การส่งซ้ำ")}<strong>{t("ไม่เปลี่ยนสถานะ")}</strong>{t("และไม่สร้างรายการบัญชีใหม่ใน ERP — เป็นการสร้างไฟล์ CSV ใหม่เท่านั้น")}
                     <div style={{ marginTop: 8 }}>
                       <Checkbox checked={confirmReexport} onChange={(e) => setConfirmReexport(e.target.checked)}>
-                        ยืนยันส่งออกซ้ำรวม {unit}ที่เคยส่งแล้ว
+                        {t("ยืนยันส่งออกซ้ำรวม {unit}ที่เคยส่งแล้ว", { unit: unitText })}
                       </Checkbox>
                     </div>
                   </div>
@@ -144,8 +157,8 @@ export function ExpressExportDialog({
               <Alert
                 type="warning"
                 showIcon
-                title={`${preview.legacyNoSnapshotCount.toLocaleString("th-TH")} ${unit}ส่งไปก่อนมีระบบเก็บข้อมูลเดิม`}
-                description="ไม่มีข้อมูลบัญชีที่ส่งครั้งก่อนเก็บไว้ — ระบบจะใช้ผังบัญชีปัจจุบันแล้วเก็บเป็นข้อมูลอ้างอิงตั้งแต่ครั้งนี้ ตรวจว่ายังตรงกับที่นำเข้า Express ไปก่อนหน้า"
+                title={t("{n} {unit}ส่งไปก่อนมีระบบเก็บข้อมูลเดิม", { n: preview.legacyNoSnapshotCount.toLocaleString("th-TH"), unit: unitText })}
+                description={t("ไม่มีข้อมูลบัญชีที่ส่งครั้งก่อนเก็บไว้ — ระบบจะใช้ผังบัญชีปัจจุบันแล้วเก็บเป็นข้อมูลอ้างอิงตั้งแต่ครั้งนี้ ตรวจว่ายังตรงกับที่นำเข้า Express ไปก่อนหน้า")}
               />
             ) : null}
             {extraNote && confirmReexport ? <Alert type="info" showIcon title={extraNote} /> : null}
@@ -153,12 +166,12 @@ export function ExpressExportDialog({
               <Alert
                 type="info"
                 showIcon
-                title={`ไม่มี${unit}ที่ยังไม่เคยส่ง — ติ๊กยืนยันส่งซ้ำหากต้องการสร้างไฟล์อีกครั้ง`}
+                title={t("ไม่มี{unit}ที่ยังไม่เคยส่ง — ติ๊กยืนยันส่งซ้ำหากต้องการสร้างไฟล์อีกครั้ง", { unit: unitText })}
               />
             ) : null}
-            <Alert type="warning" showIcon title={EXPRESS_DUPLICATE_WARNING} />
+            <Alert type="warning" showIcon title={t(EXPRESS_DUPLICATE_WARNING)} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              ระบบสร้างไฟล์ CSV ให้ดาวน์โหลดเท่านั้น ไม่ได้ส่งข้อมูลเข้าโปรแกรม Express อัตโนมัติ
+              {t("ระบบสร้างไฟล์ CSV ให้ดาวน์โหลดเท่านั้น ไม่ได้ส่งข้อมูลเข้าโปรแกรม Express อัตโนมัติ")}
             </Typography.Text>
           </>
         ) : null}
@@ -168,24 +181,29 @@ export function ExpressExportDialog({
 }
 
 function BatchTags({ batch }: { batch: ExportHistoryBatch }) {
-  if (batch.status === "FAILED") return <Tag color="red">ไม่สำเร็จ</Tag>;
+  const t = useT();
+  if (batch.status === "FAILED") return <Tag color="red">{t("ไม่สำเร็จ")}</Tag>;
   const kind = KIND_LABEL[batch.exportKind] ?? KIND_LABEL.NEW;
-  return <Tag color={kind.color}>{kind.text}</Tag>;
+  return <Tag color={kind.color}>{t(kind.text)}</Tag>;
 }
 
-const batchColumns: ColumnsType<ExportHistoryBatch> = [
-  { title: "วันที่/เวลา", dataIndex: "exportedAt", width: 140, render: (v: string) => formatDateTime(v) },
-  { title: "ผู้ดำเนินการ", dataIndex: "exportedByName", width: 140, render: (v?: string) => v ?? "—" },
+const buildBatchColumns = (t: TFunction): ColumnsType<ExportHistoryBatch> => [
+  { title: t("วันที่/เวลา"), dataIndex: "exportedAt", width: 140, render: (v: string) => formatDateTime(v) },
+  { title: t("ผู้ดำเนินการ"), dataIndex: "exportedByName", width: 140, render: (v?: string) => v ?? "—" },
   {
-    title: "จำนวน",
+    title: t("จำนวน"),
     key: "count",
     width: 110,
     align: "right",
     render: (_, row) =>
-      row.status === "FAILED" ? "—" : `${row.docCount.toLocaleString("th-TH")} (ใหม่ ${row.newCount} · ซ้ำ ${row.reexportCount})`,
+      row.status === "FAILED" ? "—" : t("{total} (ใหม่ {newCount} · ซ้ำ {reexportCount})", {
+            total: row.docCount.toLocaleString("th-TH"),
+            newCount: row.newCount,
+            reexportCount: row.reexportCount,
+          }),
   },
   {
-    title: "สถานะ",
+    title: t("สถานะ"),
     key: "status",
     width: 110,
     render: (_, row) => (
@@ -213,6 +231,7 @@ export function ExportHistoryDrawer({
   onClose: () => void;
   loadHistory: (page: number) => Promise<ExportHistoryList>;
 }) {
+  const t = useT();
   const [page, setPage] = useState(1);
   const historyQuery = useQuery({
     queryKey: ["journal-export-history", title, page],
@@ -226,7 +245,7 @@ export function ExportHistoryDrawer({
   const error = historyQuery.error
     ? historyQuery.error instanceof Error
       ? historyQuery.error.message
-      : "ดึงประวัติการส่งออกไม่สำเร็จ"
+      : t("ดึงประวัติการส่งออกไม่สำเร็จ")
     : null;
 
   return (
@@ -236,7 +255,7 @@ export function ExportHistoryDrawer({
         size="small"
         rowKey="id"
         loading={loading}
-        columns={batchColumns}
+        columns={buildBatchColumns(t)}
         dataSource={data?.items ?? []}
         pagination={{
           current: page,
@@ -264,6 +283,8 @@ export function ExportCountTag({
   docId: string;
   loadDocHistory: (id: string) => Promise<DocumentExportHistory>;
 }) {
+  const t = useT();
+  const lang = useLanguage();
   const [popoverOpen, setPopoverOpen] = useState(false);
   const historyQuery = useQuery({
     queryKey: ["journal-export-doc-history", docId],
@@ -276,10 +297,10 @@ export function ExportCountTag({
   const error = historyQuery.error
     ? historyQuery.error instanceof Error
       ? historyQuery.error.message
-      : "ดึงประวัติไม่สำเร็จ"
+      : t("ดึงประวัติไม่สำเร็จ")
     : null;
 
-  if (!exported) return <Tag>ยังไม่ส่ง</Tag>;
+  if (!exported) return <Tag>{expressSentLabel(false, lang)}</Tag>;
 
   const count = Math.max(1, exportCount);
   return (
@@ -287,7 +308,7 @@ export function ExportCountTag({
       trigger="click"
       open={popoverOpen}
       onOpenChange={setPopoverOpen}
-      title={`ส่งออกแล้ว ${count} ครั้ง`}
+      title={t("ส่งออกแล้ว {count} ครั้ง", { count })}
       content={
         <div style={{ maxWidth: 320 }} onClick={(event) => event.stopPropagation()}>
           {error ? <Typography.Text type="danger">{error}</Typography.Text> : null}
@@ -301,7 +322,7 @@ export function ExportCountTag({
               ))}
               {history.untrackedCount > 0 ? (
                 <Typography.Text type="secondary">
-                  + {history.untrackedCount} ครั้งก่อนมีระบบบันทึกประวัติ (ไม่มีวันเวลา/ผู้ส่ง)
+                  {t("+ {n} ครั้งก่อนมีระบบบันทึกประวัติ (ไม่มีวันเวลา/ผู้ส่ง)", { n: history.untrackedCount })}
                 </Typography.Text>
               ) : null}
             </Space>
@@ -312,10 +333,10 @@ export function ExportCountTag({
       <Tag
         color="green"
         style={{ cursor: "pointer" }}
-        title={lastExportedAt ? `ล่าสุด ${formatDateTime(lastExportedAt)}` : undefined}
+        title={lastExportedAt ? t("ล่าสุด {date}", { date: formatDateTime(lastExportedAt) }) : undefined}
         onClick={(event) => event.stopPropagation()}
       >
-        ส่งแล้ว ×{count}
+        {expressSentLabel(true, lang)} ×{count}
       </Tag>
     </Popover>
   );

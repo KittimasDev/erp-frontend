@@ -24,6 +24,8 @@ import dayjs, { type Dayjs } from "dayjs";
 import { ApiError } from "@/lib/api/client";
 import { redirectToLogin } from "@/lib/auth/redirect-to-login";
 import { hasAccessToken } from "@/lib/auth/token";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import {
   useCancelMyLeaveRequestMutation,
   useCreateMyLeaveRequestMutation,
@@ -31,10 +33,10 @@ import {
 import { useMyLeaveRequestsQuery } from "@/hooks/leave/useLeaveQueries";
 import {
   LEAVE_STATUS_COLOR,
-  LEAVE_STATUS_LABEL,
   LEAVE_TYPE_COLOR,
   LEAVE_TYPE_LABEL,
   LEAVE_TYPE_OPTIONS,
+  leaveStatusLabel,
 } from "@/types/leave";
 
 import styles from "./LeaveSelfPage.module.css";
@@ -60,6 +62,8 @@ function formatRange(startDate: string, endDate: string) {
 
 export default function LeaveSelfPage() {
   const { modal } = App.useApp();
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>([
     dayjs(),
@@ -113,11 +117,11 @@ export default function LeaveSelfPage() {
 
   const confirmCancel = (id: string, startDate: string, endDate: string) => {
     modal.confirm({
-      title: "ยกเลิกคำขอลา",
-      content: `ยกเลิกคำขอลาช่วง ${formatRange(startDate, endDate)}?`,
-      okText: "ยกเลิกคำขอ",
+      title: t("ยกเลิกคำขอลา"),
+      content: t("ยกเลิกคำขอลาช่วง {range}?", { range: formatRange(startDate, endDate) }),
+      okText: t("ยกเลิกคำขอ"),
       okButtonProps: { danger: true },
-      cancelText: "ไม่ใช่",
+      cancelText: t("ไม่ใช่"),
       centered: true,
       onOk: () => cancelMutation.mutateAsync(id).then(() => undefined),
     });
@@ -127,7 +131,7 @@ export default function LeaveSelfPage() {
     return (
       <div className={styles.centerScreen}>
         <Spin size="large" />
-        <p className={styles.centerText}>กำลังโหลดคำขอลา...</p>
+        <p className={styles.centerText}>{t("กำลังโหลดคำขอลา...")}</p>
       </div>
     );
   }
@@ -137,11 +141,11 @@ export default function LeaveSelfPage() {
       <div className={styles.centerScreen}>
         <Result
           status="warning"
-          title="โหลดข้อมูลไม่สำเร็จ"
+          title={t("โหลดข้อมูลไม่สำเร็จ")}
           subTitle={
             listQuery.error instanceof ApiError
               ? listQuery.error.message
-              : "ตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง"
+              : t("ตรวจสอบการเชื่อมต่อแล้วลองใหม่อีกครั้ง")
           }
           extra={
             <Button
@@ -149,7 +153,7 @@ export default function LeaveSelfPage() {
               icon={<ReloadOutlined />}
               onClick={() => void listQuery.refetch()}
             >
-              ลองใหม่
+              {t("ลองใหม่")}
             </Button>
           }
         />
@@ -163,16 +167,16 @@ export default function LeaveSelfPage() {
         <header className={styles.header}>
           <a className={styles.backLink} href="/attendance">
             <ArrowLeftOutlined />
-            <span>ลงเวลา</span>
+            <span>{t("ลงเวลา")}</span>
           </a>
           <div className={styles.brand}>
             <CalendarOutlined />
-            <span>ขอลางาน</span>
+            <span>{t("ขอลางาน")}</span>
           </div>
         </header>
 
         <section className={styles.formCard}>
-          <h2 className={styles.formTitle}>ยื่นคำขอลา</h2>
+          <h2 className={styles.formTitle}>{t("ยื่นคำขอลา")}</h2>
           <Form<FormValues>
             form={form}
             layout="vertical"
@@ -185,17 +189,17 @@ export default function LeaveSelfPage() {
           >
             <Form.Item
               name="leaveType"
-              label="ประเภทการลา"
-              rules={[{ required: true, message: "เลือกประเภทการลา" }]}
+              label={t("ประเภทการลา")}
+              rules={[{ required: true, message: t("เลือกประเภทการลา") }]}
             >
               {/* Segmented แทน Select — บนมือถือเห็นตัวเลือกครบโดยไม่ต้องเปิด dropdown */}
-              <Segmented block options={LEAVE_TYPE_OPTIONS} />
+              <Segmented block options={LEAVE_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
             </Form.Item>
 
             <Form.Item
               name="range"
-              label="ช่วงวันที่ลา"
-              rules={[{ required: true, message: "เลือกช่วงวันที่" }]}
+              label={t("ช่วงวันที่ลา")}
+              rules={[{ required: true, message: t("เลือกช่วงวันที่") }]}
             >
               <DatePicker.RangePicker
                 allowClear={false}
@@ -212,21 +216,21 @@ export default function LeaveSelfPage() {
             </Form.Item>
 
             {days > 0 ? (
-              <div className={styles.daysHint}>รวม {days} วัน</div>
+              <div className={styles.daysHint}>{t("รวม {n} วัน", { n: days })}</div>
             ) : null}
 
             <Form.Item
               name="reason"
-              label="เหตุผล"
+              label={t("เหตุผล")}
               rules={[
-                { required: true, message: "ระบุเหตุผล" },
-                { max: 2000, message: "ยาวเกินไป" },
+                { required: true, message: t("ระบุเหตุผล") },
+                { max: 2000, message: t("ยาวเกินไป") },
               ]}
             >
               <Input.TextArea
                 rows={3}
                 size="large"
-                placeholder="เช่น พาพ่อแม่ไปหาหมอ"
+                placeholder={t("เช่น พาพ่อแม่ไปหาหมอ")}
               />
             </Form.Item>
 
@@ -236,23 +240,23 @@ export default function LeaveSelfPage() {
               disabled={createMutation.isPending}
             >
               <SendOutlined />
-              <span>ส่งคำขอลา</span>
+              <span>{t("ส่งคำขอลา")}</span>
             </button>
           </Form>
         </section>
 
         {pending.length > 0 ? (
           <div className={styles.pendingHint}>
-            มีคำขอรออนุมัติอยู่ {pending.length} รายการ
+            {t("มีคำขอรออนุมัติอยู่ {n} รายการ", { n: pending.length })}
           </div>
         ) : null}
 
         <section className={styles.historyCard}>
-          <h2 className={styles.historyTitle}>คำขอลาของฉัน</h2>
+          <h2 className={styles.historyTitle}>{t("คำขอลาของฉัน")}</h2>
           {rows.length === 0 ? (
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="ยังไม่มีคำขอลา"
+              description={t("ยังไม่มีคำขอลา")}
             />
           ) : (
             <ul className={styles.historyList}>
@@ -260,18 +264,18 @@ export default function LeaveSelfPage() {
                 <li key={row.id} className={styles.historyItem}>
                   <div className={styles.historyTop}>
                     <Tag color={LEAVE_TYPE_COLOR[row.leaveType]}>
-                      {LEAVE_TYPE_LABEL[row.leaveType] ?? row.leaveType}
+                      {t(LEAVE_TYPE_LABEL[row.leaveType] ?? row.leaveType)}
                     </Tag>
                     <strong>{formatRange(row.startDate, row.endDate)}</strong>
-                    <span className={styles.historyDays}>{row.days} วัน</span>
+                    <span className={styles.historyDays}>{t("{n} วัน", { n: row.days })}</span>
                     <Tag color={LEAVE_STATUS_COLOR[row.status]}>
-                      {LEAVE_STATUS_LABEL[row.status] ?? row.status}
+                      {leaveStatusLabel(row.status, lang)}
                     </Tag>
                   </div>
                   <p className={styles.historyReason}>{row.reason}</p>
                   {row.reviewRemark ? (
                     <p className={styles.historyRemark}>
-                      ผู้อนุมัติ: {row.reviewRemark}
+                      {t("ผู้อนุมัติ")}: {row.reviewRemark}
                     </p>
                   ) : null}
                   {row.status === "DRAFT" ? (
@@ -283,7 +287,7 @@ export default function LeaveSelfPage() {
                         confirmCancel(row.id, row.startDate, row.endDate)
                       }
                     >
-                      ยกเลิกคำขอ
+                      {t("ยกเลิกคำขอ")}
                     </button>
                   ) : null}
                 </li>

@@ -6,6 +6,7 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/maintenance";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type {
   BreakdownBody,
   CompleteWorkOrderBody,
@@ -56,6 +57,7 @@ function useMaintenanceMutation<TVars, TRes extends { message: string }>(
   fallbackError: string,
 ) {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -64,7 +66,7 @@ function useMaintenanceMutation<TVars, TRes extends { message: string }>(
       void queryClient.invalidateQueries({ queryKey: maintenanceKey });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : fallbackError);
+      message.error(error instanceof ApiError ? error.message : t(fallbackError));
     },
   });
 }

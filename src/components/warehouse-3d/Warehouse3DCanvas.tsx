@@ -20,6 +20,7 @@ import { FloorZone3D } from "./FloorZone3D";
 import { WarehouseAnnotations } from "./WarehouseAnnotations";
 import { DroneController } from "./DroneController";
 import { ZoneEditHandles } from "./ZoneEditHandles";
+import { tNow } from "@/lib/i18n/useT";
 
 interface Warehouse3DCanvasProps {
   layout: Warehouse3DLayoutConfig;
@@ -285,17 +286,17 @@ export const Warehouse3DCanvas: React.FC<Warehouse3DCanvasProps> = ({
             const fallbackItems = [
               {
                 itemCode: "RAW-RUB-01",
-                itemName: "ยางดิบ / ยางก้อนถ้วย (Raw Natural Rubber)",
+                itemName: tNow("ยางดิบ / ยางก้อนถ้วย (Raw Natural Rubber)"),
                 lotNumber: "LOT-RAW-202610-01",
                 quantity: 14500,
-                unit: "กก.",
+                unit: tNow("กก."),
               },
               {
                 itemCode: "CAKE-RUB-02",
-                itemName: "ขี้ยาง / ยางเค้ก (Rubber Cake Slab)",
+                itemName: tNow("ขี้ยาง / ยางเค้ก (Rubber Cake Slab)"),
                 lotNumber: "LOT-CAKE-202610-02",
                 quantity: 8200,
-                unit: "กก.",
+                unit: tNow("กก."),
               },
             ];
             const items = z.items && z.items.length > 0 ? z.items : fallbackItems;

@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   approveLeaveRequest,
@@ -26,39 +28,42 @@ function errorMessage(error: Error, fallback: string) {
 
 export function useCreateMyLeaveRequestMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateLeave();
 
   return useMutation({
     mutationFn: (body: CreateMyLeaveRequest) =>
       createMyLeaveRequest(getAccessToken(), body),
     onSuccess: (res) => {
-      message.success(res.message || "ส่งคำขอลาแล้ว");
+      message.success(res.message || t("ส่งคำขอลาแล้ว"));
       invalidate();
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ส่งคำขอลาไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ส่งคำขอลาไม่สำเร็จ")));
     },
   });
 }
 
 export function useCancelMyLeaveRequestMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateLeave();
 
   return useMutation({
     mutationFn: (id: string) => cancelMyLeaveRequest(getAccessToken(), id),
     onSuccess: (res) => {
-      message.success(res.message || "ยกเลิกคำขอแล้ว");
+      message.success(res.message || t("ยกเลิกคำขอแล้ว"));
       invalidate();
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "ยกเลิกคำขอไม่สำเร็จ"));
+      message.error(errorMessage(error, t("ยกเลิกคำขอไม่สำเร็จ")));
     },
   });
 }
 
 export function useReviewLeaveRequestMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateLeave();
 
   return useMutation({
@@ -78,11 +83,11 @@ export function useReviewLeaveRequestMutation() {
         ? approveLeaveRequest(getAccessToken(), id, remark, acknowledgeShortage)
         : rejectLeaveRequest(getAccessToken(), id, remark),
     onSuccess: (res) => {
-      message.success(res.message || "บันทึกผลการพิจารณาแล้ว");
+      message.success(res.message || t("บันทึกผลการพิจารณาแล้ว"));
       invalidate();
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "พิจารณาคำขอไม่สำเร็จ"));
+      message.error(errorMessage(error, t("พิจารณาคำขอไม่สำเร็จ")));
     },
   });
 }

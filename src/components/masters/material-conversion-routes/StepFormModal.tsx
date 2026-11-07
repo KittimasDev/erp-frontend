@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useEffect, useMemo } from "react";
 import {
@@ -59,6 +60,7 @@ export default function StepFormModal({
     lines: RouteStepLineBody[];
   }) => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
   const isEdit = Boolean(step);
   const itemsQuery = useItemsQuery();
@@ -102,9 +104,9 @@ export default function StepFormModal({
   return (
     <Modal
       open={open}
-      title={isEdit ? `แก้ไขขั้นตอน "${step?.nameTh}"` : "เพิ่มขั้นตอนในเส้นทาง"}
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={isEdit ? `แก้ไขขั้นตอน "${step?.nameTh}"` : t("เพิ่มขั้นตอนในเส้นทาง")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={loading}
       onCancel={onCancel}
       onOk={() => form.submit()}
@@ -115,8 +117,8 @@ export default function StepFormModal({
           style={{ marginBottom: 14 }}
           type="info"
           showIcon
-          title={`ขั้นตอนนี้มีรอบงานอ้างอิงอยู่ ${step?.runCount} ใบ`}
-          description="ลบไม่ได้ — ปิดใช้งานแทนได้ · เอกสารเก่ายังแสดงชื่อขั้นตอนตามที่บันทึกไว้"
+          title={t("ขั้นตอนนี้มีรอบงานอ้างอิงอยู่ {n} ใบ", { n: step?.runCount ?? 0 })}
+          description={t("ลบไม่ได้ — ปิดใช้งานแทนได้ · เอกสารเก่ายังแสดงชื่อขั้นตอนตามที่บันทึกไว้")}
         />
       ) : null}
 
@@ -150,56 +152,56 @@ export default function StepFormModal({
         <div className={styles.formGrid}>
           <Form.Item
             name="stepCode"
-            label="รหัสขั้นตอน"
+            label={t("รหัสขั้นตอน")}
             rules={[
-              { required: true, message: "กรอกรหัสขั้นตอน" },
+              { required: true, message: t("กรอกรหัสขั้นตอน") },
               {
                 pattern: /^[A-Z][A-Z0-9_]{2,49}$/,
                 message:
-                  "ตัวอักษรภาษาอังกฤษตัวใหญ่ ตัวเลข หรือขีดล่าง ยาว 3-50 ตัว",
+                  t("ตัวอักษรภาษาอังกฤษตัวใหญ่ ตัวเลข หรือขีดล่าง ยาว 3-50 ตัว"),
               },
             ]}
             extra={
               isEdit
-                ? "รหัสแก้ไม่ได้ เพราะรอบงานเก็บค่านี้ไว้อ้างอิง"
-                : "ไม่ซ้ำทั้งระบบ และแก้ไม่ได้หลังสร้าง"
+                ? t("รหัสแก้ไม่ได้ เพราะรอบงานเก็บค่านี้ไว้อ้างอิง")
+                : t("ไม่ซ้ำทั้งระบบ และแก้ไม่ได้หลังสร้าง")
             }
           >
-            <Input placeholder="เช่น PLASTIC_WASHING" disabled={isEdit} />
+            <Input placeholder={t("เช่น PLASTIC_WASHING")} disabled={isEdit} />
           </Form.Item>
           <Form.Item
             name="nameTh"
-            label="ชื่อขั้นตอน (ภาษาไทย)"
-            rules={[{ required: true, message: "กรอกชื่อขั้นตอน" }]}
+            label={t("ชื่อขั้นตอน (ภาษาไทย)")}
+            rules={[{ required: true, message: t("กรอกชื่อขั้นตอน") }]}
           >
-            <Input placeholder="เช่น ล้างพลาสติก" maxLength={100} />
+            <Input placeholder={t("เช่น ล้างพลาสติก")} maxLength={100} />
           </Form.Item>
           <Form.Item
             name="stepOrder"
-            label="ลำดับในเส้นทาง"
-            extra={isEdit ? undefined : "ไม่กรอก ระบบต่อท้ายให้เอง"}
+            label={t("ลำดับในเส้นทาง")}
+            extra={isEdit ? undefined : t("ไม่กรอก ระบบต่อท้ายให้เอง")}
           >
             <InputNumber style={{ width: "100%" }} min={1} precision={0} />
           </Form.Item>
           {isEdit ? (
-            <Form.Item name="isActive" label="เปิดใช้งาน" valuePropName="checked">
+            <Form.Item name="isActive" label={t("เปิดใช้งาน")} valuePropName="checked">
               <Switch />
             </Form.Item>
           ) : null}
         </div>
 
-        <Form.Item name="remark" label="หมายเหตุ">
+        <Form.Item name="remark" label={t("หมายเหตุ")}>
           <Input.TextArea
             rows={2}
             maxLength={2000}
-            placeholder="เช่น ใช้น้ำร้อน 60 องศา"
+            placeholder={t("เช่น ใช้น้ำร้อน 60 องศา")}
           />
         </Form.Item>
 
         <div className={styles.formSectionHead}>
-          <h4>แม่แบบรายการเข้า/ออก</h4>
+          <h4>{t("แม่แบบรายการเข้า/ออก")}</h4>
           <span className={styles.formSectionHint}>
-            ใช้เติมค่าตั้งต้นในฟอร์มสร้างเอกสารเท่านั้น ไม่บังคับ — หน้างานแก้ได้ทุกบรรทัด
+            {t("ใช้เติมค่าตั้งต้นในฟอร์มสร้างเอกสารเท่านั้น ไม่บังคับ — หน้างานแก้ได้ทุกบรรทัด")}
           </span>
         </div>
 
@@ -210,7 +212,7 @@ export default function StepFormModal({
                 <div key={field.key} className={styles.lineCard}>
                   <div className={styles.lineCardHeader}>
                     <span className={styles.lineCardTitle}>
-                      แม่แบบรายการที่ {index + 1}
+                      {t("แม่แบบรายการที่ {n}", { n: index + 1 })}
                     </span>
                     <Button
                       type="text"
@@ -219,55 +221,55 @@ export default function StepFormModal({
                       icon={<DeleteOutlined />}
                       onClick={() => remove(field.name)}
                     >
-                      ลบ
+                      {t("ลบ")}
                     </Button>
                   </div>
                   <div className={styles.lineGrid}>
                     <Form.Item
                       name={[field.name, "lineRole"]}
-                      label="บทบาท"
-                      rules={[{ required: true, message: "เลือกบทบาท" }]}
+                      label={t("บทบาท")}
+                      rules={[{ required: true, message: t("เลือกบทบาท") }]}
                     >
                       <Select
                         options={[
-                          { value: "INPUT", label: "วัตถุดิบเข้า" },
-                          { value: "OUTPUT", label: "ผลผลิตออก" },
+                          { value: "INPUT", label: t("วัตถุดิบเข้า") },
+                          { value: "OUTPUT", label: t("ผลผลิตออก") },
                         ]}
                       />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "outputType"]}
-                      label="ชนิดผลผลิต"
-                      extra="ใช้เมื่อบทบาทเป็นผลผลิตออก"
+                      label={t("ชนิดผลผลิต")}
+                      extra={t("ใช้เมื่อบทบาทเป็นผลผลิตออก")}
                     >
                       <Select
                         allowClear
-                        placeholder="เลือกชนิด"
+                        placeholder={t("เลือกชนิด")}
                         options={OUTPUT_TYPES.map((value) => ({
                           value,
-                          label: OUTPUT_TYPE_LABEL[value],
+                          label: t(OUTPUT_TYPE_LABEL[value]),
                         }))}
                       />
                     </Form.Item>
                     <Form.Item
                       className={styles.lineGridWide}
                       name={[field.name, "itemId"]}
-                      label="สินค้าที่คาดไว้"
-                      extra="ไม่เลือก = ให้หน้างานเลือกเอง · หน่วยใช้หน่วยหลักของสินค้าอัตโนมัติ"
+                      label={t("สินค้าที่คาดไว้")}
+                      extra={t("ไม่เลือก = ให้หน้างานเลือกเอง · หน่วยใช้หน่วยหลักของสินค้าอัตโนมัติ")}
                     >
                       <Select
                         allowClear
                         showSearch
                         optionFilterProp="label"
-                        placeholder="เลือกสินค้า"
+                        placeholder={t("เลือกสินค้า")}
                         loading={itemsQuery.isFetching}
                         options={itemOptions}
                       />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "expectedRatio"]}
-                      label="สัดส่วนคาดหมาย"
-                      extra="ต่อวัตถุดิบเข้า 1 หน่วย เช่น 0.65 = ได้ 650 กก. จากยาง 1,000 กก."
+                      label={t("สัดส่วนคาดหมาย")}
+                      extra={t("ต่อวัตถุดิบเข้า 1 หน่วย เช่น 0.65 = ได้ 650 กก. จากยาง 1,000 กก.")}
                     >
                       <InputNumber
                         style={{ width: "100%" }}
@@ -280,7 +282,7 @@ export default function StepFormModal({
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "isRequired"]}
-                      label="เตือนถ้าไม่มีบรรทัดนี้"
+                      label={t("เตือนถ้าไม่มีบรรทัดนี้")}
                       valuePropName="checked"
                     >
                       <Switch />
@@ -294,7 +296,7 @@ export default function StepFormModal({
                 icon={<PlusOutlined />}
                 onClick={() => add({ lineRole: "OUTPUT", outputType: "MAIN" })}
               >
-                เพิ่มแม่แบบรายการ
+                {t("เพิ่มแม่แบบรายการ")}
               </Button>
             </div>
           )}

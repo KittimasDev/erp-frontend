@@ -6,7 +6,9 @@ import type { ColumnsType } from "antd/es/table";
 import { FullscreenExitOutlined, FullscreenOutlined, ReloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import { formatThaiDate } from "@/components/ap-documents/apDocumentConfig";
+import { formatThaiDate as formatThaiDateBE } from "@/components/ap-documents/apDocumentConfig";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tNow, useT } from "@/lib/i18n/useT";
 import StatusLight from "@/components/common/StatusLight";
 import { DashboardExportButtons } from "@/components/dashboard/DashboardKit";
 import { buildControlRoomReport } from "@/utils/dashboardExport";
@@ -25,8 +27,15 @@ const DEFAULT_REFRESH_MIN = 1;
 const STORAGE_KEY = "control-room-refresh-min";
 const REFRESH_EVENT = "control-room-refresh-change";
 
-const num = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 1 });
-const qty = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 3 });
+const numLocale = () => (getStoredLanguage() === "en" ? "en-GB" : "th-TH");
+const num = { format: (v: number) => new Intl.NumberFormat(numLocale(), { maximumFractionDigits: 1 }).format(v) };
+const qty = { format: (v: number) => new Intl.NumberFormat(numLocale(), { maximumFractionDigits: 3 }).format(v) };
+
+/** วันที่ตามภาษา — ไทย = พ.ศ. · อังกฤษ = ค.ศ. */
+function formatThaiDate(value?: string | null) {
+  if (getStoredLanguage() !== "en") return formatThaiDateBE(value);
+  return value ? dayjs(value.slice(0, 10)).format("DD/MM/YYYY") : "—";
+}
 
 /** รอบรีเฟรช (นาที) ที่ผู้ใช้เลือก — จำไว้ในเครื่องนี้ (localStorage อาจใช้ไม่ได้ จึงครอบ try/catch) */
 function readRefreshMin(): number {
@@ -62,18 +71,20 @@ const subscribeFullscreen = (cb: () => void) => {
 };
 
 const downtimeText = (minutes: number) =>
-  minutes >= 60 ? `${Math.floor(minutes / 60)} ชม. ${minutes % 60} นาที` : `${minutes} นาที`;
+  minutes >= 60
+    ? tNow("{h} ชม. {m} นาที", { h: Math.floor(minutes / 60), m: minutes % 60 })
+    : tNow("{m} นาที", { m: minutes });
 
 function cycleLine(c: ControlRoomCycle): string {
   switch (c.phase) {
     case "RUNNING":
-      return `เหลืออีก ${c.daysToShutdown ?? 0} วันถึง Shutdown (เริ่ม ${formatThaiDate(c.shutdownStartDate)})`;
+      return tNow("เหลืออีก {n} วันถึง Shutdown (เริ่ม {date})", { n: c.daysToShutdown ?? 0, date: formatThaiDate(c.shutdownStartDate) });
     case "NOT_STARTED":
-      return `รอบจะเริ่ม ${formatThaiDate(c.startDate)} · อีก ${c.daysToShutdown ?? 0} วันถึง Shutdown`;
+      return tNow("รอบจะเริ่ม {date} · อีก {n} วันถึง Shutdown", { date: formatThaiDate(c.startDate), n: c.daysToShutdown ?? 0 });
     case "SHUTDOWN":
-      return `อยู่ในช่วง Shutdown ถึง ${formatThaiDate(c.shutdownEndDate)}`;
+      return tNow("อยู่ในช่วง Shutdown ถึง {date}", { date: formatThaiDate(c.shutdownEndDate) });
     case "OVERDUE":
-      return `เลยวันสิ้นสุดรอบ (${formatThaiDate(c.shutdownEndDate)}) แต่ยังไม่ปิดรอบ`;
+      return tNow("เลยวันสิ้นสุดรอบ ({date}) แต่ยังไม่ปิดรอบ", { date: formatThaiDate(c.shutdownEndDate) });
     default:
       return "";
   }
@@ -99,6 +110,7 @@ function OutputList({ rows, empty }: { rows: ControlRoomOutputRow[]; empty: stri
  * Control Room (M15.3–15.6): สถานะการผลิตสด · เต็มจอ/TV · รีเฟรชอัตโนมัติ 1–5 นาที · ไฟเขียว/เหลือง/แดง
  */
 export default function ControlRoomPage() {
+  const t = useT();
   const { message } = App.useApp();
   const rootRef = useRef<HTMLDivElement>(null);
   const refreshMin = useSyncExternalStore(subscribeRefresh, readRefreshMin, () => DEFAULT_REFRESH_MIN);
@@ -124,29 +136,29 @@ export default function ControlRoomPage() {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await rootRef.current?.requestFullscreen();
     } catch {
-      message.error("เบราว์เซอร์นี้เปิดโหมดเต็มจอไม่ได้");
+      message.error(t("เบราว์เซอร์นี้เปิดโหมดเต็มจอไม่ได้"));
     }
   };
 
   const orderColumns: ColumnsType<ControlRoomOrder> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
-    { title: "สถานะ", dataIndex: "light", width: 150, render: (_v, r) => <StatusLight light={r.light} /> },
-    { title: "ใบสั่งผลิต", dataIndex: "orderNo", render: (v: string) => <strong>{v}</strong> },
+    { title: t("สถานะ"), dataIndex: "light", width: 150, render: (_v, r) => <StatusLight light={r.light} /> },
+    { title: t("ใบสั่งผลิต"), dataIndex: "orderNo", render: (v: string) => <strong>{v}</strong> },
     { title: "Batch", dataIndex: "batchNo", render: (v?: string) => v ?? "—" },
     {
-      title: "เดินมาแล้ว (ชม.)",
+      title: t("เดินมาแล้ว (ชม.)"),
       dataIndex: "elapsedHours",
       align: "right",
-      render: (v: number, r) => `${num.format(v)} (สุทธิ ${num.format(r.netRunHours)})`,
+      render: (v: number, r) => `${num.format(v)} (${t("สุทธิ")} ${num.format(r.netRunHours)})`,
     },
     {
-      title: "ความคืบหน้า",
+      title: t("ความคืบหน้า"),
       dataIndex: "cycleProgressPercent",
       width: 180,
       render: (v: number | null | undefined, r) =>
@@ -162,7 +174,7 @@ export default function ControlRoomPage() {
         ),
     },
     {
-      title: "เหตุผล",
+      title: t("เหตุผล"),
       dataIndex: "reasons",
       render: (v: string[]) => (v.length ? v.join(" · ") : <span className={styles.muted}>—</span>),
     },
@@ -170,9 +182,9 @@ export default function ControlRoomPage() {
 
   if (!data) {
     return query.isError ? (
-      <Alert type="error" showIcon title="โหลดข้อมูลห้องควบคุมไม่สำเร็จ" description={query.error instanceof Error ? query.error.message : undefined} />
+      <Alert type="error" showIcon title={t("โหลดข้อมูลห้องควบคุมไม่สำเร็จ")} description={query.error instanceof Error ? query.error.message : undefined} />
     ) : (
-      <Typography.Text className={styles.muted}>กำลังโหลดข้อมูลห้องควบคุม…</Typography.Text>
+      <Typography.Text className={styles.muted}>{t("กำลังโหลดข้อมูลห้องควบคุม…")}</Typography.Text>
     );
   }
 
@@ -184,36 +196,36 @@ export default function ControlRoomPage() {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <Typography.Title level={3} className={styles.title}>
-            Control Room — ห้องควบคุมการผลิต
+            {t("Control Room — ห้องควบคุมการผลิต")}
           </Typography.Title>
           <StatusLight light={data.overallLight} size="lg" />
-          <div className={styles.counts} aria-label="สรุปจำนวนตามสถานะ">
-            <span className={`${styles.count} ${styles.countRed}`}>หยุด/เสีย {data.counts.red}</span>
-            <span className={`${styles.count} ${styles.countYellow}`}>เฝ้าระวัง {data.counts.yellow}</span>
-            <span className={`${styles.count} ${styles.countGreen}`}>ปกติ {data.counts.green}</span>
+          <div className={styles.counts} aria-label={t("สรุปจำนวนตามสถานะ")}>
+            <span className={`${styles.count} ${styles.countRed}`}>{t("หยุด/เสีย")} {data.counts.red}</span>
+            <span className={`${styles.count} ${styles.countYellow}`}>{t("เฝ้าระวัง")} {data.counts.yellow}</span>
+            <span className={`${styles.count} ${styles.countGreen}`}>{t("ปกติ")} {data.counts.green}</span>
           </div>
         </div>
         <div className={styles.controls}>
           <span className={styles.updated}>
-            อัปเดต {dayjs(data.asOf).format("HH:mm:ss")} · รีเฟรชอีก {secondsLeft} วินาที
+            {t("อัปเดต {time} · รีเฟรชอีก {n} วินาที", { time: dayjs(data.asOf).format("HH:mm:ss"), n: secondsLeft })}
           </span>
           <Select
-            aria-label="รอบรีเฟรชอัตโนมัติ"
+            aria-label={t("รอบรีเฟรชอัตโนมัติ")}
             value={refreshMin}
             style={{ width: 150 }}
             onChange={saveRefreshMin}
-            options={REFRESH_OPTIONS.map((m) => ({ value: m, label: `รีเฟรชทุก ${m} นาที` }))}
+            options={REFRESH_OPTIONS.map((m) => ({ value: m, label: t("รีเฟรชทุก {n} นาที", { n: m }) }))}
           />
           <DashboardExportButtons screenCode="CONTROL_ROOM_DASHBOARD" build={() => buildControlRoomReport(data)} />
           <Button icon={<ReloadOutlined />} loading={query.isFetching} onClick={() => void query.refetch()}>
-            รีเฟรชทันที
+            {t("รีเฟรชทันที")}
           </Button>
           <Button
             type="primary"
             icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
             onClick={() => void toggleFullscreen()}
           >
-            {isFullscreen ? "ออกจากเต็มจอ" : "เต็มจอ / TV"}
+            {isFullscreen ? t("ออกจากเต็มจอ") : t("เต็มจอ / TV")}
           </Button>
         </div>
       </div>
@@ -222,23 +234,23 @@ export default function ControlRoomPage() {
         <Alert
           type="warning"
           showIcon
-          title={`รีเฟรชไม่สำเร็จ — กำลังแสดงข้อมูลเมื่อ ${dayjs(data.asOf).format("HH:mm:ss")} (จะลองใหม่ตามรอบ)`}
+          title={t("รีเฟรชไม่สำเร็จ — กำลังแสดงข้อมูลเมื่อ {time} (จะลองใหม่ตามรอบ)", { time: dayjs(data.asOf).format("HH:mm:ss") })}
         />
       ) : null}
 
       <div className={styles.card}>
-        <h3 className={styles.cardTitle}>รอบการผลิต (Cycle Counter)</h3>
+        <h3 className={styles.cardTitle}>{t("รอบการผลิต (Cycle Counter)")}</h3>
         {data.cycle ? (
           <div>
             <div className={styles.cycleBig}>
-              {data.cycle.phase === "NOT_STARTED" ? "ยังไม่เริ่มรอบ" : `วันที่ ${data.cycle.runDay} จาก ${data.cycle.runDays}`}
+              {data.cycle.phase === "NOT_STARTED" ? t("ยังไม่เริ่มรอบ") : t("วันที่ {day} จาก {total}", { day: data.cycle.runDay, total: data.cycle.runDays })}
               <span className={styles.kpiNote}> · {data.cycle.cycleNo}</span>
             </div>
             <Progress percent={Math.round(data.cycle.progressPercent)} status={data.cycle.phase === "OVERDUE" ? "exception" : "active"} />
             <Typography.Text>{cycleLine(data.cycle)}</Typography.Text>
           </div>
         ) : (
-          <Typography.Text className={styles.muted}>ไม่มีรอบผลิตที่เปิดอยู่</Typography.Text>
+          <Typography.Text className={styles.muted}>{t("ไม่มีรอบผลิตที่เปิดอยู่")}</Typography.Text>
         )}
       </div>
 
@@ -251,38 +263,38 @@ export default function ControlRoomPage() {
           <StatusLight light={feed.light} />
           <div className={styles.kpiNote}>
             {feed.source === "LIVE"
-              ? "ค่าสดจากอุปกรณ์"
+              ? t("ค่าสดจากอุปกรณ์")
               : feed.source === "SHIFT"
-                ? `จากบันทึกกะล่าสุด${feed.recordedAt ? ` (${dayjs(feed.recordedAt).format("DD/MM HH:mm")})` : ""}`
-                : "ยังไม่มีข้อมูล"}
-            {feed.cycleAvg ? ` · เฉลี่ยรอบ ${num.format(feed.cycleAvg)}` : ""}
+                ? `${t("จากบันทึกกะล่าสุด")}${feed.recordedAt ? ` (${dayjs(feed.recordedAt).format("DD/MM HH:mm")})` : ""}`
+                : t("ยังไม่มีข้อมูล")}
+            {feed.cycleAvg ? ` · ${t("เฉลี่ยรอบ")} ${num.format(feed.cycleAvg)}` : ""}
           </div>
         </div>
         <div className={styles.card}>
-          <div className={styles.kpiLabel}>ยางที่ป้อนวันนี้</div>
+          <div className={styles.kpiLabel}>{t("ยางที่ป้อนวันนี้")}</div>
           <div className={styles.kpiValue}>{num.format(data.production.inputTodayKg)} kg</div>
-          <div className={styles.kpiNote}>จากบันทึกกะ</div>
+          <div className={styles.kpiNote}>{t("จากบันทึกกะ")}</div>
         </div>
         <div className={styles.card}>
-          <div className={styles.kpiLabel}>ชั่วโมงเดินเครื่องวันนี้</div>
-          <div className={styles.kpiValue}>{num.format(data.production.operatingHoursToday)} ชม.</div>
-          <div className={styles.kpiNote}>จากบันทึกกะ</div>
+          <div className={styles.kpiLabel}>{t("ชั่วโมงเดินเครื่องวันนี้")}</div>
+          <div className={styles.kpiValue}>{num.format(data.production.operatingHoursToday)} {t("ชม.")}</div>
+          <div className={styles.kpiNote}>{t("จากบันทึกกะ")}</div>
         </div>
       </div>
 
       <div className={styles.grid2}>
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>ผลผลิตวันนี้ (อนุมัติรับเข้าคลังแล้ว)</h3>
-          <OutputList rows={data.outputs.today} empty="ยังไม่มีผลผลิตรับเข้าคลังวันนี้" />
+          <h3 className={styles.cardTitle}>{t("ผลผลิตวันนี้ (อนุมัติรับเข้าคลังแล้ว)")}</h3>
+          <OutputList rows={data.outputs.today} empty={t("ยังไม่มีผลผลิตรับเข้าคลังวันนี้")} />
         </div>
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>ผลผลิตสะสมของรอบนี้</h3>
-          <OutputList rows={data.outputs.cycleTotal} empty="ยังไม่มีผลผลิตสะสมของรอบนี้" />
+          <h3 className={styles.cardTitle}>{t("ผลผลิตสะสมของรอบนี้")}</h3>
+          <OutputList rows={data.outputs.cycleTotal} empty={t("ยังไม่มีผลผลิตสะสมของรอบนี้")} />
         </div>
       </div>
 
       <div className={styles.card}>
-        <h3 className={styles.cardTitle}>ใบสั่งผลิตที่กำลังเดิน</h3>
+        <h3 className={styles.cardTitle}>{t("ใบสั่งผลิตที่กำลังเดิน")}</h3>
         <Table<ControlRoomOrder>
           rowKey="id"
           size="small"
@@ -290,24 +302,24 @@ export default function ControlRoomPage() {
           dataSource={data.production.runningOrders}
           pagination={false}
           scroll={{ x: 800 }}
-          locale={{ emptyText: "ไม่มีการผลิตตอนนี้" }}
+          locale={{ emptyText: t("ไม่มีการผลิตตอนนี้") }}
         />
       </div>
 
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>
-          Downtime ที่ยังไม่ปิด{" "}
-          {data.downtimeAlerts.length > 0 ? <Tag color="red">{data.downtimeAlerts.length} รายการ</Tag> : null}
+          {t("Downtime ที่ยังไม่ปิด")}{" "}
+          {data.downtimeAlerts.length > 0 ? <Tag color="red">{t("{n} รายการ", { n: data.downtimeAlerts.length })}</Tag> : null}
         </h3>
         {data.downtimeAlerts.length === 0 ? (
-          <Typography.Text className={styles.muted}>ไม่มี Downtime ค้างอยู่</Typography.Text>
+          <Typography.Text className={styles.muted}>{t("ไม่มี Downtime ค้างอยู่")}</Typography.Text>
         ) : (
           data.downtimeAlerts.map((d) => (
             <div key={`${d.source}-${d.ref}-${d.startedAt}`} className={styles.alertItem}>
-              <Tag color={d.source === "PRODUCTION" ? "volcano" : "red"}>{d.source === "PRODUCTION" ? "การผลิต" : "เครื่องจักร"}</Tag>
+              <Tag color={d.source === "PRODUCTION" ? "volcano" : "red"}>{d.source === "PRODUCTION" ? t("การผลิต") : t("เครื่องจักร")}</Tag>
               <strong>{d.ref}</strong>
-              <span>{d.reason ?? "ไม่ระบุเหตุผล"}</span>
-              <span className={styles.muted}>หยุดมาแล้ว {downtimeText(d.minutesOpen)}</span>
+              <span>{d.reason ?? t("ไม่ระบุเหตุผล")}</span>
+              <span className={styles.muted}>{t("หยุดมาแล้ว")} {downtimeText(d.minutesOpen)}</span>
             </div>
           ))
         )}
@@ -315,14 +327,14 @@ export default function ControlRoomPage() {
 
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>
-          สถานะเครื่องจักรแต่ละชุด{" "}
+          {t("สถานะเครื่องจักรแต่ละชุด")}{" "}
           <span style={{ marginLeft: 12, fontWeight: 400 }}>
-            <Switch size="small" checked={onlyProblems} onChange={setOnlyProblems} aria-label="แสดงเฉพาะที่ไม่ปกติ" /> เฉพาะที่ไม่ปกติ
+            <Switch size="small" checked={onlyProblems} onChange={setOnlyProblems} aria-label={t("แสดงเฉพาะที่ไม่ปกติ")} /> {t("เฉพาะที่ไม่ปกติ")}
           </span>
         </h3>
         {equipment.length === 0 ? (
           <Typography.Text className={styles.muted}>
-            {onlyProblems ? "ทุกเครื่องปกติ" : "ยังไม่มีทะเบียนเครื่องจักร"}
+            {onlyProblems ? t("ทุกเครื่องปกติ") : t("ยังไม่มีทะเบียนเครื่องจักร")}
           </Typography.Text>
         ) : (
           <div className={styles.equipmentGrid}>

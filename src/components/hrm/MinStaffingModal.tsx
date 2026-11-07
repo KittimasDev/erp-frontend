@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Alert, Button, InputNumber, Modal, Select, Spin } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useMinStaffingQuery, useSetMinStaffingMutation } from "@/hooks/leave/useMinStaffing";
 import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
 import { useShiftsQuery } from "@/hooks/shifts/useShiftQueries";
@@ -26,6 +28,8 @@ function MinStaffingForm({
   initial: MinStaffingRow[];
   onClose: () => void;
 }) {
+  const t = useT();
+  const lang = useLanguage();
   const save = useSetMinStaffingMutation();
   const positionsQuery = usePositionsQuery({ isActive: true });
   const shiftsQuery = useShiftsQuery(false, true);
@@ -70,11 +74,13 @@ function MinStaffingForm({
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title="ใช้เตือนตอนอนุมัติลา"
-        description="ก่อนอนุมัติ ระบบนับคนที่เหลือในกะเดียวกัน (ตำแหน่งเดียวกัน ไม่รวมคนที่ลาอยู่) ถ้าต่ำกว่าขั้นต่ำจะเตือนให้ผู้อนุมัติรับทราบก่อน — อนุมัติได้ ไม่ถูกบล็อก · ตำแหน่ง × กะ ที่ไม่ได้ตั้งไว้จะไม่ถูกตรวจ · แถวที่ไม่กรอกครบจะไม่ถูกบันทึก"
+        title={t("ใช้เตือนตอนอนุมัติลา")}
+        description={t(
+          "ก่อนอนุมัติ ระบบนับคนที่เหลือในกะเดียวกัน (ตำแหน่งเดียวกัน ไม่รวมคนที่ลาอยู่) ถ้าต่ำกว่าขั้นต่ำจะเตือนให้ผู้อนุมัติรับทราบก่อน — อนุมัติได้ ไม่ถูกบล็อก · ตำแหน่ง × กะ ที่ไม่ได้ตั้งไว้จะไม่ถูกตรวจ · แถวที่ไม่กรอกครบจะไม่ถูกบันทึก",
+        )}
       />
       {hasDuplicate ? (
-        <Alert type="error" showIcon style={{ marginBottom: 12 }} title="มีตำแหน่ง × กะ ซ้ำกัน" />
+        <Alert type="error" showIcon style={{ marginBottom: 12 }} title={t("มีตำแหน่ง × กะ ซ้ำกัน")} />
       ) : null}
       <div style={{ display: "grid", gap: 8 }}>
         {rows.map((row) => (
@@ -85,14 +91,14 @@ function MinStaffingForm({
             <Select
               showSearch
               optionFilterProp="label"
-              placeholder="ตำแหน่ง"
+              placeholder={lang === "en" ? "Position" : "ตำแหน่ง"}
               loading={positionsQuery.isLoading}
               value={row.position}
               onChange={(value) => update(row.key, { position: value })}
               options={positions.map((p) => ({ value: p.nameTh, label: p.nameTh }))}
             />
             <Select
-              placeholder="กะ"
+              placeholder={t("กะ")}
               loading={shiftsQuery.isLoading}
               value={row.shiftId}
               onChange={(value) => update(row.key, { shiftId: value })}
@@ -101,26 +107,26 @@ function MinStaffingForm({
             <InputNumber
               min={1}
               max={500}
-              placeholder="ขั้นต่ำ (คน)"
+              placeholder={t("ขั้นต่ำ (คน)")}
               style={{ width: "100%" }}
               value={row.minHeadcount}
               onChange={(value) => update(row.key, { minHeadcount: value ?? undefined })}
             />
             <Button
-              aria-label="ลบแถว"
+              aria-label={t("ลบแถว")}
               icon={<DeleteOutlined />}
               onClick={() => setRows((prev) => prev.filter((r) => r.key !== row.key))}
             />
           </div>
         ))}
         <Button type="dashed" icon={<PlusOutlined />} onClick={() => setRows((prev) => [...prev, { key: nextKey++ }])}>
-          เพิ่มแถว
+          {t("เพิ่มแถว")}
         </Button>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-        <Button onClick={onClose}>ยกเลิก</Button>
+        <Button onClick={onClose}>{t("ยกเลิก")}</Button>
         <Button type="primary" disabled={hasDuplicate} loading={save.isPending} onClick={handleSave}>
-          บันทึก
+          {t("บันทึก")}
         </Button>
       </div>
     </>
@@ -129,12 +135,13 @@ function MinStaffingForm({
 
 /** ตั้งกำลังคนขั้นต่ำต่อ ตำแหน่ง × กะ — ใช้เตือนตอนอนุมัติลา (ไม่ตั้ง = ไม่ตรวจ) */
 export default function MinStaffingModal({ open, onClose }: Props) {
+  const t = useT();
   const query = useMinStaffingQuery(open);
 
   return (
     <Modal
       open={open}
-      title="ตั้งกำลังคนขั้นต่ำ ตำแหน่ง × กะ"
+      title={t("ตั้งกำลังคนขั้นต่ำ ตำแหน่ง × กะ")}
       footer={null}
       onCancel={onClose}
       destroyOnHidden

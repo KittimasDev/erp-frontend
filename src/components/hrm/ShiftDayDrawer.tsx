@@ -10,6 +10,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useRemoveHolidayMutation } from "@/hooks/shifts/useShiftMutations";
 import {
   WORK_CALENDAR_DAY_TYPE_LABEL,
@@ -43,8 +45,11 @@ const THAI_WEEKDAYS = [
   "เสาร์",
 ];
 
-function formatThaiDate(date: string) {
+function formatThaiDate(date: string, lang: "th" | "en" = "th") {
   const value = dayjs(date);
+  if (lang === "en") {
+    return value.locale("en").format("dddd, D/M/YYYY");
+  }
   return `วัน${THAI_WEEKDAYS[value.day()]}ที่ ${value.format("D/M/YYYY")}`;
 }
 
@@ -57,6 +62,8 @@ export default function ShiftDayDrawer({
   onClose,
   onMoved,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [editing, setEditing] = useState<ShiftSchedule | null>(null);
   const [holidayModalOpen, setHolidayModalOpen] = useState(false);
@@ -85,12 +92,12 @@ export default function ShiftDayDrawer({
       title={
         <div className={styles.drawerTitle}>
           <CalendarOutlined />
-          <span>{formatThaiDate(date)}</span>
+          <span>{formatThaiDate(date, lang)}</span>
         </div>
       }
       extra={
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-          เพิ่มรอบกะ
+          {t("เพิ่มรอบกะ")}
         </Button>
       }
     >
@@ -100,29 +107,29 @@ export default function ShiftDayDrawer({
           showIcon
           icon={holiday.dayType === "MAINTENANCE" ? <ToolOutlined /> : undefined}
           style={{ marginBottom: 16 }}
-          title={`${WORK_CALENDAR_DAY_TYPE_LABEL[holiday.dayType] ?? "วันหยุด"} — ${holiday.name}`}
+          title={`${t(WORK_CALENDAR_DAY_TYPE_LABEL[holiday.dayType] ?? "วันหยุด")} — ${holiday.name}`}
           description={
             <div className={styles.holidayBody}>
               {holiday.note ? <p>{holiday.note}</p> : null}
               <p className={styles.holidayHint}>
-                วันนี้ไม่คิดสายให้พนักงาน แต่ยังกดเข้า-ออกงานได้ปกติ
+                {t("วันนี้ไม่คิดสายให้พนักงาน แต่ยังกดเข้า-ออกงานได้ปกติ")}
               </p>
               <Space size={8} wrap>
                 <Button size="small" onClick={() => setHolidayModalOpen(true)}>
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 <Popconfirm
-                  title="ยกเลิกวันหยุดนี้?"
-                  description="วันนี้จะกลับเป็นวันทำงานปกติ"
-                  okText="ยกเลิกวันหยุด"
-                  cancelText="ไม่"
+                  title={t("ยกเลิกวันหยุดนี้?")}
+                  description={t("วันนี้จะกลับเป็นวันทำงานปกติ")}
+                  okText={t("ยกเลิกวันหยุด")}
+                  cancelText={t("ไม่")}
                   okButtonProps={{ danger: true }}
                   onConfirm={() =>
                     removeHolidayMutation.mutateAsync(holiday.id)
                   }
                 >
                   <Button size="small" danger>
-                    ยกเลิกวันหยุด
+                    {t("ยกเลิกวันหยุด")}
                   </Button>
                 </Popconfirm>
               </Space>
@@ -136,22 +143,22 @@ export default function ShiftDayDrawer({
           style={{ marginBottom: 16 }}
           onClick={() => setHolidayModalOpen(true)}
         >
-          กดหยุดวันนี้ (วันหยุด / วันซ่อมเครื่อง)
+          {t("กดหยุดวันนี้ (วันหยุด / วันซ่อมเครื่อง)")}
         </Button>
       )}
 
       <div className={styles.drawerSection}>
         <div className={styles.drawerSectionHead}>
-          <h3>รอบกะของวันนี้</h3>
+          <h3>{t("รอบกะของวันนี้")}</h3>
           {schedules.length > 0 ? (
-            <Tag color="green">{day?.totalMembers ?? 0} คน</Tag>
+            <Tag color="green">{t("{n} คน", { n: day?.totalMembers ?? 0 })}</Tag>
           ) : null}
         </div>
 
         {schedules.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description="ยังไม่ได้จัดกะของวันนี้"
+            description={t("ยังไม่ได้จัดกะของวันนี้")}
           />
         ) : (
           <div className={styles.roundList}>

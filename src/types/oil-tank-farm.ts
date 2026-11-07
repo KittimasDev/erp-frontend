@@ -1,3 +1,5 @@
+import type { Language } from "@/lib/i18n/translate";
+
 type Envelope<T> = { statusCode?: number; message: string; data: T };
 
 export const OIL_DOC_STATUS_LABEL: Record<string, string> = {
@@ -11,6 +13,21 @@ export const OIL_TANK_STATUS_LABEL: Record<string, string> = {
   MAINTENANCE: "ซ่อมบำรุง",
   INACTIVE: "ปิดใช้งาน",
 };
+
+const OIL_DOC_STATUS_EN: Record<string, string> = { DRAFT: "Pending approval", POSTED: "Approved", CANCELLED: "Cancelled" };
+const OIL_TANK_STATUS_EN: Record<string, string> = { ACTIVE: "Active", MAINTENANCE: "Under maintenance", INACTIVE: "Inactive" };
+
+/** ป้ายสถานะเอกสารถังน้ำมันตามภาษา (ยกเลิก = Cancelled ไม่ใช่ปุ่ม Cancel) */
+export function oilDocStatusLabel(status: string, lang: Language): string {
+  if (lang === "en") return OIL_DOC_STATUS_EN[status] ?? status;
+  return OIL_DOC_STATUS_LABEL[status] ?? status;
+}
+
+/** ป้ายสถานะถังตามภาษา */
+export function oilTankStatusLabel(status: string, lang: Language): string {
+  if (lang === "en") return OIL_TANK_STATUS_EN[status] ?? status;
+  return OIL_TANK_STATUS_LABEL[status] ?? status;
+}
 
 export type OilTankReadingBrief = {
   id: string;

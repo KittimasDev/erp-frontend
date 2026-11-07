@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   createAttendanceRecord,
@@ -27,23 +29,25 @@ function errorMessage(error: Error, fallback: string) {
 
 export function useCreateAttendanceRecordMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateAttendance();
 
   return useMutation({
     mutationFn: (body: CreateAttendanceRecordRequest) =>
       createAttendanceRecord(getAccessToken(), body),
     onSuccess: (res) => {
-      message.success(res.message || "บันทึกเวลาให้พนักงานแล้ว");
+      message.success(res.message || t("บันทึกเวลาให้พนักงานแล้ว"));
       invalidate();
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "บันทึกเวลาไม่สำเร็จ"));
+      message.error(errorMessage(error, t("บันทึกเวลาไม่สำเร็จ")));
     },
   });
 }
 
 export function useUpdateAttendanceRecordMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateAttendance();
 
   return useMutation({
@@ -55,11 +59,11 @@ export function useUpdateAttendanceRecordMutation() {
       body: UpdateAttendanceRecordRequest;
     }) => updateAttendanceRecord(getAccessToken(), id, body),
     onSuccess: (res) => {
-      message.success(res.message || "แก้ไขบันทึกเวลาแล้ว");
+      message.success(res.message || t("แก้ไขบันทึกเวลาแล้ว"));
       invalidate();
     },
     onError: (error: Error) => {
-      message.error(errorMessage(error, "แก้ไขบันทึกเวลาไม่สำเร็จ"));
+      message.error(errorMessage(error, t("แก้ไขบันทึกเวลาไม่สำเร็จ")));
     },
   });
 }

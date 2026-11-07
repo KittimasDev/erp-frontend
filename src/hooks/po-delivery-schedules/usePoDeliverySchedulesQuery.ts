@@ -11,6 +11,7 @@ import {
   reschedulePoDeliverySchedule,
 } from "@/lib/api/po-delivery-schedules";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow } from "@/lib/i18n/useT";
 import type {
   CancelPoReceivingBody,
   ReschedulePoDeliveryBody,
@@ -36,10 +37,10 @@ export function useReschedulePoDeliveryMutation() {
       await queryClient.invalidateQueries({ queryKey: poDeliverySchedulesQueryKey });
       await queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
-      message.success(response.message || "เลื่อนวันส่งแล้ว");
+      message.success(response.message || tNow("เลื่อนวันส่งแล้ว"));
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : "เลื่อนวันส่งไม่สำเร็จ");
+      message.error(error instanceof ApiError ? error.message : tNow("เลื่อนวันส่งไม่สำเร็จ"));
     },
   });
 }
@@ -54,10 +55,10 @@ export function useCancelPoReceivingMutation() {
       await queryClient.invalidateQueries({ queryKey: poDeliverySchedulesQueryKey });
       await queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
-      message.success(response.message || "ยกเลิกการรับทั้งรอบแล้ว");
+      message.success(response.message || tNow("ยกเลิกการรับทั้งรอบแล้ว"));
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : "ยกเลิกการรับไม่สำเร็จ");
+      message.error(error instanceof ApiError ? error.message : tNow("ยกเลิกการรับไม่สำเร็จ"));
     },
   });
 }
@@ -72,10 +73,10 @@ export function useClosePoRemainingMutation() {
       await queryClient.invalidateQueries({ queryKey: poDeliverySchedulesQueryKey });
       await queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       await queryClient.invalidateQueries({ queryKey: ["goods-receipts"] });
-      message.success(response.message || "ยุติการรับสินค้าคงเหลือแล้ว");
+      message.success(response.message || tNow("ยุติการรับสินค้าคงเหลือแล้ว"));
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : "ยุติการรับไม่สำเร็จ");
+      message.error(error instanceof ApiError ? error.message : tNow("ยุติการรับไม่สำเร็จ"));
     },
   });
 }

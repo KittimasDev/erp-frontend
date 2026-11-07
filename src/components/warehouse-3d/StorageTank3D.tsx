@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
+import { tNow } from "@/lib/i18n/useT";
 import type { StorageTankConfig, Selected3DObject } from "@/types/warehouse-3d";
 
 interface StorageTank3DProps {
@@ -56,10 +57,10 @@ export const StorageTank3D: React.FC<StorageTank3DProps> = ({
       items: [
         {
           itemCode: "OIL-TDAE",
-          itemName: "TDAE Processing Oil / น้ำมันผสมยาง",
+          itemName: tNow("TDAE Processing Oil / น้ำมันผสมยาง"),
           lotNumber: "LOT-TANK-01-202610",
           quantity: currentLiters,
-          unit: "ลิตร",
+          unit: tNow("ลิตร"),
         },
       ],
     });

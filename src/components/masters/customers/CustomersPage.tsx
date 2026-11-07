@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -126,6 +129,8 @@ function buildSearchFromForm(
 }
 
 export default function CustomersPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -189,7 +194,7 @@ export default function CustomersPage() {
     return `${Math.round((value / customers.length) * 100)}%`;
   };
 
-  const thisMonthLabel = new Date().toLocaleDateString("th-TH", {
+  const thisMonthLabel = new Date().toLocaleDateString(lang === "en" ? "en-GB" : "th-TH", {
     month: "long",
     year: "numeric",
   });
@@ -238,7 +243,7 @@ export default function CustomersPage() {
 
   const columns: ColumnsType<Customer> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 90,
       align: "center",
@@ -249,7 +254,7 @@ export default function CustomersPage() {
       ),
     },
     {
-      title: "รหัสลูกค้า",
+      title: t("รหัสลูกค้า"),
       dataIndex: "customerCode",
       key: "customerCode",
       width: 140,
@@ -258,7 +263,7 @@ export default function CustomersPage() {
       ),
     },
     {
-      title: "ชื่อลูกค้า",
+      title: t("ชื่อลูกค้า"),
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
@@ -268,7 +273,7 @@ export default function CustomersPage() {
       ),
     },
     {
-      title: "ผู้ติดต่อ",
+      title: t("ผู้ติดต่อ"),
       key: "contact",
       render: (_value, record) => (
         <div className={`${styles.stackCell} ${pageStyles.stackCell}`}>
@@ -280,18 +285,18 @@ export default function CustomersPage() {
       ),
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "customerType",
       key: "customerType",
       width: 130,
       render: (value?: string) => (
         <span className={styles.symbolText}>
-          {value ? (CUSTOMER_TYPE_LABEL[value] ?? value) : "-"}
+          {value ? (t(CUSTOMER_TYPE_LABEL[value] ?? value)) : "-"}
         </span>
       ),
     },
     {
-      title: "เลขผู้เสียภาษี",
+      title: t("เลขผู้เสียภาษี"),
       dataIndex: "taxId",
       key: "taxId",
       width: 150,
@@ -300,7 +305,7 @@ export default function CustomersPage() {
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 140,
@@ -309,45 +314,45 @@ export default function CustomersPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${pageStyles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${pageStyles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "อัปเดตล่าสุด",
+      title: t("อัปเดตล่าสุด"),
       dataIndex: "updatedAt",
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
         <span className={`${styles.updatedText} ${pageStyles.updatedText}`}>
-          {value ? new Date(value).toLocaleString("th-TH") : "-"}
+          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
         </span>
       ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 100,
       align: "center",
       render: (_, record) => (
         <RowActionsMenu
-          ariaLabel={`เมนูจัดการ ${record.customerCode}`}
+          ariaLabel={t("เมนูจัดการ {no}", { no: record.customerCode })}
           actions={[
             {
               key: "view",
               icon: <EyeOutlined />,
-              label: "ดูรายละเอียด",
+              label: t("ดูรายละเอียด"),
               onClick: () => router.push(`/customers/${record.id}`),
             },
             canManageCustomers && {
               key: "edit",
               icon: <EditOutlined />,
-              label: "แก้ไข",
+              label: t("แก้ไข"),
               onClick: () => router.push(`/customers/${record.id}/edit`),
             },
             canManageCustomers && "divider",
@@ -356,20 +361,20 @@ export default function CustomersPage() {
                 ? {
                     key: "deactivate",
                     icon: <StopOutlined />,
-                    label: "ปิดการใช้งาน",
+                    label: t("ปิดการใช้งาน"),
                     danger: true,
                     onClick: () => deactivateMutation.mutate(record.id),
                     confirm: {
-                      title: "ปิดใช้งานลูกค้า",
-                      content: `ต้องการปิดใช้งาน "${record.customerCode}" หรือไม่?`,
-                      okText: "ปิดใช้งาน",
-                      cancelText: "ยกเลิก",
+                      title: t("ปิดใช้งานลูกค้า"),
+                      content: t('ต้องการปิดใช้งาน "{code}" หรือไม่?', { code: record.customerCode }),
+                      okText: t("ปิดใช้งาน"),
+                      cancelText: t("ยกเลิก"),
                     },
                   }
                 : {
                     key: "activate",
                     icon: <CheckCircleOutlined />,
-                    label: "เปิดใช้งาน",
+                    label: t("เปิดใช้งาน"),
                     onClick: () => activateMutation.mutate(record.id),
                   }),
           ]}
@@ -384,8 +389,8 @@ export default function CustomersPage() {
         <PageHeader
           eyebrow="MASTER DATA"
           icon={<TeamOutlined />}
-          title="ลูกค้า"
-          subtitle="ฐานข้อมูลลูกค้าสำหรับใช้ต่อในใบเสนอราคา ใบสั่งขาย และใบส่งของ"
+          title={t("ลูกค้า")}
+          subtitle={t("ฐานข้อมูลลูกค้าสำหรับใช้ต่อในใบเสนอราคา ใบสั่งขาย และใบส่งของ")}
           actions={
             <>
 {canManageCustomers ? (
@@ -396,7 +401,7 @@ export default function CustomersPage() {
                   icon={<UploadOutlined />}
                   onClick={() => setImportOpen(true)}
                 >
-                  นำเข้า Excel / CSV
+                  {t("นำเข้า Excel / CSV")}
                 </Button>
               ) : null}
               <Button
@@ -406,7 +411,7 @@ export default function CustomersPage() {
                 icon={<PlusOutlined />}
                 onClick={() => setCreateOpen(true)}
               >
-                เพิ่มลูกค้า
+                {t("เพิ่มลูกค้า")}
               </Button>
             </div>
           ) : (
@@ -425,13 +430,13 @@ export default function CustomersPage() {
               <span
                 className={`${styles.summaryLabel} ${pageStyles.summaryLabel}`}
               >
-                {hasFilters ? "ผลค้นหา" : "ลูกค้าทั้งหมด"}
+                {hasFilters ? t("ผลค้นหา") : t("ลูกค้าทั้งหมด")}
               </span>
               <strong>{customers.length.toLocaleString("th-TH")}</strong>
               <span className={pageStyles.summaryCaption}>
                 {hasFilters
-                  ? "รายการที่ตรงเงื่อนไขการค้นหา"
-                  : "ลูกค้าในฐานข้อมูลทั้งระบบ"}
+                  ? t("รายการที่ตรงเงื่อนไขการค้นหา")
+                  : t("ลูกค้าในฐานข้อมูลทั้งระบบ")}
               </span>
             </div>
           </div>
@@ -444,7 +449,7 @@ export default function CustomersPage() {
               <span
                 className={`${styles.summaryLabel} ${pageStyles.summaryLabel}`}
               >
-                ลูกค้าใหม่ในเดือนนี้
+                {t("ลูกค้าใหม่ในเดือนนี้")}
               </span>
               <strong>{newThisMonthCount.toLocaleString("th-TH")}</strong>
               <span className={pageStyles.summaryCaption}>
@@ -464,14 +469,14 @@ export default function CustomersPage() {
               <span
                 className={`${styles.summaryLabel} ${pageStyles.summaryLabel}`}
               >
-                สถานะใช้งาน
+                {t("สถานะใช้งาน")}
               </span>
               <strong>{activeCount.toLocaleString("th-TH")}</strong>
               <span className={pageStyles.summaryCaption}>
                 <span className={pageStyles.summaryShare}>
                   {sharePercent(activeCount)}
                 </span>
-                พร้อมใช้ในเอกสารขาย
+                {t("พร้อมใช้ในเอกสารขาย")}
               </span>
             </div>
           </div>
@@ -485,13 +490,13 @@ export default function CustomersPage() {
               >
                 SEARCH
               </div>
-              <h3>ค้นหาลูกค้า</h3>
-              <p>กรองด้วยรหัส/ชื่อ/เลขผู้เสียภาษี ประเภทลูกค้า และสถานะ</p>
+              <h3>{t("ค้นหาลูกค้า")}</h3>
+              <p>{t("กรองด้วยรหัส/ชื่อ/เลขผู้เสียภาษี ประเภทลูกค้า และสถานะ")}</p>
             </div>
 
             {hasFilters ? (
               <Tag className={styles.filterActiveTag} color="success">
-                กำลังกรอง
+                {t("กำลังกรอง")}
               </Tag>
             ) : null}
           </div>
@@ -505,36 +510,36 @@ export default function CustomersPage() {
           >
             <Row gutter={[16, 4]}>
               <Col xs={24} sm={12} lg={8}>
-                <Form.Item name="q" label="ค้นหา">
+                <Form.Item name="q" label={t("ค้นหา")}>
                   <Input
                     allowClear
-                    placeholder="รหัส / ชื่อ / เลขผู้เสียภาษี / ผู้ติดต่อ"
+                    placeholder={t("รหัส / ชื่อ / เลขผู้เสียภาษี / ผู้ติดต่อ")}
                     prefix={<SearchOutlined />}
                   />
                 </Form.Item>
               </Col>
 
               <Col xs={24} sm={12} lg={6}>
-                <Form.Item name="customerType" label="ประเภทลูกค้า">
+                <Form.Item name="customerType" label={t("ประเภทลูกค้า")}>
                   <Select
                     allowClear
-                    placeholder="ทั้งหมด"
+                    placeholder={t("ทั้งหมด")}
                     options={CUSTOMER_TYPES.map((type) => ({
                       value: type,
-                      label: CUSTOMER_TYPE_LABEL[type] ?? type,
+                      label: t(CUSTOMER_TYPE_LABEL[type] ?? type),
                     }))}
                   />
                 </Form.Item>
               </Col>
 
               <Col xs={24} sm={12} lg={6}>
-                <Form.Item name="isActive" label="สถานะ">
+                <Form.Item name="isActive" label={t("สถานะ")}>
                   <Select
                     allowClear
-                    placeholder="ทั้งหมด"
+                    placeholder={t("ทั้งหมด")}
                     options={[
-                      { value: true, label: "ใช้งาน" },
-                      { value: false, label: "ปิดใช้งาน" },
+                      { value: true, label: t("ใช้งาน") },
+                      { value: false, label: t("ปิดใช้งาน") },
                     ]}
                   />
                 </Form.Item>
@@ -549,7 +554,7 @@ export default function CustomersPage() {
                       icon={<SearchOutlined />}
                       className={`${styles.filterSearchButton} ${pageStyles.filterSearchButton}`}
                     >
-                      ค้นหา
+                      {t("ค้นหา")}
                     </Button>
 
                     <Button
@@ -558,7 +563,7 @@ export default function CustomersPage() {
                       onClick={handleClearFilters}
                       disabled={!hasFilters}
                     >
-                      ล้างค่า
+                      {t("ล้างค่า")}
                     </Button>
                   </Space>
                 </Form.Item>
@@ -571,15 +576,15 @@ export default function CustomersPage() {
           <div className={`${styles.tableHeader} ${pageStyles.tableHeader}`}>
             <div>
               <div className={`${styles.tableEyebrow} ${pageStyles.tableEyebrow}`}>CUSTOMER LIST</div>
-              <h3>รายการลูกค้า</h3>
+              <h3>{t("รายการลูกค้า")}</h3>
               <p>
                 {hasFilters
-                  ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                  : "ข้อมูลลูกค้าทั้งหมดที่ใช้ภายในระบบ"}
+                  ? t("ผลลัพธ์ตามเงื่อนไขการค้นหา")
+                  : t("ข้อมูลลูกค้าทั้งหมดที่ใช้ภายในระบบ")}
               </p>
             </div>
 
-            <div className={`${styles.tableCount} ${pageStyles.tableCount}`}>{customers.length} รายการ</div>
+            <div className={`${styles.tableCount} ${pageStyles.tableCount}`}>{t("{n} รายการ", { n: customers.length })}</div>
           </div>
 
           {customersQuery.isError ? (
@@ -587,7 +592,7 @@ export default function CustomersPage() {
               <Typography.Text type="danger">
                 {customersQuery.error instanceof Error
                   ? customersQuery.error.message
-                  : "โหลดข้อมูลลูกค้าไม่สำเร็จ"}
+                  : t("โหลดข้อมูลลูกค้าไม่สำเร็จ")}
               </Typography.Text>
             </div>
           ) : (
@@ -601,14 +606,14 @@ export default function CustomersPage() {
                 current: page,
                 pageSize,
                 showSizeChanger: false,
-                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                showTotal: (total) => t("ทั้งหมด {total} รายการ", { total }),
                 onChange: setPage,
               }}
               scroll={{ x: 1180 }}
               locale={{
                 emptyText: hasFilters
-                  ? "ไม่พบลูกค้าตามเงื่อนไขที่ค้นหา"
-                  : "ยังไม่มีข้อมูลลูกค้า",
+                  ? t("ไม่พบลูกค้าตามเงื่อนไขที่ค้นหา")
+                  : t("ยังไม่มีข้อมูลลูกค้า"),
               }}
             />
           )}
@@ -617,7 +622,7 @@ export default function CustomersPage() {
 
       <CsvImportModal
         open={importOpen}
-        title="นำเข้าลูกค้าจาก Excel / CSV"
+        title={t("นำเข้าลูกค้าจาก Excel / CSV")}
         acceptExtensions={[".csv", ".xlsx"]}
         onDownloadExcelTemplate={async () => {
           const { blob, filename } = await downloadCustomerImportTemplate(

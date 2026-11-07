@@ -1,5 +1,8 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { usePartyLabels } from "@/lib/i18n/partyLabels";
+
 import { useEffect } from "react";
 import { Form, Input, Modal, Select, Switch } from "antd";
 
@@ -44,6 +47,8 @@ export default function SellerBankAccountFormModal({
   onCancel,
   onSubmit,
 }: SellerBankAccountFormModalProps) {
+  const t = useT();
+  const partyLabels = usePartyLabels();
   const [form] = Form.useForm<SellerBankAccountFormValues>();
 
   useEffect(() => {
@@ -96,8 +101,8 @@ export default function SellerBankAccountFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={560}
       centered
@@ -114,14 +119,14 @@ export default function SellerBankAccountFormModal({
 
           <h2>
             {isCreateMode
-              ? "เพิ่มบัญชีธนาคารผู้ขาย"
-              : "แก้ไขบัญชีธนาคารผู้ขาย"}
+              ? t("เพิ่มบัญชีธนาคารผู้ขาย")
+              : t("แก้ไขบัญชีธนาคารผู้ขาย")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กรอกบัญชีธนาคารใหม่ของผู้ขายยาง"
-              : "แก้ไขรายละเอียดบัญชีและสถานะการใช้งาน"}
+              ? t("กรอกบัญชีธนาคารใหม่ของผู้ขายยาง")
+              : t("แก้ไขรายละเอียดบัญชีและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -135,67 +140,67 @@ export default function SellerBankAccountFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลบัญชี</strong>
-            <span>ระบุผู้ขาย ธนาคาร เลขบัญชี และชื่อบัญชี</span>
+            <strong>{t("ข้อมูลบัญชี")}</strong>
+            <span>{t("ระบุผู้ขาย ธนาคาร เลขบัญชี และชื่อบัญชี")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="ผู้ขาย"
+          label={t("ผู้ขาย")}
           name="sellerId"
-          rules={[{ required: true, message: "กรุณาเลือกผู้ขาย" }]}
+          rules={[{ required: true, message: t("กรุณาเลือกผู้ขาย") }]}
         >
           <Select
             size="large"
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกผู้ขาย"
+            placeholder={t("เลือกผู้ขาย")}
             loading={sellersLoading}
             options={sellerOptions}
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อธนาคาร"
+          label={t("ชื่อธนาคาร")}
           name="bankName"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อธนาคาร" },
-            { max: 255, message: "ชื่อธนาคารต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อธนาคาร") },
+            { max: 255, message: t("ชื่อธนาคารต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น ธนาคารกรุงเทพ"
+            placeholder={t("เช่น ธนาคารกรุงเทพ")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="เลขที่บัญชี"
+          label={t("เลขที่บัญชี")}
           name="accountNo"
           rules={[
-            { required: true, message: "กรุณากรอกเลขที่บัญชี" },
-            { max: 100, message: "เลขที่บัญชีต้องไม่เกิน 100 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกเลขที่บัญชี") },
+            { max: 100, message: t("เลขที่บัญชีต้องไม่เกิน 100 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น 1234567890"
+            placeholder={t("เช่น 1234567890")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อบัญชี"
+          label={t("ชื่อบัญชี")}
           name="accountName"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อบัญชี" },
-            { max: 255, message: "ชื่อบัญชีต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: t("กรุณากรอกชื่อบัญชี") },
+            { max: 255, message: t("ชื่อบัญชีต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น หจก. รับซื้อยาง ABC"
+            placeholder={t("เช่น หจก. รับซื้อยาง ABC")}
             autoComplete="off"
           />
         </Form.Item>
@@ -204,13 +209,13 @@ export default function SellerBankAccountFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>บัญชีหลัก</strong>
-              <span>เปิดเมื่อต้องการใช้บัญชีนี้เป็นบัญชีหลักของผู้ขาย</span>
+              <strong>{t("บัญชีหลัก")}</strong>
+              <span>{t("เปิดเมื่อต้องการใช้บัญชีนี้เป็นบัญชีหลักของผู้ขาย")}</span>
             </div>
           </div>
 
           <Form.Item name="isDefault" valuePropName="checked" noStyle>
-            <Switch checkedChildren="หลัก" unCheckedChildren="รอง" />
+            <Switch checkedChildren={partyLabels.primary} unCheckedChildren={partyLabels.secondary} />
           </Form.Item>
         </div>
 
@@ -218,13 +223,13 @@ export default function SellerBankAccountFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกบัญชีนี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกบัญชีนี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={partyLabels.on} unCheckedChildren={partyLabels.off} />
           </Form.Item>
         </div>
       </Form>

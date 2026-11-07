@@ -5,6 +5,29 @@
  * และของพลอยได้เป็นแค่ตัวเลขอ้างอิงที่ไม่เคยเข้าสต๊อก
  */
 
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { translate, type Language } from "@/lib/i18n/translate";
+
+const CONVERSION_STATUS_EN: Record<string, string> = {
+  "แบบร่างเอกสาร": "Draft",
+  "กำลังทำงาน": "In progress",
+  "เสร็จแล้ว": "Completed",
+  "ยกเลิก": "Cancelled",
+  "เปิดอยู่": "Open",
+  "ปิดแล้ว": "Closed",
+  "ยังไม่เริ่ม": "Not started",
+  "ทำครบทุกขั้นแล้ว": "All steps done",
+};
+
+/** แปลป้ายสถานะใบแปรสภาพ/ใบงาน/รอบขั้นตอน — แยกจากปุ่ม "ยกเลิก" (Cancel) · เรียกตอนเรนเดอร์ในคอมโพเนนต์ที่ใช้ useT() อยู่แล้ว */
+export function tConvStatusLabel(label: string, lang?: Language): string {
+  const current = lang ?? getStoredLanguage();
+  if (current === "en" && CONVERSION_STATUS_EN[label]) {
+    return CONVERSION_STATUS_EN[label];
+  }
+  return translate(current, label);
+}
+
 export const MATERIAL_CONVERSION_STATUS = [
   "DRAFT",
   "IN_PROGRESS",

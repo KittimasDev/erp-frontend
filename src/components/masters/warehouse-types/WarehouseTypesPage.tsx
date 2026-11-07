@@ -1,4 +1,5 @@
 "use client";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 import { useMemo, useState } from "react";
 import { Button, Col, Input, Row, Select, Space, Table, Tag, Typography } from "antd";
@@ -22,33 +23,34 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import WarehouseTypeFormModal, { MENU_SCOPE_OPTIONS } from "./WarehouseTypeFormModal";
 import PageHeader from "@/components/common/PageHeader";
 
-function behaviorTags(type: WarehouseTypeMaster) {
+function behaviorTags(type: WarehouseTypeMaster, t: TFunction) {
   const tags: { key: string; label: string; color: string }[] = [];
   tags.push(
     type.isSellable
-      ? { key: "sell", label: "ขาย/เบิกได้", color: "green" }
-      : { key: "sell", label: "ห้ามขาย/เบิก", color: "red" },
+      ? { key: "sell", label: t("ขาย/เบิกได้"), color: "green" }
+      : { key: "sell", label: t("ห้ามขาย/เบิก"), color: "red" },
   );
   if (type.receiveAsOnHold) {
-    tags.push({ key: "hold", label: "รับเข้าเป็นของพัก", color: "orange" });
+    tags.push({ key: "hold", label: t("รับเข้าเป็นของพัก"), color: "orange" });
   }
   if (type.isReturnInspection) {
-    tags.push({ key: "insp", label: "รอตรวจของคืน", color: "gold" });
+    tags.push({ key: "insp", label: t("รอตรวจของคืน"), color: "gold" });
   }
   if (type.isReturnGoodTarget) {
-    tags.push({ key: "good", label: "ปลายทางของดี", color: "cyan" });
+    tags.push({ key: "good", label: t("ปลายทางของดี"), color: "cyan" });
   }
   if (type.isReturnRejectTarget) {
-    tags.push({ key: "rej", label: "ปลายทางของเสีย", color: "volcano" });
+    tags.push({ key: "rej", label: t("ปลายทางของเสีย"), color: "volcano" });
   }
   const scope = MENU_SCOPE_OPTIONS.find((o) => o.value === type.menuScope);
   if (scope) {
-    tags.push({ key: "scope", label: scope.label, color: "blue" });
+    tags.push({ key: "scope", label: t(scope.label), color: "blue" });
   }
   return tags;
 }
 
 export default function WarehouseTypesPage() {
+  const t = useT();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<boolean | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
@@ -97,26 +99,26 @@ export default function WarehouseTypesPage() {
 
   const columns: ColumnsType<WarehouseTypeMaster> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "order",
       width: 80,
       align: "center",
       render: (_, record, index) => positionById.get(record.id) ?? index + 1,
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 170,
       render: (value: string, record) => (
         <Space size={4} wrap>
           <span className={styles.codeBadge}>{value}</span>
-          {record.isSystem ? <Tag>ระบบ</Tag> : null}
+          {record.isSystem ? <Tag>{t("ระบบ")}</Tag> : null}
         </Space>
       ),
     },
     {
-      title: "ชื่อประเภท",
+      title: t("ชื่อประเภท"),
       dataIndex: "name",
       key: "name",
       render: (value: string, record) => (
@@ -131,11 +133,11 @@ export default function WarehouseTypesPage() {
       ),
     },
     {
-      title: "พฤติกรรมสต๊อก",
+      title: t("พฤติกรรมสต๊อก"),
       key: "behavior",
       render: (_, record) => (
         <Space size={[4, 4]} wrap>
-          {behaviorTags(record).map((tag) => (
+          {behaviorTags(record, t).map((tag) => (
             <Tag key={tag.key} color={tag.color}>
               {tag.label}
             </Tag>
@@ -144,14 +146,14 @@ export default function WarehouseTypesPage() {
       ),
     },
     {
-      title: "คลังที่ใช้",
+      title: t("คลังที่ใช้"),
       dataIndex: "warehouseCount",
       key: "warehouseCount",
       width: 110,
       align: "center",
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "isActive",
       key: "isActive",
       width: 130,
@@ -160,50 +162,50 @@ export default function WarehouseTypesPage() {
         isActive ? (
           <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
-            ใช้งาน
+            {t("ใช้งาน")}
           </Tag>
         ) : (
           <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
-            ปิดใช้งาน
+            {t("ปิดใช้งาน")}
           </Tag>
         ),
     },
     {
-      title: "จัดการ",
+      title: t("จัดการ"),
       key: "actions",
       width: 90,
       align: "center",
       render: (_, record) => {
         const deleteBlocked = record.isSystem
-          ? "ประเภทของระบบลบไม่ได้ ปิดใช้งานแทน"
+          ? t("ประเภทของระบบลบไม่ได้ ปิดใช้งานแทน")
           : record.warehouseCount > 0
-            ? `มีคลัง ${record.warehouseCount} แห่งใช้อยู่`
+            ? t("มีคลัง {n} แห่งใช้อยู่", { n: record.warehouseCount })
             : undefined;
         return (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ ${record.code}`}
+            ariaLabel={t("เมนูจัดการ {code}", { code: record.code })}
             actions={[
               {
                 key: "edit",
                 icon: <EditOutlined />,
-                label: "แก้ไข",
+                label: t("แก้ไข"),
                 onClick: () => openEdit(record),
               },
               "divider",
               {
                 key: "delete",
                 icon: <DeleteOutlined />,
-                label: "ลบ",
+                label: t("ลบ"),
                 danger: true,
                 disabled: !!deleteBlocked,
                 disabledReason: deleteBlocked,
                 onClick: () => deleteMutation.mutate(record.id),
                 confirm: {
-                  title: "ลบประเภทคลัง",
-                  content: `ต้องการลบ "${record.code}" หรือไม่?`,
-                  okText: "ลบ",
-                  cancelText: "ยกเลิก",
+                  title: t("ลบประเภทคลัง"),
+                  content: t("ต้องการลบ \"{code}\" หรือไม่?", { code: record.code }),
+                  okText: t("ลบ"),
+                  cancelText: t("ยกเลิก"),
                 },
               },
             ]}
@@ -218,8 +220,8 @@ export default function WarehouseTypesPage() {
       <section className={styles.page}>
         <PageHeader
           eyebrow="MASTER DATA"
-          title="ประเภทคลัง"
-          subtitle="ตั้งชื่อและพฤติกรรมของคลังแต่ละประเภท — ขายได้ไหม รับของเข้าเป็นของพักไหม ใช้รับของคืนแบบไหน และขึ้นในเมนูกลุ่มไหน"
+          title={t("ประเภทคลัง")}
+          subtitle={t("ตั้งชื่อและพฤติกรรมของคลังแต่ละประเภท — ขายได้ไหม รับของเข้าเป็นของพักไหม ใช้รับของคืนแบบไหน และขึ้นในเมนูกลุ่มไหน")}
           actions={
             <>
 <Button
@@ -229,7 +231,7 @@ export default function WarehouseTypesPage() {
             icon={<PlusOutlined />}
             onClick={openCreate}
           >
-            เพิ่มประเภท
+            {t("เพิ่มประเภท")}
           </Button>
             </>
           }
@@ -240,7 +242,7 @@ export default function WarehouseTypesPage() {
             <Col xs={24} sm={16} lg={10}>
               <Input
                 allowClear
-                placeholder="ค้นหารหัสหรือชื่อ"
+                placeholder={t("ค้นหารหัสหรือชื่อ")}
                 prefix={<SearchOutlined />}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -250,12 +252,12 @@ export default function WarehouseTypesPage() {
               <Select
                 allowClear
                 style={{ width: "100%" }}
-                placeholder="สถานะทั้งหมด"
+                placeholder={t("สถานะทั้งหมด")}
                 value={status}
                 onChange={(value) => setStatus(value)}
                 options={[
-                  { value: true, label: "ใช้งาน" },
-                  { value: false, label: "ปิดใช้งาน" },
+                  { value: true, label: t("ใช้งาน") },
+                  { value: false, label: t("ปิดใช้งาน") },
                 ]}
               />
             </Col>
@@ -266,10 +268,10 @@ export default function WarehouseTypesPage() {
           <div className={styles.tableHeader}>
             <div>
               <div className={styles.tableEyebrow}>WAREHOUSE TYPES</div>
-              <h3>รายการประเภทคลัง</h3>
-              <p>ประเภทที่มีคลังใช้อยู่แก้ชื่อและธงได้ แต่แก้รหัส/ลบ/ปิดไม่ได้</p>
+              <h3>{t("รายการประเภทคลัง")}</h3>
+              <p>{t("ประเภทที่มีคลังใช้อยู่แก้ชื่อและธงได้ แต่แก้รหัส/ลบ/ปิดไม่ได้")}</p>
             </div>
-            <div className={styles.tableCount}>{items.length} รายการ</div>
+            <div className={styles.tableCount}>{t("{n} รายการ", { n: items.length })}</div>
           </div>
 
           {listQuery.isError ? (
@@ -277,7 +279,7 @@ export default function WarehouseTypesPage() {
               <Typography.Text type="danger">
                 {listQuery.error instanceof Error
                   ? listQuery.error.message
-                  : "โหลดข้อมูลประเภทคลังไม่สำเร็จ"}
+                  : t("โหลดข้อมูลประเภทคลังไม่สำเร็จ")}
               </Typography.Text>
             </div>
           ) : (
@@ -289,7 +291,7 @@ export default function WarehouseTypesPage() {
               loading={listQuery.isFetching}
               pagination={{ pageSize: 20, showSizeChanger: false }}
               scroll={{ x: 1040 }}
-              locale={{ emptyText: "ไม่พบประเภทคลัง" }}
+              locale={{ emptyText: t("ไม่พบประเภทคลัง") }}
             />
           )}
         </div>

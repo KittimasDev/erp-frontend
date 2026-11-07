@@ -30,12 +30,15 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { getAccessToken } from "@/lib/auth/token";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
 import {
-  PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  productionOutputStatusLabel,
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./ProductionOutputStockRequestsPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { appLocale } from "@/components/weighbridge/receiving-i18n";
 
 const STATUS_FILTERS: {
   key: string | undefined;
@@ -97,17 +100,19 @@ function statusPillClass(status: string) {
 }
 
 function StatusPill({ status }: { status: string }) {
+  useLanguage();
   const isPending = status === ProductionOutputRequestStatus.PENDING_APPROVAL;
   return (
     <span className={`${styles.statusPill} ${statusPillClass(status)}`}>
       <span className={styles.statusDot} aria-hidden />
       {isPending ? <ClockCircleOutlined aria-hidden /> : null}
-      {PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[status] ?? status}
+      {productionOutputStatusLabel(status)}
     </span>
   );
 }
 
 export default function ProductionOutputStockRequestsPage() {
+  const t = useT();
   const router = useRouter();
   const [status, setStatus] = useState<string | undefined>();
   const [searchInput, setSearchInput] = useState("");
@@ -183,14 +188,14 @@ export default function ProductionOutputStockRequestsPage() {
   const columns: ColumnsType<ProductionOutputStockRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "index",
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * pageSize + index + 1,
       },
       {
-        title: "เลขที่คำขอ",
+        title: t("เลขที่คำขอ"),
         dataIndex: "requestNo",
         key: "requestNo",
         width: 170,
@@ -202,7 +207,7 @@ export default function ProductionOutputStockRequestsPage() {
               {isPending ? (
                 <span
                   className={styles.pendingDot}
-                  title="รอหัวหน้าคลังอนุมัติ"
+                  title={t("รอหัวหน้าคลังอนุมัติ")}
                   aria-hidden
                 />
               ) : null}
@@ -218,7 +223,7 @@ export default function ProductionOutputStockRequestsPage() {
         },
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "item",
         render: (_, row) => (
           <div>
@@ -229,14 +234,14 @@ export default function ProductionOutputStockRequestsPage() {
             </div>
             {row.productionOrderNo ? (
               <span className={styles.metaSecondary}>
-                ใบสั่งผลิต {row.productionOrderNo}
+                {t("ใบสั่งผลิต")} {row.productionOrderNo}
               </span>
             ) : null}
           </div>
         ),
       },
       {
-        title: "จำนวน",
+        title: t("จำนวน"),
         key: "qty",
         align: "right",
         width: 120,
@@ -244,7 +249,7 @@ export default function ProductionOutputStockRequestsPage() {
           `${row.quantity} ${row.unitCode ?? row.unitNameTh ?? ""}`,
       },
       {
-        title: "คลัง / ตำแหน่ง",
+        title: t("คลัง / ตำแหน่ง"),
         key: "warehouse",
         render: (_, row) => (
           <div>
@@ -256,14 +261,14 @@ export default function ProductionOutputStockRequestsPage() {
         ),
       },
       {
-        title: "วันที่รับเข้า",
+        title: t("วันที่รับเข้า"),
         dataIndex: "postingDate",
         key: "postingDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ผู้ขอ / วันที่ส่ง",
+        title: t("ผู้ขอ / วันที่ส่ง"),
         key: "requested",
         width: 150,
         render: (_, row) => (
@@ -276,7 +281,7 @@ export default function ProductionOutputStockRequestsPage() {
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 150,
@@ -285,14 +290,14 @@ export default function ProductionOutputStockRequestsPage() {
             <StatusPill status={value} />
             {row.status === ProductionOutputRequestStatus.PENDING_APPROVAL ? (
               <span className={styles.metaSecondary}>
-                รอหัวหน้าคลังอนุมัติ
+                {t("รอหัวหน้าคลังอนุมัติ")}
               </span>
             ) : null}
           </div>
         ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "actions",
         width: 170,
         align: "center",
@@ -302,7 +307,7 @@ export default function ProductionOutputStockRequestsPage() {
             row.status === ProductionOutputRequestStatus.PENDING_APPROVAL;
           return (
             <RowActionsMenu
-              ariaLabel={`เมนูจัดการ ${row.requestNo}`}
+              ariaLabel={t("เมนูจัดการ {no}", { no: row.requestNo })}
               primary={
                 <Button
                   size="small"
@@ -311,7 +316,7 @@ export default function ProductionOutputStockRequestsPage() {
                     router.push(`/production/output-stock-requests/${row.id}`)
                   }
                 >
-                  {isPending ? "ติดตามสถานะ" : "ดูรายละเอียด"}
+                  {isPending ? t("ติดตามสถานะ") : t("ดูรายละเอียด")}
                 </Button>
               }
               actions={[
@@ -319,13 +324,13 @@ export default function ProductionOutputStockRequestsPage() {
                   isPending && {
                     key: "cancel",
                     icon: <CloseCircleOutlined />,
-                    label: "ยกเลิกคำขอ",
+                    label: t("ยกเลิกคำขอ"),
                     danger: true,
                     onClick: () => cancelMutation.mutate(row.id),
                     confirm: {
-                      title: "ยกเลิกคำขอ?",
-                      okText: "ยกเลิกคำขอ",
-                      cancelText: "ปิด",
+                      title: t("ยกเลิกคำขอ?"),
+                      okText: t("ยกเลิกคำขอ"),
+                      cancelText: t("ปิด"),
                     },
                   },
               ]}
@@ -334,7 +339,7 @@ export default function ProductionOutputStockRequestsPage() {
         },
       },
     ],
-    [canRequest, cancelMutation, page, pageSize, router],
+    [canRequest, cancelMutation, page, pageSize, router, t],
   );
 
   return (
@@ -342,8 +347,8 @@ export default function ProductionOutputStockRequestsPage() {
       <section className={styles.page}>
         <PageHeader
           eyebrow="PRODUCTION · OUTPUT"
-          title="คำขอรับผลผลิตเข้าคลัง"
-          subtitle="ส่งคำขอจากใบสั่งผลิตที่เริ่มผลิตแล้ว ทยอยรับเป็นงวดได้ — รายการที่รออนุมัติจะถูกเน้นไว้ สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนู คลัง FG"
+          title={t("คำขอรับผลผลิตเข้าคลัง")}
+          subtitle={t("ส่งคำขอจากใบสั่งผลิตที่เริ่มผลิตแล้ว ทยอยรับเป็นงวดได้ — รายการที่รออนุมัติจะถูกเน้นไว้ สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนู คลัง FG")}
           actions={
             <>
 {canViewProductionOrders ? (
@@ -352,7 +357,7 @@ export default function ProductionOutputStockRequestsPage() {
               className={styles.backBtn}
               onClick={() => router.push("/production/production-orders")}
             >
-              กลับใบสั่งผลิต
+              {t("กลับใบสั่งผลิต")}
             </Button>
           ) : null}
 <div>
@@ -367,7 +372,7 @@ export default function ProductionOutputStockRequestsPage() {
                   )
                 }
               >
-                สร้างคำขอ
+                {t("สร้างคำขอ")}
               </Button>
             ) : null}
           </div>
@@ -380,11 +385,10 @@ export default function ProductionOutputStockRequestsPage() {
             <AlertOutlined className={styles.pendingAlertIcon} aria-hidden />
             <div>
               <p className={styles.pendingAlertTitle}>
-                มี {pendingCount.toLocaleString("th-TH")} คำขอรออนุมัติ
+                {t("มี {n} คำขอรออนุมัติ", { n: pendingCount.toLocaleString(appLocale()) })}
               </p>
               <p className={styles.pendingAlertText}>
-                รายการเหล่านี้ยังไม่ POST เข้าสต๊อก — หัวหน้าคลังต้องอนุมัติที่เมนู
-                &quot;อนุมัติรับผลผลิตเข้าคลัง&quot; ก่อน
+                {t("รายการเหล่านี้ยังไม่ POST เข้าสต๊อก — หัวหน้าคลังต้องอนุมัติที่เมนู \"อนุมัติรับผลผลิตเข้าคลัง\" ก่อน")}
               </p>
             </div>
           </div>
@@ -415,15 +419,15 @@ export default function ProductionOutputStockRequestsPage() {
                   setPage(1);
                 }}
               >
-                <span className={styles.statLabel}>{filter.label}</span>
+                <span className={styles.statLabel}>{filter.key ? productionOutputStatusLabel(filter.key) : t("ทั้งหมด")}</span>
                 <strong
                   className={`${styles.statValue} ${
                     isPendingFilter && count > 0 ? styles.statValuePending : ""
                   }`}
                 >
-                  {count.toLocaleString("th-TH")}
+                  {count.toLocaleString(appLocale())}
                 </strong>
-                <span className={styles.statHint}>{filter.hint}</span>
+                <span className={styles.statHint}>{t(filter.hint)}</span>
               </button>
             );
           })}
@@ -434,7 +438,7 @@ export default function ProductionOutputStockRequestsPage() {
             <Input
               allowClear
               prefix={<SearchOutlined />}
-              placeholder="ค้นหาเลขคำขอ / สินค้า / Lot"
+              placeholder={t("ค้นหาเลขคำขอ / สินค้า / Lot")}
               style={{ width: 300 }}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
@@ -451,14 +455,14 @@ export default function ProductionOutputStockRequestsPage() {
                 setPage(1);
               }}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
             <Button
               icon={<ReloadOutlined />}
               loading={listQuery.isFetching}
               onClick={() => void listQuery.refetch()}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
           </Space>
         </div>
@@ -466,13 +470,13 @@ export default function ProductionOutputStockRequestsPage() {
         <div className={styles.tableCard}>
           <div className={styles.listHeader}>
             <div>
-              <h3>{activeFilter?.label ?? "รายการคำขอ"}</h3>
+              <h3>{activeFilter?.key ? productionOutputStatusLabel(activeFilter.key) : activeFilter ? t("ทั้งหมด") : t("รายการคำขอ")}</h3>
               <p>
                 {status === ProductionOutputRequestStatus.PENDING_APPROVAL
-                  ? "รายการที่ต้องรอหัวหน้าคลังอนุมัติ — กดแถวเพื่อดูรายละเอียด"
+                  ? t("รายการที่ต้องรอหัวหน้าคลังอนุมัติ — กดแถวเพื่อดูรายละเอียด")
                   : status
-                    ? activeFilter?.hint
-                    : "แสดงทุกสถานะ — รายการรออนุมัติจะอยู่ด้านบนและถูกเน้นสี"}
+                    ? t(activeFilter?.hint ?? "")
+                    : t("แสดงทุกสถานะ — รายการรออนุมัติจะอยู่ด้านบนและถูกเน้นสี")}
               </p>
             </div>
           </div>
@@ -486,14 +490,14 @@ export default function ProductionOutputStockRequestsPage() {
               current: page,
               pageSize,
               onChange: setPage,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
             }}
             scroll={{ x: 1100 }}
             locale={{
               emptyText:
                 status === ProductionOutputRequestStatus.PENDING_APPROVAL
-                  ? "ไม่มีคำขอรออนุมัติ"
-                  : "ยังไม่มีคำขอรับผลผลิต",
+                  ? t("ไม่มีคำขอรออนุมัติ")
+                  : t("ยังไม่มีคำขอรับผลผลิต"),
             }}
             rowClassName={(record) =>
               record.status === ProductionOutputRequestStatus.PENDING_APPROVAL

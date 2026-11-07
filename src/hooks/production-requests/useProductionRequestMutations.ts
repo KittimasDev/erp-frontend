@@ -10,6 +10,7 @@ import {
   updateProductionRequest,
 } from "@/lib/api/production-requests";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow } from "@/lib/i18n/useT";
 import type {
   CancelProductionRequestBody,
   CreateProductionRequestBody,
@@ -33,11 +34,11 @@ export function useCreateProductionRequestMutation() {
       createProductionRequest(getAccessToken(), body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "สร้างใบขอผลิตสำเร็จแล้ว");
+      message.success(response.message || tNow("สร้างใบขอผลิตสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างใบขอผลิตไม่สำเร็จ",
+        error instanceof ApiError ? error.message : tNow("สร้างใบขอผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -58,11 +59,11 @@ export function useUpdateProductionRequestMutation() {
     }) => updateProductionRequest(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "แก้ไขใบขอผลิตสำเร็จแล้ว");
+      message.success(response.message || tNow("แก้ไขใบขอผลิตสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "แก้ไขใบขอผลิตไม่สำเร็จ",
+        error instanceof ApiError ? error.message : tNow("แก้ไขใบขอผลิตไม่สำเร็จ"),
       );
     },
   });
@@ -83,11 +84,11 @@ export function useCancelProductionRequestMutation() {
     }) => cancelProductionRequest(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
-      message.success(response.message || "ยกเลิกใบขอผลิตแล้ว");
+      message.success(response.message || tNow("ยกเลิกใบขอผลิตแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : tNow("ยกเลิกไม่สำเร็จ"),
       );
     },
   });

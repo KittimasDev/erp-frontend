@@ -13,6 +13,8 @@ import {
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 
+import { useT } from "@/lib/i18n/useT";
+import { cycleNumLocale } from "@/types/production-cycle";
 import { getAccessToken } from "@/lib/auth/token";
 import { getFifoLotSuggestion } from "@/lib/api/dispatch-orders";
 import { useConfirmShiftRecordMutation } from "@/hooks/production-cycles/useProductionCycles";
@@ -53,6 +55,7 @@ export default function ConfirmShiftStockModal({
   onClose,
 }: Props) {
   const { message } = App.useApp();
+  const t = useT();
   const confirm = useConfirmShiftRecordMutation();
   const config = record.recordingConfigSnapshot;
   const values = (record.values ?? {}) as RecordingFieldValues;
@@ -112,18 +115,18 @@ export default function ConfirmShiftStockModal({
         .reduce((a, l) => a + (Number(l.quantity) || 0), 0);
       if (Math.abs(sum - req.needQty) > 1e-9) {
         message.error(
-          `${req.label}: ยอดตัดรวม ${sum} ต้องเท่ากับ ${req.needQty}`,
+          t("{label}: ยอดตัดรวม {sum} ต้องเท่ากับ {need}", { label: req.label, sum, need: req.needQty }),
         );
         return;
       }
     }
     for (const line of lines) {
       if (!line.warehouseId || !line.locationId || !line.lotId || !line.unitId) {
-        message.error("เลือกคลัง ตำแหน่ง Lot และหน่วยให้ครบทุกบรรทัด");
+        message.error(t("เลือกคลัง ตำแหน่ง Lot และหน่วยให้ครบทุกบรรทัด"));
         return;
       }
       if (!(line.quantity > 0)) {
-        message.error("จำนวนตัดต้องมากกว่า 0");
+        message.error(t("จำนวนตัดต้องมากกว่า 0"));
         return;
       }
     }
@@ -150,9 +153,9 @@ export default function ConfirmShiftStockModal({
     return (
       <Modal
         open
-        title="ยืนยันบันทึกกะ"
-        okText="ยืนยัน"
-        cancelText="ยกเลิก"
+        title={t("ยืนยันบันทึกกะ")}
+        okText={t("ยืนยัน")}
+        cancelText={t("ยกเลิก")}
         confirmLoading={confirm.isPending}
         onCancel={onClose}
         onOk={() =>
@@ -166,8 +169,8 @@ export default function ConfirmShiftStockModal({
         <Alert
           type="info"
           showIcon
-          title="ไม่มียอด INPUT ที่ต้องตัดสต๊อก"
-          description="จะเปลี่ยนสถานะเป็นยืนยันโดยไม่ตัดสต๊อก"
+          title={t("ไม่มียอด INPUT ที่ต้องตัดสต๊อก")}
+          description={t("จะเปลี่ยนสถานะเป็นยืนยันโดยไม่ตัดสต๊อก")}
         />
       </Modal>
     );
@@ -177,9 +180,9 @@ export default function ConfirmShiftStockModal({
     <Modal
       open
       width={720}
-      title="ยืนยันบันทึกกะ — เลือกคลัง/Lot เพื่อตัดสต๊อก"
-      okText="ยืนยันและตัดสต๊อก"
-      cancelText="ยกเลิก"
+      title={t("ยืนยันบันทึกกะ — เลือกคลัง/Lot เพื่อตัดสต๊อก")}
+      okText={t("ยืนยันและตัดสต๊อก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={confirm.isPending}
       onCancel={onClose}
       onOk={submit}
@@ -189,8 +192,8 @@ export default function ConfirmShiftStockModal({
         type="warning"
         showIcon
         style={{ marginBottom: 12 }}
-        title="ยืนยันแล้วจะตัดสต๊อกทันที"
-        description="ยอดรวมต่อรายการต้องตรงกับที่บันทึกในฟอร์ม · ของไม่พอระบบจะไม่ตัดบางส่วน"
+        title={t("ยืนยันแล้วจะตัดสต๊อกทันที")}
+        description={t("ยอดรวมต่อรายการต้องตรงกับที่บันทึกในฟอร์ม · ของไม่พอระบบจะไม่ตัดบางส่วน")}
       />
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {requirements.map((req) => {
@@ -219,9 +222,9 @@ export default function ConfirmShiftStockModal({
                 <div>
                   <Typography.Text strong>{req.label}</Typography.Text>
                   <div style={{ color: "#8c8c8c", fontSize: 12 }}>
-                    ต้องตัด {req.needQty.toLocaleString("th-TH")} · รวมที่เลือก{" "}
+                    {t("ต้องตัด")} {req.needQty.toLocaleString(cycleNumLocale())} · {t("รวมที่เลือก")}{" "}
                     <span style={{ color: match ? "#739816" : "#cf1322" }}>
-                      {sum.toLocaleString("th-TH")}
+                      {sum.toLocaleString(cycleNumLocale())}
                     </span>
                   </div>
                 </div>
@@ -243,7 +246,7 @@ export default function ConfirmShiftStockModal({
                     ])
                   }
                 >
-                  เพิ่ม Lot
+                  {t("เพิ่ม Lot")}
                 </Button>
               </div>
               {group.map((line) => (
@@ -292,6 +295,7 @@ function StockLineEditors({
   availableHint?: string | number;
 }) {
   const { message } = App.useApp();
+  const t = useT();
   const lotsForItemQuery = useInventoryLotsQuery(
     { itemId: line.itemId, hasStock: true },
     { enabled: Boolean(line.itemId) },
@@ -338,12 +342,12 @@ function StockLineEditors({
     )
     .map((l) => ({
       value: l.lotId,
-      label: `${l.lotNo} (คงเหลือ ${l.quantityAvailable})`,
+      label: t("{lot} (คงเหลือ {qty})", { lot: l.lotNo, qty: l.quantityAvailable }),
     }));
 
   const applyFifo = async () => {
     if (!line.warehouseId || !line.locationId) {
-      message.warning("เลือกคลังและตำแหน่งก่อน");
+      message.warning(t("เลือกคลังและตำแหน่งก่อน"));
       return;
     }
     try {
@@ -355,7 +359,7 @@ function StockLineEditors({
       });
       const first = res.data?.[0];
       if (!first) {
-        message.warning("ไม่พบ Lot ตาม FIFO");
+        message.warning(t("ไม่พบ Lot ตาม FIFO"));
         return;
       }
       onChange({
@@ -364,14 +368,14 @@ function StockLineEditors({
         quantity: Number(first.quantity) || line.quantity,
       });
     } catch {
-      message.error("ดึง FIFO ไม่สำเร็จ");
+      message.error(t("ดึง FIFO ไม่สำเร็จ"));
     }
   };
 
   return (
     <Space wrap style={{ width: "100%", marginBottom: 8 }} align="start">
       <Select
-        placeholder="คลัง"
+        placeholder={t("คลัง")}
         style={{ width: 160 }}
         options={warehouseOptions}
         value={line.warehouseId}
@@ -385,7 +389,7 @@ function StockLineEditors({
         }
       />
       <Select
-        placeholder="ตำแหน่ง"
+        placeholder={t("ตำแหน่ง")}
         style={{ width: 140 }}
         disabled={!line.warehouseId}
         options={locationOptions}
@@ -416,12 +420,12 @@ function StockLineEditors({
       </Button>
       {onRemove ? (
         <Button size="small" danger onClick={onRemove}>
-          ลบ
+          {t("ลบ")}
         </Button>
       ) : null}
       {availableHint !== undefined ? (
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          รวมคงเหลือ {Number(availableHint).toLocaleString("th-TH")}
+          {t("รวมคงเหลือ")} {Number(availableHint).toLocaleString(cycleNumLocale())}
         </Typography.Text>
       ) : null}
     </Space>

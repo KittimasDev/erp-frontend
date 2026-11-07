@@ -5,9 +5,11 @@ import { useSearchParams } from "next/navigation";
 
 import PageLoading from "@/components/common/PageLoading";
 import PurchaseOrderCreateFromPrPage from "@/components/purchase-orders/PurchaseOrderCreateFromPrPage";
+import { useT } from "@/lib/i18n/useT";
 import { peekPurchaseOrderPrLineSelection } from "@/types/purchase-order-pr-line-selection";
 
 function CreateFromPrs() {
+  const t = useT();
   const searchParams = useSearchParams();
   /* ?ids=a,b,c — ตัดค่าว่างและใบซ้ำออก backend ปฏิเสธใบซ้ำอยู่แล้ว */
   const ids = Array.from(
@@ -45,7 +47,7 @@ function CreateFromPrs() {
   if (!ids.length) {
     return (
       <div style={{ padding: 24 }}>
-        ไม่ได้ระบุใบขอซื้อ — เลือกใบขอซื้อจากหน้ารายการใบสั่งซื้อก่อน
+        {t("ไม่ได้ระบุใบขอซื้อ — เลือกใบขอซื้อจากหน้ารายการใบสั่งซื้อก่อน")}
       </div>
     );
   }

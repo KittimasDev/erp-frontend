@@ -34,6 +34,8 @@ import {
 } from "@/hooks/billing-notes/useBillingNotes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { BILLING_NOTE_STATUS_COLOR, BILLING_NOTE_STATUS_LABEL, type PendingBillingAp } from "@/types/billing-notes";
+import { tFin } from "@/components/payment-vouchers/paymentVoucherUtils";
+import { useT } from "@/lib/i18n/useT";
 import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "FINANCE_BILLING_NOTES";
@@ -75,6 +77,7 @@ function AddApModal({
   onClose: () => void;
   onAdd: (rows: Row[]) => void;
 }) {
+  const t = useT();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -85,18 +88,18 @@ function AddApModal({
   return (
     <Modal
       open
-      title="เพิ่มใบตั้งหนี้ของผู้ขายนี้"
+      title={t("เพิ่มใบตั้งหนี้ของผู้ขายนี้")}
       width={900}
       onCancel={onClose}
-      okText={`เพิ่ม (${selected.length})`}
-      cancelText="ปิด"
+      okText={t("เพิ่ม ({n})", { n: selected.length })}
+      cancelText={t("ปิด")}
       okButtonProps={{ disabled: selected.length === 0 }}
       onOk={() => onAdd(selected.map(fromPending))}
     >
       <Input.Search
         allowClear
         style={{ width: 320, marginBottom: 12 }}
-        placeholder="ค้นเลขที่ AP / PO"
+        placeholder={t("ค้นเลขที่ AP / PO")}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onSearch={(v) => {
@@ -122,19 +125,19 @@ function AddApModal({
           showSizeChanger: false,
         }}
         columns={[
-          { title: "วันที่ AP", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
-          { title: "เลขที่ AP", dataIndex: "docNo" },
-          { title: "เลขที่ PO", dataIndex: "poNo", render: (v?: string) => v ?? "—" },
-          { title: "วันครบกำหนด", dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
+          { title: t("วันที่ AP"), dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
+          { title: t("เลขที่ AP"), dataIndex: "docNo" },
+          { title: t("เลขที่ PO"), dataIndex: "poNo", render: (v?: string) => v ?? "—" },
+          { title: t("วันครบกำหนด"), dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
           {
-            title: "ยอดพร้อมวางบิล",
+            title: t("ยอดพร้อมวางบิล"),
             dataIndex: "billableAmount",
             align: "right",
             width: 140,
             render: (v: number) => money.format(v),
           },
         ]}
-        locale={{ emptyText: "ไม่มี AP อื่นของผู้ขายนี้ที่พร้อมวางบิล" }}
+        locale={{ emptyText: t("ไม่มี AP อื่นของผู้ขายนี้ที่พร้อมวางบิล") }}
       />
     </Modal>
   );
@@ -142,6 +145,7 @@ function AddApModal({
 
 /** สร้าง (จาก ?apIds=a,b) / แก้ไขใบวางบิลร่าง — ยืนยันแล้วแก้ยอดไม่ได้ */
 export default function BillingNoteFormPage({ id }: { id?: string }) {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
@@ -217,23 +221,23 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   });
 
   const submit = async (confirmAfter: boolean) => {
-    if (rows.length === 0) return message.error("ต้องมีใบตั้งหนี้อย่างน้อย 1 ใบ");
+    if (rows.length === 0) return message.error(t("ต้องมีใบตั้งหนี้อย่างน้อย 1 ใบ"));
     const bad = rows.find(invalid);
-    if (bad) return message.error(`ยอดวางบิลของ ${bad.docNo} ต้องมากกว่า 0 และไม่เกินยอดพร้อมวางบิล`);
+    if (bad) return message.error(t("ยอดวางบิลของ {no} ต้องมากกว่า 0 และไม่เกินยอดพร้อมวางบิล", { no: bad.docNo }));
     let savedId = id;
     try {
       savedId = (await saveMutation.mutateAsync(buildBody())).id;
       if (!confirmAfter) {
-        message.success("บันทึกร่างใบวางบิลแล้ว");
+        message.success(t("บันทึกร่างใบวางบิลแล้ว"));
         // สร้างใหม่ → ไปหน้าแก้ร่างเพื่อแนบไฟล์ได้ต่อ
         if (!id) router.replace(`${BASE_PATH}/${savedId}/edit`);
         return;
       }
       await confirmMutation.mutateAsync(savedId);
-      message.success("ยืนยันใบวางบิลแล้ว");
+      message.success(t("ยืนยันใบวางบิลแล้ว"));
       router.push(`${BASE_PATH}/${savedId}`);
     } catch (e) {
-      message.error(errText(e, "บันทึกใบวางบิลไม่สำเร็จ"));
+      message.error(errText(e, t("บันทึกใบวางบิลไม่สำเร็จ")));
       // บันทึกร่างได้แต่ยืนยันไม่ผ่าน → พาไปหน้าแก้ร่างที่เพิ่งสร้าง
       if (!id && savedId) router.replace(`${BASE_PATH}/${savedId}/edit`);
     }
@@ -241,35 +245,35 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
 
   const columns: ColumnsType<Row> = [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_: unknown, __: unknown, index: number) => index + 1,
       },
     {
-      title: "เลขที่ AP",
+      title: t("เลขที่ AP"),
       dataIndex: "docNo",
       width: 170,
       render: (v: string, r) => <Link href={`/finance/payables/ap-invoices/${r.apId}`}>{v}</Link>,
     },
     {
-      title: "เลขที่ PO",
+      title: t("เลขที่ PO"),
       dataIndex: "poNo",
       width: 140,
       render: (v: string | undefined, r) =>
         v && r.purchaseOrderId ? <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link> : "—",
     },
-    { title: "วันครบกำหนด", dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
+    { title: t("วันครบกำหนด"), dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
     {
-      title: "ยอดคงเหลือ (พร้อมวางบิล)",
+      title: t("ยอดคงเหลือ (พร้อมวางบิล)"),
       dataIndex: "billable",
       align: "right",
       width: 190,
       render: (v: number) => money.format(v),
     },
     {
-      title: "ยอดที่ต้องการวางบิล",
+      title: t("ยอดที่ต้องการวางบิล"),
       key: "amount",
       align: "right",
       width: 200,
@@ -290,7 +294,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
             disabled={!allowed}
             onClick={() => setAmounts((prev) => ({ ...prev, [r.apId]: r.billable }))}
           >
-            เต็มยอด
+            {t("เต็มยอด")}
           </Button>
         </Space>
       ),
@@ -305,7 +309,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           danger
           icon={<DeleteOutlined />}
           disabled={!allowed}
-          aria-label={`เอา ${r.docNo} ออก`}
+          aria-label={t("เอา {no} ออก", { no: r.docNo })}
           onClick={() => setRemoved((prev) => [...prev, r.apId])}
         />
       ),
@@ -316,16 +320,16 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   if (loadError) {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="error" showIcon message={errText(loadError, "โหลดข้อมูลไม่สำเร็จ")} />
-        <Button onClick={() => router.push(BASE_PATH)}>กลับไปหน้ารายการ</Button>
+        <Alert type="error" showIcon message={errText(loadError, t("โหลดข้อมูลไม่สำเร็จ"))} />
+        <Button onClick={() => router.push(BASE_PATH)}>{t("กลับไปหน้ารายการ")}</Button>
       </Space>
     );
   }
   if (!id && apIds.length === 0) {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="info" showIcon message="เลือก AP ที่ต้องการวางบิลจากหน้ารายการรอวางบิลก่อน" />
-        <Button onClick={() => router.push(BASE_PATH)}>ไปหน้ารายการรอวางบิล</Button>
+        <Alert type="info" showIcon message={t("เลือก AP ที่ต้องการวางบิลจากหน้ารายการรอวางบิลก่อน")} />
+        <Button onClick={() => router.push(BASE_PATH)}>{t("ไปหน้ารายการรอวางบิล")}</Button>
       </Space>
     );
   }
@@ -333,8 +337,8 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   if (detail && detail.status !== "DRAFT") {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="warning" showIcon message="ใบวางบิลนี้ยืนยันหรือยกเลิกแล้ว แก้ไขยอดไม่ได้" />
-        <Button onClick={() => router.push(`${BASE_PATH}/${detail.id}`)}>ดูรายละเอียด</Button>
+        <Alert type="warning" showIcon message={t("ใบวางบิลนี้ยืนยันหรือยกเลิกแล้ว แก้ไขยอดไม่ได้")} />
+        <Button onClick={() => router.push(`${BASE_PATH}/${detail.id}`)}>{t("ดูรายละเอียด")}</Button>
       </Space>
     );
   }
@@ -342,21 +346,21 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title={<>{id ? `แก้ไขใบวางบิล ${detail?.billingNo ?? ""}` : "สร้างใบวางบิล"}</>}
+        title={<>{id ? t("แก้ไขใบวางบิล {no}", { no: detail?.billingNo ?? "" }) : t("สร้างใบวางบิล")}</>}
         back={
           <>
 <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(BASE_PATH)}>
-          กลับ
+          {t("กลับ")}
         </Button>
           </>
         }
       />
-      {!allowed ? <Alert type="warning" showIcon message="คุณไม่มีสิทธิ์บันทึกใบวางบิล" /> : null}
+      {!allowed ? <Alert type="warning" showIcon message={t("คุณไม่มีสิทธิ์บันทึกใบวางบิล")} /> : null}
 
-      <Card title="ข้อมูลเอกสาร">
+      <Card title={t("ข้อมูลเอกสาร")}>
         <Descriptions column={{ xs: 1, md: 2 }} bordered size="small">
-          <Descriptions.Item label="เลขที่ใบวางบิล">{detail?.billingNo ?? "สร้างอัตโนมัติเมื่อบันทึก"}</Descriptions.Item>
-          <Descriptions.Item label="วันที่">
+          <Descriptions.Item label={t("เลขที่ใบวางบิล")}>{detail?.billingNo ?? t("สร้างอัตโนมัติเมื่อบันทึก")}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่")}>
             <DatePicker
               allowClear={false}
               format="DD/MM/YYYY"
@@ -365,25 +369,25 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
               onChange={(v) => setBillingDateInput(v)}
             />
           </Descriptions.Item>
-          <Descriptions.Item label="สถานะ">
-            <Tag color={BILLING_NOTE_STATUS_COLOR.DRAFT}>{BILLING_NOTE_STATUS_LABEL.DRAFT}</Tag>
+          <Descriptions.Item label={t("สถานะ")}>
+            <Tag color={BILLING_NOTE_STATUS_COLOR.DRAFT}>{tFin(BILLING_NOTE_STATUS_LABEL.DRAFT)}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="ผู้ขาย">
+          <Descriptions.Item label={t("ผู้ขาย")}>
             {creditor.creditorCode} {creditor.creditorName}
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
       <Card
-        title="รายการใบตั้งหนี้ (AP)"
+        title={t("รายการใบตั้งหนี้ (AP)")}
         extra={
           <Button icon={<PlusOutlined />} disabled={!allowed} onClick={() => setAddOpen(true)}>
-            เพิ่มใบตั้งหนี้
+            {t("เพิ่มใบตั้งหนี้")}
           </Button>
         }
       >
         <Typography.Paragraph type="secondary">
-          ยอดคงเหลือคิดจากยอด AP หลังหักมัดจำและปรับหนี้แล้ว — วางบิลเต็มยอดหรือบางส่วนได้ แต่ต้องไม่เกินยอดคงเหลือ
+          {t("ยอดคงเหลือคิดจากยอด AP หลังหักมัดจำและปรับหนี้แล้ว — วางบิลเต็มยอดหรือบางส่วนได้ แต่ต้องไม่เกินยอดคงเหลือ")}
         </Typography.Paragraph>
         <Table<Row>
           rowKey="apId"
@@ -391,25 +395,25 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           dataSource={rows}
           pagination={false}
           scroll={{ x: 900 }}
-          locale={{ emptyText: "ยังไม่มีใบตั้งหนี้ — กด “เพิ่มใบตั้งหนี้”" }}
+          locale={{ emptyText: t("ยังไม่มีใบตั้งหนี้ — กด “เพิ่มใบตั้งหนี้”") }}
         />
       </Card>
 
-      <Card title="สรุปยอด">
+      <Card title={t("สรุปยอด")}>
         <Descriptions column={{ xs: 1, md: 3 }} bordered size="small">
-          <Descriptions.Item label="ยอดวางบิลรวม">{money.format(total)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดออก PV แล้ว">{money.format(issued)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดที่ออก PV เพิ่มได้">{money.format(Math.max(total - issued, 0))}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดวางบิลรวม")}>{money.format(total)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดออก PV แล้ว")}>{money.format(issued)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดที่ออก PV เพิ่มได้")}>{money.format(Math.max(total - issued, 0))}</Descriptions.Item>
         </Descriptions>
         <Typography.Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-          ออกใบสำคัญจ่ายได้หลังยืนยันใบวางบิล (จากหน้ารายละเอียด)
+          {t("ออกใบสำคัญจ่ายได้หลังยืนยันใบวางบิล (จากหน้ารายละเอียด)")}
         </Typography.Text>
       </Card>
 
-      <Card title="ข้อมูลเพิ่มเติม">
+      <Card title={t("ข้อมูลเพิ่มเติม")}>
         <Space orientation="vertical" style={{ width: "100%" }}>
           <Space>
-            <Typography.Text>วันที่นัดชำระ</Typography.Text>
+            <Typography.Text>{t("วันที่นัดชำระ")}</Typography.Text>
             <DatePicker
               format="DD/MM/YYYY"
               value={appointment}
@@ -420,24 +424,24 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           <Input.TextArea
             rows={3}
             maxLength={5000}
-            placeholder="หมายเหตุ"
+            placeholder={t("หมายเหตุ")}
             value={remark}
             disabled={!allowed}
             onChange={(e) => setRemarkInput(e.target.value)}
           />
           {id ? (
-            <DocumentAttachmentsPanel documentType="BILLING_NOTE" documentId={id} canEdit={allowed} emptyText="ยังไม่มีเอกสารแนบ" />
+            <DocumentAttachmentsPanel documentType="BILLING_NOTE" documentId={id} canEdit={allowed} emptyText={t("ยังไม่มีเอกสารแนบ")} />
           ) : (
-            <Typography.Text type="secondary">แนบเอกสารได้หลังกด “บันทึกร่าง” ครั้งแรก</Typography.Text>
+            <Typography.Text type="secondary">{t("แนบเอกสารได้หลังกด “บันทึกร่าง” ครั้งแรก")}</Typography.Text>
           )}
         </Space>
       </Card>
 
-      <Card title="ผู้ดำเนินการ">
+      <Card title={t("ผู้ดำเนินการ")}>
         <Descriptions column={{ xs: 1, md: 3 }} size="small">
-          <Descriptions.Item label="ผู้สร้าง">{detail?.createdByName ?? "ผู้ใช้ปัจจุบัน (เมื่อบันทึก)"}</Descriptions.Item>
-          <Descriptions.Item label="ผู้ยืนยัน">—</Descriptions.Item>
-          <Descriptions.Item label="วันที่ดำเนินการ">
+          <Descriptions.Item label={t("ผู้สร้าง")}>{detail?.createdByName ?? t("ผู้ใช้ปัจจุบัน (เมื่อบันทึก)")}</Descriptions.Item>
+          <Descriptions.Item label={t("ผู้ยืนยัน")}>—</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่ดำเนินการ")}>
             {detail ? dayjs(detail.createdAt).format("DD/MM/YYYY HH:mm") : "—"}
           </Descriptions.Item>
         </Descriptions>
@@ -445,18 +449,18 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
 
       <Space>
         <Button disabled={!allowed || busy} loading={saveMutation.isPending && !confirmMutation.isPending} onClick={() => void submit(false)}>
-          บันทึกร่าง
+          {t("บันทึกร่าง")}
         </Button>
         <Popconfirm
-          title="ยืนยันใบวางบิล?"
-          description="ยืนยันแล้วระบบจะจองยอดของ AP และแก้ไขยอดโดยตรงไม่ได้"
-          okText="ยืนยัน"
-          cancelText="ยกเลิก"
+          title={t("ยืนยันใบวางบิล?")}
+          description={t("ยืนยันแล้วระบบจะจองยอดของ AP และแก้ไขยอดโดยตรงไม่ได้")}
+          okText={t("ยืนยัน")}
+          cancelText={t("ยกเลิก")}
           disabled={!allowed || busy}
           onConfirm={() => void submit(true)}
         >
           <Button type="primary" disabled={!allowed || busy} loading={confirmMutation.isPending}>
-            ยืนยันใบวางบิล
+            {t("ยืนยันใบวางบิล")}
           </Button>
         </Popconfirm>
       </Space>

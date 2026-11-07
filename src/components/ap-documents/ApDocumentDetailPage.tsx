@@ -35,6 +35,10 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
+
 import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPanel";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
@@ -50,7 +54,6 @@ import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyB
 import {
   AP_DOCUMENT_STATUS_COLOR,
   AP_DOCUMENT_STATUS_LABEL,
-  AP_EVENT_LABEL,
   AP_SETTLEMENT_METHOD_LABEL,
   AP_USAGE_STATUS_COLOR,
   AP_USAGE_STATUS_LABEL,
@@ -64,7 +67,7 @@ import {
   type ApSupplierCreditUsage,
 } from "@/types/ap-documents";
 
-import { AP_DOCUMENT_CONFIG, formatThaiDate, money } from "./apDocumentConfig";
+import { AP_DOCUMENT_CONFIG, apEventLabel, apShortLabel, formatThaiDate, money } from "./apDocumentConfig";
 import PageHeader from "@/components/common/PageHeader";
 
 type Props = { kind: ApDocumentKind; id: string };
@@ -73,7 +76,8 @@ type Props = { kind: ApDocumentKind; id: string };
 const formatDateTime = (value?: string | null) => {
   if (!value) return "—";
   const d = dayjs(value);
-  return `${d.format("DD/MM/")}${d.year() + 543} ${d.format("HH:mm")}`;
+  const year = getStoredLanguage() === "en" ? d.year() : d.year() + 543;
+  return `${d.format("DD/MM/")}${year} ${d.format("HH:mm")}`;
 };
 
 const errorText = (error: unknown, fallback: string) =>
@@ -91,6 +95,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
   const config = AP_DOCUMENT_CONFIG[kind];
   const isInvoice = kind === "invoice";
   const isCredit = kind === "creditNote";
+  const t = useT();
   const router = useRouter();
   const { message, modal } = App.useApp();
   const perms = useScreenActionPermissions(config.screenCode);
@@ -126,8 +131,8 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
     return (
       <Result
         status="404"
-        title={`ไม่พบ${config.shortLabel}`}
-        extra={<Button onClick={() => router.push(config.basePath)}>กลับรายการ</Button>}
+        title={t("ไม่พบ{label}", { label: apShortLabel(config) })}
+        extra={<Button onClick={() => router.push(config.basePath)}>{t("กลับรายการ")}</Button>}
       />
     );
   }
@@ -148,30 +153,30 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
   const handleSubmit = () =>
     modal.confirm({
-      title: `ส่งอนุมัติ${config.shortLabel} ${doc.docNo}?`,
-      content: `ยอด ${money.format(doc.totalAmount)} บาท · ส่งแล้วแก้ไขไม่ได้จนกว่าจะถูกไม่อนุมัติ`,
-      okText: "ส่งอนุมัติ",
+      title: t("ส่งอนุมัติ{label} {docNo}?", { label: apShortLabel(config), docNo: doc.docNo }),
+      content: t("ยอด {amount} บาท · ส่งแล้วแก้ไขไม่ได้จนกว่าจะถูกไม่อนุมัติ", { amount: money.format(doc.totalAmount) }),
+      okText: t("ส่งอนุมัติ"),
       onOk: async () => {
         try {
           await submitMutation.mutateAsync();
-          message.success("ส่งอนุมัติแล้ว");
+          message.success(t("ส่งอนุมัติแล้ว"));
         } catch (error) {
-          message.error(errorText(error, "ส่งอนุมัติไม่สำเร็จ"));
+          message.error(errorText(error, t("ส่งอนุมัติไม่สำเร็จ")));
         }
       },
     });
 
   const handleApprove = () =>
     modal.confirm({
-      title: `อนุมัติ${config.shortLabel} ${doc.docNo}?`,
-      content: `ยอด ${money.format(doc.totalAmount)} บาท · อนุมัติแล้วยังไม่กระทบยอด AP จนกว่าจะยืนยันนำไปใช้ และแก้ไขไม่ได้`,
-      okText: "อนุมัติ",
+      title: t("อนุมัติ{label} {docNo}?", { label: apShortLabel(config), docNo: doc.docNo }),
+      content: t("ยอด {amount} บาท · อนุมัติแล้วยังไม่กระทบยอด AP จนกว่าจะยืนยันนำไปใช้ และแก้ไขไม่ได้", { amount: money.format(doc.totalAmount) }),
+      okText: t("อนุมัติ"),
       onOk: async () => {
         try {
           await approveMutation.mutateAsync();
-          message.success("อนุมัติแล้ว");
+          message.success(t("อนุมัติแล้ว"));
         } catch (error) {
-          message.error(errorText(error, "อนุมัติไม่สำเร็จ"));
+          message.error(errorText(error, t("อนุมัติไม่สำเร็จ")));
         }
       },
     });
@@ -179,22 +184,22 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
   const handleReject = async () => {
     try {
       await rejectMutation.mutateAsync(rejectReason.trim());
-      message.success("บันทึกไม่อนุมัติแล้ว");
+      message.success(t("บันทึกไม่อนุมัติแล้ว"));
       setRejectOpen(false);
       setRejectReason("");
     } catch (error) {
-      message.error(errorText(error, "ไม่อนุมัติไม่สำเร็จ"));
+      message.error(errorText(error, t("ไม่อนุมัติไม่สำเร็จ")));
     }
   };
 
   const handleCancel = async () => {
     try {
       await cancelMutation.mutateAsync(cancelReason);
-      message.success("ยกเลิกแล้ว");
+      message.success(t("ยกเลิกแล้ว"));
       setCancelOpen(false);
       setCancelReason("");
     } catch (error) {
-      message.error(errorText(error, "ยกเลิกไม่สำเร็จ"));
+      message.error(errorText(error, t("ยกเลิกไม่สำเร็จ")));
     }
   };
 
@@ -212,11 +217,11 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         referenceNo: values.referenceNo?.trim() || undefined,
         remark: values.remark?.trim() || undefined,
       });
-      message.success("บันทึกรับเงินคืนแล้ว");
+      message.success(t("บันทึกรับเงินคืนแล้ว"));
       setRefundOpen(false);
       refundForm.resetFields();
     } catch (error) {
-      message.error(errorText(error, "บันทึกรับเงินคืนไม่สำเร็จ"));
+      message.error(errorText(error, t("บันทึกรับเงินคืนไม่สำเร็จ")));
     }
   };
 
@@ -227,11 +232,11 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         refundId: cancelRefundTarget.id,
         reason: cancelRefundReason.trim(),
       });
-      message.success("ยกเลิกรายการรับเงินคืนแล้ว");
+      message.success(t("ยกเลิกรายการรับเงินคืนแล้ว"));
       setCancelRefundTarget(null);
       setCancelRefundReason("");
     } catch (error) {
-      message.error(errorText(error, "ยกเลิกรายการรับเงินคืนไม่สำเร็จ"));
+      message.error(errorText(error, t("ยกเลิกรายการรับเงินคืนไม่สำเร็จ")));
     }
   };
 
@@ -241,41 +246,41 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         apDocumentId: values.apDocumentId,
         amount: Number(values.amount),
       });
-      message.success("ใช้เครดิตผู้ขายแล้ว");
+      message.success(t("ใช้เครดิตผู้ขายแล้ว"));
       setCreditOpen(false);
       creditForm.resetFields();
     } catch (error) {
-      message.error(errorText(error, "ใช้เครดิตไม่สำเร็จ"));
+      message.error(errorText(error, t("ใช้เครดิตไม่สำเร็จ")));
     }
   };
 
   const lineColumns: ColumnsType<ApDocumentItem> = [
     { title: "#", key: "no", width: 48, align: "center", render: (_, __, i) => i + 1 },
-    { title: "รายละเอียด", dataIndex: "description" },
+    { title: t("รายละเอียด"), dataIndex: "description" },
     {
-      title: "จำนวน",
+      title: t("จำนวน"),
       dataIndex: "quantity",
       align: "right",
       width: 110,
       render: (value: number) => value.toLocaleString("th-TH", { maximumFractionDigits: 3 }),
     },
-    { title: "หน่วย", dataIndex: "unitLabel", width: 90, render: (v: string | null) => v || "—" },
+    { title: t("หน่วย"), dataIndex: "unitLabel", width: 90, render: (v: string | null) => v || "—" },
     {
-      title: "ราคา/หน่วย",
+      title: t("ราคา/หน่วย"),
       dataIndex: "unitPrice",
       align: "right",
       width: 130,
       render: (value: number) => money.format(value),
     },
     {
-      title: "ส่วนลด",
+      title: t("ส่วนลด"),
       dataIndex: "discountAmount",
       align: "right",
       width: 110,
       render: (value?: number) => money.format(value ?? 0),
     },
     {
-      title: "จำนวนเงิน",
+      title: t("จำนวนเงิน"),
       dataIndex: "amount",
       align: "right",
       width: 140,
@@ -285,22 +290,22 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
   const debitNoteColumns: ColumnsType<ApDocumentLink> = [
     {
-      title: "ใบเพิ่มหนี้",
+      title: t("ใบเพิ่มหนี้"),
       dataIndex: "docNo",
       render: (value: string, row) => (
         <Link href={`${AP_DOCUMENT_CONFIG.debitNote.basePath}/${row.id}`}>{value}</Link>
       ),
     },
-    { title: "วันที่", dataIndex: "docDate", render: formatThaiDate },
+    { title: t("วันที่"), dataIndex: "docDate", render: formatThaiDate },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       render: (value: string) => (
-        <Tag color={AP_DOCUMENT_STATUS_COLOR[value]}>{AP_DOCUMENT_STATUS_LABEL[value] ?? value}</Tag>
+        <Tag color={AP_DOCUMENT_STATUS_COLOR[value]}>{tStatus(AP_DOCUMENT_STATUS_LABEL[value] ?? value)}</Tag>
       ),
     },
     {
-      title: "ยอดเพิ่มหนี้",
+      title: t("ยอดเพิ่มหนี้"),
       dataIndex: "totalAmount",
       align: "right",
       render: (value: number) => money.format(value),
@@ -308,28 +313,28 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
   ];
 
   const refundColumns: ColumnsType<ApCreditNoteRefund> = [
-    { title: "วันที่รับเงิน", dataIndex: "refundDate", render: formatThaiDate, width: 120 },
+    { title: t("วันที่รับเงิน"), dataIndex: "refundDate", render: formatThaiDate, width: 120 },
     {
-      title: "ยอดรับจริง",
+      title: t("ยอดรับจริง"),
       dataIndex: "amount",
       align: "right",
       width: 130,
       render: (value: number) => money.format(value),
     },
-    { title: "บัญชีที่รับเงิน", dataIndex: "bankAccountLabel", render: (v: string | null) => v || "—" },
-    { title: "เลขที่อ้างอิง/หลักฐาน", dataIndex: "referenceNo", render: (v: string | null) => v || "—" },
-    { title: "ผู้บันทึก", dataIndex: "createdByName", render: (v: string | null) => v || "—" },
+    { title: t("บัญชีที่รับเงิน"), dataIndex: "bankAccountLabel", render: (v: string | null) => v || "—" },
+    { title: t("เลขที่อ้างอิง/หลักฐาน"), dataIndex: "referenceNo", render: (v: string | null) => v || "—" },
+    { title: t("ผู้บันทึก"), dataIndex: "createdByName", render: (v: string | null) => v || "—" },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       width: 110,
       render: (value: string, row) =>
         value === "CANCELLED" ? (
           <Tag color="error" title={row.cancelReason ?? undefined}>
-            ยกเลิก
+            {tStatus("ยกเลิก")}
           </Tag>
         ) : (
-          <Tag color="success">มีผล</Tag>
+          <Tag color="success">{t("มีผล")}</Tag>
         ),
     },
     {
@@ -339,40 +344,40 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
       render: (_, row) =>
         row.status === "ACTIVE" && perms.canEdit ? (
           <Button size="small" danger onClick={() => setCancelRefundTarget(row)}>
-            ยกเลิก
+            {t("ยกเลิก")}
           </Button>
         ) : null,
     },
   ];
 
   const usageColumns: ColumnsType<ApSupplierCreditUsage> = [
-    { title: "วันที่ใช้", dataIndex: "usedAt", render: formatDateTime, width: 150 },
+    { title: t("วันที่ใช้"), dataIndex: "usedAt", render: formatDateTime, width: 150 },
     {
-      title: "ใบตั้งหนี้ที่ใช้เครดิต",
+      title: t("ใบตั้งหนี้ที่ใช้เครดิต"),
       dataIndex: "apDocumentNo",
       render: (value: string, row) => (
         <Link href={`${AP_DOCUMENT_CONFIG.invoice.basePath}/${row.apDocumentId}`}>{value}</Link>
       ),
     },
     {
-      title: "ยอดที่ใช้",
+      title: t("ยอดที่ใช้"),
       dataIndex: "amount",
       align: "right",
       render: (value: number) => money.format(value),
     },
-    { title: "ผู้ใช้เครดิต", dataIndex: "usedByName", render: (v: string | null) => v || "—" },
+    { title: t("ผู้ใช้เครดิต"), dataIndex: "usedByName", render: (v: string | null) => v || "—" },
   ];
 
   const eventColumns: ColumnsType<ApEvent> = [
-    { title: "วัน-เวลา", dataIndex: "performedAt", width: 160, render: formatDateTime },
+    { title: t("วัน-เวลา"), dataIndex: "performedAt", width: 160, render: formatDateTime },
     {
-      title: "การดำเนินการ",
+      title: t("การดำเนินการ"),
       dataIndex: "action",
       width: 200,
-      render: (value: string) => AP_EVENT_LABEL[value] ?? value,
+      render: (value: string) => apEventLabel(value),
     },
-    { title: "ผู้ดำเนินการ", dataIndex: "performedByName", width: 160, render: (v?: string) => v || "—" },
-    { title: "รายละเอียด", dataIndex: "note", render: (v?: string) => v || "—" },
+    { title: t("ผู้ดำเนินการ"), dataIndex: "performedByName", width: 160, render: (v?: string) => v || "—" },
+    { title: t("รายละเอียด"), dataIndex: "note", render: (v?: string) => v || "—" },
   ];
 
   const canOpenApply =
@@ -385,15 +390,15 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title={<>{config.shortLabel} {doc.docNo}</>}
+        title={<>{apShortLabel(config)} {doc.docNo}</>}
         meta={
           <>
 <Tag color={AP_DOCUMENT_STATUS_COLOR[doc.status]}>
-              {AP_DOCUMENT_STATUS_LABEL[doc.status] ?? doc.status}
+              {tStatus(AP_DOCUMENT_STATUS_LABEL[doc.status] ?? doc.status)}
             </Tag>
 {doc.usageStatus ? (
               <Tag color={AP_USAGE_STATUS_COLOR[doc.usageStatus] ?? "default"}>
-                {AP_USAGE_STATUS_LABEL[doc.usageStatus] ?? doc.usageStatus}
+                {tStatus(AP_USAGE_STATUS_LABEL[doc.usageStatus] ?? doc.usageStatus)}
               </Tag>
             ) : null}
           </>
@@ -401,32 +406,32 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         actions={
           <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(config.basePath)}>
-              กลับ
+              {t("กลับ")}
             </Button>
             <Button icon={<FilePdfOutlined />} onClick={() => void handlePrint()}>
-              พิมพ์ PDF
+              {t("พิมพ์ PDF")}
             </Button>
             {isEditable && perms.canEdit ? (
               <Button
                 icon={<EditOutlined />}
                 onClick={() => router.push(`${config.basePath}/${doc.id}/edit`)}
               >
-                แก้ไข
+                {t("แก้ไข")}
               </Button>
             ) : null}
             {isEditable && perms.canEdit ? (
               <Button type="primary" icon={<SendOutlined />} loading={busy} onClick={handleSubmit}>
-                ส่งอนุมัติ
+                {t("ส่งอนุมัติ")}
               </Button>
             ) : null}
             {isPending && perms.canApprove ? (
               <Button type="primary" icon={<CheckOutlined />} loading={busy} onClick={handleApprove}>
-                อนุมัติ
+                {t("อนุมัติ")}
               </Button>
             ) : null}
             {isPending && perms.canApprove ? (
               <Button danger icon={<StopOutlined />} loading={busy} onClick={() => setRejectOpen(true)}>
-                ไม่อนุมัติ
+                {t("ไม่อนุมัติ")}
               </Button>
             ) : null}
             {canOpenApply ? (
@@ -436,17 +441,17 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
                   router.push(`${AP_DOCUMENT_CONFIG.invoice.basePath}/${doc.referenceDocumentId}`)
                 }
               >
-                ไปปรับหนี้ที่ใบตั้งหนี้
+                {t("ไปปรับหนี้ที่ใบตั้งหนี้")}
               </Button>
             ) : null}
             {isCredit && isApproved && method === "REFUND" && outstanding > 0 && perms.canEdit ? (
               <Button type="primary" onClick={() => setRefundOpen(true)}>
-                ดำเนินการรับเงินคืน
+                {t("ดำเนินการรับเงินคืน")}
               </Button>
             ) : null}
             {isCredit && isApproved && method === "SUPPLIER_CREDIT" && outstanding > 0 && perms.canEdit ? (
               <Button type="primary" onClick={() => setCreditOpen(true)}>
-                ใช้เครดิตกับใบตั้งหนี้
+                {t("ใช้เครดิตกับใบตั้งหนี้")}
               </Button>
             ) : null}
             {isInvoice && isApproved && debitNotePerms.canAdd ? (
@@ -458,12 +463,12 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
                   )
                 }
               >
-                ออกใบเพิ่มหนี้
+                {t("ออกใบเพิ่มหนี้")}
               </Button>
             ) : null}
             {doc.status !== "CANCELLED" && perms.canEdit ? (
               <Button danger icon={<CloseOutlined />} loading={busy} onClick={() => setCancelOpen(true)}>
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
             ) : null}
           
@@ -477,8 +482,8 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
-            title={`ยกเลิกโดย ${doc.cancelledByName ?? "—"} เมื่อ ${formatDateTime(doc.cancelledAt)}`}
-            description={doc.cancelReason ? `เหตุผล: ${doc.cancelReason}` : undefined}
+            title={t("ยกเลิกโดย {name} เมื่อ {time}", { name: doc.cancelledByName ?? "—", time: formatDateTime(doc.cancelledAt) })}
+            description={doc.cancelReason ? t("เหตุผล: {reason}", { reason: doc.cancelReason }) : undefined}
           />
         ) : null}
         {doc.status === "REJECTED" ? (
@@ -486,8 +491,8 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
-            title={`ไม่อนุมัติโดย ${doc.rejectedByName ?? "—"} เมื่อ ${formatDateTime(doc.rejectedAt)}`}
-            description={`เหตุผล: ${doc.rejectReason ?? "—"} · แก้ไขแล้วส่งอนุมัติใหม่ได้`}
+            title={t("ไม่อนุมัติโดย {name} เมื่อ {time}", { name: doc.rejectedByName ?? "—", time: formatDateTime(doc.rejectedAt) })}
+            description={t("เหตุผล: {reason} · แก้ไขแล้วส่งอนุมัติใหม่ได้", { reason: doc.rejectReason ?? "—" })}
           />
         ) : null}
         {isApproved && !isInvoice && doc.usageStatus && outstanding > 0 ? (
@@ -495,29 +500,29 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            title={`อนุมัติแล้ว — ยังไม่กระทบยอด AP · ยอดที่ยังไม่ได้ดำเนินการ ${money.format(outstanding)} บาท`}
+            title={t("อนุมัติแล้ว — ยังไม่กระทบยอด AP · ยอดที่ยังไม่ได้ดำเนินการ {amount} บาท", { amount: money.format(outstanding) })}
             description={
               method === "OFFSET_AP"
-                ? "เปิดใบตั้งหนี้ที่อ้างอิง กด “ปรับหนี้” แล้วเลือกเอกสารนี้ เพื่อให้ยอด AP เปลี่ยน"
+                ? t("เปิดใบตั้งหนี้ที่อ้างอิง กด “ปรับหนี้” แล้วเลือกเอกสารนี้ เพื่อให้ยอด AP เปลี่ยน")
                 : method === "REFUND"
-                  ? "กด “ดำเนินการรับเงินคืน” เมื่อได้รับเงินจากผู้ขาย (รับเป็นงวดได้)"
-                  : "ใช้เครดิตนี้หักกับใบตั้งหนี้ของผู้ขายรายเดียวกันได้ที่ปุ่ม “ใช้เครดิตกับใบตั้งหนี้” หรือที่หน้าใบตั้งหนี้"
+                  ? t("กด “ดำเนินการรับเงินคืน” เมื่อได้รับเงินจากผู้ขาย (รับเป็นงวดได้)")
+                  : t("ใช้เครดิตนี้หักกับใบตั้งหนี้ของผู้ขายรายเดียวกันได้ที่ปุ่ม “ใช้เครดิตกับใบตั้งหนี้” หรือที่หน้าใบตั้งหนี้")
             }
           />
         ) : null}
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
-          <Descriptions.Item label="เจ้าหนี้">
+          <Descriptions.Item label={t("เจ้าหนี้")}>
             {doc.creditorCode} {doc.creditorName}
           </Descriptions.Item>
-          <Descriptions.Item label="เลขประจำตัวผู้เสียภาษี">{doc.creditorTaxId || "—"}</Descriptions.Item>
-          <Descriptions.Item label="วันที่เอกสาร">{formatThaiDate(doc.docDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("เลขประจำตัวผู้เสียภาษี")}>{doc.creditorTaxId || "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่เอกสาร")}>{formatThaiDate(doc.docDate)}</Descriptions.Item>
           <Descriptions.Item
             label={
               isInvoice
-                ? "เลขที่ใบแจ้งหนี้ผู้ขาย"
+                ? t("เลขที่ใบแจ้งหนี้ผู้ขาย")
                 : isCredit
-                  ? "เลขที่ใบลดหนี้ผู้ขาย"
-                  : "เลขที่ใบเพิ่มหนี้ผู้ขาย"
+                  ? t("เลขที่ใบลดหนี้ผู้ขาย")
+                  : t("เลขที่ใบเพิ่มหนี้ผู้ขาย")
             }
           >
             {doc.supplierDocNo || "—"}
@@ -525,18 +530,18 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           </Descriptions.Item>
           {isInvoice ? (
             <>
-              <Descriptions.Item label="อ้างอิงใบสั่งซื้อ">
+              <Descriptions.Item label={t("อ้างอิงใบสั่งซื้อ")}>
                 {doc.purchaseOrderId ? (
                   <Link href={`/purchase-orders/${doc.purchaseOrderId}`}>{doc.purchaseOrderNo}</Link>
                 ) : (
                   "—"
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label="ครบกำหนดชำระ">{formatThaiDate(doc.dueDate)}</Descriptions.Item>
+              <Descriptions.Item label={t("ครบกำหนดชำระ")}>{formatThaiDate(doc.dueDate)}</Descriptions.Item>
             </>
           ) : (
             <>
-              <Descriptions.Item label="อ้างอิงใบตั้งหนี้ (AP)">
+              <Descriptions.Item label={t("อ้างอิงใบตั้งหนี้ (AP)")}>
                 {doc.referenceDocumentId ? (
                   <Link href={`${AP_DOCUMENT_CONFIG.invoice.basePath}/${doc.referenceDocumentId}`}>
                     {doc.referenceDocumentNo}
@@ -545,53 +550,53 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
                   "—"
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label="อ้างอิงใบสั่งซื้อ">
+              <Descriptions.Item label={t("อ้างอิงใบสั่งซื้อ")}>
                 {doc.purchaseOrderId ? (
                   <Link href={`/purchase-orders/${doc.purchaseOrderId}`}>{doc.purchaseOrderNo}</Link>
                 ) : (
                   "—"
                 )}
               </Descriptions.Item>
-              <Descriptions.Item label={isCredit ? "สาเหตุที่ลดหนี้" : "เหตุผลที่เพิ่มหนี้"} span="filled">
+              <Descriptions.Item label={isCredit ? t("สาเหตุที่ลดหนี้") : t("เหตุผลที่เพิ่มหนี้")} span="filled">
                 {doc.reason || "—"}
               </Descriptions.Item>
             </>
           )}
           {isCredit ? (
-            <Descriptions.Item label="วิธีจัดการยอด">
-              {AP_SETTLEMENT_METHOD_LABEL[method] ?? method}
+            <Descriptions.Item label={t("วิธีจัดการยอด")}>
+              {t(AP_SETTLEMENT_METHOD_LABEL[method] ?? method)}
             </Descriptions.Item>
           ) : null}
           {!isInvoice && doc.appliedToApId ? (
-            <Descriptions.Item label="นำไปปรับหนี้ของ">
+            <Descriptions.Item label={t("นำไปปรับหนี้ของ")}>
               <Link href={`${AP_DOCUMENT_CONFIG.invoice.basePath}/${doc.appliedToApId}`}>
                 {doc.appliedToApNo ?? doc.appliedToApId}
               </Link>
               {doc.appliedAt ? ` · ${formatDateTime(doc.appliedAt)}` : ""}
             </Descriptions.Item>
           ) : null}
-          <Descriptions.Item label="การคิด VAT">
-            {AP_VAT_MODE_LABEL[doc.vatMode] ?? doc.vatMode}
+          <Descriptions.Item label={t("การคิด VAT")}>
+            {t(AP_VAT_MODE_LABEL[doc.vatMode] ?? doc.vatMode)}
             {doc.vatMode !== "NONE" ? ` ${doc.vatRate}%` : ""}
           </Descriptions.Item>
-          <Descriptions.Item label="ผู้สร้าง">{doc.createdByName || "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("ผู้สร้าง")}>{doc.createdByName || "—"}</Descriptions.Item>
           {!isInvoice ? (
-            <Descriptions.Item label="ผู้ตรวจสอบ (ผู้ส่งอนุมัติ)">
+            <Descriptions.Item label={t("ผู้ตรวจสอบ (ผู้ส่งอนุมัติ)")}>
               {doc.submittedByName ? `${doc.submittedByName} · ${formatDateTime(doc.submittedAt)}` : "—"}
             </Descriptions.Item>
           ) : null}
-          <Descriptions.Item label="ผู้อนุมัติ">
+          <Descriptions.Item label={t("ผู้อนุมัติ")}>
             {doc.approvedByName ? `${doc.approvedByName} · ${formatDateTime(doc.approvedAt)}` : "—"}
           </Descriptions.Item>
           {doc.remark ? (
-            <Descriptions.Item label="หมายเหตุ" span="filled">
+            <Descriptions.Item label={t("หมายเหตุ")} span="filled">
               {doc.remark}
             </Descriptions.Item>
           ) : null}
         </Descriptions>
       </Card>
 
-      <Card title="รายการ">
+      <Card title={t("รายการ")}>
         <Table
           rowKey="id"
           size="small"
@@ -606,9 +611,9 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           column={1}
           style={{ maxWidth: 420, marginLeft: "auto", marginTop: 16 }}
         >
-          <Descriptions.Item label="มูลค่าก่อน VAT">{money.format(doc.subtotalAmount)}</Descriptions.Item>
-          <Descriptions.Item label={`VAT ${doc.vatRate}%`}>{money.format(doc.vatAmount)}</Descriptions.Item>
-          <Descriptions.Item label={isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้"}>
+          <Descriptions.Item label={t("มูลค่าก่อน VAT")}>{money.format(doc.subtotalAmount)}</Descriptions.Item>
+          <Descriptions.Item label={t("VAT {rate}%", { rate: doc.vatRate })}>{money.format(doc.vatAmount)}</Descriptions.Item>
+          <Descriptions.Item label={t(isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้")}>
             <Typography.Text strong>{money.format(doc.totalAmount)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
@@ -616,10 +621,10 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       {isCredit && method === "REFUND" ? (
         <Card
-          title="การรับเงินคืนจากผู้ขาย"
+          title={t("การรับเงินคืนจากผู้ขาย")}
           extra={
             <Typography.Text type="secondary">
-              รับแล้ว {money.format(doc.refundedAmount ?? 0)} · คงเหลือ {money.format(outstanding)} บาท
+              {t("รับแล้ว {received} · คงเหลือ {remaining} บาท", { received: money.format(doc.refundedAmount ?? 0), remaining: money.format(outstanding) })}
             </Typography.Text>
           }
         >
@@ -629,7 +634,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             pagination={false}
             columns={refundColumns}
             dataSource={refunds}
-            locale={{ emptyText: "ยังไม่มีการรับเงินคืน" }}
+            locale={{ emptyText: t("ยังไม่มีการรับเงินคืน") }}
             scroll={{ x: 800 }}
           />
         </Card>
@@ -637,10 +642,10 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       {isCredit && method === "SUPPLIER_CREDIT" ? (
         <Card
-          title="เครดิตผู้ขาย"
+          title={t("เครดิตผู้ขาย")}
           extra={
             <Typography.Text type="secondary">
-              ใช้แล้ว {money.format(doc.creditUsedAmount ?? 0)} · เครดิตคงเหลือ {money.format(outstanding)} บาท
+              {t("ใช้แล้ว {used} · เครดิตคงเหลือ {remaining} บาท", { used: money.format(doc.creditUsedAmount ?? 0), remaining: money.format(outstanding) })}
             </Typography.Text>
           }
         >
@@ -650,13 +655,13 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             pagination={false}
             columns={usageColumns}
             dataSource={usages}
-            locale={{ emptyText: isApproved ? "ยังไม่ได้นำเครดิตไปใช้" : "ใช้เครดิตได้เมื่ออนุมัติแล้ว" }}
+            locale={{ emptyText: isApproved ? t("ยังไม่ได้นำเครดิตไปใช้") : t("ใช้เครดิตได้เมื่ออนุมัติแล้ว") }}
           />
         </Card>
       ) : null}
 
       {isInvoice ? (
-        <Card title="ใบเพิ่มหนี้ที่อ้างถึงใบนี้">
+        <Card title={t("ใบเพิ่มหนี้ที่อ้างถึงใบนี้")}>
           {doc.debitNotes?.length ? (
             <>
               <Table
@@ -667,39 +672,39 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
                 dataSource={doc.debitNotes}
               />
               <Typography.Paragraph style={{ marginTop: 12, marginBottom: 0, textAlign: "right" }}>
-                ยอดหนี้หลังปรับ (เฉพาะใบที่อนุมัติแล้ว):{" "}
+                {t("ยอดหนี้หลังปรับ (เฉพาะใบที่อนุมัติแล้ว):")}{" "}
                 <Typography.Text strong>{money.format(doc.adjustedTotalAmount ?? doc.totalAmount)}</Typography.Text>
               </Typography.Paragraph>
             </>
           ) : (
-            <Typography.Text type="secondary">ยังไม่มีใบเพิ่มหนี้</Typography.Text>
+            <Typography.Text type="secondary">{t("ยังไม่มีใบเพิ่มหนี้")}</Typography.Text>
           )}
           <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-            หมายเหตุ: ยอดในใบสำคัญจ่ายยังคิดจากใบสั่งซื้อ ไม่ได้รวมใบตั้งหนี้/ใบเพิ่มหนี้
+            {t("หมายเหตุ: ยอดในใบสำคัญจ่ายยังคิดจากใบสั่งซื้อ ไม่ได้รวมใบตั้งหนี้/ใบเพิ่มหนี้")}
           </Typography.Paragraph>
         </Card>
       ) : null}
 
       {!isInvoice ? (
-        <Card title="เอกสารแนบ">
+        <Card title={t("เอกสารแนบ")}>
           <DocumentAttachmentsPanel
             documentType={attachmentType}
             documentId={doc.id}
             canEdit={perms.canEdit && doc.status !== "CANCELLED"}
-            emptyText="ไม่มีเอกสารแนบ"
+            emptyText={t("ไม่มีเอกสารแนบ")}
           />
         </Card>
       ) : null}
 
       {!isInvoice ? (
-        <Card title="ประวัติการดำเนินการ">
+        <Card title={t("ประวัติการดำเนินการ")}>
           <Table
             rowKey="id"
             size="small"
             pagination={false}
             columns={eventColumns}
             dataSource={(doc as ApDocument).events ?? []}
-            locale={{ emptyText: "ยังไม่มีประวัติ" }}
+            locale={{ emptyText: t("ยังไม่มีประวัติ") }}
             scroll={{ x: 640 }}
           />
         </Card>
@@ -707,8 +712,8 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       <Modal
         open={cancelOpen}
-        title={`ยกเลิก${config.shortLabel} ${doc.docNo}`}
-        okText="ยืนยันยกเลิก"
+        title={t("ยกเลิก{label} {docNo}", { label: apShortLabel(config), docNo: doc.docNo })}
+        okText={t("ยืนยันยกเลิก")}
         okButtonProps={{ danger: true, disabled: isApproved && !cancelReason.trim() }}
         confirmLoading={cancelMutation.isPending}
         onOk={() => void handleCancel()}
@@ -716,13 +721,13 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
       >
         <Typography.Paragraph>
           {isApproved
-            ? "ใบนี้อนุมัติแล้ว ต้องระบุเหตุผลในการยกเลิก"
-            : "ยกเลิกแล้วแก้ไขหรืออนุมัติต่อไม่ได้"}
+            ? t("ใบนี้อนุมัติแล้ว ต้องระบุเหตุผลในการยกเลิก")
+            : t("ยกเลิกแล้วแก้ไขหรืออนุมัติต่อไม่ได้")}
         </Typography.Paragraph>
         <Input.TextArea
           rows={3}
           maxLength={2000}
-          placeholder={isApproved ? "เหตุผล (บังคับ)" : "เหตุผล (ไม่บังคับ)"}
+          placeholder={isApproved ? t("เหตุผล (บังคับ)") : t("เหตุผล (ไม่บังคับ)")}
           value={cancelReason}
           onChange={(event) => setCancelReason(event.target.value)}
         />
@@ -730,19 +735,19 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       <Modal
         open={rejectOpen}
-        title={`ไม่อนุมัติ${config.shortLabel} ${doc.docNo}`}
-        okText="ยืนยันไม่อนุมัติ"
+        title={t("ไม่อนุมัติ{label} {docNo}", { label: apShortLabel(config), docNo: doc.docNo })}
+        okText={t("ยืนยันไม่อนุมัติ")}
         okButtonProps={{ danger: true, disabled: rejectReason.trim().length < 5 }}
         confirmLoading={rejectMutation.isPending}
         onOk={() => void handleReject()}
         onCancel={() => setRejectOpen(false)}
         destroyOnHidden
       >
-        <Typography.Paragraph>ผู้สร้างจะแก้ไขแล้วส่งอนุมัติใหม่ได้</Typography.Paragraph>
+        <Typography.Paragraph>{t("ผู้สร้างจะแก้ไขแล้วส่งอนุมัติใหม่ได้")}</Typography.Paragraph>
         <Input.TextArea
           rows={3}
           maxLength={2000}
-          placeholder="เหตุผลที่ไม่อนุมัติ (อย่างน้อย 5 ตัวอักษร)"
+          placeholder={t("เหตุผลที่ไม่อนุมัติ (อย่างน้อย 5 ตัวอักษร)")}
           value={rejectReason}
           onChange={(event) => setRejectReason(event.target.value)}
         />
@@ -750,15 +755,15 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       <Modal
         open={refundOpen}
-        title={`ดำเนินการรับเงินคืน — ${doc.docNo}`}
-        okText="บันทึกรับเงินคืน"
+        title={t("ดำเนินการรับเงินคืน — {docNo}", { docNo: doc.docNo })}
+        okText={t("บันทึกรับเงินคืน")}
         confirmLoading={settlement.refund.isPending}
         onOk={() => refundForm.submit()}
         onCancel={() => setRefundOpen(false)}
         destroyOnHidden
       >
         <Typography.Paragraph type="secondary">
-          ยอดที่รับคืนได้อีก {money.format(outstanding)} บาท · รับเป็นงวดได้ ปิดยอดเมื่อรับครบ
+          {t("ยอดที่รับคืนได้อีก {amount} บาท · รับเป็นงวดได้ ปิดยอดเมื่อรับครบ", { amount: money.format(outstanding) })}
         </Typography.Paragraph>
         <Form<RefundForm>
           form={refundForm}
@@ -766,18 +771,18 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           initialValues={{ refundDate: dayjs(), amount: outstanding }}
           onFinish={(values) => void handleRefund(values)}
         >
-          <Form.Item name="refundDate" label="วันที่รับเงิน" rules={[{ required: true, message: "ระบุวันที่" }]}>
+          <Form.Item name="refundDate" label={t("วันที่รับเงิน")} rules={[{ required: true, message: t("ระบุวันที่") }]}>
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item
             name="amount"
-            label="ยอดรับจริง (บาท)"
+            label={t("ยอดรับจริง (บาท)")}
             rules={[
-              { required: true, message: "ระบุยอดรับจริง" },
+              { required: true, message: t("ระบุยอดรับจริง") },
               {
                 validator: (_, value?: number) =>
                   value !== undefined && value > outstanding + 0.0001
-                    ? Promise.reject(new Error(`เกินยอดคงเหลือ ${money.format(outstanding)} บาท`))
+                    ? Promise.reject(new Error(t("เกินยอดคงเหลือ {amount} บาท", { amount: money.format(outstanding) })))
                     : Promise.resolve(),
               },
             ]}
@@ -786,14 +791,14 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           </Form.Item>
           <Form.Item
             name="companyBankAccountId"
-            label="บัญชีที่รับเงินเข้า"
-            rules={[{ required: true, message: "เลือกบัญชี" }]}
+            label={t("บัญชีที่รับเงินเข้า")}
+            rules={[{ required: true, message: t("เลือกบัญชี") }]}
           >
             <Select
               showSearch
               optionFilterProp="label"
               loading={bankQuery.isLoading}
-              placeholder="เลือกบัญชีธนาคารของบริษัท"
+              placeholder={t("เลือกบัญชีธนาคารของบริษัท")}
               options={(bankQuery.data ?? [])
                 .filter((bank) => bank.isActive)
                 .map((bank) => ({
@@ -802,10 +807,10 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
                 }))}
             />
           </Form.Item>
-          <Form.Item name="referenceNo" label="เลขที่อ้างอิง / หลักฐานการโอน">
-            <Input maxLength={100} placeholder="เช่น เลขที่สลิป — แนบไฟล์หลักฐานได้ที่ส่วนเอกสารแนบ" />
+          <Form.Item name="referenceNo" label={t("เลขที่อ้างอิง / หลักฐานการโอน")}>
+            <Input maxLength={100} placeholder={t("เช่น เลขที่สลิป — แนบไฟล์หลักฐานได้ที่ส่วนเอกสารแนบ")} />
           </Form.Item>
-          <Form.Item name="remark" label="หมายเหตุ">
+          <Form.Item name="remark" label={t("หมายเหตุ")}>
             <Input.TextArea rows={2} maxLength={2000} />
           </Form.Item>
         </Form>
@@ -813,8 +818,8 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       <Modal
         open={cancelRefundTarget !== null}
-        title="ยกเลิกรายการรับเงินคืน"
-        okText="ยืนยันยกเลิก"
+        title={t("ยกเลิกรายการรับเงินคืน")}
+        okText={t("ยืนยันยกเลิก")}
         okButtonProps={{ danger: true, disabled: !cancelRefundReason.trim() }}
         confirmLoading={settlement.cancelRefund.isPending}
         onOk={() => void handleCancelRefund()}
@@ -822,12 +827,12 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         destroyOnHidden
       >
         <Typography.Paragraph>
-          ยกเลิกรับเงินคืน {money.format(cancelRefundTarget?.amount ?? 0)} บาท แล้วยอดคงเหลือของใบลดหนี้จะเพิ่มกลับ
+          {t("ยกเลิกรับเงินคืน {amount} บาท แล้วยอดคงเหลือของใบลดหนี้จะเพิ่มกลับ", { amount: money.format(cancelRefundTarget?.amount ?? 0) })}
         </Typography.Paragraph>
         <Input.TextArea
           rows={3}
           maxLength={2000}
-          placeholder="เหตุผล (บังคับ)"
+          placeholder={t("เหตุผล (บังคับ)")}
           value={cancelRefundReason}
           onChange={(event) => setCancelRefundReason(event.target.value)}
         />
@@ -835,16 +840,15 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
       <Modal
         open={creditOpen}
-        title={`ใช้เครดิตผู้ขาย — ${doc.docNo}`}
-        okText="ยืนยันใช้เครดิต"
+        title={t("ใช้เครดิตผู้ขาย — {docNo}", { docNo: doc.docNo })}
+        okText={t("ยืนยันใช้เครดิต")}
         confirmLoading={settlement.applyCredit.isPending}
         onOk={() => creditForm.submit()}
         onCancel={() => setCreditOpen(false)}
         destroyOnHidden
       >
         <Typography.Paragraph type="secondary">
-          เครดิตคงเหลือ {money.format(outstanding)} บาท · ใช้ได้กับใบตั้งหนี้ที่อนุมัติแล้วของ {doc.creditorName} เท่านั้น
-          และต้องไม่ทำให้ยอด AP ต่ำกว่ายอดที่วางบิล/มี PV/จ่ายแล้ว
+          {t("เครดิตคงเหลือ {amount} บาท · ใช้ได้กับใบตั้งหนี้ที่อนุมัติแล้วของ {name} เท่านั้น และต้องไม่ทำให้ยอด AP ต่ำกว่ายอดที่วางบิล/มี PV/จ่ายแล้ว", { amount: money.format(outstanding), name: doc.creditorName })}
         </Typography.Paragraph>
         <Form<{ apDocumentId: string; amount: number }>
           form={creditForm}
@@ -854,15 +858,15 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         >
           <Form.Item
             name="apDocumentId"
-            label="ใบตั้งหนี้ที่จะหักเครดิต"
-            rules={[{ required: true, message: "เลือกใบตั้งหนี้" }]}
+            label={t("ใบตั้งหนี้ที่จะหักเครดิต")}
+            rules={[{ required: true, message: t("เลือกใบตั้งหนี้") }]}
           >
             <Select
               showSearch
               optionFilterProp="label"
               loading={apOptionsQuery.isFetching}
-              placeholder="เลือกใบตั้งหนี้"
-              notFoundContent="ผู้ขายรายนี้ยังไม่มีใบตั้งหนี้ที่อนุมัติแล้ว"
+              placeholder={t("เลือกใบตั้งหนี้")}
+              notFoundContent={t("ผู้ขายรายนี้ยังไม่มีใบตั้งหนี้ที่อนุมัติแล้ว")}
               options={(apOptionsQuery.data?.items ?? []).map((invoice) => ({
                 value: invoice.id,
                 label: `${invoice.docNo}${invoice.supplierDocNo ? ` (${invoice.supplierDocNo})` : ""} · ${money.format(invoice.totalAmount)}`,
@@ -871,13 +875,13 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           </Form.Item>
           <Form.Item
             name="amount"
-            label="ยอดเครดิตที่ใช้ (บาท)"
+            label={t("ยอดเครดิตที่ใช้ (บาท)")}
             rules={[
-              { required: true, message: "ระบุยอด" },
+              { required: true, message: t("ระบุยอด") },
               {
                 validator: (_, value?: number) =>
                   value !== undefined && value > outstanding + 0.0001
-                    ? Promise.reject(new Error(`เกินเครดิตคงเหลือ ${money.format(outstanding)} บาท`))
+                    ? Promise.reject(new Error(t("เกินเครดิตคงเหลือ {amount} บาท", { amount: money.format(outstanding) })))
                     : Promise.resolve(),
               },
             ]}

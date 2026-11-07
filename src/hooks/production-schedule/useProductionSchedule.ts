@@ -6,6 +6,7 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/production-schedule";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow } from "@/lib/i18n/useT";
 import type { UpdateScheduleRoundBody } from "@/types/production-schedule";
 
 import { productionCyclesKey } from "../production-cycles/useProductionCycles";
@@ -60,8 +61,8 @@ export function useCreateProductionPlanMutation() {
   return useMutation({
     mutationFn: (body: Parameters<typeof api.createProductionPlan>[1]) =>
       api.createProductionPlan(getAccessToken(), body),
-    onSuccess: () => done("สร้างแผนการผลิตแล้ว ทุกรอบอยู่สถานะรอยืนยัน"),
-    onError: (error) => fail(error, "สร้างแผนการผลิตไม่สำเร็จ"),
+    onSuccess: () => done(tNow("สร้างแผนการผลิตแล้ว ทุกรอบอยู่สถานะรอยืนยัน")),
+    onError: (error) => fail(error, tNow("สร้างแผนการผลิตไม่สำเร็จ")),
   });
 }
 
@@ -70,7 +71,7 @@ export function usePreviewScheduleRoundMutation() {
   return useMutation({
     mutationFn: (input: { id: string; body: UpdateScheduleRoundBody }) =>
       api.previewScheduleRound(getAccessToken(), input.id, input.body),
-    onError: (error) => fail(error, "คำนวณผลกระทบไม่สำเร็จ"),
+    onError: (error) => fail(error, tNow("คำนวณผลกระทบไม่สำเร็จ")),
   });
 }
 
@@ -79,8 +80,8 @@ export function useUpdateScheduleRoundMutation() {
   return useMutation({
     mutationFn: (input: { id: string; body: UpdateScheduleRoundBody }) =>
       api.updateScheduleRound(getAccessToken(), input.id, input.body),
-    onSuccess: (res) => done(`บันทึกรอบ ${res.data.roundNo} แล้ว`),
-    onError: (error) => fail(error, "บันทึกรอบการผลิตไม่สำเร็จ"),
+    onSuccess: (res) => done(tNow("บันทึกรอบ {no} แล้ว", { no: res.data.roundNo })),
+    onError: (error) => fail(error, tNow("บันทึกรอบการผลิตไม่สำเร็จ")),
   });
 }
 
@@ -89,8 +90,8 @@ export function useConfirmScheduleRoundMutation() {
   return useMutation({
     mutationFn: (input: { id: string; reason?: string }) =>
       api.confirmScheduleRound(getAccessToken(), input.id, input.reason),
-    onSuccess: (res) => done(`ยืนยันรอบ ${res.data.roundNo} แล้ว`),
-    onError: (error) => fail(error, "ยืนยันรอบการผลิตไม่สำเร็จ"),
+    onSuccess: (res) => done(tNow("ยืนยันรอบ {no} แล้ว", { no: res.data.roundNo })),
+    onError: (error) => fail(error, tNow("ยืนยันรอบการผลิตไม่สำเร็จ")),
   });
 }
 
@@ -99,7 +100,7 @@ export function useUpdateScheduleSettingsMutation() {
   return useMutation({
     mutationFn: (confirmLeadDays: number) =>
       api.updateScheduleSettings(getAccessToken(), confirmLeadDays),
-    onSuccess: () => done("บันทึกจำนวนวันล่วงหน้าแล้ว"),
-    onError: (error) => fail(error, "บันทึกการตั้งค่าไม่สำเร็จ"),
+    onSuccess: () => done(tNow("บันทึกจำนวนวันล่วงหน้าแล้ว")),
+    onError: (error) => fail(error, tNow("บันทึกการตั้งค่าไม่สำเร็จ")),
   });
 }

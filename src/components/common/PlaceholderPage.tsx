@@ -2,6 +2,8 @@
 
 import { Empty } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 type Props = {
   eyebrow: string;
   title: string;
@@ -13,6 +15,7 @@ export default function PlaceholderPage({
   title,
   description,
 }: Props) {
+  const t = useT();
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <header
@@ -34,7 +37,7 @@ export default function PlaceholderPage({
             textTransform: "uppercase",
           }}
         >
-          {eyebrow}
+          {t(eyebrow)}
         </p>
         <h1
           style={{
@@ -45,7 +48,7 @@ export default function PlaceholderPage({
             letterSpacing: "-0.02em",
           }}
         >
-          {title}
+          {t(title)}
         </h1>
       </header>
 
@@ -64,7 +67,7 @@ export default function PlaceholderPage({
           image={Empty.PRESENTED_IMAGE_SIMPLE}
           description={
             <span style={{ color: "#8a9199" }}>
-              {description ?? "อยู่ระหว่างพัฒนา"}
+              {t(description ?? "อยู่ระหว่างพัฒนา")}
             </span>
           }
         />

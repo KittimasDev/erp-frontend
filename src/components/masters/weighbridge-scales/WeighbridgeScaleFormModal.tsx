@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useEffect } from "react";
 import { Col, Form, Input, InputNumber, Modal, Row, Select, Switch } from "antd";
@@ -56,6 +57,7 @@ export default function WeighbridgeScaleFormModal({
   onCancel,
   onSubmit,
 }: WeighbridgeScaleFormModalProps) {
+  const t = useT();
   const [form] = Form.useForm<WeighbridgeScaleFormValues>();
 
   useEffect(() => {
@@ -152,8 +154,8 @@ export default function WeighbridgeScaleFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={760}
       centered
@@ -166,12 +168,12 @@ export default function WeighbridgeScaleFormModal({
             {isCreateMode ? "CREATE SCALE" : "EDIT SCALE"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มเครื่องชั่ง" : "แก้ไขเครื่องชั่ง"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มเครื่องชั่ง") : t("แก้ไขเครื่องชั่ง")}</h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลเครื่องชั่งน้ำหนักและการเชื่อมต่อ"
-              : "แก้ไขรายละเอียดเครื่องชั่งและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลเครื่องชั่งน้ำหนักและการเชื่อมต่อ")
+              : t("แก้ไขรายละเอียดเครื่องชั่งและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -185,24 +187,24 @@ export default function WeighbridgeScaleFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลเครื่องชั่ง</strong>
-            <span>ระบุรหัส ชื่อ ประเภท และตำแหน่งติดตั้ง</span>
+            <strong>{t("ข้อมูลเครื่องชั่ง")}</strong>
+            <span>{t("ระบุรหัส ชื่อ ประเภท และตำแหน่งติดตั้ง")}</span>
           </div>
         </div>
 
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item
-              label="รหัสเครื่องชั่ง"
+              label={t("รหัสเครื่องชั่ง")}
               name="code"
               rules={[
-                { required: true, message: "กรุณากรอกรหัสเครื่องชั่ง" },
-                { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกรหัสเครื่องชั่ง") },
+                { max: 100, message: t("รหัสต้องไม่เกิน 100 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น TRUCK_SCALE_01"
+                placeholder={t("เช่น TRUCK_SCALE_01")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -210,16 +212,16 @@ export default function WeighbridgeScaleFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ชื่อเครื่องชั่ง"
+              label={t("ชื่อเครื่องชั่ง")}
               name="name"
               rules={[
-                { required: true, message: "กรุณากรอกชื่อเครื่องชั่ง" },
-                { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกชื่อเครื่องชั่ง") },
+                { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น เครื่องชั่งรถบรรทุก 1"
+                placeholder={t("เช่น เครื่องชั่งรถบรรทุก 1")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -227,15 +229,15 @@ export default function WeighbridgeScaleFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ประเภทเครื่องชั่ง"
+              label={t("ประเภทเครื่องชั่ง")}
               name="scaleType"
               rules={[
-                { required: true, message: "กรุณาเลือกประเภทเครื่องชั่ง" },
+                { required: true, message: t("กรุณาเลือกประเภทเครื่องชั่ง") },
               ]}
             >
               <Select
                 size="large"
-                placeholder="เลือกประเภท"
+                placeholder={t("เลือกประเภท")}
                 options={SCALE_TYPE_OPTIONS}
               />
             </Form.Item>
@@ -243,23 +245,23 @@ export default function WeighbridgeScaleFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ตำแหน่งติดตั้ง"
+              label={t("ตำแหน่งติดตั้ง")}
               name="locationName"
-              rules={[{ max: 255, message: "ต้องไม่เกิน 255 ตัวอักษร" }]}
+              rules={[{ max: 255, message: t("ต้องไม่เกิน 255 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น จุดชั่งหน้าโรงงาน" />
+              <Input size="large" placeholder={t("เช่น จุดชั่งหน้าโรงงาน")} />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="พิกัดน้ำหนักสูงสุด (กก.)"
+              label={t("พิกัดน้ำหนักสูงสุด (กก.)")}
               name="capacityKg"
               rules={[
                 {
                   type: "number",
                   min: 0,
-                  message: "พิกัดต้องไม่ติดลบ",
+                  message: t("พิกัดต้องไม่ติดลบ"),
                 },
               ]}
             >
@@ -268,20 +270,20 @@ export default function WeighbridgeScaleFormModal({
                 min={0}
                 step={0.001}
                 style={{ width: "100%" }}
-                placeholder="เช่น 80000"
+                placeholder={t("เช่น 80000")}
               />
             </Form.Item>
           </Col>
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ทศนิยม"
+              label={t("ทศนิยม")}
               name="decimalPlaces"
               rules={[
                 {
                   type: "number",
                   min: 0,
-                  message: "ทศนิยมต้องไม่ติดลบ",
+                  message: t("ทศนิยมต้องไม่ติดลบ"),
                 },
               ]}
             >
@@ -290,7 +292,7 @@ export default function WeighbridgeScaleFormModal({
                 min={0}
                 step={1}
                 style={{ width: "100%" }}
-                placeholder="เช่น 2"
+                placeholder={t("เช่น 2")}
               />
             </Form.Item>
           </Col>
@@ -299,18 +301,18 @@ export default function WeighbridgeScaleFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>การเชื่อมต่อ</strong>
-            <span>ตั้งค่าช่องทางอ่านค่าจากเครื่องชั่ง</span>
+            <strong>{t("การเชื่อมต่อ")}</strong>
+            <span>{t("ตั้งค่าช่องทางอ่านค่าจากเครื่องชั่ง")}</span>
           </div>
         </div>
 
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item label="ประเภทการเชื่อมต่อ" name="connectionType">
+            <Form.Item label={t("ประเภทการเชื่อมต่อ")} name="connectionType">
               <Select
                 allowClear
                 size="large"
-                placeholder="เลือกประเภท"
+                placeholder={t("เลือกประเภท")}
                 options={CONNECTION_TYPE_OPTIONS}
               />
             </Form.Item>
@@ -320,9 +322,9 @@ export default function WeighbridgeScaleFormModal({
             <Form.Item
               label="Protocol"
               name="protocolName"
-              rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+              rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น AVERY" />
+              <Input size="large" placeholder={t("เช่น AVERY")} />
             </Form.Item>
           </Col>
 
@@ -330,9 +332,9 @@ export default function WeighbridgeScaleFormModal({
             <Form.Item
               label="IP Address"
               name="ipAddress"
-              rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+              rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น 192.168.1.50" />
+              <Input size="large" placeholder={t("เช่น 192.168.1.50")} />
             </Form.Item>
           </Col>
 
@@ -344,7 +346,7 @@ export default function WeighbridgeScaleFormModal({
                 {
                   type: "number",
                   min: 1,
-                  message: "Port ต้องมากกว่า 0",
+                  message: t("Port ต้องมากกว่า 0"),
                 },
               ]}
             >
@@ -353,7 +355,7 @@ export default function WeighbridgeScaleFormModal({
                 min={1}
                 step={1}
                 style={{ width: "100%" }}
-                placeholder="เช่น 4001"
+                placeholder={t("เช่น 4001")}
               />
             </Form.Item>
           </Col>
@@ -362,9 +364,9 @@ export default function WeighbridgeScaleFormModal({
             <Form.Item
               label="Serial Port"
               name="serialPort"
-              rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+              rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
             >
-              <Input size="large" placeholder="เช่น COM1" />
+              <Input size="large" placeholder={t("เช่น COM1")} />
             </Form.Item>
           </Col>
 
@@ -376,7 +378,7 @@ export default function WeighbridgeScaleFormModal({
                 {
                   type: "number",
                   min: 1,
-                  message: "Baud Rate ต้องมากกว่า 0",
+                  message: t("Baud Rate ต้องมากกว่า 0"),
                 },
               ]}
             >
@@ -385,7 +387,7 @@ export default function WeighbridgeScaleFormModal({
                 min={1}
                 step={1}
                 style={{ width: "100%" }}
-                placeholder="เช่น 9600"
+                placeholder={t("เช่น 9600")}
               />
             </Form.Item>
           </Col>
@@ -395,13 +397,13 @@ export default function WeighbridgeScaleFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>อ่านค่าอัตโนมัติ</strong>
-              <span>เปิดเพื่ออ่านน้ำหนักจากเครื่องชั่งอัตโนมัติ</span>
+              <strong>{t("อ่านค่าอัตโนมัติ")}</strong>
+              <span>{t("เปิดเพื่ออ่านน้ำหนักจากเครื่องชั่งอัตโนมัติ")}</span>
             </div>
           </div>
 
           <Form.Item name="isAutoReadEnabled" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
 
@@ -409,8 +411,8 @@ export default function WeighbridgeScaleFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>อนุญาตกรอก Manual</strong>
-              <span>ใช้ได้เมื่อเชื่อมต่อเครื่องชั่งไม่ได้</span>
+              <strong>{t("อนุญาตกรอก Manual")}</strong>
+              <span>{t("ใช้ได้เมื่อเชื่อมต่อเครื่องชั่งไม่ได้")}</span>
             </div>
           </div>
 
@@ -419,7 +421,7 @@ export default function WeighbridgeScaleFormModal({
             valuePropName="checked"
             noStyle
           >
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
 
@@ -427,13 +429,13 @@ export default function WeighbridgeScaleFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกเครื่องชั่งนี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกเครื่องชั่งนี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

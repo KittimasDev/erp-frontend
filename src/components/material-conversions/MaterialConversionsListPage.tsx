@@ -40,6 +40,8 @@ import {
   OUTPUT_TYPE_COLOR,
 } from "@/types/material-conversion";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { tConvStatusLabel } from "@/types/material-conversion";
 import styles from "./MaterialConversionPage.module.css";
 
 const PAGE_SIZE = 20;
@@ -61,6 +63,7 @@ function fmtQty(value?: string | null) {
 }
 
 export default function MaterialConversionsListPage() {
+  const t = useT();
   const router = useRouter();
   const actions = useScreenActionPermissions("MATERIAL_CONVERSIONS");
 
@@ -190,14 +193,14 @@ export default function MaterialConversionsListPage() {
 
   const columns: ColumnsType<MaterialConversionRun> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 56,
       align: "center",
       render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่เอกสาร",
+      title: t("เลขที่เอกสาร"),
       dataIndex: "runNo",
       key: "runNo",
       render: (value: string, row) => (
@@ -212,20 +215,20 @@ export default function MaterialConversionsListPage() {
               {value}
             </button>
             {row.isLegacy ? (
-              <Tooltip title="เอกสารจากเมนูเดิม — เปิดดูและเดินงานได้ที่หน้าเดิม หน้านี้แสดงไว้ให้เห็นประวัติรวมกัน">
-                <span className={styles.legacyChip}>เมนูเดิม</span>
+              <Tooltip title={t("เอกสารจากเมนูเดิม — เปิดดูและเดินงานได้ที่หน้าเดิม หน้านี้แสดงไว้ให้เห็นประวัติรวมกัน")}>
+                <span className={styles.legacyChip}>{t("เมนูเดิม")}</span>
               </Tooltip>
             ) : null}
           </div>
           {/* ยุบ Batch มาเป็นบรรทัดรอง — เดิมกินทั้งคอลัมน์ทั้งที่ส่วนใหญ่ว่าง */}
           <span className={styles.cellMuted}>
-            {row.batchNo ? `Batch ${row.batchNo}` : "ไม่ระบุ Batch"}
+            {row.batchNo ? `Batch ${row.batchNo}` : t("ไม่ระบุ Batch")}
           </span>
         </div>
       ),
     },
     {
-      title: "ขั้นตอน",
+      title: t("ขั้นตอน"),
       key: "step",
       render: (_v, row) => (
         <div className={styles.cellStack}>
@@ -239,7 +242,7 @@ export default function MaterialConversionsListPage() {
         เอกสารชนิดเดียวกันเข้ามาได้สองทาง — ชิปนี้คือสิ่งที่บอกว่าใบไหนอยู่ใน
         ใบงานตามเส้นทาง และใบไหนเป็นเอกสารเดี่ยว ไม่งั้นอีกหกเดือนจะไม่มีใครตอบได้
       */
-      title: "ใบงาน",
+      title: t("ใบงาน"),
       key: "job",
       width: 170,
       render: (_v, row) =>
@@ -256,11 +259,11 @@ export default function MaterialConversionsListPage() {
               : ""}
           </button>
         ) : (
-          <span className={styles.cellMuted}>เอกสารเดี่ยว</span>
+          <span className={styles.cellMuted}>{t("เอกสารเดี่ยว")}</span>
         ),
     },
     {
-      title: "วันที่",
+      title: t("วันที่"),
       dataIndex: "runDate",
       key: "runDate",
       width: 116,
@@ -270,7 +273,7 @@ export default function MaterialConversionsListPage() {
       ),
     },
     {
-      title: "วัตถุดิบเข้า",
+      title: t("วัตถุดิบเข้า"),
       key: "inputs",
       render: (_v, row) => {
         const lines = row.inputs ?? [];
@@ -287,7 +290,7 @@ export default function MaterialConversionsListPage() {
             </span>
             {lines.length > 1 ? (
               <span className={styles.cellMuted}>
-                และอีก {lines.length - 1} รายการ
+                {t("และอีก {n} รายการ", { n: lines.length - 1 })}
               </span>
             ) : null}
           </div>
@@ -295,7 +298,7 @@ export default function MaterialConversionsListPage() {
       },
     },
     {
-      title: "ผลผลิตออก",
+      title: t("ผลผลิตออก"),
       key: "outputs",
       render: (_v, row) => {
         const lines = row.outputs ?? [];
@@ -335,20 +338,20 @@ export default function MaterialConversionsListPage() {
               ) : null}
             </div>
             {row.isLegacy ? (
-              <Tooltip title="โครงเดิมรับผลผลิตได้ตัวเดียว · ของพลอยได้ในเอกสารเก่าเป็นตัวเลขอ้างอิงที่ไม่เคยเข้าสต๊อก">
+              <Tooltip title={t("โครงเดิมรับผลผลิตได้ตัวเดียว · ของพลอยได้ในเอกสารเก่าเป็นตัวเลขอ้างอิงที่ไม่เคยเข้าสต๊อก")}>
                 <span className={styles.subNote}>
                   {row.legacyByproductQty
-                    ? `ของพลอยได้ ${fmtQty(row.legacyByproductQty)} — อ้างอิง ไม่เข้าคลัง`
-                    : "ผลผลิตตัวเดียว"}
+                    ? t("ของพลอยได้ {qty} — อ้างอิง ไม่เข้าคลัง", { qty: fmtQty(row.legacyByproductQty) })
+                    : t("ผลผลิตตัวเดียว")}
                 </span>
               </Tooltip>
             ) : waste.length > 0 ? (
               <span className={styles.subNote}>
-                + ของเสีย{" "}
+                {t("+ ของเสีย")}{" "}
                 {waste
                   .map((line) => fmtQty(line.actualQty ?? line.plannedQty))
                   .join(", ")}{" "}
-                (ไม่เข้าคลัง)
+                {t("(ไม่เข้าคลัง)")}
               </span>
             ) : null}
           </div>
@@ -365,11 +368,11 @@ export default function MaterialConversionsListPage() {
             <Tooltip
               title={
                 row.massBalanceMessage ??
-                "ยังไม่มีตัวเลข หรือรวมเป็นน้ำหนักเดียวกันไม่ได้"
+                t("ยังไม่มีตัวเลข หรือรวมเป็นน้ำหนักเดียวกันไม่ได้")
               }
             >
               <span className={`${styles.yieldPill} ${styles.yieldPillMuted}`}>
-                เทียบไม่ได้
+                {t("เทียบไม่ได้")}
               </span>
             </Tooltip>
           );
@@ -390,25 +393,25 @@ export default function MaterialConversionsListPage() {
               %
             </span>
             {impossible ? (
-              <span className={styles.subNote}>ผลผลิตเกินวัตถุดิบ</span>
+              <span className={styles.subNote}>{t("ผลผลิตเกินวัตถุดิบ")}</span>
             ) : null}
           </div>
         );
       },
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       width: 150,
       render: (value: string, row) => (
         <div className={styles.cellStack}>
           <Tag color={MATERIAL_CONVERSION_STATUS_COLOR[value] ?? "default"}>
-            {MATERIAL_CONVERSION_STATUS_LABEL[value] ?? value}
+            {tConvStatusLabel(MATERIAL_CONVERSION_STATUS_LABEL[value] ?? value)}
           </Tag>
           {row.stepSkipWarning ? (
             <Tooltip title={row.stepSkipWarning}>
-              <Tag color="warning">ข้ามขั้นตอน</Tag>
+              <Tag color="warning">{t("ข้ามขั้นตอน")}</Tag>
             </Tooltip>
           ) : null}
         </div>
@@ -425,10 +428,9 @@ export default function MaterialConversionsListPage() {
             <div className={masterStyles.eyebrow}>
               PRODUCTION · MATERIAL CONVERSION
             </div>
-            <h2 className={masterStyles.pageTitle}>ใบแปรสภาพวัตถุดิบ</h2>
+            <h2 className={masterStyles.pageTitle}>{t("ใบแปรสภาพวัตถุดิบ")}</h2>
             <span className={masterStyles.pageSubtitle}>
-              ตัดยางหนึ่งครั้งได้เนื้อยาง ลวดเหล็ก และผ้าใบพร้อมกัน — บันทึกวัตถุดิบเข้าหลายตัว
-              และผลผลิตออกหลายตัวในเอกสารใบเดียว แต่ละตัวได้ Lot ของตัวเอง
+              {t("ตัดยางหนึ่งครั้งได้เนื้อยาง ลวดเหล็ก และผ้าใบพร้อมกัน — บันทึกวัตถุดิบเข้าหลายตัว และผลผลิตออกหลายตัวในเอกสารใบเดียว แต่ละตัวได้ Lot ของตัวเอง")}
             </span>
           </div>
           {actions.canAdd ? (
@@ -439,7 +441,7 @@ export default function MaterialConversionsListPage() {
                 icon={<PlusOutlined className={masterStyles.plusIcon} />}
                 onClick={() => router.push(`${ROUTE_BASE}/jobs/create`)}
               >
-                เปิดใบงานตามเส้นทาง
+                {t("เปิดใบงานตามเส้นทาง")}
               </Button>
               <Dropdown
                 placement="bottomRight"
@@ -447,7 +449,7 @@ export default function MaterialConversionsListPage() {
                   items: [
                     {
                       key: "single",
-                      label: "สร้างเอกสารเดี่ยว (ขั้นตอนเดียว)",
+                      label: t("สร้างเอกสารเดี่ยว (ขั้นตอนเดียว)"),
                       onClick: () => router.push(`${ROUTE_BASE}/create`),
                     },
                   ],
@@ -456,7 +458,7 @@ export default function MaterialConversionsListPage() {
                 <Button
                   type="primary"
                   className={styles.splitCreateMore}
-                  aria-label="เมนูสร้างเอกสารอื่น"
+                  aria-label={t("เมนูสร้างเอกสารอื่น")}
                   icon={<DownOutlined />}
                 />
               </Dropdown>
@@ -473,8 +475,8 @@ export default function MaterialConversionsListPage() {
             setPage(1);
           }}
           options={[
-            { value: "runs", label: "เอกสารรายขั้นตอน" },
-            { value: "jobs", label: "ใบงานตามเส้นทาง" },
+            { value: "runs", label: t("เอกสารรายขั้นตอน") },
+            { value: "jobs", label: t("ใบงานตามเส้นทาง") },
           ]}
         />
 
@@ -514,18 +516,18 @@ export default function MaterialConversionsListPage() {
         */}
         <div className={styles.summaryRow}>
           <div className={styles.summaryGroup}>
-            <span className={styles.summaryGroupLabel}>สรุปในหน้านี้</span>
+            <span className={styles.summaryGroupLabel}>{t("สรุปในหน้านี้")}</span>
             <div className={styles.summaryStats}>
-              <Stat label="แบบร่างเอกสาร" value={pageStats.draft} color="#c4c8cd" />
+              <Stat label={t("แบบร่างเอกสาร")} value={pageStats.draft} color="#c4c8cd" />
               <Stat
-                label="กำลังทำงาน"
+                label={t("กำลังทำงาน")}
                 value={pageStats.inProgress}
                 color="#1677ff"
               />
-              <Stat label="เสร็จแล้ว" value={pageStats.completed} color="#52c41a" />
+              <Stat label={t("เสร็จแล้ว")} value={pageStats.completed} color="#52c41a" />
               {pageStats.legacy > 0 ? (
                 <Stat
-                  label="จากเมนูเดิม"
+                  label={t("จากเมนูเดิม")}
                   value={pageStats.legacy}
                   color="#d4d8dd"
                 />
@@ -533,7 +535,7 @@ export default function MaterialConversionsListPage() {
             </div>
           </div>
           <div className={styles.summaryTotal}>
-            <span className={styles.summaryTotalLabel}>ทั้งหมด</span>
+            <span className={styles.summaryTotalLabel}>{t("ทั้งหมด")}</span>
             <strong className={styles.summaryTotalValue}>{total}</strong>
           </div>
         </div>
@@ -545,10 +547,10 @@ export default function MaterialConversionsListPage() {
         <div className={masterStyles.tableCard}>
           <div className={styles.filterBar}>
             <div>
-              <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3 style={{ margin: 0 }}>ใบแปรสภาพวัตถุดิบ</h3>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3 style={{ margin: 0 }}>{t("ใบแปรสภาพวัตถุดิบ")}</h3>
             </div>
-            <Tooltip title="เอกสารจาก ขั้นตอนเตรียมยาง / กระบวนการผลิต rCB จะแสดงรวมด้วย ติดป้าย “เมนูเดิม” และกดแล้วพาไปหน้าเดิม">
+            <Tooltip title={t("เอกสารจาก ขั้นตอนเตรียมยาง / กระบวนการผลิต rCB จะแสดงรวมด้วย ติดป้าย “เมนูเดิม” และกดแล้วพาไปหน้าเดิม")}>
               <label className={styles.filterToggle}>
                 <Switch
                   size="small"
@@ -558,7 +560,7 @@ export default function MaterialConversionsListPage() {
                     setPage(1);
                   }}
                 />
-                รวมประวัติจากเมนูเดิม
+                {t("รวมประวัติจากเมนูเดิม")}
               </label>
             </Tooltip>
           </div>
@@ -567,7 +569,7 @@ export default function MaterialConversionsListPage() {
             <Input
               allowClear
               prefix={<SearchOutlined />}
-              placeholder="ค้นหาเลขที่เอกสาร เช่น TPS-20260907-001"
+              placeholder={t("ค้นหาเลขที่เอกสาร เช่น TPS-20260907-001")}
               value={runNo}
               onChange={(e) => {
                 setRunNo(e.target.value);
@@ -576,7 +578,7 @@ export default function MaterialConversionsListPage() {
             />
             <Input
               allowClear
-              placeholder="ค้นหาด้วย Batch"
+              placeholder={t("ค้นหาด้วย Batch")}
               value={batchNo}
               onChange={(e) => {
                 setBatchNo(e.target.value);
@@ -585,21 +587,21 @@ export default function MaterialConversionsListPage() {
             />
             <Select
               allowClear
-              placeholder="สถานะทั้งหมด"
+              placeholder={t("สถานะทั้งหมด")}
               value={status}
               onChange={(value) => {
                 setStatus(value);
                 setPage(1);
               }}
               options={Object.entries(MATERIAL_CONVERSION_STATUS_LABEL).map(
-                ([value, label]) => ({ value, label }),
+                ([value, label]) => ({ value, label: tConvStatusLabel(label) }),
               )}
             />
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="เส้นทางทั้งหมด"
+              placeholder={t("เส้นทางทั้งหมด")}
               value={routeId}
               onChange={(value) => {
                 setRouteId(value);
@@ -615,7 +617,7 @@ export default function MaterialConversionsListPage() {
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ขั้นตอนทั้งหมด"
+              placeholder={t("ขั้นตอนทั้งหมด")}
               value={stepCode}
               onChange={(value) => {
                 setStepCode(value);
@@ -630,19 +632,19 @@ export default function MaterialConversionsListPage() {
                 setPage(1);
               }}
               format="DD/MM/YYYY"
-              placeholder={["ตั้งแต่วันที่", "ถึงวันที่"]}
+              placeholder={[t("ตั้งแต่วันที่"), t("ถึงวันที่")]}
             />
             <Select
               allowClear
-              placeholder="ทั้งหมด (ในใบงาน + เดี่ยว)"
+              placeholder={t("ทั้งหมด (ในใบงาน + เดี่ยว)")}
               value={hasJob}
               onChange={(value) => {
                 setHasJob(value);
                 setPage(1);
               }}
               options={[
-                { value: true, label: "เฉพาะที่อยู่ในใบงาน" },
-                { value: false, label: "เฉพาะเอกสารเดี่ยว" },
+                { value: true, label: t("เฉพาะที่อยู่ในใบงาน") },
+                { value: false, label: t("เฉพาะเอกสารเดี่ยว") },
               ]}
             />
           </div>
@@ -659,11 +661,10 @@ export default function MaterialConversionsListPage() {
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description={
                     <span>
-                      ยังไม่มีใบแปรสภาพวัตถุดิบตามเงื่อนไขที่ค้นหา
+                      {t("ยังไม่มีใบแปรสภาพวัตถุดิบตามเงื่อนไขที่ค้นหา")}
                       <br />
                       <span className={styles.subNote}>
-                        ใช้บันทึกตอนแปรสภาพวัตถุดิบที่ได้ผลผลิตหลายตัวพร้อมกัน
-                        เช่น ตัดยางแล้วได้ทั้งเนื้อยาง ลวดเหล็ก และผ้าใบ
+                        {t("ใช้บันทึกตอนแปรสภาพวัตถุดิบที่ได้ผลผลิตหลายตัวพร้อมกัน เช่น ตัดยางแล้วได้ทั้งเนื้อยาง ลวดเหล็ก และผ้าใบ")}
                       </span>
                     </span>
                   }
@@ -676,7 +677,7 @@ export default function MaterialConversionsListPage() {
               total,
               onChange: setPage,
               showSizeChanger: false,
-              showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+              showTotal: (n) => t("ทั้งหมด {n} รายการ", { n }),
             }}
           />
         </div>
@@ -741,16 +742,17 @@ function JobsTab({
   onRouteId: (value?: string) => void;
   routeOptions: Array<{ value: string; label: string }>;
 }) {
+  const t = useT();
   const columns: ColumnsType<MaterialConversionJob> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 56,
       align: "center",
       render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่ใบงาน",
+      title: t("เลขที่ใบงาน"),
       dataIndex: "jobNo",
       key: "jobNo",
       render: (value: string, row) => (
@@ -768,12 +770,12 @@ function JobsTab({
       ),
     },
     {
-      title: "เส้นทาง",
+      title: t("เส้นทาง"),
       key: "route",
       render: (_v, row) => row.routeNameTh ?? row.routeCode ?? "-",
     },
     {
-      title: "เริ่มตามแผน",
+      title: t("เริ่มตามแผน"),
       dataIndex: "plannedStartDate",
       key: "plannedStartDate",
       width: 116,
@@ -782,7 +784,7 @@ function JobsTab({
       ),
     },
     {
-      title: "ความคืบหน้า",
+      title: t("ความคืบหน้า"),
       key: "progress",
       width: 190,
       render: (_v, row) => {
@@ -793,7 +795,7 @@ function JobsTab({
         return (
           <div className={styles.cellStack}>
             <span>
-              {row.completedStepCount} / {row.plannedStepCount} ขั้นตอน
+              {row.completedStepCount} / {row.plannedStepCount} {t("ขั้นตอน")}
             </span>
             <Progress
               percent={percent}
@@ -803,7 +805,7 @@ function JobsTab({
             />
             {row.openRunCount > 0 ? (
               <span className={styles.subNote}>
-                ค้างอยู่ {row.openRunCount} ขั้นตอน
+                {t("ค้างอยู่ {n} ขั้นตอน", { n: row.openRunCount })}
               </span>
             ) : null}
           </div>
@@ -811,17 +813,17 @@ function JobsTab({
       },
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 170,
       render: (_v, row) => (
         <div className={styles.cellStack}>
           <Tag color={MATERIAL_CONVERSION_JOB_STATUS_COLOR[row.status]}>
-            {MATERIAL_CONVERSION_JOB_STATUS_LABEL[row.status] ?? row.status}
+            {tConvStatusLabel(MATERIAL_CONVERSION_JOB_STATUS_LABEL[row.status] ?? row.status)}
           </Tag>
           <span className={styles.subNote}>
-            {MATERIAL_CONVERSION_JOB_PROGRESS_LABEL[row.progressStatus] ??
-              row.progressStatus}
+            {tConvStatusLabel(MATERIAL_CONVERSION_JOB_PROGRESS_LABEL[row.progressStatus] ??
+              row.progressStatus)}
           </span>
         </div>
       ),
@@ -832,8 +834,8 @@ function JobsTab({
     <div className={masterStyles.tableCard}>
       <div className={styles.filterBar}>
         <div>
-          <div className={masterStyles.tableEyebrow}>รายการ</div>
-          <h3 style={{ margin: 0 }}>ใบงานแปรสภาพตามเส้นทาง</h3>
+          <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+          <h3 style={{ margin: 0 }}>{t("ใบงานแปรสภาพตามเส้นทาง")}</h3>
         </div>
       </div>
 
@@ -841,13 +843,13 @@ function JobsTab({
         <Input
           allowClear
           prefix={<SearchOutlined />}
-          placeholder="ค้นหาเลขที่ใบงาน เช่น MCJ-20260908-001"
+          placeholder={t("ค้นหาเลขที่ใบงาน เช่น MCJ-20260908-001")}
           value={jobNo}
           onChange={(e) => onJobNo(e.target.value)}
         />
         <Input
           allowClear
-          placeholder="ค้นหาด้วย Batch"
+          placeholder={t("ค้นหาด้วย Batch")}
           value={batchNo}
           onChange={(e) => onBatchNo(e.target.value)}
         />
@@ -855,7 +857,7 @@ function JobsTab({
           allowClear
           showSearch
           optionFilterProp="label"
-          placeholder="เส้นทางทั้งหมด"
+          placeholder={t("เส้นทางทั้งหมด")}
           value={routeId}
           onChange={onRouteId}
           options={routeOptions}
@@ -874,11 +876,10 @@ function JobsTab({
               image={Empty.PRESENTED_IMAGE_SIMPLE}
               description={
                 <span>
-                  ยังไม่มีใบงานตามเงื่อนไขที่ค้นหา
+                  {t("ยังไม่มีใบงานตามเงื่อนไขที่ค้นหา")}
                   <br />
                   <span className={styles.subNote}>
-                    เปิดใบงานหนึ่งใบแล้วกรอกทุกขั้นในหน้าเดียว
-                    ระบบจะใส่เลข Batch ให้ตรงกันทั้งสายเอง
+                    {t("เปิดใบงานหนึ่งใบแล้วกรอกทุกขั้นในหน้าเดียว ระบบจะใส่เลข Batch ให้ตรงกันทั้งสายเอง")}
                   </span>
                 </span>
               }
@@ -891,7 +892,7 @@ function JobsTab({
           total,
           onChange: onPage,
           showSizeChanger: false,
-          showTotal: (t) => `ทั้งหมด ${t} ใบงาน`,
+          showTotal: (n) => t("ทั้งหมด {n} ใบงาน", { n }),
         }}
       />
     </div>

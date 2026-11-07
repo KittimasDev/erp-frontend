@@ -1,4 +1,6 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
+import { tLoc } from "@/types/warehouse-locations";
 
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { Form, Input, Modal, Select, Switch, type FormInstance } from "antd";
@@ -69,6 +71,7 @@ function WarehouseLocationFormBody({
   warehousesLoading: boolean;
   formRef: MutableRefObject<FormInstance<WarehouseLocationFormValues> | null>;
 }) {
+  const t = useT();
   const [form] = Form.useForm<WarehouseLocationFormValues>();
   const isCreateMode = mode === "create";
 
@@ -92,13 +95,13 @@ function WarehouseLocationFormBody({
           </div>
 
           <h2>
-            {isCreateMode ? "เพิ่มตำแหน่งจัดเก็บ" : "แก้ไขตำแหน่งจัดเก็บ"}
+            {isCreateMode ? t("เพิ่มตำแหน่งจัดเก็บ") : t("แก้ไขตำแหน่งจัดเก็บ")}
           </h2>
 
           <p>
             {isCreateMode
-              ? "กรอกตำแหน่งจัดเก็บใหม่ภายใต้คลังสินค้า"
-              : "แก้ไขรายละเอียดตำแหน่งจัดเก็บและสถานะการใช้งาน"}
+              ? t("กรอกตำแหน่งจัดเก็บใหม่ภายใต้คลังสินค้า")
+              : t("แก้ไขรายละเอียดตำแหน่งจัดเก็บและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -114,66 +117,66 @@ function WarehouseLocationFormBody({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลตำแหน่งจัดเก็บ</strong>
-            <span>ระบุคลัง รหัส ชื่อ และรายละเอียด</span>
+            <strong>{t("ข้อมูลตำแหน่งจัดเก็บ")}</strong>
+            <span>{t("ระบุคลัง รหัส ชื่อ และรายละเอียด")}</span>
           </div>
         </div>
 
         <Form.Item
-          label="คลังสินค้า"
+          label={t("คลังสินค้า")}
           name="warehouseId"
-          rules={[{ required: true, message: "กรุณาเลือกคลังสินค้า" }]}
+          rules={[{ required: true, message: t("กรุณาเลือกคลังสินค้า") }]}
         >
           <Select
             size="large"
             showSearch
             optionFilterProp="label"
-            placeholder="เลือกคลังสินค้า"
+            placeholder={t("เลือกคลังสินค้า")}
             loading={warehousesLoading}
             options={warehouseOptions}
           />
         </Form.Item>
 
         <Form.Item
-          label="รหัสตำแหน่ง"
+          label={tLoc("รหัสตำแหน่ง")}
           name="code"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสตำแหน่ง" },
-            { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+            { required: true, message: tLoc("กรุณากรอกรหัสตำแหน่ง") },
+            { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น RAW-A01"
+            placeholder={t("เช่น RAW-A01")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="ชื่อตำแหน่ง"
+          label={tLoc("ชื่อตำแหน่ง")}
           name="name"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อตำแหน่ง" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+            { required: true, message: tLoc("กรุณากรอกชื่อตำแหน่ง") },
+            { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
           ]}
         >
           <Input
             size="large"
-            placeholder="เช่น โซน A ช่อง 01"
+            placeholder={t("เช่น โซน A ช่อง 01")}
             autoComplete="off"
           />
         </Form.Item>
 
         <Form.Item
-          label="รายละเอียด"
+          label={t("รายละเอียด")}
           name="description"
           rules={[
-            { max: 500, message: "รายละเอียดต้องไม่เกิน 500 ตัวอักษร" },
+            { max: 500, message: t("รายละเอียดต้องไม่เกิน 500 ตัวอักษร") },
           ]}
         >
           <Input.TextArea
             rows={3}
-            placeholder="เช่น พื้นที่จัดเก็บยางดิบโซน A"
+            placeholder={t("เช่น พื้นที่จัดเก็บยางดิบโซน A")}
             autoComplete="off"
           />
         </Form.Item>
@@ -182,13 +185,13 @@ function WarehouseLocationFormBody({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกตำแหน่งนี้ในเอกสารได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกตำแหน่งนี้ในเอกสารได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>
@@ -206,6 +209,7 @@ export default function WarehouseLocationFormModal({
   onCancel,
   onSubmit,
 }: WarehouseLocationFormModalProps) {
+  const t = useT();
   const formRef = useRef<FormInstance<WarehouseLocationFormValues> | null>(
     null,
   );
@@ -234,8 +238,8 @@ export default function WarehouseLocationFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={560}
       centered

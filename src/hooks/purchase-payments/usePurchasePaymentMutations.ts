@@ -14,6 +14,7 @@ import {
   createPurchasePaymentFromPo,
 } from "@/lib/api/purchase-payments";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import {
   ATTACHMENT_GROUP_PAYMENT,
   DOCUMENT_TYPE_SUPPLIER_PAYMENT,
@@ -28,6 +29,7 @@ import { purchasePaymentsQueryKey } from "./usePurchasePaymentsQuery";
 export function useCreatePurchasePaymentFromPoMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -42,13 +44,13 @@ export function useCreatePurchasePaymentFromPoMutation() {
         queryKey: purchasePaymentsQueryKey,
       });
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(res.message || "สร้างใบสำคัญจ่ายสำเร็จ");
+      message.success(res.message || t("สร้างใบสำคัญจ่ายสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างใบสำคัญจ่ายไม่สำเร็จ",
+          : t("สร้างใบสำคัญจ่ายไม่สำเร็จ"),
       );
     },
   });
@@ -57,6 +59,7 @@ export function useCreatePurchasePaymentFromPoMutation() {
 export function useConfirmPurchasePaymentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -71,11 +74,11 @@ export function useConfirmPurchasePaymentMutation() {
         queryKey: purchasePaymentsQueryKey,
       });
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(res.message || "จ่ายเงินสำเร็จ");
+      message.success(res.message || t("จ่ายเงินสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "จ่ายเงินไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("จ่ายเงินไม่สำเร็จ"),
       );
     },
   });
@@ -84,6 +87,7 @@ export function useConfirmPurchasePaymentMutation() {
 export function useCancelPurchasePaymentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => cancelPurchasePayment(getAccessToken(), id),
@@ -91,13 +95,13 @@ export function useCancelPurchasePaymentMutation() {
       await queryClient.invalidateQueries({
         queryKey: purchasePaymentsQueryKey,
       });
-      message.success(res.message || "ยกเลิกใบสำคัญจ่ายแล้ว");
+      message.success(res.message || t("ยกเลิกใบสำคัญจ่ายแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ยกเลิกใบสำคัญจ่ายไม่สำเร็จ",
+          : t("ยกเลิกใบสำคัญจ่ายไม่สำเร็จ"),
       );
     },
   });
@@ -106,6 +110,7 @@ export function useCancelPurchasePaymentMutation() {
 export function useUploadPurchasePaymentAttachmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchasePaymentsQueryKey, "upload-attachment"],
@@ -126,14 +131,14 @@ export function useUploadPurchasePaymentAttachmentMutation() {
         description,
       }),
     onSuccess: (res, vars) => {
-      message.success(res.message || "อัปโหลดหลักฐานการจ่ายเงินสำเร็จ");
+      message.success(res.message || t("อัปโหลดหลักฐานการจ่ายเงินสำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [...purchasePaymentsQueryKey, "attachments", vars.documentId],
       });
     },
     onError: (err: Error) => {
       message.error(
-        err instanceof ApiError ? err.message : "อัปโหลดไฟล์ไม่สำเร็จ",
+        err instanceof ApiError ? err.message : t("อัปโหลดไฟล์ไม่สำเร็จ"),
       );
     },
   });
@@ -142,6 +147,7 @@ export function useUploadPurchasePaymentAttachmentMutation() {
 export function useDeletePurchasePaymentAttachmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchasePaymentsQueryKey, "delete-attachment"],
@@ -152,14 +158,14 @@ export function useDeletePurchasePaymentAttachmentMutation() {
       documentId: string;
     }) => deleteDocumentAttachment(getAccessToken(), attachmentId),
     onSuccess: (res, vars) => {
-      message.success(res.message || "ลบไฟล์แนบสำเร็จ");
+      message.success(res.message || t("ลบไฟล์แนบสำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [...purchasePaymentsQueryKey, "attachments", vars.documentId],
       });
     },
     onError: (err: Error) => {
       message.error(
-        err instanceof ApiError ? err.message : "ลบไฟล์แนบไม่สำเร็จ",
+        err instanceof ApiError ? err.message : t("ลบไฟล์แนบไม่สำเร็จ"),
       );
     },
   });

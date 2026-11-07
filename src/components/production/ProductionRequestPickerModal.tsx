@@ -17,6 +17,11 @@ import { useProductionRequestPlanningSummaryQuery } from "@/hooks/production-req
 import type { ProductionRequestPlanningSummaryItem } from "@/types/production-request";
 import type { BulkCreateProductionOrderSelectionBody } from "@/types/production-order";
 import type { SelectionLabel } from "./SelectedProductionRequestsCard";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tNow, useT } from "@/lib/i18n/useT";
+
+const numLocale = () => (getStoredLanguage() === "en" ? "en-GB" : "th-TH");
+
 
 /**
  * เลือกใบขอผลิตที่จะผลิตในรอบนี้
@@ -84,13 +89,15 @@ function isSelectable(row: PickerRow) {
 
 function blockedReason(row: PickerRow) {
   if (row.hasActiveProductionOrder) {
-    return "ใบนี้ถูกเปิดใบสั่งผลิตไปแล้ว ระบบไม่ให้เปิดซ้ำ";
+    return tNow("ใบนี้ถูกเปิดใบสั่งผลิตไปแล้ว ระบบไม่ให้เปิดซ้ำ");
   }
-  return `ใบนี้สถานะ ${row.requestStatus} ไม่ใช่ "รอเปิดใบสั่งผลิต" จึงเลือกไม่ได้`;
+  return tNow("ใบนี้สถานะ {status} ไม่ใช่ \"รอเปิดใบสั่งผลิต\" จึงเลือกไม่ได้", {
+    status: row.requestStatus,
+  });
 }
 
 function fmtQty(value: number) {
-  return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return value.toLocaleString(numLocale(), { maximumFractionDigits: 3 });
 }
 
 function fmtDate(value?: string) {
@@ -98,7 +105,7 @@ function fmtDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString("th-TH", {
+    : date.toLocaleDateString(numLocale(), {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -145,10 +152,11 @@ function selectionKey(selection: BulkCreateProductionOrderSelectionBody) {
 }
 
 export default function ProductionRequestPickerModal(props: Props) {
+  const t = useT();
   // destroyOnHidden + Body ที่ตั้งค่าตอน mount — เลี่ยง setState ใน effect ตามกฎ eslint
   return (
     <Modal
-      title="เลือกใบขอผลิตที่จะผลิตรอบนี้"
+      title={t("เลือกใบขอผลิตที่จะผลิตรอบนี้")}
       open={props.open}
       onCancel={props.onCancel}
       footer={null}
@@ -166,6 +174,7 @@ function PickerBody({
   selected,
   scopedToOwnRequests,
 }: Props) {
+  const t = useT();
   const summaryQuery = useProductionRequestPlanningSummaryQuery();
   const rows = buildRows(summaryQuery.data?.data.items);
 
@@ -183,14 +192,14 @@ function PickerBody({
 
   const columns: ColumnsType<PickerRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ใบขอผลิต",
+      title: t("เลขที่ใบขอผลิต"),
       key: "requestNo",
       width: 190,
       render: (_v, row) => (
@@ -206,21 +215,21 @@ function PickerBody({
       ),
     },
     {
-      title: "วันที่ต้องการ",
+      title: t("วันที่ต้องการ"),
       key: "requiredDate",
       width: 120,
       render: (_v, row) => fmtDate(row.requiredDate),
     },
-    { title: "สินค้า", dataIndex: "itemLabel", key: "itemLabel" },
+    { title: t("สินค้า"), dataIndex: "itemLabel", key: "itemLabel" },
     {
-      title: "ยอดค้าง",
+      title: t("ยอดค้าง"),
       key: "outstandingQty",
       width: 130,
       align: "right",
       render: (_v, row) => `${fmtQty(row.outstandingQty)} ${row.unitCode ?? ""}`,
     },
     {
-      title: "จำนวนที่จะจัดสรร",
+      title: t("จำนวนที่จะจัดสรร"),
       key: "plannedQty",
       width: 170,
       render: (_v, row) => (
@@ -241,16 +250,16 @@ function PickerBody({
       ),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 130,
       render: (_v, row) =>
         isSelectable(row) ? (
-          <Tag color="processing">รอผลิต</Tag>
+          <Tag color="processing">{t("รอผลิต")}</Tag>
         ) : (
           <Tooltip title={blockedReason(row)}>
             <Tag color="default">
-              {row.hasActiveProductionOrder ? "เปิดใบแล้ว" : "เลือกไม่ได้"}
+              {row.hasActiveProductionOrder ? t("เปิดใบแล้ว") : t("เลือกไม่ได้")}
             </Tag>
           </Tooltip>
         ),
@@ -285,17 +294,15 @@ function PickerBody({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        เลือกได้หลายใบ — ระบบจะสร้างใบสั่งผลิต 1 ใบที่ผูกกลับไปทุกใบที่เลือก
-        จำนวนที่จัดสรรรวมกันไม่จำเป็นต้องเท่ากับแผนผลผลิตของรอบ
-        เพราะผลิตเกินแล้วเก็บเข้าคลังได้
+        {t("เลือกได้หลายใบ — ระบบจะสร้างใบสั่งผลิต 1 ใบที่ผูกกลับไปทุกใบที่เลือก จำนวนที่จัดสรรรวมกันไม่จำเป็นต้องเท่ากับแผนผลผลิตของรอบ เพราะผลิตเกินแล้วเก็บเข้าคลังได้")}
       </Typography.Paragraph>
 
       {scopedToOwnRequests ? (
         <Alert
           type="info"
           showIcon
-          title="รายการอาจไม่ครบ"
-          description="บัญชีนี้ไม่มีสิทธิ์ดูใบขอผลิตทั้งหมด จึงเห็นเฉพาะใบที่ตัวเองเป็นผู้ขอ"
+          title={t("รายการอาจไม่ครบ")}
+          description={t("บัญชีนี้ไม่มีสิทธิ์ดูใบขอผลิตทั้งหมด จึงเห็นเฉพาะใบที่ตัวเองเป็นผู้ขอ")}
         />
       ) : null}
 
@@ -303,8 +310,8 @@ function PickerBody({
         <Alert
           type="error"
           showIcon
-          title="ดึงรายการใบขอผลิตไม่สำเร็จ"
-          description="ลองปิดแล้วเปิดใหม่อีกครั้ง หรือกรอกวัตถุดิบและผลผลิตเองโดยไม่ผูกใบขอผลิต"
+          title={t("ดึงรายการใบขอผลิตไม่สำเร็จ")}
+          description={t("ลองปิดแล้วเปิดใหม่อีกครั้ง หรือกรอกวัตถุดิบและผลผลิตเองโดยไม่ผูกใบขอผลิต")}
         />
       ) : null}
 
@@ -316,7 +323,7 @@ function PickerBody({
         columns={columns}
         pagination={false}
         scroll={{ y: 380 }}
-        locale={{ emptyText: "ไม่มีใบขอผลิตที่ยังค้างอยู่" }}
+        locale={{ emptyText: t("ไม่มีใบขอผลิตที่ยังค้างอยู่") }}
         rowSelection={{
           selectedRowKeys: checkedKeys,
           onChange: (keys) => setCheckedKeys(keys.map(String)),
@@ -325,13 +332,13 @@ function PickerBody({
       />
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button onClick={onCancel}>{t("ยกเลิก")}</Button>
         <Button
           type="primary"
           disabled={checkedKeys.length === 0}
           onClick={handleConfirm}
         >
-          ใช้ {checkedKeys.length} ใบนี้
+          {t("ใช้ {n} ใบนี้", { n: checkedKeys.length })}
         </Button>
       </div>
     </div>

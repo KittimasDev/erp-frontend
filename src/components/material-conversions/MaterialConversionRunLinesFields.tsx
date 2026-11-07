@@ -21,6 +21,7 @@ import {
   PACKAGING_TYPE_LABEL,
   outputPostsToStock,
 } from "@/types/material-conversion";
+import { useT, tNow } from "@/lib/i18n/useT";
 import styles from "./MaterialConversionPage.module.css";
 
 /**
@@ -68,6 +69,7 @@ export const EMPTY_OUTPUT: OutputLineValues = { outputType: "MAIN" };
  * และ **ไม่เลือกให้อัตโนมัติ** ตามที่ตกลงไว้ว่าไม่ต่อขั้นอัตโนมัติ
  */
 export function useConversionLineData(highlightBatchNo?: string) {
+  const t = useT();
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
   const itemsQuery = useItemsQuery();
   const unitsQuery = useUnitsQuery();
@@ -113,7 +115,7 @@ export function useConversionLineData(highlightBatchNo?: string) {
   const lotOptions = useMemo<SelectProps["options"]>(() => {
     const toOption = (lot: (typeof lots)[number]) => ({
       value: lot.id,
-      label: `${lot.itemCode} — ${lot.itemNameTh} · ${lot.lotNo} · ${lot.warehouseName}/${lot.locationCode} · คงเหลือ ${Number(
+      label: `${lot.itemCode} — ${lot.itemNameTh} · ${lot.lotNo} · ${lot.warehouseName}/${lot.locationCode} · ${t("คงเหลือ")} ${Number(
         lot.quantityAvailable,
       ).toLocaleString("th-TH", { maximumFractionDigits: 3 })} ${lot.unitCode ?? ""}`,
     });
@@ -135,12 +137,12 @@ export function useConversionLineData(highlightBatchNo?: string) {
     const others = lots.filter((lot) => lot.batchNo !== batch);
     return [
       {
-        label: `Lot จาก Batch ${batch} — ผลผลิตของขั้นก่อนหน้าในสายนี้`,
+        label: t("Lot จาก Batch {batch} — ผลผลิตของขั้นก่อนหน้าในสายนี้", { batch }),
         options: sameBatch.map(toOption),
       },
-      { label: "Lot อื่นทั้งหมด", options: others.map(toOption) },
+      { label: t("Lot อื่นทั้งหมด"), options: others.map(toOption) },
     ];
-  }, [lots, highlightBatchNo]);
+  }, [lots, highlightBatchNo, t]);
 
   return {
     lots,
@@ -216,7 +218,7 @@ export function buildRunLinesPayload(
     .filter((line): line is NonNullable<typeof line> => line !== null);
 
   if (inputs.length === 0) {
-    return { error: "เลือก Lot วัตถุดิบอย่างน้อย 1 บรรทัด" };
+    return { error: tNow("เลือก Lot วัตถุดิบอย่างน้อย 1 บรรทัด") };
   }
 
   const outputs = (values.outputs ?? []).map((line, index) => {
@@ -236,7 +238,7 @@ export function buildRunLinesPayload(
   });
 
   if (!outputs.some((line) => line.outputType === "MAIN")) {
-    return { error: 'ต้องมีผลผลิตชนิด "ผลผลิตหลัก" อย่างน้อย 1 บรรทัด' };
+    return { error: tNow("ต้องมีผลผลิตชนิด \"ผลผลิตหลัก\" อย่างน้อย 1 บรรทัด") };
   }
 
   return { inputs, outputs };
@@ -259,6 +261,7 @@ export default function MaterialConversionRunLinesFields({
   inputValues,
   outputValues,
 }: Props) {
+  const t = useT();
   const { message } = App.useApp();
   const {
     warehouses,
@@ -293,7 +296,7 @@ export default function MaterialConversionRunLinesFields({
     );
     if (template.length === 0 || totalPlannedInput <= 0) {
       message.info(
-        "ขั้นตอนนี้ยังไม่ได้ตั้งสัดส่วนคาดหมาย หรือยังไม่ได้กรอกวัตถุดิบ",
+        t("ขั้นตอนนี้ยังไม่ได้ตั้งสัดส่วนคาดหมาย หรือยังไม่ได้กรอกวัตถุดิบ"),
       );
       return;
     }
@@ -312,7 +315,7 @@ export default function MaterialConversionRunLinesFields({
         };
       }),
     });
-    message.success("เติมจำนวนตามสัดส่วนคาดหมายแล้ว — แก้ได้ทุกบรรทัด");
+    message.success(t("เติมจำนวนตามสัดส่วนคาดหมายแล้ว — แก้ได้ทุกบรรทัด"));
   };
 
   const hasRatioTemplate = selectedStep?.lines.some(
@@ -324,9 +327,9 @@ export default function MaterialConversionRunLinesFields({
       {/* ─── วัตถุดิบเข้า ──────────────────────────────────────────────── */}
       <div className={styles.formSection}>
         <div className={styles.formSectionHead}>
-          <h4>วัตถุดิบเข้า</h4>
+          <h4>{t("วัตถุดิบเข้า")}</h4>
           <span className={styles.formSectionHint}>
-            เลือก Lot แล้วระบบเติมคลัง ตำแหน่งให้เอง · หน่วยนับใช้หน่วยหลักของสินค้า
+            {t("เลือก Lot แล้วระบบเติมคลัง ตำแหน่งให้เอง · หน่วยนับใช้หน่วยหลักของสินค้า")}
           </span>
         </div>
         <Form.List
@@ -336,7 +339,7 @@ export default function MaterialConversionRunLinesFields({
               validator: async (_, value) => {
                 if (!value || value.length < 1) {
                   return Promise.reject(
-                    new Error("เพิ่มวัตถุดิบอย่างน้อย 1 รายการ"),
+                    new Error(t("เพิ่มวัตถุดิบอย่างน้อย 1 รายการ")),
                   );
                 }
               },
@@ -367,7 +370,7 @@ export default function MaterialConversionRunLinesFields({
                   <div key={field.key} className={styles.lineCard}>
                     <div className={styles.lineCardHeader}>
                       <span className={styles.lineCardTitle}>
-                        วัตถุดิบที่ {index + 1}
+                        {t("วัตถุดิบที่ {n}", { n: index + 1 })}
                       </span>
                       {fields.length > 1 ? (
                         <Button
@@ -377,7 +380,7 @@ export default function MaterialConversionRunLinesFields({
                           icon={<DeleteOutlined />}
                           onClick={() => remove(field.name)}
                         >
-                          ลบ
+                          {t("ลบ")}
                         </Button>
                       ) : null}
                     </div>
@@ -385,27 +388,27 @@ export default function MaterialConversionRunLinesFields({
                       <Form.Item
                         className={styles.lineGridWide}
                         name={[field.name, "balanceId"]}
-                        label="Lot วัตถุดิบ"
-                        rules={[{ required: true, message: "เลือก Lot" }]}
+                        label={t("Lot วัตถุดิบ")}
+                        rules={[{ required: true, message: t("เลือก Lot") }]}
                       >
                         <Select
                           showSearch
                           optionFilterProp="label"
-                          placeholder="เลือก Lot ที่มีของ"
+                          placeholder={t("เลือก Lot ที่มีของ")}
                           loading={lotsQuery.isFetching}
                           notFoundContent={
                             lotsQuery.isFetching
-                              ? "กำลังโหลด..."
-                              : "ไม่พบ Lot ที่มีของคงเหลือ"
+                              ? t("กำลังโหลด...")
+                              : t("ไม่พบ Lot ที่มีของคงเหลือ")
                           }
                           options={lotOptions}
                         />
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "plannedQty"]}
-                        label={`จำนวน${itemUnitCode ? ` (${itemUnitCode})` : lot?.unitCode ? ` (${lot.unitCode})` : ""}`}
+                        label={`${t("จำนวน")}${itemUnitCode ? ` (${itemUnitCode})` : lot?.unitCode ? ` (${lot.unitCode})` : ""}`}
                         rules={[
-                          { required: true, message: "กรอกจำนวน" },
+                          { required: true, message: t("กรอกจำนวน") },
                           {
                             validator: async (_, value) => {
                               if (
@@ -414,7 +417,7 @@ export default function MaterialConversionRunLinesFields({
                                 value <= 0
                               ) {
                                 return Promise.reject(
-                                  new Error("จำนวนต้องมากกว่า 0"),
+                                  new Error(t("จำนวนต้องมากกว่า 0")),
                                 );
                               }
                             },
@@ -423,14 +426,14 @@ export default function MaterialConversionRunLinesFields({
                         validateStatus={overStock ? "error" : undefined}
                         help={
                           overStock
-                            ? `Lot นี้คงเหลือ ${available?.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
+                            ? t("Lot นี้คงเหลือ {qty}", { qty: available?.toLocaleString("th-TH", { maximumFractionDigits: 3 }) ?? "" })
                             : lotUnitMismatch
-                              ? `สินค้านี้หน่วยหลักคือ ${itemUnitCode ?? "หน่วยหลัก"} — Lot บันทึกเป็น ${lot?.unitCode ?? "หน่วยอื่น"}`
+                              ? t("สินค้านี้หน่วยหลักคือ {unit} — Lot บันทึกเป็น {lotUnit}", { unit: itemUnitCode ?? t("หน่วยหลัก"), lotUnit: lot?.unitCode ?? t("หน่วยอื่น") })
                               : undefined
                         }
                         extra={
                           available !== undefined && !overStock && !lotUnitMismatch
-                            ? `คงเหลือ ${available.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
+                            ? `${t("คงเหลือ")} ${available.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
                             : undefined
                         }
                       >
@@ -441,8 +444,8 @@ export default function MaterialConversionRunLinesFields({
                           placeholder="0.000"
                         />
                       </Form.Item>
-                      <Form.Item name={[field.name, "remark"]} label="หมายเหตุ">
-                        <Input placeholder="เช่น ยางเปียก" maxLength={500} />
+                      <Form.Item name={[field.name, "remark"]} label={t("หมายเหตุ")}>
+                        <Input placeholder={t("เช่น ยางเปียก")} maxLength={500} />
                       </Form.Item>
                     </div>
                   </div>
@@ -454,7 +457,7 @@ export default function MaterialConversionRunLinesFields({
                 icon={<PlusOutlined />}
                 onClick={() => add({ ...EMPTY_INPUT })}
               >
-                เพิ่มวัตถุดิบ
+                {t("เพิ่มวัตถุดิบ")}
               </Button>
               <Form.ErrorList errors={errors} />
             </div>
@@ -465,9 +468,9 @@ export default function MaterialConversionRunLinesFields({
       {/* ─── ผลผลิตออก ────────────────────────────────────────────────── */}
       <div className={styles.formSection}>
         <div className={styles.formSectionHead}>
-          <h4>ผลผลิตออก</h4>
+          <h4>{t("ผลผลิตออก")}</h4>
           <span className={styles.formSectionHint}>
-            ของเสียบันทึกได้เพื่อคิดสมดุลมวล แต่ไม่เข้าสต๊อกและไม่ต้องระบุคลัง
+            {t("ของเสียบันทึกได้เพื่อคิดสมดุลมวล แต่ไม่เข้าสต๊อกและไม่ต้องระบุคลัง")}
           </span>
         </div>
         {hasRatioTemplate ? (
@@ -476,7 +479,7 @@ export default function MaterialConversionRunLinesFields({
             style={{ marginBottom: 10 }}
             onClick={applyTemplateRatios}
           >
-            เติมจำนวนตามสัดส่วนคาดหมายของขั้นตอนนี้
+            {t("เติมจำนวนตามสัดส่วนคาดหมายของขั้นตอนนี้")}
           </Button>
         ) : null}
         <Form.List
@@ -486,7 +489,7 @@ export default function MaterialConversionRunLinesFields({
               validator: async (_, value) => {
                 if (!value || value.length < 1) {
                   return Promise.reject(
-                    new Error("เพิ่มผลผลิตอย่างน้อย 1 รายการ"),
+                    new Error(t("เพิ่มผลผลิตอย่างน้อย 1 รายการ")),
                   );
                 }
               },
@@ -518,11 +521,11 @@ export default function MaterialConversionRunLinesFields({
                   >
                     <div className={styles.lineCardHeader}>
                       <span className={styles.lineCardTitle}>
-                        ผลผลิตที่ {index + 1}
+                        {t("ผลผลิตที่ {n}", { n: index + 1 })}
                         <Tag
                           color={OUTPUT_TYPE_COLOR[line?.outputType ?? "MAIN"]}
                         >
-                          {OUTPUT_TYPE_LABEL[line?.outputType ?? "MAIN"]}
+                          {t(OUTPUT_TYPE_LABEL[line?.outputType ?? "MAIN"])}
                         </Tag>
                       </span>
                       {fields.length > 1 ? (
@@ -533,33 +536,33 @@ export default function MaterialConversionRunLinesFields({
                           icon={<DeleteOutlined />}
                           onClick={() => remove(field.name)}
                         >
-                          ลบ
+                          {t("ลบ")}
                         </Button>
                       ) : null}
                     </div>
                     <div className={styles.lineGrid}>
                       <Form.Item
                         name={[field.name, "outputType"]}
-                        label="ชนิดผลผลิต"
-                        rules={[{ required: true, message: "เลือกชนิด" }]}
+                        label={t("ชนิดผลผลิต")}
+                        rules={[{ required: true, message: t("เลือกชนิด") }]}
                       >
                         <Select
                           options={OUTPUT_TYPES.map((value) => ({
                             value,
-                            label: OUTPUT_TYPE_LABEL[value],
+                            label: t(OUTPUT_TYPE_LABEL[value]),
                           }))}
                         />
                       </Form.Item>
                       <Form.Item
                         className={styles.lineGridWide}
                         name={[field.name, "itemId"]}
-                        label="สินค้า"
-                        rules={[{ required: true, message: "เลือกสินค้า" }]}
+                        label={t("สินค้า")}
+                        rules={[{ required: true, message: t("เลือกสินค้า") }]}
                       >
                         <Select
                           showSearch
                           optionFilterProp="label"
-                          placeholder="เลือกสินค้า"
+                          placeholder={t("เลือกสินค้า")}
                           loading={itemsQuery.isFetching}
                           options={itemOptions}
                           onChange={(value: string) => {
@@ -579,9 +582,9 @@ export default function MaterialConversionRunLinesFields({
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "unitId"]}
-                        label="หน่วยนับ"
-                        rules={[{ required: true, message: "เลือกหน่วย" }]}
-                        extra="ต้องเป็นหน่วยหลักของสินค้า"
+                        label={t("หน่วยนับ")}
+                        rules={[{ required: true, message: t("เลือกหน่วย") }]}
+                        extra={t("ต้องเป็นหน่วยหลักของสินค้า")}
                       >
                         <Select
                           showSearch
@@ -593,13 +596,13 @@ export default function MaterialConversionRunLinesFields({
                         <>
                           <Form.Item
                             name={[field.name, "warehouseId"]}
-                            label="คลังที่รับเข้า"
-                            rules={[{ required: true, message: "เลือกคลัง" }]}
+                            label={t("คลังที่รับเข้า")}
+                            rules={[{ required: true, message: t("เลือกคลัง") }]}
                           >
                             <Select
                               showSearch
                               optionFilterProp="label"
-                              placeholder="เลือกคลัง"
+                              placeholder={t("เลือกคลัง")}
                               options={warehouses.map((wh) => ({
                                 value: wh.id,
                                 label: wh.warehouseName,
@@ -618,14 +621,14 @@ export default function MaterialConversionRunLinesFields({
                           </Form.Item>
                           <Form.Item
                             name={[field.name, "locationId"]}
-                            label="ตำแหน่ง"
-                            rules={[{ required: true, message: "เลือกตำแหน่ง" }]}
+                            label={t("ตำแหน่ง")}
+                            rules={[{ required: true, message: t("เลือกตำแหน่ง") }]}
                           >
                             <Select
                               showSearch
                               optionFilterProp="label"
                               placeholder={
-                                warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
+                                warehouseId ? t("เลือกตำแหน่ง") : t("เลือกคลังก่อน")
                               }
                               disabled={!warehouseId}
                               options={lineLocations.map((loc) => ({
@@ -636,15 +639,15 @@ export default function MaterialConversionRunLinesFields({
                           </Form.Item>
                           <Form.Item
                             name={[field.name, "packagingType"]}
-                            label="ภาชนะบรรจุ"
-                            extra="ใช้กับขั้นบรรจุ — กรอกจำนวนถุงและน้ำหนักตอนปิดงาน"
+                            label={t("ภาชนะบรรจุ")}
+                            extra={t("ใช้กับขั้นบรรจุ — กรอกจำนวนถุงและน้ำหนักตอนปิดงาน")}
                           >
                             <Select
                               allowClear
-                              placeholder="ไม่ระบุ"
+                              placeholder={t("ไม่ระบุ")}
                               options={PACKAGING_TYPES.map((value) => ({
                                 value,
-                                label: PACKAGING_TYPE_LABEL[value],
+                                label: t(PACKAGING_TYPE_LABEL[value]),
                               }))}
                             />
                           </Form.Item>
@@ -652,8 +655,8 @@ export default function MaterialConversionRunLinesFields({
                       ) : null}
                       <Form.Item
                         name={[field.name, "plannedQty"]}
-                        label={`จำนวนตามแผน${unitCode ? ` (${unitCode})` : ""}`}
-                        rules={[{ required: true, message: "กรอกจำนวน" }]}
+                        label={`${t("จำนวนตามแผน")}${unitCode ? ` (${unitCode})` : ""}`}
+                        rules={[{ required: true, message: t("กรอกจำนวน") }]}
                       >
                         <InputNumber
                           style={{ width: "100%" }}
@@ -662,9 +665,9 @@ export default function MaterialConversionRunLinesFields({
                           placeholder="0.000"
                         />
                       </Form.Item>
-                      <Form.Item name={[field.name, "remark"]} label="หมายเหตุ">
+                      <Form.Item name={[field.name, "remark"]} label={t("หมายเหตุ")}>
                         <Input
-                          placeholder="เช่น ลวดเหล็กที่แยกได้"
+                          placeholder={t("เช่น ลวดเหล็กที่แยกได้")}
                           maxLength={500}
                         />
                       </Form.Item>
@@ -678,7 +681,7 @@ export default function MaterialConversionRunLinesFields({
                 icon={<PlusOutlined />}
                 onClick={() => add({ ...EMPTY_OUTPUT })}
               >
-                เพิ่มผลผลิต
+                {t("เพิ่มผลผลิต")}
               </Button>
               <Form.ErrorList errors={errors} />
             </div>

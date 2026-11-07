@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Alert, Form, InputNumber, Modal } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
 import {
   useOtSettingsQuery,
   useUpdateOtSettingsMutation,
@@ -43,6 +44,7 @@ const MULTIPLIERS: Array<{ title: string; fields: Field[] }> = [
 
 /** ตั้งค่าอัตรา OT — ตัวคูณทุกช่องแก้ได้ ค่าเริ่มต้นตามกฎหมายคุ้มครองแรงงาน */
 export default function OtSettingsModal({ open, onClose }: Props) {
+  const t = useT();
   const [form] = Form.useForm<OtSettings>();
   const query = useOtSettingsQuery(open);
   const update = useUpdateOtSettingsMutation();
@@ -62,9 +64,9 @@ export default function OtSettingsModal({ open, onClose }: Props) {
     <Form.Item
       key={field.name}
       name={field.name}
-      label={field.label}
-      extra={field.hint}
-      rules={[{ required: true, message: "กรุณากรอก" }]}
+      label={t(field.label)}
+      extra={field.hint ? t(field.hint) : undefined}
+      rules={[{ required: true, message: t("กรุณากรอก") }]}
     >
       <InputNumber min={0} max={field.max ?? 10} step={0.5} style={{ width: "100%" }} />
     </Form.Item>
@@ -73,9 +75,9 @@ export default function OtSettingsModal({ open, onClose }: Props) {
   return (
     <Modal
       open={open}
-      title="ตั้งค่าอัตรา OT"
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={t("ตั้งค่าอัตรา OT")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={update.isPending}
       onOk={handleOk}
       onCancel={onClose}
@@ -87,8 +89,8 @@ export default function OtSettingsModal({ open, onClose }: Props) {
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title="มีผลกับคำขอที่อนุมัติหลังจากนี้เท่านั้น"
-        description="คำขอที่อนุมัติไปแล้วเก็บยอดที่คำนวณ ณ วันอนุมัติ ไม่ถูกคำนวณใหม่ · ค่าเริ่มต้นตามกฎหมายคุ้มครองแรงงาน (วันปกติ 1.5× · ทำงานวันหยุด รายเดือน 1× / รายวัน 2× · OT วันหยุด 3×)"
+        title={t("มีผลกับคำขอที่อนุมัติหลังจากนี้เท่านั้น")}
+        description={t("คำขอที่อนุมัติไปแล้วเก็บยอดที่คำนวณ ณ วันอนุมัติ ไม่ถูกคำนวณใหม่ · ค่าเริ่มต้นตามกฎหมายคุ้มครองแรงงาน (วันปกติ 1.5× · ทำงานวันหยุด รายเดือน 1× / รายวัน 2× · OT วันหยุด 3×)")}
       />
       <Form form={form} layout="vertical" requiredMark={false}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
@@ -96,7 +98,7 @@ export default function OtSettingsModal({ open, onClose }: Props) {
         </div>
         {MULTIPLIERS.map((group) => (
           <section key={group.title}>
-            <h4 style={{ margin: "4px 0 8px" }}>ตัวคูณ — {group.title}</h4>
+            <h4 style={{ margin: "4px 0 8px" }}>{t("ตัวคูณ")} — {t(group.title)}</h4>
             <div
               style={{
                 display: "grid",

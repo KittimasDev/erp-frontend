@@ -64,14 +64,19 @@ import {
   PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL,
   ProductionOrderPlanLineType,
   ProductionOrderStatus,
+  tPoLabel,
 } from "@/types/production-order";
 import {
   canRequestMoreProductionOutput,
-  PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  productionOutputStatusLabel,
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
 import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/production-output-stock-request";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
+import { tStockLabel } from "@/types/stock-adjustments";
+import { useT } from "@/lib/i18n/useT";
+import { getStoredLanguage, useLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ProductionOrderStartModal from "./ProductionOrderStartModal";
 import ShiftRecordsPanel from "@/components/production-cycles/ShiftRecordsPanel";
@@ -102,7 +107,7 @@ type Props = {
 function fmt(value?: string) {
   if (!value) return "-";
   const num = Number(value);
-  return Number.isNaN(num) ? value : num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+  return Number.isNaN(num) ? value : formatNumber(num, getStoredLanguage(), 3);
 }
 
 function fmtDate(value?: string) {
@@ -135,6 +140,8 @@ function sumRequestQtyByItem(
 }
 
 export default function ProductionOrderDetailPage({ orderId }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -553,7 +560,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       selectedReceiveItemIds.includes(line.itemId),
     );
     if (!selectedLines.length) {
-      message.warning("กรุณาเลือกผลผลิตอย่างน้อย 1 รายการ");
+      message.warning(t("กรุณาเลือกผลผลิตอย่างน้อย 1 รายการ"));
       return;
     }
     const items = selectedLines.map((line) => {
@@ -565,7 +572,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       };
     });
     if (items.some((item) => !(Number(item.quantity) > 0))) {
-      message.warning("จำนวนรับเข้าต้องมากกว่า 0");
+      message.warning(t("จำนวนรับเข้าต้องมากกว่า 0"));
       return;
     }
     const body: CreateProductionOutputStockRequestFromOrderBody = {
@@ -619,12 +626,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       <section className={masterStyles.page}>
         <PageHeader
           eyebrow="PRODUCTION · PYROLYSIS"
-          title={order?.orderNo ?? "ใบสั่งผลิต"}
+          title={order?.orderNo ?? t("ใบสั่งผลิต")}
           subtitle={<>{order
-                ? PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status
+                ? PRODUCTION_ORDER_STATUS_LABEL[order.status]
+                  ? tPoLabel(PRODUCTION_ORDER_STATUS_LABEL[order.status], lang)
+                  : order.status
                 : ""}
               {linkedRequestNos.length
-                ? ` · ใบขอผลิต ${linkedRequestNos.join(" · ")}`
+                ? ` · ${t("ใบขอผลิต")} ${linkedRequestNos.join(" · ")}`
                 : ""}</>}
           actions={
             <>
@@ -632,7 +641,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/production/production-orders")}
           >
-            กลับรายการ
+            {t("กลับรายการ")}
           </Button>
             </>
           }
@@ -647,7 +656,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   loading={startMutation.isPending}
                   onClick={() => setStartOpen(true)}
                 >
-                  เริ่มผลิต
+                  {t("เริ่มผลิต")}
                 </Button>
               ) : null}
 
@@ -656,7 +665,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   loading={cancelMutation.isPending}
                   onClick={() => setCancelOpen(true)}
                 >
-                  ยกเลิกใบสั่งผลิต
+                  {t("ยกเลิกใบสั่งผลิต")}
                 </Button>
               ) : null}
 
@@ -669,7 +678,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   loading={cancelMutation.isPending}
                   onClick={() => setCancelOpen(true)}
                 >
-                  ยกเลิกใบสั่งผลิต
+                  {t("ยกเลิกใบสั่งผลิต")}
                 </Button>
               ) : null}
 
@@ -680,7 +689,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   loading={cancelMutation.isPending}
                   onClick={() => setCancelOpen(true)}
                 >
-                  ยกเลิกกลางคัน
+                  {t("ยกเลิกกลางคัน")}
                 </Button>
               ) : null}
 
@@ -690,7 +699,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   icon={<CheckOutlined />}
                   onClick={openCompleteModal}
                 >
-                  ยืนยันเสร็จสิ้นการผลิต
+                  {t("ยืนยันเสร็จสิ้นการผลิต")}
                 </Button>
               ) : null}
 
@@ -699,27 +708,27 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   icon={<PauseCircleOutlined />}
                   onClick={() => setPauseOpen(true)}
                 >
-                  หยุดเดินเครื่องชั่วคราว
+                  {t("หยุดเดินเครื่องชั่วคราว")}
                 </Button>
               ) : null}
 
               {isPaused && canOperate ? (
                 <Popconfirm
-                  title="กลับมาเดินเครื่อง?"
-                  description="ระบบจะปิดรายการ Downtime ที่เปิดค้างอยู่ให้อัตโนมัติ"
-                  okText="กลับมาเดินเครื่อง"
-                  cancelText="ปิด"
+                  title={t("กลับมาเดินเครื่อง?")}
+                  description={t("ระบบจะปิดรายการ Downtime ที่เปิดค้างอยู่ให้อัตโนมัติ")}
+                  okText={t("กลับมาเดินเครื่อง")}
+                  cancelText={t("ปิด")}
                   onConfirm={() => resumeMutation.mutate({ id: orderId })}
                 >
                   <Button loading={resumeMutation.isPending}>
-                    กลับมาเดินเครื่อง
+                    {t("กลับมาเดินเครื่อง")}
                   </Button>
                 </Popconfirm>
               ) : null}
 
               {isRunning && canOperate ? (
                 <Button onClick={() => setLogOpen(true)}>
-                  บันทึกค่าระหว่างผลิต
+                  {t("บันทึกค่าระหว่างผลิต")}
                 </Button>
               ) : null}
 
@@ -727,8 +736,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <Button onClick={openReceiveModal}>
                   {/* ระหว่างผลิตเป็นการรับ "งวด" หนึ่ง ไม่ใช่ปิดยอดทั้งใบ */}
                   {isCompleted
-                    ? "ขอรับผลผลิตเข้าคลัง"
-                    : "ขอรับผลผลิตเข้าคลัง (งวดนี้)"}
+                    ? t("ขอรับผลผลิตเข้าคลัง")
+                    : t("ขอรับผลผลิตเข้าคลัง (งวดนี้)")}
                 </Button>
               ) : null}
             </div>
@@ -741,12 +750,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               items={[
                 {
                   key: "work",
-                  label: "งาน",
+                  label: t("งาน"),
                   children: (
                     <div className={styles.workTabBody}>
             <div className={styles.cardBlock}>
               <div className={styles.cardBlockTitleRow}>
-                <h3 className={styles.cardBlockTitle}>ข้อมูลทั่วไป</h3>
+                <h3 className={styles.cardBlockTitle}>{t("ข้อมูลทั่วไป")}</h3>
                 {order.productionFormulaId || order.productionFormulaCode ? (
                   <Button
                     size="small"
@@ -754,13 +763,13 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     style={{ paddingInline: 0 }}
                     onClick={() => setFormulaOpen(true)}
                   >
-                    ดูสูตร
+                    {t("ดูสูตร")}
                   </Button>
                 ) : null}
               </div>
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>วันที่ผลิต</span>
+                  <span className={styles.infoLabel}>{t("วันที่ผลิต")}</span>
                   <span className={styles.infoValue}>
                     {formatProductionDateRange(
                       order.productionDate,
@@ -769,11 +778,11 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>เลขที่ผลิต</span>
+                  <span className={styles.infoLabel}>{t("เลขที่ผลิต")}</span>
                   <span className={styles.infoValue}>{order.orderNo}</span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>ชื่อสินค้า</span>
+                  <span className={styles.infoLabel}>{t("ชื่อสินค้า")}</span>
                   <span className={styles.infoValue}>
                     {outputPlanLines
                       .map((l) => l.itemNameTh || l.itemCode)
@@ -782,7 +791,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>สถานะ</span>
+                  <span className={styles.infoLabel}>{t("สถานะ")}</span>
                   <span className={styles.statusValue}>
                     <span
                       className={`${styles.statusDot} ${
@@ -791,18 +800,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                           : ""
                       }`}
                     />
-                    {PRODUCTION_ORDER_STATUS_LABEL[order.status] ??
-                      order.status}
+                    {PRODUCTION_ORDER_STATUS_LABEL[order.status]
+                      ? tPoLabel(PRODUCTION_ORDER_STATUS_LABEL[order.status], lang)
+                      : order.status}
                   </span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>ผู้ปฏิบัติงาน</span>
+                  <span className={styles.infoLabel}>{t("ผู้ปฏิบัติงาน")}</span>
                   <span className={styles.infoValue}>
                     {order.leadOperatorName ?? "-"}
                   </span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>เครื่องจักรหลัก</span>
+                  <span className={styles.infoLabel}>{t("เครื่องจักรหลัก")}</span>
                   <span className={styles.infoValue}>
                     {(() => {
                       // แสดงเครื่องทั้งหมดใน snapshot ของ MO (ลำดับตามสูตร · รวมเครื่องที่ผู้ใช้สลับแล้ว)
@@ -817,11 +827,11 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>รอบการผลิต</span>
+                  <span className={styles.infoLabel}>{t("รอบการผลิต")}</span>
                   <span className={styles.infoValue}>
                     {order.cycleId ? (
                       <Link href={`/production/cycles/${order.cycleId}`}>
-                        {order.cycleNo ?? "ดูรอบ"}
+                        {order.cycleNo ?? t("ดูรอบ")}
                       </Link>
                     ) : (
                       "-"
@@ -829,7 +839,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>หมายเหตุ</span>
+                  <span className={styles.infoLabel}>{t("หมายเหตุ")}</span>
                   <span className={styles.infoValue}>{order.remark || "-"}</span>
                 </div>
               </div>
@@ -837,7 +847,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>สรุปผลการผลิต</h3>
+                <h3>{t("สรุปผลการผลิต")}</h3>
               </div>
               {multiOutput ? (
                 <div className={styles.summaryGrid}>
@@ -846,7 +856,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       <span className={styles.summaryIcon}>
                         <AppstoreOutlined />
                       </span>
-                      <span className={styles.summaryCardTitle}>ผลผลิตแยกตามสินค้า</span>
+                      <span className={styles.summaryCardTitle}>{t("ผลผลิตแยกตามสินค้า")}</span>
                     </div>
                     <ul className={styles.summaryRows}>
                       {outputTotals.map((line) => (
@@ -858,9 +868,9 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                             {line.itemNameTh || line.itemCode || line.itemId}
                           </span>
                           <span className={styles.summaryRowMeta}>
-                            แผน {fmt(line.plannedQty)} {line.unitCode ?? ""}
+                            {t("แผน")} {fmt(line.plannedQty)} {line.unitCode ?? ""}
                             {" · "}
-                            เข้าคลัง {fmt(line.actualQty)} {line.unitCode ?? ""}
+                            {t("เข้าคลัง")} {fmt(line.actualQty)} {line.unitCode ?? ""}
                           </span>
                         </li>
                       ))}
@@ -871,7 +881,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       <span className={styles.summaryIcon}>
                         <SettingOutlined />
                       </span>
-                      <span className={styles.summaryCardTitle}>ผลิตจากกะที่ยืนยันแล้ว</span>
+                      <span className={styles.summaryCardTitle}>{t("ผลิตจากกะที่ยืนยันแล้ว")}</span>
                     </div>
                     <ul className={styles.summaryRows}>
                       {reconcile.map((r) => (
@@ -893,7 +903,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       <span className={styles.summaryIcon}>
                         <InboxOutlined />
                       </span>
-                      <span className={styles.summaryCardTitle}>รอรับเข้าคลัง</span>
+                      <span className={styles.summaryCardTitle}>{t("รอรับเข้าคลัง")}</span>
                     </div>
                     <ul className={styles.summaryRows}>
                       {reconcile.map((r) => (
@@ -911,7 +921,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     </ul>
                     {anomalyLines.length > 0 ? (
                       <Typography.Text type="danger" style={{ fontSize: 12 }}>
-                        ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน{" "}
+                        {t("ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน")}{" "}
                         {anomalyLines
                           .map(
                             (r) =>
@@ -926,15 +936,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               <div className={styles.summaryGrid}>
                 {multiOutput ? (
                   <div className={`${styles.summaryCard} ${styles.summaryCardWide}`}>
-                    <span className={styles.summaryLabel}>ผลผลิตแยกตามสินค้า</span>
+                    <span className={styles.summaryLabel}>{t("ผลผลิตแยกตามสินค้า")}</span>
                     <ul className={styles.outputByItem}>
                       {outputTotals.map((line) => (
                         <li key={`${line.itemId}-${line.unitCode ?? ""}`}>
                           <span>{line.itemNameTh || line.itemCode || line.itemId}</span>
                           <span>
-                            แผน {fmt(line.plannedQty)} {line.unitCode ?? ""}
+                            {t("แผน")} {fmt(line.plannedQty)} {line.unitCode ?? ""}
                             {" · "}
-                            เข้าคลัง {fmt(line.actualQty)} {line.unitCode ?? ""}
+                            {t("เข้าคลัง")} {fmt(line.actualQty)} {line.unitCode ?? ""}
                           </span>
                         </li>
                       ))}
@@ -942,7 +952,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </div>
                 ) : (
                 <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>รวมแผน</span>
+                  <span className={styles.summaryLabel}>{t("รวมแผน")}</span>
                   <span className={styles.summaryValue}>
                     {fmt(summary?.totalPlannedOutputQty ?? "0")}
                     <Typography.Text
@@ -956,7 +966,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 )}
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>
-                    ผลิตจากกะที่ยืนยันแล้ว
+                    {t("ผลิตจากกะที่ยืนยันแล้ว")}
                   </span>
                   {multiOutput && reconcileApplicable ? (
                     <ul className={styles.outputByItem}>
@@ -976,7 +986,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   )}
                 </div>
                 <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>รอรับเข้าคลัง</span>
+                  <span className={styles.summaryLabel}>{t("รอรับเข้าคลัง")}</span>
                   {multiOutput && reconcileApplicable ? (
                     <ul className={styles.outputByItem}>
                       {reconcile.map((r) => (
@@ -995,7 +1005,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   )}
                   {anomalyLines.length > 0 ? (
                     <Typography.Text type="danger" style={{ fontSize: 12 }}>
-                      ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน{" "}
+                      {t("ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน")}{" "}
                       {anomalyLines
                         .map(
                           (r) =>
@@ -1008,7 +1018,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 {multiOutput ? null : (
                 <>
                 <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>รับเข้าคลังแล้ว</span>
+                  <span className={styles.summaryLabel}>{t("รับเข้าคลังแล้ว")}</span>
                   <span
                     className={`${styles.summaryValue} ${styles.summaryValueAccent}`}
                   >
@@ -1022,7 +1032,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </span>
                 </div>
                 <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>ความคืบหน้า</span>
+                  <span className={styles.summaryLabel}>{t("ความคืบหน้า")}</span>
                   <span className={styles.summaryValue}>
                     {(() => {
                       const planned = Number(summary?.totalPlannedOutputQty ?? 0);
@@ -1048,7 +1058,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   />
                 </div>
                 <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>Yield เฉลี่ย (แผน)</span>
+                  <span className={styles.summaryLabel}>{t("Yield เฉลี่ย (แผน)")}</span>
                   <span className={styles.summaryValue}>
                     {summary ? `${summary.plannedYieldPercent}%` : "-"}
                   </span>
@@ -1061,7 +1071,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>แผนผลิต</h3>
+                <h3>{t("แผนผลิต")}</h3>
               </div>
               <Table
                 className={masterStyles.dataTable}
@@ -1069,10 +1079,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 size="small"
                 pagination={false}
                 dataSource={outputPlanLines}
-                locale={{ emptyText: "ไม่มีแผนผลผลิต" }}
+                locale={{ emptyText: t("ไม่มีแผนผลผลิต") }}
                 columns={[
                   {
-                    title: "ลำดับ",
+                    title: t("ลำดับ"),
                     key: "seq",
                     width: 64,
                     align: "center",
@@ -1080,7 +1090,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       index + 1,
                   },
                   {
-                    title: "สินค้า",
+                    title: t("สินค้า"),
                     key: "item",
                     render: (_, row) =>
                       row.itemCode
@@ -1088,7 +1098,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         : row.itemId,
                   },
                   {
-                    title: "แผน",
+                    title: t("แผน"),
                     dataIndex: "plannedQty",
                     key: "plannedQty",
                     align: "right",
@@ -1096,7 +1106,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       `${fmt(v)} ${row.unitCode ?? ""}`,
                   },
                   {
-                    title: "ผลิตจากกะที่ยืนยันแล้ว",
+                    title: t("ผลิตจากกะที่ยืนยันแล้ว"),
                     key: "confirmedShiftQty",
                     align: "right",
                     render: (_, row) => {
@@ -1106,7 +1116,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     },
                   },
                   {
-                    title: "รับเข้าคลังแล้ว",
+                    title: t("รับเข้าคลังแล้ว"),
                     dataIndex: "actualQty",
                     key: "actualQty",
                     align: "right",
@@ -1114,7 +1124,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
                   },
                   {
-                    title: "รอรับเข้าคลัง",
+                    title: t("รอรับเข้าคลัง"),
                     key: "pendingQty",
                     align: "right",
                     render: (_, row) => {
@@ -1123,7 +1133,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       if (r?.isAnomaly) {
                         return (
                           <Tag color="error">
-                            ผิดปกติ: เกิน {fmt(r.excessQty)} {row.unitCode ?? ""}
+                            {t("ผิดปกติ: เกิน")} {fmt(r.excessQty)} {row.unitCode ?? ""}
                           </Tag>
                         );
                       }
@@ -1131,7 +1141,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     },
                   },
                   {
-                    title: "Yield (แผน)",
+                    title: t("Yield (แผน)"),
                     key: "plannedYield",
                     align: "right",
                     render: (_, row) => {
@@ -1142,7 +1152,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     },
                   },
                   {
-                    title: "Yield (จริง)",
+                    title: t("Yield (จริง)"),
                     key: "actualYield",
                     align: "right",
                     render: (_, row) => {
@@ -1158,7 +1168,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>วัตถุดิบที่ใช้จริง</h3>
+                <h3>{t("วัตถุดิบที่ใช้จริง")}</h3>
               </div>
               <Table
                 className={masterStyles.dataTable}
@@ -1168,7 +1178,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={order.inputItems}
                 columns={[
                   {
-                    title: "ลำดับ",
+                    title: t("ลำดับ"),
                     key: "seq",
                     width: 64,
                     align: "center",
@@ -1176,7 +1186,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       index + 1,
                   },
                   {
-                    title: "สินค้า",
+                    title: t("สินค้า"),
                     key: "item",
                     render: (_, row) =>
                       row.itemCode
@@ -1184,32 +1194,32 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         : row.itemId,
                   },
                   {
-                    title: "คลัง",
+                    title: t("คลัง"),
                     dataIndex: "warehouseCode",
                     key: "warehouseCode",
                   },
                   {
-                    title: "ตำแหน่ง",
+                    title: t("ตำแหน่ง"),
                     dataIndex: "locationCode",
                     key: "locationCode",
                   },
                   { title: "Lot", dataIndex: "lotNo", key: "lotNo" },
                   {
-                    title: `แผน (${order.inputItems[0]?.unitCode ?? "กก."})`,
+                    title: `${t("แผน")} (${order.inputItems[0]?.unitCode ?? t("กก.")})`,
                     dataIndex: "plannedQty",
                     key: "plannedQty",
                     align: "right",
                     render: (v: string) => fmt(v),
                   },
                   {
-                    title: `จริง (${order.inputItems[0]?.unitCode ?? "กก."})`,
+                    title: `${t("จริง")} (${order.inputItems[0]?.unitCode ?? t("กก.")})`,
                     dataIndex: "actualQty",
                     key: "actualQty",
                     align: "right",
                     render: (v: string) => fmt(v),
                   },
                   {
-                    title: `คงเหลือ (${order.inputItems[0]?.unitCode ?? "กก."})`,
+                    title: `${t("คงเหลือ")} (${order.inputItems[0]?.unitCode ?? t("กก.")})`,
                     key: "remaining",
                     align: "right",
                     render: (_, row) => {
@@ -1225,7 +1235,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             {wastePlanLines.length > 0 || isCompleted ? (
               <div className={styles.section}>
                 <div className={styles.sectionHead}>
-                  <h3>ของเสีย (ไม่เข้าคลัง)</h3>
+                  <h3>{t("ของเสีย (ไม่เข้าคลัง)")}</h3>
                 </div>
                 <Table
                   className={masterStyles.dataTable}
@@ -1233,10 +1243,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   size="small"
                   pagination={false}
                   dataSource={wastePlanLines}
-                  locale={{ emptyText: "ไม่มีของเสีย" }}
+                  locale={{ emptyText: t("ไม่มีของเสีย") }}
                   columns={[
                     {
-                      title: "ลำดับ",
+                      title: t("ลำดับ"),
                       key: "seq",
                       width: 64,
                       align: "center",
@@ -1244,7 +1254,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         index + 1,
                     },
                     {
-                      title: "สินค้า",
+                      title: t("สินค้า"),
                       key: "item",
                       render: (_, row) =>
                         row.itemCode
@@ -1252,7 +1262,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                           : row.itemId,
                     },
                     {
-                      title: "แผน",
+                      title: t("แผน"),
                       dataIndex: "plannedQty",
                       key: "plannedQty",
                       align: "right",
@@ -1260,7 +1270,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         `${fmt(v)} ${row.unitCode ?? ""}`,
                     },
                     {
-                      title: "เสียจริง",
+                      title: t("เสียจริง"),
                       dataIndex: "actualQty",
                       key: "actualQty",
                       align: "right",
@@ -1268,14 +1278,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         `${fmt(row.actualQty ?? "-")} ${row.unitCode ?? ""}`,
                     },
                     {
-                      title: "สถานะ",
+                      title: t("สถานะ"),
                       dataIndex: "disposalStatus",
                       key: "disposalStatus",
                       render: (v?: string) =>
                         v ? (
                           <Tag>
-                            {PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL[v] ??
-                              v}
+                            {PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL[v]
+                              ? tPoLabel(PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL[v], lang)
+                              : v}
                           </Tag>
                         ) : (
                           "-"
@@ -1293,7 +1304,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               items={[
                 {
                   key: "ops",
-                  label: "บันทึกการดำเนินงาน",
+                  label: t("บันทึกการดำเนินงาน"),
                   children: (
                     <ShiftRecordsPanel
                       orderId={order.id}
@@ -1324,39 +1335,41 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 size="small"
                 pagination={false}
                 dataSource={order.downtimes}
-                locale={{ emptyText: "ไม่มีรายการ Downtime" }}
+                locale={{ emptyText: t("ไม่มีรายการ Downtime") }}
                 columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "เริ่ม", dataIndex: "startAt", key: "startAt", render: fmtDate },
+    { title: t("เริ่ม"), dataIndex: "startAt", key: "startAt", render: fmtDate },
                   {
-                    title: "สิ้นสุด",
+                    title: t("สิ้นสุด"),
                     dataIndex: "endAt",
                     key: "endAt",
-                    render: (v?: string) => (v ? fmtDate(v) : "ยังไม่ปิด"),
+                    render: (v?: string) => (v ? fmtDate(v) : t("ยังไม่ปิด")),
                   },
                   {
-                    title: "หมวด",
+                    title: t("หมวด"),
                     dataIndex: "category",
                     key: "category",
                     // แถวที่บันทึกก่อนมีหมวดจะว่าง — backfill ไม่ได้ ต้องโชว์ตามจริง
                     render: (v?: string) =>
                       v
-                        ? PRODUCTION_DOWNTIME_CATEGORY_LABEL[v] ?? v
-                        : PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL,
+                        ? PRODUCTION_DOWNTIME_CATEGORY_LABEL[v]
+                          ? tPoLabel(PRODUCTION_DOWNTIME_CATEGORY_LABEL[v], lang)
+                          : v
+                        : tPoLabel(PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL, lang),
                   },
                   {
-                    title: "ประเภทการหยุด",
+                    title: t("ประเภทการหยุด"),
                     dataIndex: "stopType",
                     key: "stopType",
-                    render: (v: string) => (v === "PLANNED" ? "ตามแผน" : "ไม่ตามแผน"),
+                    render: (v: string) => (v === "PLANNED" ? t("ตามแผน") : t("ไม่ตามแผน")),
                   },
-                  { title: "เหตุผล", dataIndex: "reason", key: "reason" },
+                  { title: t("เหตุผล"), dataIndex: "reason", key: "reason" },
                   {
                     title: "Root Cause",
                     dataIndex: "rootCause",
@@ -1364,7 +1377,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     render: (v?: string) => v ?? "-",
                   },
                   {
-                    title: "ผู้บันทึก",
+                    title: t("ผู้บันทึก"),
                     dataIndex: "recordedByName",
                     key: "recordedByName",
                   },
@@ -1375,11 +1388,11 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 },
                 {
                   key: "logs",
-                  label: "บันทึกระหว่างผลิต",
+                  label: t("บันทึกระหว่างผลิต"),
                   children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>บันทึกระหว่างผลิต</h3>
+                <h3>{t("บันทึกระหว่างผลิต")}</h3>
               </div>
               <Table
                 className={masterStyles.dataTable}
@@ -1387,19 +1400,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 size="small"
                 pagination={false}
                 dataSource={order.logs}
-                locale={{ emptyText: "ยังไม่มีบันทึก" }}
+                locale={{ emptyText: t("ยังไม่มีบันทึก") }}
                 columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "เวลา", dataIndex: "loggedAt", key: "loggedAt", render: fmtDate },
-                  { title: "รายละเอียด", dataIndex: "note", key: "note" },
+    { title: t("เวลา"), dataIndex: "loggedAt", key: "loggedAt", render: fmtDate },
+                  { title: t("รายละเอียด"), dataIndex: "note", key: "note" },
                   {
-                    title: "ผู้บันทึก",
+                    title: t("ผู้บันทึก"),
                     dataIndex: "recordedByName",
                     key: "recordedByName",
                   },
@@ -1410,14 +1423,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 },
                 {
                   key: "trace",
-                  label: "Trace วัตถุดิบ / ผลผลิต",
+                  label: t("Trace วัตถุดิบ / ผลผลิต"),
                   children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>Trace: วัตถุดิบที่เบิก / ผลผลิตเข้าคลัง</h3>
+                <h3>{t("Trace: วัตถุดิบที่เบิก / ผลผลิตเข้าคลัง")}</h3>
               </div>
               <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-                ใบเบิกวัตถุดิบที่ผูกใบสั่งผลิตนี้ และคำขอรับผลผลิตเข้าคลังที่เกี่ยวข้อง
+                {t("ใบเบิกวัตถุดิบที่ผูกใบสั่งผลิตนี้ และคำขอรับผลผลิตเข้าคลังที่เกี่ยวข้อง")}
               </Typography.Paragraph>
               <Table
                 className={masterStyles.dataTable}
@@ -1427,32 +1440,32 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 pagination={false}
                 style={{ marginBottom: 16 }}
                 dataSource={relatedMaterialIssuesQuery.data?.data.items ?? []}
-                locale={{ emptyText: "ยังไม่มีใบเบิกวัตถุดิบที่ผูกใบสั่งผลิตนี้" }}
+                locale={{ emptyText: t("ยังไม่มีใบเบิกวัตถุดิบที่ผูกใบสั่งผลิตนี้") }}
                 columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "เลขที่เบิก", dataIndex: "issueNo", key: "issueNo" },
+    { title: t("เลขที่เบิก"), dataIndex: "issueNo", key: "issueNo" },
                   {
-                    title: "วันที่",
+                    title: t("วันที่"),
                     dataIndex: "issueDate",
                     key: "issueDate",
                     render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
                   },
                   {
-                    title: "สถานะ",
+                    title: t("สถานะ"),
                     dataIndex: "status",
                     key: "status",
                     render: (v: string) => (
-                      <Tag>{STOCK_ISSUE_STATUS_LABEL[v] ?? v}</Tag>
+                      <Tag>{tStockLabel(STOCK_ISSUE_STATUS_LABEL[v] ?? v, lang)}</Tag>
                     ),
                   },
                   {
-                    title: "รายการ",
+                    title: t("รายการ"),
                     key: "items",
                     render: (_, row) =>
                       (row.items ?? [])
@@ -1473,7 +1486,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                           router.push(`/inventory/material-issues/${row.id}`)
                         }
                       >
-                        เปิดใบเบิก
+                        {t("เปิดใบเบิก")}
                       </Button>
                     ),
                   },
@@ -1484,16 +1497,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 },
                 {
                   key: "stockCut",
-                  label: "สต็อกที่ตัดจริง",
+                  label: t("สต็อกที่ตัดจริง"),
                   children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>สต๊อกที่ใบนี้ตัดจริง</h3>
+                <h3>{t("สต๊อกที่ใบนี้ตัดจริง")}</h3>
               </div>
               <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-                ตอนกดเริ่มผลิต ระบบหักคลังตรงโดยไม่ออกเอกสารเบิก — นี่คือร่องรอย
-                ที่บันทึกไว้จริง ใช้เลขใบสั่งผลิตแทนเลขใบเบิก · ต่างจากตารางใบเบิก
-                ด้านบนซึ่งเป็นเอกสารที่คนเปิดเองแล้วผูกกลับมา
+                {t("ตอนกดเริ่มผลิต ระบบหักคลังตรงโดยไม่ออกเอกสารเบิก — นี่คือร่องรอย ที่บันทึกไว้จริง ใช้เลขใบสั่งผลิตแทนเลขใบเบิก · ต่างจากตารางใบเบิก ด้านบนซึ่งเป็นเอกสารที่คนเปิดเองแล้วผูกกลับมา")}
               </Typography.Paragraph>
               <Table
                 className={masterStyles.dataTable}
@@ -1505,37 +1516,37 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={stockMovementsQuery.data?.data ?? []}
                 locale={{
                   emptyText:
-                    "ยังไม่มีการตัดสต๊อก — สต๊อกขยับตอนกดเริ่มผลิต หรือตอนยืนยันบันทึกกะ (ใบที่ตัดตอนยืนยันกะ)",
+                    t("ยังไม่มีการตัดสต๊อก — สต๊อกขยับตอนกดเริ่มผลิต หรือตอนยืนยันบันทึกกะ (ใบที่ตัดตอนยืนยันกะ)"),
                 }}
                 columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-                    title: "วันที่",
+                    title: t("วันที่"),
                     dataIndex: "movementDate",
                     key: "movementDate",
                     width: 150,
                     render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
                   },
                   {
-                    title: "สินค้า",
+                    title: t("สินค้า"),
                     key: "item",
                     render: (_, row) =>
                       `${row.itemCode} — ${row.itemNameTh ?? ""}`,
                   },
                   {
-                    title: "คลัง / ตำแหน่ง",
+                    title: t("คลัง / ตำแหน่ง"),
                     key: "place",
                     render: (_, row) =>
                       `${row.warehouseCode ?? "-"} / ${row.locationCode ?? "-"}`,
                   },
                   {
-                    title: "ตัดออก",
+                    title: t("ตัดออก"),
                     key: "out",
                     align: "right",
                     width: 130,
@@ -1545,7 +1556,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         : "—",
                   },
                   {
-                    title: "คืนเข้า",
+                    title: t("คืนเข้า"),
                     key: "in",
                     align: "right",
                     width: 130,
@@ -1555,7 +1566,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         : "—",
                   },
                   {
-                    title: "คงเหลือหลังตัด",
+                    title: t("คงเหลือหลังตัด"),
                     dataIndex: "balanceQuantityAfter",
                     key: "balanceQuantityAfter",
                     align: "right",
@@ -1569,24 +1580,23 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 },
                 {
                   key: "receiveHistory",
-                  label: "ประวัติการรับผลผลิตเข้าคลัง",
+                  label: t("ประวัติการรับผลผลิตเข้าคลัง"),
                   children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <div>
-                  <h3>ประวัติการรับผลผลิตเข้าคลังของใบสั่งผลิตนี้</h3>
+                  <h3>{t("ประวัติการรับผลผลิตเข้าคลังของใบสั่งผลิตนี้")}</h3>
                   <p className={styles.sectionHint}>
-                    ทุกงวดที่ขอรับเข้าคลัง เรียงใหม่สุดก่อน — ของจะเข้าคลังจริง
-                    เมื่อหัวหน้าคลังอนุมัติเท่านั้น
+                    {t("ทุกงวดที่ขอรับเข้าคลัง เรียงใหม่สุดก่อน — ของจะเข้าคลังจริง เมื่อหัวหน้าคลังอนุมัติเท่านั้น")}
                   </p>
                 </div>
                 {outputHistorySummary ? (
                   <span className={styles.sectionHint}>
-                    เข้าคลังแล้วรวม {fmt(String(outputHistorySummary.approved))}
+                    {t("เข้าคลังแล้วรวม")} {fmt(String(outputHistorySummary.approved))}
                     {outputHistorySummary.pending > 0
-                      ? ` · รออนุมัติ ${fmt(String(outputHistorySummary.pending))}`
+                      ? ` · ${t("รออนุมัติ")} ${fmt(String(outputHistorySummary.pending))}`
                       : ""}
-                    {` จากแผน ${fmt(String(outputHistorySummary.planned))}`}
+                    {` ${t("จากแผน")} ${fmt(String(outputHistorySummary.planned))}`}
                   </span>
                 ) : null}
               </div>
@@ -1597,17 +1607,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 loading={relatedRequestsQuery.isFetching}
                 pagination={false}
                 dataSource={outputHistoryRows}
-                locale={{ emptyText: "ยังไม่มีคำขอรับผลผลิต" }}
+                locale={{ emptyText: t("ยังไม่มีคำขอรับผลผลิต") }}
                 columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-                    title: "วันที่รับเข้า",
+                    title: t("วันที่รับเข้า"),
                     key: "postingDate",
                     width: 115,
                     render: (_, row) =>
@@ -1615,21 +1625,21 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         ? dayjs(row.postingDate).format("DD/MM/YYYY")
                         : "—",
                   },
-                  { title: "เลขที่คำขอ", dataIndex: "requestNo", key: "requestNo" },
+                  { title: t("เลขที่คำขอ"), dataIndex: "requestNo", key: "requestNo" },
                   {
-                    title: "สินค้า",
+                    title: t("สินค้า"),
                     key: "item",
                     render: (_, row) =>
                       row.itemCode ? `${row.itemCode} — ${row.itemNameTh ?? ""}` : row.itemId,
                   },
                   {
-                    title: "จำนวน",
+                    title: t("จำนวน"),
                     key: "qty",
                     align: "right",
                     render: (_, row) => `${fmt(row.quantity)} ${row.unitCode ?? ""}`,
                   },
                   {
-                    title: "คลัง / ตำแหน่ง",
+                    title: t("คลัง / ตำแหน่ง"),
                     key: "warehouse",
                     render: (_, row) =>
                       [row.warehouseCode, row.locationCode]
@@ -1643,13 +1653,13 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       row.status === "APPROVED" ? row.lotNo || "-" : "-",
                   },
                   {
-                    title: "สถานะ",
+                    title: t("สถานะ"),
                     dataIndex: "status",
                     key: "status",
                     render: (v: string, row) => (
                       <>
                         <Tag>
-                          {PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[v] ?? v}
+                          {productionOutputStatusLabel(v)}
                         </Tag>
                         {v === "REJECTED" && row.rejectReason ? (
                           <div className={styles.sectionHint}>
@@ -1660,18 +1670,18 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     ),
                   },
                   {
-                    title: "ผู้ขอ / ผู้อนุมัติ",
+                    title: t("ผู้ขอ / ผู้อนุมัติ"),
                     key: "people",
                     render: (_, row) => (
                       <div className={styles.sectionHint}>
                         <div>
-                          ขอ: {row.requestedByName ?? "—"}
+                          {t("ขอ:")} {row.requestedByName ?? "—"}
                           {row.requestedAt
                             ? ` · ${dayjs(row.requestedAt).format("DD/MM/YYYY HH:mm")}`
                             : ""}
                         </div>
                         <div>
-                          อนุมัติ: {row.approvedByName ?? "—"}
+                          {t("อนุมัติ:")} {row.approvedByName ?? "—"}
                           {row.approvedAt
                             ? ` · ${dayjs(row.approvedAt).format("DD/MM/YYYY HH:mm")}`
                             : ""}
@@ -1680,7 +1690,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     ),
                   },
                   {
-                    title: "หมายเหตุ",
+                    title: t("หมายเหตุ"),
                     dataIndex: "remark",
                     key: "remark",
                     ellipsis: true,
@@ -1699,7 +1709,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                           )
                         }
                       >
-                        ดูรายละเอียด
+                        {t("ดูรายละเอียด")}
                       </Button>
                     ),
                   },
@@ -1715,11 +1725,9 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               <div className={styles.section}>
                 <div className={styles.sectionHead}>
                   <div>
-                    <h3>จัดสรรผลผลิตด้วยตนเอง (กรณีระบบจัดให้ไม่ได้)</h3>
+                    <h3>{t("จัดสรรผลผลิตด้วยตนเอง (กรณีระบบจัดให้ไม่ได้)")}</h3>
                     <p className={styles.sectionHint}>
-                      จัดสรรได้หลังรับผลผลิตเข้าคลังและหัวหน้าคลังอนุมัติแล้ว
-                      และเฉพาะสินค้าเดียวกันกับใบขอผลิต — ส่วนเกินหรือสินค้าที่ไม่มี PR
-                      อยู่ในคลังกลาง
+                      {t("จัดสรรได้หลังรับผลผลิตเข้าคลังและหัวหน้าคลังอนุมัติแล้ว และเฉพาะสินค้าเดียวกันกับใบขอผลิต — ส่วนเกินหรือสินค้าที่ไม่มี PR อยู่ในคลังกลาง")}
                     </p>
                   </div>
                   <Button
@@ -1728,7 +1736,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     loading={allocateMutation.isPending}
                     onClick={handleAllocateOutput}
                   >
-                    จองสต๊อกให้ SO ที่เลือก
+                    {t("จองสต๊อกให้ SO ที่เลือก")}
                   </Button>
                 </div>
 
@@ -1737,21 +1745,21 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <Alert
                     type="warning"
                     showIcon
-                    title="สินค้าที่ใบขอผลิตรอรับยังไม่ได้รับเข้าคลัง"
+                    title={t("สินค้าที่ใบขอผลิตรอรับยังไม่ได้รับเข้าคลัง")}
                     description={
                       <>
-                        ต้องกดขอรับผลผลิตแล้วให้หัวหน้าคลังอนุมัติก่อน ของถึงจะเข้าคลังและจัดสรรได้
+                        {t("ต้องกดขอรับผลผลิตแล้วให้หัวหน้าคลังอนุมัติก่อน ของถึงจะเข้าคลังและจัดสรรได้")}
                         {otherReceivedItems.length > 0 ? (
                           <>
                             {" "}
-                            ของที่เข้าคลังแล้วคือ{" "}
+                            {t("ของที่เข้าคลังแล้วคือ")}{" "}
                             {otherReceivedItems
                               .map(
                                 (item) =>
                                   `${item.label} ${fmt(String(item.qty))}`,
                               )
                               .join(", ")}{" "}
-                            — คนละสินค้ากับที่ PR รอรับ (
+                            {t("— คนละสินค้ากับที่ PR รอรับ")} (
                             {[
                               ...new Map(
                                 missingWarehouseLines.map((line) => [
@@ -1768,7 +1776,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     action={
                       showReceiveCta ? (
                         <Button size="small" type="primary" onClick={openReceiveModal}>
-                          ขอรับผลผลิตเข้าคลัง
+                          {t("ขอรับผลผลิตเข้าคลัง")}
                         </Button>
                       ) : undefined
                     }
@@ -1780,8 +1788,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <Alert
                     type="info"
                     showIcon
-                    title="มีคำขอรอคลังอนุมัติ — ของยังไม่เข้าคลัง"
-                    description="ดูตารางคำขอรับผลผลิตด้านบน จนกว่าคลังจะกดอนุมัติจึงจัดสรรให้ PR/SO ได้"
+                    title={t("มีคำขอรอคลังอนุมัติ — ของยังไม่เข้าคลัง")}
+                    description={t("ดูตารางคำขอรับผลผลิตด้านบน จนกว่าคลังจะกดอนุมัติจึงจัดสรรให้ PR/SO ได้")}
                   />
                 ) : null}
 
@@ -1789,21 +1797,21 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
                       <span className={styles.infoLabel}>
-                        รับเข้าคลังแล้ว (ทุกสินค้า)
+                        {t("รับเข้าคลังแล้ว (ทุกสินค้า)")}
                       </span>
                       <span className={styles.infoValue}>
                         {fmt(allocationSummary.totalApprovedOutputQty)}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.infoLabel}>จัดสรรแล้ว</span>
+                      <span className={styles.infoLabel}>{t("จัดสรรแล้ว")}</span>
                       <span className={styles.infoValue}>
                         {fmt(allocationSummary.totalAllocatedQty)}
                       </span>
                     </div>
                     <div className={styles.infoItem}>
                       <span className={styles.infoLabel}>
-                        คงเหลือคลังกลาง (ทุกสินค้า)
+                        {t("คงเหลือคลังกลาง (ทุกสินค้า)")}
                       </span>
                       <span className={styles.infoValue}>
                         {fmt(allocationSummary.unallocatedQty)}
@@ -1818,10 +1826,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   size="small"
                   pagination={false}
                   dataSource={sourceLines}
-                  locale={{ emptyText: "ไม่มีรายการอ้างอิง" }}
+                  locale={{ emptyText: t("ไม่มีรายการอ้างอิง") }}
                   columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
@@ -1857,30 +1865,30 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       },
                     },
                     {
-                      title: "ใบขอผลิต",
+                      title: t("ใบขอผลิต"),
                       key: "pr",
                       render: (_, row) =>
                         row.productionRequestNo ?? row.productionRequestId,
                     },
                     {
-                      title: "ใบสั่งขาย",
+                      title: t("ใบสั่งขาย"),
                       key: "so",
                       render: (_, row) => row.salesOrderNo ?? row.salesOrderId,
                     },
                     {
-                      title: "สินค้า",
+                      title: t("สินค้า"),
                       key: "item",
                       render: (_, row) => outputItemLabel(row),
                     },
                     {
-                      title: "ต้องการ",
+                      title: t("ต้องการ"),
                       key: "allocated",
                       align: "right",
                       render: (_, row) =>
                         `${fmt(row.allocatedQty)} ${row.unitCode ?? ""}`,
                     },
                     {
-                      title: "รับเข้าคลังแล้ว",
+                      title: t("รับเข้าคลังแล้ว"),
                       key: "received",
                       align: "right",
                       render: (_, row) => {
@@ -1898,7 +1906,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                                 type="secondary"
                                 style={{ fontSize: 12 }}
                               >
-                                รออนุมัติ {fmt(String(pending))}
+                                {t("รออนุมัติ")} {fmt(String(pending))}
                               </Typography.Text>
                             ) : null}
                           </>
@@ -1906,21 +1914,21 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       },
                     },
                     {
-                      title: "จัดสรรแล้ว",
+                      title: t("จัดสรรแล้ว"),
                       key: "fulfilled",
                       align: "right",
                       render: (_, row) =>
                         `${fmt(row.fulfilledQty)} ${row.unitCode ?? ""}`,
                     },
                     {
-                      title: "คงเหลือ",
+                      title: t("คงเหลือ"),
                       key: "remaining",
                       align: "right",
                       render: (_, row) =>
                         `${fmt(row.remainingQty)} ${row.unitCode ?? ""}`,
                     },
                     {
-                      title: "จัดสรรครั้งนี้",
+                      title: t("จัดสรรครั้งนี้"),
                       key: "allocateQty",
                       align: "right",
                       width: 140,
@@ -1953,7 +1961,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       },
                     },
                     {
-                      title: "สถานะ",
+                      title: t("สถานะ"),
                       key: "status",
                       render: (_, row) => {
                         const approved =
@@ -1963,17 +1971,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         if (row.isFulfilled) {
                           return (
                             <Tag color="success" icon={<CheckOutlined />}>
-                              ครบแล้ว
+                              {t("ครบแล้ว")}
                             </Tag>
                           );
                         }
                         if (approved <= 0 && pending > 0) {
-                          return <Tag color="warning">รอคลังอนุมัติ</Tag>;
+                          return <Tag color="warning">{t("รอคลังอนุมัติ")}</Tag>;
                         }
                         if (approved <= 0) {
-                          return <Tag>ยังไม่ได้รับเข้าคลัง</Tag>;
+                          return <Tag>{t("ยังไม่ได้รับเข้าคลัง")}</Tag>;
                         }
-                        return <Tag color="processing">รอจัดสรร</Tag>;
+                        return <Tag color="processing">{t("รอจัดสรร")}</Tag>;
                       },
                     },
                   ]}
@@ -1985,7 +1993,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 },
                 {
                   key: "data",
-                  label: "ข้อมูล",
+                  label: t("ข้อมูล"),
                   children: (
                     <ProductionOrderDataTab
                       orderId={orderId}
@@ -1999,18 +2007,18 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             />
           </>
         ) : (
-          <div className={masterStyles.errorBox}>ไม่พบใบสั่งผลิตที่ต้องการ</div>
+          <div className={masterStyles.errorBox}>{t("ไม่พบใบสั่งผลิตที่ต้องการ")}</div>
         )}
 
         <Modal
-          title="ยืนยันเสร็จสิ้นการผลิต"
+          title={t("ยืนยันเสร็จสิ้นการผลิต")}
           open={completeOpen}
           onCancel={() => {
             setCompleteOpen(false);
             setSignatureName("");
             setWasteActualRows([]);
           }}
-          okText="ยืนยัน"
+          okText={t("ยืนยัน")}
           okButtonProps={{
             disabled: signatureName.trim().toLowerCase() !== "done",
           }}
@@ -2054,14 +2062,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               type="warning"
               showIcon
               style={{ marginBottom: 12 }}
-              message={`ยังรับเข้าคลังไม่ครบแผน — เข้าคลังแล้ว ${fmt(
-                String(outputHistorySummary.approved),
-              )} จากแผน ${fmt(String(outputHistorySummary.planned))}`}
-              description="ปิดงานได้ตามปกติ และยังขอรับผลผลิตเข้าคลังเพิ่มได้หลังปิดงาน"
+              message={t("ยังรับเข้าคลังไม่ครบแผน — เข้าคลังแล้ว {approved} จากแผน {planned}", {
+                approved: fmt(String(outputHistorySummary.approved)),
+                planned: fmt(String(outputHistorySummary.planned)),
+              })}
+              description={t("ปิดงานได้ตามปกติ และยังขอรับผลผลิตเข้าคลังเพิ่มได้หลังปิดงาน")}
             />
           ) : null}
           <p>
-            พิมพ์ <strong>done</strong> เพื่อยืนยันเสร็จสิ้นการผลิต
+            {lang === "en" ? (
+              <>Type <strong>done</strong> to confirm production completion</>
+            ) : (
+              <>พิมพ์ <strong>done</strong> เพื่อยืนยันเสร็จสิ้นการผลิต</>
+            )}
           </p>
           <Input
             value={signatureName}
@@ -2072,7 +2085,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           {wasteActualRows.length > 0 ? (
             <>
               <Typography.Paragraph type="secondary" style={{ marginTop: 16 }}>
-                ของเสียจริง (ไม่เข้าคลัง) — ปรับจำนวนได้ก่อนยืนยัน
+                {t("ของเสียจริง (ไม่เข้าคลัง) — ปรับจำนวนได้ก่อนยืนยัน")}
               </Typography.Paragraph>
               <Table
                 rowKey="key"
@@ -2081,19 +2094,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={wasteActualRows}
                 columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-                    title: "สินค้า",
+                    title: t("สินค้า"),
                     dataIndex: "itemLabel",
                     key: "itemLabel",
                   },
                   {
-                    title: "จำนวนเสียจริง",
+                    title: t("จำนวนเสียจริง"),
                     key: "actualQty",
                     render: (_, row) => (
                       <InputNumber
@@ -2146,10 +2159,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         />
 
         <Modal
-          title="บันทึกค่าระหว่างผลิต"
+          title={t("บันทึกค่าระหว่างผลิต")}
           open={logOpen}
           onCancel={() => setLogOpen(false)}
-          okText="บันทึก"
+          okText={t("บันทึก")}
           okButtonProps={{ disabled: !logNote.trim() }}
           confirmLoading={logMutation.isPending}
           onOk={() =>
@@ -2168,7 +2181,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             rows={3}
             value={logNote}
             onChange={(e) => setLogNote(e.target.value)}
-            placeholder="เช่น อุณหภูมิเตา 450°C ตรงตามแผน"
+            placeholder={t("เช่น อุณหภูมิเตา 450°C ตรงตามแผน")}
           />
         </Modal>
 
@@ -2184,24 +2197,24 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         <Modal
           title={
             isCompleted
-              ? "ขอรับผลผลิตเข้าคลัง"
-              : "ขอรับผลผลิตเข้าคลัง (งวดนี้)"
+              ? t("ขอรับผลผลิตเข้าคลัง")
+              : t("ขอรับผลผลิตเข้าคลัง (งวดนี้)")
           }
           open={requestOpen}
           onCancel={() => setRequestOpen(false)}
-          okText="ส่งคำขอ"
+          okText={t("ส่งคำขอ")}
           confirmLoading={createFromOrderMutation.isPending}
           onOk={handleSubmitOutputRequest}
           destroyOnHidden
           width={760}
         >
           <Typography.Paragraph type="secondary">
-            อ้างอิงใบสั่งผลิต {order?.orderNo} — เลือกหลายรายการผลผลิตได้ในครั้งเดียว
-            ระบบจะสร้างคำขอแยกตามสินค้า ยังไม่ POST สต๊อก รอ WAREHOUSE_MANAGER อนุมัติ
+            {t("อ้างอิงใบสั่งผลิต {no} — เลือกหลายรายการผลผลิตได้ในครั้งเดียว", { no: order?.orderNo ?? "" })}
+            {t("ระบบจะสร้างคำขอแยกตามสินค้า ยังไม่ POST สต๊อก รอ WAREHOUSE_MANAGER อนุมัติ")}
             {isCompleted ? null : (
               <>
                 {" "}
-                · ใบนี้ยังผลิตอยู่ รับเข้าได้เป็นงวด ส่วนที่เหลือขอเพิ่มภายหลังได้
+                {t("· ใบนี้ยังผลิตอยู่ รับเข้าได้เป็นงวด ส่วนที่เหลือขอเพิ่มภายหลังได้")}
               </>
             )}
           </Typography.Paragraph>
@@ -2209,8 +2222,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             <Alert
               type="info"
               showIcon
-              title="รับครบตามแผนแล้ว"
-              description="ถ้าของจริงออกมากกว่าแผน ติ๊กรายการแล้วกรอกจำนวนเองได้ ระบบไม่เติมยอดให้เพราะส่วนนี้นับเป็นผลผลิตเกินแผน"
+              title={t("รับครบตามแผนแล้ว")}
+              description={t("ถ้าของจริงออกมากกว่าแผน ติ๊กรายการแล้วกรอกจำนวนเองได้ ระบบไม่เติมยอดให้เพราะส่วนนี้นับเป็นผลผลิตเกินแผน")}
               style={{ marginBottom: 12 }}
             />
           ) : null}
@@ -2219,7 +2232,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             size="small"
             pagination={false}
             dataSource={receiveLines}
-            locale={{ emptyText: "ไม่มีแผนผลผลิต" }}
+            locale={{ emptyText: t("ไม่มีแผนผลผลิต") }}
             rowSelection={{
               selectedRowKeys: selectedReceiveItemIds,
               onChange: (keys) => setSelectedReceiveItemIds(keys.map(String)),
@@ -2229,14 +2242,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             }}
             columns={[
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-                title: "สินค้า",
+                title: t("สินค้า"),
                 key: "item",
                 render: (_, row) =>
                   row.itemCode
@@ -2244,14 +2257,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     : row.itemId,
               },
               {
-                title: "แผน",
+                title: t("แผน"),
                 dataIndex: "plannedQty",
                 key: "plannedQty",
                 align: "right",
                 render: (v: string, row) => `${fmt(v)} ${row.unitCode ?? ""}`,
               },
               {
-                title: "เข้าคลังแล้ว",
+                title: t("เข้าคลังแล้ว"),
                 dataIndex: "actualQty",
                 key: "actualQty",
                 align: "right",
@@ -2259,7 +2272,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
               },
               {
-                title: "คงเหลือตามแผน",
+                title: t("คงเหลือตามแผน"),
                 key: "remainingQty",
                 align: "right",
                 render: (_, row) => {
@@ -2270,7 +2283,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 },
               },
               {
-                title: "จำนวนรับเข้า",
+                title: t("จำนวนรับเข้า"),
                 key: "receiveQty",
                 width: 160,
                 render: (_, row) => (
@@ -2301,7 +2314,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   }
                   return (
                     <Typography.Text type="warning" style={{ fontSize: 12 }}>
-                      เกินแผน {fmt(String(qty - remaining))}{" "}
+                      {t("เกินแผน")} {fmt(String(qty - remaining))}{" "}
                       {row.unitCode ?? ""}
                     </Typography.Text>
                   );
@@ -2312,20 +2325,20 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           <Form form={requestForm} layout="vertical" style={{ marginTop: 16 }}>
             <Form.Item
               name="postingDate"
-              label="วันที่รับเข้า"
-              rules={[{ required: true, message: "กรุณาระบุวันที่รับเข้า" }]}
-              extra="วันที่ของออกจากเครื่องจริง — งานยาวหลายวันอาจไม่ใช่วันที่กรอก"
+              label={t("วันที่รับเข้า")}
+              rules={[{ required: true, message: t("กรุณาระบุวันที่รับเข้า") }]}
+              extra={t("วันที่ของออกจากเครื่องจริง — งานยาวหลายวันอาจไม่ใช่วันที่กรอก")}
             >
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
               name="warehouseId"
-              label="คลังปลายทาง"
-              rules={[{ required: true, message: "กรุณาเลือกคลัง" }]}
+              label={t("คลังปลายทาง")}
+              rules={[{ required: true, message: t("กรุณาเลือกคลัง") }]}
             >
               <Select
                 showSearch
-                placeholder="เลือกคลัง"
+                placeholder={t("เลือกคลัง")}
                 optionFilterProp="label"
                 loading={warehousesQuery.isLoading}
                 options={(warehousesQuery.data?.data ?? []).map((w) => ({
@@ -2337,12 +2350,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             </Form.Item>
             <Form.Item
               name="warehouseLocationId"
-              label="ตำแหน่งจัดเก็บ"
-              rules={[{ required: true, message: "กรุณาเลือกตำแหน่งจัดเก็บ" }]}
+              label={t("ตำแหน่งจัดเก็บ")}
+              rules={[{ required: true, message: t("กรุณาเลือกตำแหน่งจัดเก็บ") }]}
             >
               <Select
                 showSearch
-                placeholder={selectedWarehouseId ? "เลือกตำแหน่งจัดเก็บ" : "เลือกคลังก่อน"}
+                placeholder={selectedWarehouseId ? t("เลือกตำแหน่งจัดเก็บ") : t("เลือกคลังก่อน")}
                 optionFilterProp="label"
                 disabled={!selectedWarehouseId}
                 loading={locationsQuery.isLoading}
@@ -2352,7 +2365,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 }))}
               />
             </Form.Item>
-            <Form.Item name="remark" label="หมายเหตุ">
+            <Form.Item name="remark" label={t("หมายเหตุ")}>
               <Input.TextArea rows={2} />
             </Form.Item>
           </Form>

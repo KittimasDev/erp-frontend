@@ -6,6 +6,7 @@ import { App } from "antd";
 import { updateCustomer } from "@/lib/api/customers";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type { UpdateCustomerRequest } from "@/types/customers";
 import { customersQueryKey } from "./useCustomersQuery";
 
@@ -17,6 +18,7 @@ type UpdateCustomerPayload = {
 export function useUpdateCustomerMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "customers", "update"],
@@ -24,11 +26,11 @@ export function useUpdateCustomerMutation() {
       updateCustomer(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: customersQueryKey });
-      message.success(response.message || "แก้ไขข้อมูลลูกค้าสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขข้อมูลลูกค้าสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "แก้ไขข้อมูลลูกค้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("แก้ไขข้อมูลลูกค้าไม่สำเร็จ"),
       );
     },
   });

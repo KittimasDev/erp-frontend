@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useT } from "@/lib/i18n/useT";
 import { Form, Input, Modal } from "antd";
 import { KeyOutlined } from "@ant-design/icons";
 
@@ -31,6 +32,7 @@ export default function ResetPasswordModal({
   onCancel,
   onSubmit,
 }: ResetPasswordModalProps) {
+  const t = useT();
   const [form] = Form.useForm<ResetPasswordFormValues>();
 
   useEffect(() => {
@@ -52,8 +54,8 @@ export default function ResetPasswordModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText="รีเซ็ตรหัสผ่าน"
-      cancelText="ยกเลิก"
+      okText={t("รีเซ็ตรหัสผ่าน")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={480}
       centered
@@ -64,9 +66,9 @@ export default function ResetPasswordModal({
         </div>
         <div className={styles.modalHeaderContent}>
           <div className={styles.eyebrow}>RESET PASSWORD</div>
-          <h2>รีเซ็ตรหัสผ่าน</h2>
+          <h2>{t("รีเซ็ตรหัสผ่าน")}</h2>
           <p>
-            ตั้งรหัสผ่านใหม่ให้ผู้ใช้{" "}
+            {t("ตั้งรหัสผ่านใหม่ให้ผู้ใช้")}{" "}
             <strong>{username ?? "-"}</strong>
           </p>
         </div>
@@ -74,32 +76,32 @@ export default function ResetPasswordModal({
 
       <Form form={form} layout="vertical" requiredMark={false} className={styles.form}>
         <Form.Item
-          label="รหัสผ่านใหม่"
+          label={t("รหัสผ่านใหม่")}
           name="newPassword"
           rules={[
-            { required: true, message: "กรุณากรอกรหัสผ่านใหม่" },
-            { min: PASSWORD_MIN_LENGTH, message: PASSWORD_MIN_MESSAGE },
+            { required: true, message: t("กรุณากรอกรหัสผ่านใหม่") },
+            { min: PASSWORD_MIN_LENGTH, message: t(PASSWORD_MIN_MESSAGE) },
           ]}
         >
-          <Input.Password placeholder={PASSWORD_PLACEHOLDER} />
+          <Input.Password placeholder={t(PASSWORD_PLACEHOLDER)} />
         </Form.Item>
         <Form.Item
-          label="ยืนยันรหัสผ่าน"
+          label={t("ยืนยันรหัสผ่าน")}
           name="confirmPassword"
           dependencies={["newPassword"]}
           rules={[
-            { required: true, message: "กรุณายืนยันรหัสผ่าน" },
+            { required: true, message: t("กรุณายืนยันรหัสผ่าน") },
             ({ getFieldValue }) => ({
               validator(_, value) {
                 if (!value || getFieldValue("newPassword") === value) {
                   return Promise.resolve();
                 }
-                return Promise.reject(new Error("รหัสผ่านไม่ตรงกัน"));
+                return Promise.reject(new Error(t("รหัสผ่านไม่ตรงกัน")));
               },
             }),
           ]}
         >
-          <Input.Password placeholder="พิมพ์รหัสผ่านอีกครั้ง" />
+          <Input.Password placeholder={t("พิมพ์รหัสผ่านอีกครั้ง")} />
         </Form.Item>
       </Form>
     </Modal>

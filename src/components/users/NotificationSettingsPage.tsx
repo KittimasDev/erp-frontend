@@ -22,6 +22,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import { useT } from "@/lib/i18n/useT";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
   useNotificationEventQuery,
@@ -86,6 +87,7 @@ type NotificationSettingsPageProps = {
 export default function NotificationSettingsPage({
   embedded = false,
 }: NotificationSettingsPageProps) {
+  const t = useT();
   const { message } = App.useApp();
   const router = useRouter();
   const pathname = usePathname();
@@ -136,7 +138,7 @@ export default function NotificationSettingsPage({
     eventsQuery.error instanceof Error
       ? eventsQuery.error.message
       : eventsQuery.isError
-        ? "โหลดรายการแจ้งเตือนไม่สำเร็จ"
+        ? t("โหลดรายการแจ้งเตือนไม่สำเร็จ")
         : null;
 
   const openEvent = (code: string) => {
@@ -164,10 +166,10 @@ export default function NotificationSettingsPage({
           isEnabled: draftEnabled[row.roleId] ?? row.isEnabled,
         })),
       });
-      message.success("บันทึกการตั้งค่าแจ้งเตือนแล้ว");
+      message.success(t("บันทึกการตั้งค่าแจ้งเตือนแล้ว"));
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "บันทึกไม่สำเร็จ",
+        error instanceof Error ? error.message : t("บันทึกไม่สำเร็จ"),
       );
     }
   };
@@ -177,7 +179,7 @@ export default function NotificationSettingsPage({
       return;
     }
     if (dirty) {
-      message.warning("บันทึกการตั้งค่าก่อนทดสอบ หรือยกเลิกการแก้ไขที่ยังไม่บันทึก");
+      message.warning(t("บันทึกการตั้งค่าก่อนทดสอบ หรือยกเลิกการแก้ไขที่ยังไม่บันทึก"));
       return;
     }
     try {
@@ -185,26 +187,26 @@ export default function NotificationSettingsPage({
       const rolesLabel = res.data.notifiedRoleCodes.join(", ");
       message.success(
         rolesLabel
-          ? `ส่งแจ้งเตือนทดสอบแล้ว → ${rolesLabel} (ดูที่กระดิ่ง)`
-          : "ส่งแจ้งเตือนทดสอบแล้ว",
+          ? t("ส่งแจ้งเตือนทดสอบแล้ว → {roles} (ดูที่กระดิ่ง)", { roles: rolesLabel })
+          : t("ส่งแจ้งเตือนทดสอบแล้ว"),
       );
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "ทดสอบแจ้งเตือนไม่สำเร็จ",
+        error instanceof Error ? error.message : t("ทดสอบแจ้งเตือนไม่สำเร็จ"),
       );
     }
   };
 
   const eventColumns: ColumnsType<NotificationEventSummary> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
     {
-      title: "เมนู / ประเภท",
+      title: t("เมนู / ประเภท"),
       key: "name",
       render: (_, row) => (
         <div>
@@ -214,7 +216,7 @@ export default function NotificationSettingsPage({
               <Tag color="green">PR</Tag>
             ) : null}
             {row.code.includes("STOCK_POSTING") ? (
-              <Tag color="blue">รับยาง</Tag>
+              <Tag color="blue">{t("รับยาง")}</Tag>
             ) : null}
             {row.code.includes("PICKING") ? (
               <Tag color="cyan">Picking</Tag>
@@ -229,14 +231,14 @@ export default function NotificationSettingsPage({
       ),
     },
     {
-      title: "รหัส",
+      title: t("รหัส"),
       dataIndex: "code",
       key: "code",
       width: 280,
       render: (value: string) => <code>{value}</code>,
     },
     {
-      title: "หน้าปลายทาง",
+      title: t("หน้าปลายทาง"),
       key: "href",
       width: 140,
       render: (_, row) => (
@@ -250,7 +252,7 @@ export default function NotificationSettingsPage({
           }}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          เปิดหน้านี้
+          {t("เปิดหน้านี้")}
         </Button>
       ),
     },
@@ -258,37 +260,37 @@ export default function NotificationSettingsPage({
 
   const roleColumns: ColumnsType<NotificationEventRoleRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
     {
-      title: "รหัสบทบาท",
+      title: t("รหัสบทบาท"),
       dataIndex: "roleCode",
       key: "roleCode",
       width: 220,
       render: (value: string) => <code>{value}</code>,
     },
     {
-      title: "ชื่อบทบาท",
+      title: t("ชื่อบทบาท"),
       dataIndex: "roleName",
       key: "roleName",
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       key: "type",
       width: 120,
       render: (_, record) =>
         record.isSystemRole ? (
-          <Tag color="blue">ระบบ</Tag>
+          <Tag color="blue">{t("ระบบ")}</Tag>
         ) : (
-          <Tag color="green">กำหนดเอง</Tag>
+          <Tag color="green">{t("กำหนดเอง")}</Tag>
         ),
     },
     {
-      title: "รับแจ้งเตือน",
+      title: t("รับแจ้งเตือน"),
       key: "isEnabled",
       width: 140,
       align: "center",
@@ -315,9 +317,9 @@ export default function NotificationSettingsPage({
       <MasterPageGate isLoading={!embedded && eventQuery.isLoading}>
         <section className={masterStyles.page}>
           <PageHeader
-            title={<>{detail?.nameTh ?? "ตั้งค่าแจ้งเตือน"}</>}
+            title={<>{detail?.nameTh ?? t("ตั้งค่าแจ้งเตือน")}</>}
             subtitle={<>{detail?.descriptionTh ??
-                  "เลือกบทบาทที่จะได้รับการแจ้งเตือนเมื่อมีรายการใหม่"}</>}
+                  t("เลือกบทบาทที่จะได้รับการแจ้งเตือนเมื่อมีรายการใหม่")}</>}
             back={
               <>
 <Button
@@ -326,7 +328,7 @@ export default function NotificationSettingsPage({
                 onClick={backToList}
                 style={{ paddingInline: 0, marginBottom: 8 }}
               >
-                กลับรายการแจ้งเตือน
+                {t("กลับรายการแจ้งเตือน")}
               </Button>
               </>
             }
@@ -340,7 +342,7 @@ export default function NotificationSettingsPage({
                     onClick={() => router.push(detail.href)}
                     style={{ paddingInline: 0 }}
                   >
-                    เปิดหน้านี้
+                    {t("เปิดหน้านี้")}
                   </Button>
                 </div>
               ) : null}
@@ -354,7 +356,7 @@ export default function NotificationSettingsPage({
                 loading={testMutation.isPending}
                 onClick={() => void handleTest()}
               >
-                ทดสอบแจ้งเตือน
+                {t("ทดสอบแจ้งเตือน")}
               </Button>
               <Button
                 type="primary"
@@ -363,7 +365,7 @@ export default function NotificationSettingsPage({
                 loading={updateMutation.isPending}
                 onClick={() => void handleSave()}
               >
-                บันทึก
+                {t("บันทึก")}
               </Button>
             
               </>
@@ -375,8 +377,8 @@ export default function NotificationSettingsPage({
               type="warning"
               showIcon
               style={{ marginBottom: 16 }}
-              title="ยังไม่มีบทบาทที่รับแจ้งเตือน"
-              description="เปิดสวิตช์บทบาทของบัญชีที่ควรอนุมัติ แล้วกดบันทึก — ระบบจะยิงแจ้งเตือนตามบทบาทที่เปิดไว้ที่นี่เท่านั้น"
+              title={t("ยังไม่มีบทบาทที่รับแจ้งเตือน")}
+              description={t("เปิดสวิตช์บทบาทของบัญชีที่ควรอนุมัติ แล้วกดบันทึก — ระบบจะยิงแจ้งเตือนตามบทบาทที่เปิดไว้ที่นี่เท่านั้น")}
             />
           ) : null}
 
@@ -386,7 +388,7 @@ export default function NotificationSettingsPage({
             dataSource={roles}
             loading={eventQuery.isFetching}
             pagination={false}
-            locale={{ emptyText: "ยังไม่มีบทบาทในระบบ" }}
+            locale={{ emptyText: t("ยังไม่มีบทบาทในระบบ") }}
           />
         </section>
       </MasterPageGate>
@@ -398,8 +400,8 @@ export default function NotificationSettingsPage({
       <section className={masterStyles.page}>
         <PageHeader
           icon={<BellOutlined />}
-          title="ประเภทการแจ้งเตือน"
-          subtitle={<>เลือกรายการเพื่อกำหนดว่าบทบาทไหนจะได้รับแจ้งเตือนเมื่อมีงานเข้าคิว{events.length > 0 ? ` (${events.length} รายการ)` : null}</>}
+          title={t("ประเภทการแจ้งเตือน")}
+          subtitle={<>{t("เลือกรายการเพื่อกำหนดว่าบทบาทไหนจะได้รับแจ้งเตือนเมื่อมีงานเข้าคิว")}{events.length > 0 ? ` (${t("{n} รายการ", { n: events.length })})` : null}</>}
         />
 
         {eventsError ? (
@@ -407,11 +409,11 @@ export default function NotificationSettingsPage({
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
-            title="โหลดรายการไม่สำเร็จ"
+            title={t("โหลดรายการไม่สำเร็จ")}
             description={eventsError}
             action={
               <Button size="small" onClick={() => void eventsQuery.refetch()}>
-                ลองใหม่
+                {t("ลองใหม่")}
               </Button>
             }
           />
@@ -419,7 +421,7 @@ export default function NotificationSettingsPage({
 
         {groupedEvents.length === 0 ? (
           <Typography.Text type="secondary">
-            ยังไม่มีประเภทการแจ้งเตือน
+            {t("ยังไม่มีประเภทการแจ้งเตือน")}
           </Typography.Text>
         ) : (
           <Collapse
@@ -428,7 +430,7 @@ export default function NotificationSettingsPage({
               key: item.group,
               label: (
                 <Space>
-                  <Typography.Text strong>{item.group}</Typography.Text>
+                  <Typography.Text strong>{t(item.group)}</Typography.Text>
                   <Typography.Text type="secondary">
                     ({item.events.length})
                   </Typography.Text>

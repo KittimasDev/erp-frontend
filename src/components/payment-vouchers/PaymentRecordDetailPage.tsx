@@ -24,10 +24,11 @@ import {
   type WhtCertificate,
 } from "@/types/payment-vouchers";
 import { openWhtCertificatePdf } from "@/utils/generateWhtCertificatePdf";
+import { useT, tNow } from "@/lib/i18n/useT";
 import { bankLabel, paymentMethodLabel } from "./PaymentMethodFields";
 import WhtCertificateModal, { certToPdfData } from "./WhtCertificateModal";
 import { WhtLinesTable } from "./VoucherSections";
-import { PV_BASE_PATH, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel, referenceLine, sourceLabel } from "./paymentVoucherUtils";
+import { tFin, PV_BASE_PATH, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel, referenceLine, sourceLabel } from "./paymentVoucherUtils";
 import PageHeader from "@/components/common/PageHeader";
 
 const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
@@ -39,11 +40,12 @@ const fileTypeLabel = (mime?: string) =>
 /** รายการไฟล์แบบอ่านอย่างเดียว — ดู/ดาวน์โหลดได้ ไม่มีปุ่มลบ (รายการจ่ายที่ยืนยันแล้วแก้ไม่ได้) */
 function ReadOnlyFiles({ files, empty }: { files: PaymentRecordAttachment[]; empty: string }) {
   const { message } = App.useApp();
+  const t = useT();
   const fetchBlob = async (f: PaymentRecordAttachment) => {
     try {
       return await downloadDocumentAttachment(getAccessToken(), f.id);
     } catch (e) {
-      message.error(e instanceof ApiError ? e.message : "เปิดไฟล์ไม่สำเร็จ");
+      message.error(e instanceof ApiError ? e.message : t("เปิดไฟล์ไม่สำเร็จ"));
       return null;
     }
   };
@@ -65,16 +67,16 @@ function ReadOnlyFiles({ files, empty }: { files: PaymentRecordAttachment[]; emp
   };
   const columns: ColumnsType<PaymentRecordAttachment> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "ชื่อไฟล์", dataIndex: "originalFileName", render: (v?: string) => v || "ไฟล์" },
-    { title: "ประเภท", dataIndex: "mimeType", width: 90, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
-    { title: "วันที่แนบ", dataIndex: "createdAt", width: 150, render: (v: string) => dt(v) },
-    { title: "ผู้แนบ", dataIndex: "uploadedByName", width: 140, render: (v?: string) => v ?? "—" },
+    { title: t("ชื่อไฟล์"), dataIndex: "originalFileName", render: (v?: string) => v || t("ไฟล์") },
+    { title: t("ประเภท"), dataIndex: "mimeType", width: 90, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
+    { title: t("วันที่แนบ"), dataIndex: "createdAt", width: 150, render: (v: string) => dt(v) },
+    { title: t("ผู้แนบ"), dataIndex: "uploadedByName", width: 140, render: (v?: string) => v ?? "—" },
     {
       title: "",
       key: "a",
@@ -82,9 +84,9 @@ function ReadOnlyFiles({ files, empty }: { files: PaymentRecordAttachment[]; emp
       render: (_v, f) => (
         <Space>
           <Button size="small" icon={<EyeOutlined />} onClick={() => void preview(f)}>
-            ดู
+            {t("ดู")}
           </Button>
-          <Button size="small" icon={<DownloadOutlined />} onClick={() => void download(f)} aria-label="ดาวน์โหลด" />
+          <Button size="small" icon={<DownloadOutlined />} onClick={() => void download(f)} aria-label={t("ดาวน์โหลด")} />
         </Space>
       ),
     },
@@ -95,31 +97,33 @@ function ReadOnlyFiles({ files, empty }: { files: PaymentRecordAttachment[]; emp
 }
 
 function methodRows(d: PaymentRecordDetail) {
+  const t = tNow;
   if (d.paymentMethod === "TRANSFER") {
     return (
       <>
-        <Descriptions.Item label="บัญชีต้นทางที่ใช้จ่าย">{bankLabel(d.bankAccount)}</Descriptions.Item>
-        <Descriptions.Item label="เลขอ้างอิงธุรกรรม">{d.transactionRef ?? "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("บัญชีต้นทางที่ใช้จ่าย")}>{bankLabel(d.bankAccount)}</Descriptions.Item>
+        <Descriptions.Item label={t("เลขอ้างอิงธุรกรรม")}>{d.transactionRef ?? "—"}</Descriptions.Item>
       </>
     );
   }
   if (d.paymentMethod === "CHEQUE") {
     return (
       <>
-        <Descriptions.Item label="ธนาคาร">{d.chequeBankName ?? "—"}</Descriptions.Item>
-        <Descriptions.Item label="เลขที่เช็ค / เลขอ้างอิง">{d.chequeNo ?? d.transactionRef ?? "—"}</Descriptions.Item>
-        <Descriptions.Item label="วันที่เช็ค">{formatThaiDate(d.chequeDate)}</Descriptions.Item>
-        <Descriptions.Item label="บัญชีที่สั่งจ่าย">{bankLabel(d.bankAccount)}</Descriptions.Item>
+        <Descriptions.Item label={t("ธนาคาร")}>{d.chequeBankName ?? "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("เลขที่เช็ค / เลขอ้างอิง")}>{d.chequeNo ?? d.transactionRef ?? "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("วันที่เช็ค")}>{formatThaiDate(d.chequeDate)}</Descriptions.Item>
+        <Descriptions.Item label={t("บัญชีที่สั่งจ่าย")}>{bankLabel(d.bankAccount)}</Descriptions.Item>
       </>
     );
   }
   return (
-    <Descriptions.Item label="วิธีชำระและรายละเอียด" span="filled">{d.otherMethodDetail ?? "—"}</Descriptions.Item>
+    <Descriptions.Item label={t("วิธีชำระและรายละเอียด")} span="filled">{d.otherMethodDetail ?? "—"}</Descriptions.Item>
   );
 }
 
 /** รายละเอียดบันทึกจ่ายเงิน (read-only) — แก้ไขการจ่ายที่ยืนยันแล้วโดยตรงไม่ได้ */
 export default function PaymentRecordDetailPage({ id }: { id: string }) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const perms = useScreenActionPermissions("FINANCE_PAYMENT_RECORDS");
@@ -131,7 +135,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
   const d = query.data?.data;
 
   if (query.isLoading) return <Spin />;
-  if (!d) return <Alert type="error" showIcon title="ไม่พบรายการจ่าย (หรือเป็นรายการของใบสำคัญจ่ายแบบเดิม)" />;
+  if (!d) return <Alert type="error" showIcon title={t("ไม่พบรายการจ่าย (หรือเป็นรายการของใบสำคัญจ่ายแบบเดิม)")} />;
 
   const pv = d.voucherDetail.voucher;
   const info = d.voucherDetail;
@@ -142,7 +146,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
     try {
       await openWhtCertificatePdf(certToPdfData(c, `${d.paymentNo ?? ""} · PV ${pv.voucherNo}`));
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : "สร้างเอกสารไม่สำเร็จ");
+      message.error(e instanceof Error && e.message ? e.message : t("สร้างเอกสารไม่สำเร็จ"));
     }
   };
 
@@ -151,42 +155,42 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title={<>{d.paymentNo ?? "รายการจ่าย"}</>}
+        title={<>{d.paymentNo ?? t("รายการจ่าย")}</>}
         back={
           <>
 <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PAYMENT_RECORDS_PATH)}>
-              กลับ
+              {t("กลับ")}
             </Button>
           </>
         }
         meta={
           <>
-<Tag color={PAYMENT_RECORD_STATUS_COLOR[d.status]}>{PAYMENT_RECORD_STATUS_LABEL[d.status] ?? d.status}</Tag>
+<Tag color={PAYMENT_RECORD_STATUS_COLOR[d.status]}>{PAYMENT_RECORD_STATUS_LABEL[d.status] ? tFin(PAYMENT_RECORD_STATUS_LABEL[d.status]) : d.status}</Tag>
           </>
         }
         actions={
           <>
             {d.status === "PAID" && d.hasWht && !cert && perms.canAdd ? (
               <Button type="primary" onClick={() => setWhtOpen(true)}>
-                ออกหนังสือรับรองหัก ณ ที่จ่าย
+                {t("ออกหนังสือรับรองหัก ณ ที่จ่าย")}
               </Button>
             ) : null}
             {d.status === "PAID" && cert ? (
               <Button type="primary" onClick={() => void viewCert(cert)}>
-                ดูหนังสือรับรองหัก ณ ที่จ่าย
+                {t("ดูหนังสือรับรองหัก ณ ที่จ่าย")}
               </Button>
             ) : null}
             {d.status === "PAID" && perms.canDelete ? (
               <Tooltip
                 title={
                   d.isExportedToExpress
-                    ? "ส่งสมุดรายวันจ่ายไป Express แล้ว ยกเลิกไม่ได้ — แก้ใน Express ก่อน แล้วให้ผู้ดูแลระบบปลดสถานะการส่ง"
+                    ? t("ส่งสมุดรายวันจ่ายไป Express แล้ว ยกเลิกไม่ได้ — แก้ใน Express ก่อน แล้วให้ผู้ดูแลระบบปลดสถานะการส่ง")
                     : undefined
                 }
               >
                 <span>
                   <Button danger disabled={d.isExportedToExpress} onClick={() => setCancelling(true)}>
-                    ยกเลิกการจ่าย
+                    {t("ยกเลิกการจ่าย")}
                   </Button>
                 </span>
               </Tooltip>
@@ -200,126 +204,126 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
         <Alert
           type="warning"
           showIcon
-          title={`ยกเลิกรายการจ่ายแล้ว${d.cancelledByName ? ` โดย ${d.cancelledByName}` : ""} · ${dt(d.cancelledAt)}`}
+          title={`${t("ยกเลิกรายการจ่ายแล้ว")}${d.cancelledByName ? ` ${t("โดย")} ${d.cancelledByName}` : ""} · ${dt(d.cancelledAt)}`}
           description={d.cancelReason}
         />
       ) : null}
 
-      <Card title="1. ข้อมูลเอกสาร" size="small">
+      <Card title={t("1. ข้อมูลเอกสาร")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>
-          <Descriptions.Item label="เลขที่รายการจ่าย">{d.paymentNo ?? "—"}</Descriptions.Item>
-          <Descriptions.Item label="วันที่เอกสาร">{formatThaiDate(d.documentDate)}</Descriptions.Item>
-          <Descriptions.Item label="เลขที่ PV อ้างอิง">
+          <Descriptions.Item label={t("เลขที่รายการจ่าย")}>{d.paymentNo ?? "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่เอกสาร")}>{formatThaiDate(d.documentDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("เลขที่ PV อ้างอิง")}>
             <Link href={`${PV_BASE_PATH}/${pv.id}`}>{pv.voucherNo}</Link>
           </Descriptions.Item>
-          <Descriptions.Item label="เลขที่เอกสารต้นทาง">
+          <Descriptions.Item label={t("เลขที่เอกสารต้นทาง")}>
             {info.sources.length === 0
               ? "—"
               : `${sourceLabel(pv.sourceType)}: ${info.sources.map((s) => s.documentNo).join(", ")}`}
             {info.apDocuments.length > 0 ? ` · AP ${info.apDocuments.map((a) => a.docNo).join(", ")}` : ""}
           </Descriptions.Item>
-          <Descriptions.Item label="เลขที่ PO">
+          <Descriptions.Item label={t("เลขที่ PO")}>
             {info.purchaseOrders.length === 0 ? "—" : info.purchaseOrders.map((p) => p.poNo).join(", ")}
           </Descriptions.Item>
-          <Descriptions.Item label="ผู้ขาย">
+          <Descriptions.Item label={t("ผู้ขาย")}>
             {info.supplier.creditorCode ? `${info.supplier.creditorCode} ` : ""}
             {info.supplier.nameTh}
           </Descriptions.Item>
-          <Descriptions.Item label="ประเภทการจ่าย">{kindLabel(pv.paymentKind)}</Descriptions.Item>
-          <Descriptions.Item label="สถานะ">
-            <Tag color={PAYMENT_RECORD_STATUS_COLOR[d.status]}>{PAYMENT_RECORD_STATUS_LABEL[d.status] ?? d.status}</Tag>
+          <Descriptions.Item label={t("ประเภทการจ่าย")}>{kindLabel(pv.paymentKind)}</Descriptions.Item>
+          <Descriptions.Item label={t("สถานะ")}>
+            <Tag color={PAYMENT_RECORD_STATUS_COLOR[d.status]}>{PAYMENT_RECORD_STATUS_LABEL[d.status] ? tFin(PAYMENT_RECORD_STATUS_LABEL[d.status]) : d.status}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="อ้างอิงทั้งหมด">{reference || "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("อ้างอิงทั้งหมด")}>{reference || "—"}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="2. สรุปยอดการจ่าย (บาท)" size="small">
+      <Card title={t("2. สรุปยอดการจ่าย (บาท)")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>
-          <Descriptions.Item label="ยอดเงินตาม PV">{fmtMoney(pv.totalAmount)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดเงินตาม PV")}>{fmtMoney(pv.totalAmount)}</Descriptions.Item>
           <Descriptions.Item label="VAT">{fmtMoney(info.vatAmount)}</Descriptions.Item>
-          <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">
+          <Descriptions.Item label={t("ฐานภาษีหัก ณ ที่จ่าย")}>
             {Number(pv.whtAmount) > 0 ? fmtMoney(info.whtBaseAmount) : "—"}
           </Descriptions.Item>
-          <Descriptions.Item label="อัตรา WHT">
+          <Descriptions.Item label={t("อัตรา WHT")}>
             {Number(pv.whtAmount) <= 0
               ? "—"
               : new Set((info.whtLines ?? []).map((l) => Number(l.rate))).size > 1
-                ? "หลายอัตรา"
+                ? t("หลายอัตรา")
                 : `${Number(info.whtRate)}%`}
           </Descriptions.Item>
-          <Descriptions.Item label="ภาษีหัก ณ ที่จ่าย">{fmtMoney(pv.whtAmount)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดโอนสุทธิ (ตาม PV)">
+          <Descriptions.Item label={t("ภาษีหัก ณ ที่จ่าย")}>{fmtMoney(pv.whtAmount)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดโอนสุทธิ (ตาม PV)")}>
             <Typography.Text strong>{fmtMoney(pv.netAmount)}</Typography.Text>
           </Descriptions.Item>
-          <Descriptions.Item label="ยอดจ่ายจริง" span="filled">
+          <Descriptions.Item label={t("ยอดจ่ายจริง")} span="filled">
             <Typography.Text strong>{fmtMoney(d.amount)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="3. รายละเอียดการจ่ายเงินจริง" size="small">
+      <Card title={t("3. รายละเอียดการจ่ายเงินจริง")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
-          <Descriptions.Item label="วันที่จ่ายจริง">{formatThaiDate(d.paymentDate)}</Descriptions.Item>
-          <Descriptions.Item label="วิธีชำระ">{paymentMethodLabel(d.paymentMethod)}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่จ่ายจริง")}>{formatThaiDate(d.paymentDate)}</Descriptions.Item>
+          <Descriptions.Item label={t("วิธีชำระ")}>{paymentMethodLabel(d.paymentMethod)}</Descriptions.Item>
           {methodRows(d)}
-          <Descriptions.Item label="หมายเหตุ" span="filled">{d.remark || "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("หมายเหตุ")} span="filled">{d.remark || "—"}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="4. เอกสารและหลักฐาน" size="small">
-        <Typography.Text strong>หลักฐานการจ่ายเงินจริง</Typography.Text>
+      <Card title={t("4. เอกสารและหลักฐาน")} size="small">
+        <Typography.Text strong>{t("หลักฐานการจ่ายเงินจริง")}</Typography.Text>
         <div style={{ margin: "6px 0 16px" }}>
-          <ReadOnlyFiles files={d.evidence} empty="ไม่มีหลักฐานแนบ" />
+          <ReadOnlyFiles files={d.evidence} empty={t("ไม่มีหลักฐานแนบ")} />
         </div>
-        <Typography.Text strong>เอกสารแนบที่เกี่ยวข้อง (จากใบสำคัญจ่าย)</Typography.Text>
+        <Typography.Text strong>{t("เอกสารแนบที่เกี่ยวข้อง (จากใบสำคัญจ่าย)")}</Typography.Text>
         <div style={{ margin: "6px 0 16px" }}>
-          <ReadOnlyFiles files={d.voucherAttachments} empty="ไม่มีเอกสารแนบ" />
+          <ReadOnlyFiles files={d.voucherAttachments} empty={t("ไม่มีเอกสารแนบ")} />
         </div>
-        <Typography.Text strong>หนังสือรับรองหัก ณ ที่จ่าย</Typography.Text>
+        <Typography.Text strong>{t("หนังสือรับรองหัก ณ ที่จ่าย")}</Typography.Text>
         <div style={{ marginTop: 6 }}>
           {cert ? (
             <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
-              <Descriptions.Item label="เลขที่">{cert.certNo}</Descriptions.Item>
-              <Descriptions.Item label="แบบยื่น">{WHT_TAX_FORM_LABEL[cert.taxForm] ?? cert.taxForm}</Descriptions.Item>
+              <Descriptions.Item label={t("เลขที่")}>{cert.certNo}</Descriptions.Item>
+              <Descriptions.Item label={t("แบบยื่น")}>{WHT_TAX_FORM_LABEL[cert.taxForm] ? t(WHT_TAX_FORM_LABEL[cert.taxForm]) : cert.taxForm}</Descriptions.Item>
               {(cert.lines?.length ?? 0) > 1 ? (
-                <Descriptions.Item label="รายการภาษีที่หัก" span="filled">
+                <Descriptions.Item label={t("รายการภาษีที่หัก")} span="filled">
                   <WhtLinesTable lines={cert.lines ?? []} total={cert.whtAmount} />
                 </Descriptions.Item>
               ) : (
                 <>
-                  <Descriptions.Item label="ประเภทเงินได้">{cert.incomeType}</Descriptions.Item>
-                  <Descriptions.Item label="ฐานภาษี">{fmtMoney(cert.baseAmount)}</Descriptions.Item>
-                  <Descriptions.Item label="อัตรา">{Number(cert.lines?.[0]?.rate ?? cert.rate)}%</Descriptions.Item>
-                  <Descriptions.Item label="ภาษีที่หัก">{fmtMoney(cert.whtAmount)}</Descriptions.Item>
+                  <Descriptions.Item label={t("ประเภทเงินได้")}>{cert.incomeType}</Descriptions.Item>
+                  <Descriptions.Item label={t("ฐานภาษี")}>{fmtMoney(cert.baseAmount)}</Descriptions.Item>
+                  <Descriptions.Item label={t("อัตรา")}>{Number(cert.lines?.[0]?.rate ?? cert.rate)}%</Descriptions.Item>
+                  <Descriptions.Item label={t("ภาษีที่หัก")}>{fmtMoney(cert.whtAmount)}</Descriptions.Item>
                 </>
               )}
-              <Descriptions.Item label="ออกโดย / วันที่ออก" span="filled">
+              <Descriptions.Item label={t("ออกโดย / วันที่ออก")} span="filled">
                 {cert.issuedByName ?? "—"} · {dt(cert.issuedAt)}{" "}
                 <Button size="small" type="link" onClick={() => void viewCert(cert)}>
-                  ดู / ดาวน์โหลด / พิมพ์
+                  {t("ดู / ดาวน์โหลด / พิมพ์")}
                 </Button>
               </Descriptions.Item>
             </Descriptions>
           ) : (
-            <Typography.Text type="secondary">{d.hasWht ? "ยังไม่ได้ออกหนังสือรับรอง" : "รายการนี้ไม่มีภาษีหัก ณ ที่จ่าย"}</Typography.Text>
+            <Typography.Text type="secondary">{d.hasWht ? t("ยังไม่ได้ออกหนังสือรับรอง") : t("รายการนี้ไม่มีภาษีหัก ณ ที่จ่าย")}</Typography.Text>
           )}
         </div>
       </Card>
 
-      <Card title="5. ประวัติการดำเนินการ" size="small">
+      <Card title={t("5. ประวัติการดำเนินการ")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }} style={{ marginBottom: 12 }}>
-          <Descriptions.Item label="ผู้บันทึก">{d.paidByName ?? "—"}</Descriptions.Item>
-          <Descriptions.Item label="วัน-เวลาที่บันทึก">{dt(d.createdAt)}</Descriptions.Item>
+          <Descriptions.Item label={t("ผู้บันทึก")}>{d.paidByName ?? "—"}</Descriptions.Item>
+          <Descriptions.Item label={t("วัน-เวลาที่บันทึก")}>{dt(d.createdAt)}</Descriptions.Item>
         </Descriptions>
         {history.length === 0 ? (
-          <Typography.Text type="secondary">ยังไม่มีประวัติ</Typography.Text>
+          <Typography.Text type="secondary">{t("ยังไม่มีประวัติ")}</Typography.Text>
         ) : (
           <Timeline
             items={history.map((e) => ({
               key: e.id,
               content: (
                 <span>
-                  <Tag>{VOUCHER_EVENT_LABEL[e.action] ?? e.action}</Tag>
+                  <Tag>{VOUCHER_EVENT_LABEL[e.action] ? tFin(VOUCHER_EVENT_LABEL[e.action]) : e.action}</Tag>
                   {e.performedByName ?? "—"} · {dt(e.performedAt)}
                   {e.note ? <div style={{ color: "#8a94a6" }}>{e.note}</div> : null}
                 </span>
@@ -341,10 +345,10 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
 
       <Modal
         open={cancelling}
-        title={`ยกเลิกรายการจ่าย ${d.paymentNo ?? ""}`}
-        okText="ยกเลิกการจ่าย"
+        title={t("ยกเลิกรายการจ่าย {no}", { no: d.paymentNo ?? "" })}
+        okText={t("ยกเลิกการจ่าย")}
         okButtonProps={{ danger: true, disabled: reason.trim().length < 5 }}
-        cancelText="ปิด"
+        cancelText={t("ปิด")}
         confirmLoading={cancel.isPending}
         onOk={() =>
           cancel.mutate(
@@ -366,12 +370,12 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
         <Input.TextArea
           rows={3}
           maxLength={2000}
-          placeholder="เหตุผล (อย่างน้อย 5 ตัวอักษร)"
+          placeholder={t("เหตุผล (อย่างน้อย 5 ตัวอักษร)")}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          PV จะกลับเป็น &quot;อนุมัติแล้ว&quot; รอบันทึกจ่ายเงินใหม่ได้ · ยกเลิกไม่ได้ถ้าออกหนังสือรับรองหัก ณ ที่จ่ายแล้ว · เก็บ Audit Log
+          {t("PV จะกลับเป็น \"อนุมัติแล้ว\" รอบันทึกจ่ายเงินใหม่ได้ · ยกเลิกไม่ได้ถ้าออกหนังสือรับรองหัก ณ ที่จ่ายแล้ว · เก็บ Audit Log")}
         </Typography.Text>
       </Modal>
     </Space>

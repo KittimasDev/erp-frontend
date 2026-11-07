@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { ApiError } from "@/lib/api/client";
 import {
   createAttendanceDevice,
@@ -39,6 +41,7 @@ function useDeviceMutation<TVars, TRes extends { message: string }>(
   fallbackError: string,
 ) {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -46,7 +49,7 @@ function useDeviceMutation<TVars, TRes extends { message: string }>(
       void queryClient.invalidateQueries({ queryKey: attendanceDevicesKey });
     },
     onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : fallbackError);
+      message.error(error instanceof ApiError ? error.message : t(fallbackError));
     },
   });
 }

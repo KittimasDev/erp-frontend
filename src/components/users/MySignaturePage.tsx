@@ -10,6 +10,7 @@ import {
   UploadOutlined,
 } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
+import { useT } from "@/lib/i18n/useT";
 
 import { ApiError } from "@/lib/api/client";
 import { myProfileQueryKey, useMeQuery } from "@/hooks/auth/useMeQuery";
@@ -36,6 +37,7 @@ type MySignaturePageProps = {
 export default function MySignaturePage({
   embedded = false,
 }: MySignaturePageProps) {
+  const t = useT();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<string | null>(null);
@@ -92,11 +94,11 @@ export default function MySignaturePage({
 
   const handlePick = async (file: File) => {
     if (file.type !== "image/png") {
-      message.error("ไฟล์ต้องเป็น PNG เท่านั้น");
+      message.error(t("ไฟล์ต้องเป็น PNG เท่านั้น"));
       return;
     }
     if (file.size > MAX_SIGNATURE_BYTES) {
-      message.error("ไฟล์ลายเซ็นต้องไม่เกิน 1 MB");
+      message.error(t("ไฟล์ลายเซ็นต้องไม่เกิน 1 MB"));
       return;
     }
 
@@ -104,10 +106,10 @@ export default function MySignaturePage({
     try {
       const response = await uploadMySignature(getAccessToken(), file);
       await refresh();
-      message.success(response.message || "อัปโหลดลายเซ็นสำเร็จแล้ว");
+      message.success(response.message || t("อัปโหลดลายเซ็นสำเร็จแล้ว"));
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "อัปโหลดลายเซ็นไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("อัปโหลดลายเซ็นไม่สำเร็จ"),
       );
     } finally {
       setBusy(false);
@@ -120,10 +122,10 @@ export default function MySignaturePage({
       const response = await deleteMySignature(getAccessToken());
       setPreview(null);
       await refresh();
-      message.success(response.message || "ลบลายเซ็นสำเร็จแล้ว");
+      message.success(response.message || t("ลบลายเซ็นสำเร็จแล้ว"));
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ลบลายเซ็นไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ลบลายเซ็นไม่สำเร็จ"),
       );
     } finally {
       setBusy(false);
@@ -146,11 +148,10 @@ export default function MySignaturePage({
       <div className={masterStyles.filterCard}>
         <div className={masterStyles.filterHeader}>
           <div>
-            <div className={masterStyles.filterEyebrow}>ลายเซ็นของฉัน</div>
-            <h3>อัปโหลดลายเซ็นสำหรับเอกสาร</h3>
+            <div className={masterStyles.filterEyebrow}>{t("ลายเซ็นของฉัน")}</div>
+            <h3>{t("อัปโหลดลายเซ็นสำหรับเอกสาร")}</h3>
             <p>
-              ลายเซ็นนี้จะไปแสดงในช่องผู้จัดทำของเอกสารขายที่คุณเป็นผู้สร้าง
-              (ใบเสนอราคา · ใบสั่งขาย · ใบแจ้งหนี้) — รับไฟล์ PNG ไม่เกิน 1 MB
+              {t("ลายเซ็นนี้จะไปแสดงในช่องผู้จัดทำของเอกสารขายที่คุณเป็นผู้สร้าง (ใบเสนอราคา · ใบสั่งขาย · ใบแจ้งหนี้) — รับไฟล์ PNG ไม่เกิน 1 MB")}
             </p>
           </div>
         </div>
@@ -160,11 +161,11 @@ export default function MySignaturePage({
         <div className={masterStyles.tableHeader}>
           <div>
             <div className={masterStyles.tableEyebrow}>SIGNATURE</div>
-            <h3>ลายเซ็นปัจจุบัน</h3>
+            <h3>{t("ลายเซ็นปัจจุบัน")}</h3>
             <p>
               {hasSignature
-                ? "มีลายเซ็นแล้ว — อัปโหลดใหม่จะทับของเดิม"
-                : "ยังไม่มีลายเซ็น เอกสารจะเว้นช่องให้เซ็นด้วยปากกาเหมือนเดิม"}
+                ? t("มีลายเซ็นแล้ว — อัปโหลดใหม่จะทับของเดิม")
+                : t("ยังไม่มีลายเซ็น เอกสารจะเว้นช่องให้เซ็นด้วยปากกาเหมือนเดิม")}
             </p>
           </div>
         </div>
@@ -175,13 +176,13 @@ export default function MySignaturePage({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={preview}
-                alt="ลายเซ็นของฉัน"
+                alt={t("ลายเซ็นของฉัน")}
                 className={styles.previewImage}
               />
             ) : (
               <div className={styles.previewEmpty}>
                 <HighlightOutlined />
-                <span>ยังไม่มีลายเซ็น</span>
+                <span>{t("ยังไม่มีลายเซ็น")}</span>
               </div>
             )}
           </div>
@@ -195,7 +196,7 @@ export default function MySignaturePage({
                   loading={busy}
                   className={masterStyles.createButton}
                 >
-                  {hasSignature ? "เปลี่ยนลายเซ็น" : "อัปโหลดลายเซ็น (PNG)"}
+                  {hasSignature ? t("เปลี่ยนลายเซ็น") : t("อัปโหลดลายเซ็น (PNG)")}
                 </Button>
               </Upload>
               <Button
@@ -203,48 +204,43 @@ export default function MySignaturePage({
                 href={TEMPLATE_URL}
                 download="signature-template.png"
               >
-                ดาวน์โหลด template
+                {t("ดาวน์โหลด template")}
               </Button>
               {hasSignature ? (
                 <Popconfirm
-                  title="ลบลายเซ็น"
-                  description="เอกสารจะกลับไปเว้นช่องให้เซ็นด้วยปากกา"
-                  okText="ลบ"
-                  cancelText="ยกเลิก"
+                  title={t("ลบลายเซ็น")}
+                  description={t("เอกสารจะกลับไปเว้นช่องให้เซ็นด้วยปากกา")}
+                  okText={t("ลบ")}
+                  cancelText={t("ยกเลิก")}
                   okButtonProps={{ danger: true }}
                   onConfirm={() => void handleRemove()}
                 >
                   <Button danger icon={<DeleteOutlined />} disabled={busy}>
-                    ลบลายเซ็น
+                    {t("ลบลายเซ็น")}
                   </Button>
                 </Popconfirm>
               ) : null}
             </Space>
 
             <div className={styles.howTo}>
-              <Typography.Text strong>วิธีทำลายเซ็น</Typography.Text>
+              <Typography.Text strong>{t("วิธีทำลายเซ็น")}</Typography.Text>
               <ol>
-                <li>กด ดาวน์โหลด template</li>
+                <li>{t("กด ดาวน์โหลด template")}</li>
                 <li>
-                  <b>ถ้าเซ็นบนจอ</b> (แท็บเล็ต / ปากกา stylus / โปรแกรมแก้รูป) —
-                  เซ็นทับ template ไปเลย พื้นหลังโปร่งใสอยู่แล้ว เซฟเป็น{" "}
-                  <b>.png</b> ได้ทันที ไม่ต้องครอปไม่ต้องลบพื้นหลัง
+                  <b>{t("ถ้าเซ็นบนจอ")}</b> {t("(แท็บเล็ต / ปากกา stylus / โปรแกรมแก้รูป) — เซ็นทับ template ไปเลย พื้นหลังโปร่งใสอยู่แล้ว เซฟเป็น")}{" "}
+                  <b>.png</b> {t("ได้ทันที ไม่ต้องครอปไม่ต้องลบพื้นหลัง")}
                 </li>
                 <li>
-                  <b>ถ้าเซ็นบนกระดาษ</b> — พิมพ์ template ออกมา เซ็นกลางแผ่นด้วย
-                  ปากกาสีเข้มให้ใหญ่พอสมควร แล้วถ่ายรูป/สแกนกลับเข้าเครื่อง
+                  <b>{t("ถ้าเซ็นบนกระดาษ")}</b> {t("— พิมพ์ template ออกมา เซ็นกลางแผ่นด้วยปากกาสีเข้มให้ใหญ่พอสมควร แล้วถ่ายรูป/สแกนกลับเข้าเครื่อง")}
                 </li>
-                <li>ครอปให้เหลือแค่ลายเซ็น ตัดพื้นที่ว่างรอบ ๆ ออก</li>
+                <li>{t("ครอปให้เหลือแค่ลายเซ็น ตัดพื้นที่ว่างรอบ ๆ ออก")}</li>
                 <li>
-                  ลบพื้นหลังให้โปร่งใสถ้าทำได้ แล้วเซฟเป็นไฟล์ <b>.png</b>
+                  {t("ลบพื้นหลังให้โปร่งใสถ้าทำได้ แล้วเซฟเป็นไฟล์")} <b>.png</b>
                 </li>
-                <li>กลับมาที่หน้านี้แล้วกด อัปโหลดลายเซ็น</li>
+                <li>{t("กลับมาที่หน้านี้แล้วกด อัปโหลดลายเซ็น")}</li>
               </ol>
               <Typography.Text type="secondary">
-                template เป็นผืนโปร่งใสเปล่า ไม่มีกรอบไม่มีเส้นโดยตั้งใจ —
-                เปิดดูจะเหมือนว่างเปล่าหรือเห็นเป็นลายตาราง ถือว่าถูกต้องแล้ว ·
-                ที่ไม่ใส่เส้นเพราะเส้นจะติดไปโผล่ในช่องลายเซ็นบนเอกสาร และที่ทำ
-                โปร่งใสเพราะพื้นขาวทึบจะกลายเป็นกล่องสี่เหลี่ยมทับเนื้อเอกสาร
+                {t("template เป็นผืนโปร่งใสเปล่า ไม่มีกรอบไม่มีเส้นโดยตั้งใจ — เปิดดูจะเหมือนว่างเปล่าหรือเห็นเป็นลายตาราง ถือว่าถูกต้องแล้ว · ที่ไม่ใส่เส้นเพราะเส้นจะติดไปโผล่ในช่องลายเซ็นบนเอกสาร และที่ทำโปร่งใสเพราะพื้นขาวทึบจะกลายเป็นกล่องสี่เหลี่ยมทับเนื้อเอกสาร")}
               </Typography.Text>
             </div>
           </div>

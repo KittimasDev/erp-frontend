@@ -35,6 +35,9 @@ import {
 
 import styles from "./RawTirePurchaseReportPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useLanguage } from "@/lib/i18n/language";
+import type { Language } from "@/lib/i18n/translate";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 const TITLE = "รายงานแสดงสรุปยอดเคลื่อนไหวสินค้า";
 
@@ -188,10 +191,11 @@ function formatField(field: QtyField, value: string) {
   return field === "adjustedQty" ? formatSignedQty(value) : formatQty(value);
 }
 
-/** 01/10/2569 — วัน/เดือน/ปี พ.ศ. */
-function formatBeDate(isoDate: string) {
+/** 01/10/2569 — วัน/เดือน/ปี พ.ศ. (lang = "en" → ค.ศ.; ไฟล์ส่งออกไม่ส่ง lang = พ.ศ. เสมอ) */
+function formatBeDate(isoDate: string, lang: Language = "th") {
   const d = dayjs(isoDate);
   if (!d.isValid()) return isoDate;
+  if (lang === "en") return d.format("DD/MM/YYYY");
   return `${d.format("DD/MM/")}${d.year() + 543}`;
 }
 
@@ -305,32 +309,32 @@ function toSheet(
 const bold = (row: MovementRow, content: string) =>
   row.isGroup ? <strong>{content}</strong> : content;
 
-const columns: ColumnsType<MovementRow> = [
+const buildColumns = (t: TFunction): ColumnsType<MovementRow> => [
   {
-    title: "ลำดับ",
+    title: t("ลำดับ"),
     dataIndex: "seq",
     width: 72,
     render: (value: number | undefined) => value ?? "",
   },
   {
-    title: "รหัสสินค้า",
+    title: t("รหัสสินค้า"),
     dataIndex: "itemCode",
     render: (value: string, row) => bold(row, value),
   },
   {
-    title: "ชื่อสินค้า / Lot",
+    title: t("ชื่อสินค้า / Lot"),
     dataIndex: "label",
     render: (value: string, row) => bold(row, value),
   },
-  { title: "ประเภทสินค้า", dataIndex: "itemCategoryName" },
+  { title: t("ประเภทสินค้า"), dataIndex: "itemCategoryName" },
   {
-    title: "คลังสินค้า",
+    title: t("คลังสินค้า"),
     dataIndex: "warehouseName",
-    render: (value: string, row) => bold(row, value),
+    render: (value: string, row) => bold(row, row.isGroup ? t(value) : value),
   },
-  { title: "หน่วยนับ", dataIndex: "unitCode" },
+  { title: t("หน่วยนับ"), dataIndex: "unitCode" },
   ...QTY_FIELDS.map(([title, field]) => ({
-    title,
+    title: t(title),
     dataIndex: field,
     align: "right" as const,
     render: (value: string, row: MovementRow) =>
@@ -339,6 +343,9 @@ const columns: ColumnsType<MovementRow> = [
 ];
 
 export default function StockMovementSummaryReportPage() {
+  const t = useT();
+  const lang = useLanguage();
+  const columns = useMemo(() => buildColumns(t), [t]);
   const { message } = App.useApp();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() => [
     dayjs().startOf("month"),
@@ -430,7 +437,7 @@ export default function StockMovementSummaryReportPage() {
       );
       const empty = exported.data.items.length === 0;
       if (empty) {
-        message.info("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง");
+        message.info(t("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง"));
       }
       await downloadTabularReport(
         format,
@@ -441,7 +448,7 @@ export default function StockMovementSummaryReportPage() {
         ),
       );
     } catch {
-      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
+      message.error(t("ดาวน์โหลดรายงานไม่สำเร็จ"));
     } finally {
       setExporting(null);
     }
@@ -459,8 +466,8 @@ export default function StockMovementSummaryReportPage() {
       <PageHeader
         eyebrow="Reports · Stock Movements"
         icon={<SwapOutlined />}
-        title={TITLE}
-        subtitle="ยอดยกมา รับเข้า จ่ายออก ปรับปรุง และยอดยกไป แยกตามสินค้าและ Lot ในช่วงวันที่ที่เลือก"
+        title={t(TITLE)}
+        subtitle={t("ยอดยกมา รับเข้า จ่ายออก ปรับปรุง และยอดยกไป แยกตามสินค้าและ Lot ในช่วงวันที่ที่เลือก")}
         actions={
           <>
 
@@ -476,23 +483,25 @@ export default function StockMovementSummaryReportPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>จำนวนสินค้า</span>
+          <span className={styles.statLabel}>{t("จำนวนสินค้า")}</span>
           <span className={styles.statValue}>{showingSample ? 0 : total.toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>ตามเงื่อนไขที่กรอง</span>
+          <span className={styles.statHint}>{t("ตามเงื่อนไขที่กรอง")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ช่วงวันที่</span>
+          <span className={styles.statLabel}>{t("ช่วงวันที่")}</span>
           <span className={styles.statValue} style={{ fontSize: 16 }}>
-            {dateFrom && dateTo ? rangeLabel(dateFrom, dateTo) : "—"}
+            {dateFrom && dateTo
+              ? t("ช่วงวันที่ {from} – {to}", { from: formatBeDate(dateFrom, lang), to: formatBeDate(dateTo, lang) })
+              : "—"}
           </span>
-          <span className={styles.statHint}>ยกมา = ก่อนวันเริ่มต้น</span>
+          <span className={styles.statHint}>{t("ยกมา = ก่อนวันเริ่มต้น")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           {filterItem(
-            "ช่วงวันที่",
+            t("ช่วงวันที่"),
             <DatePicker.RangePicker
               allowClear={false}
               style={{ width: "100%" }}
@@ -506,12 +515,12 @@ export default function StockMovementSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "คลังสินค้า",
+            t("คลังสินค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={warehouseId}
               loading={warehousesQuery.isLoading}
               options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
@@ -522,12 +531,12 @@ export default function StockMovementSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "ประเภทสินค้า",
+            t("ประเภทสินค้า"),
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={itemCategoryId}
               loading={categoriesQuery.isLoading}
               options={(categoriesQuery.data?.data ?? []).map((category) => ({
@@ -538,10 +547,10 @@ export default function StockMovementSummaryReportPage() {
             />,
           )}
           {filterItem(
-            "สินค้า",
+            t("สินค้า"),
             <Input
               allowClear
-              placeholder="รหัสหรือชื่อสินค้า"
+              placeholder={t("รหัสหรือชื่อสินค้า")}
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               onPressEnter={applySearch}
@@ -551,7 +560,7 @@ export default function StockMovementSummaryReportPage() {
             "Lot",
             <Input
               allowClear
-              placeholder="ค้นเลข Lot"
+              placeholder={t("ค้นเลข Lot")}
               value={lotNo}
               onChange={(event) => setLotNo(event.target.value)}
               onPressEnter={applySearch}
@@ -559,9 +568,9 @@ export default function StockMovementSummaryReportPage() {
           )}
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -570,15 +579,15 @@ export default function StockMovementSummaryReportPage() {
         <Alert
           type="info"
           showIcon
-          title="ข้อมูลตัวอย่าง"
-          description="ยังไม่มีสินค้าที่มียอดหรือการเคลื่อนไหวตามเงื่อนไขนี้ ตารางและไฟล์ที่ดาวน์โหลดจึงเป็นตัวอย่างเพื่อดูรูปแบบรายงาน"
+          title={t("ข้อมูลตัวอย่าง")}
+          description={t("ยังไม่มีสินค้าที่มียอดหรือการเคลื่อนไหวตามเงื่อนไขนี้ ตารางและไฟล์ที่ดาวน์โหลดจึงเป็นตัวอย่างเพื่อดูรูปแบบรายงาน")}
         />
       ) : null}
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> รายการสินค้า
+            {t("พบทั้งหมด")} <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> {t("รายการสินค้า")}
           </div>
           <div className={styles.toolbarActions}>
             <Button
@@ -586,14 +595,14 @@ export default function StockMovementSummaryReportPage() {
               disabled={expandableKeys.length === 0 || allExpanded}
               onClick={() => setExpanded(new Set(expandableKeys))}
             >
-              ขยายทั้งหมด
+              {t("ขยายทั้งหมด")}
             </Button>
             <Button
               icon={<MinusSquareOutlined />}
               disabled={expandedRowKeys.length === 0}
               onClick={() => setExpanded(new Set())}
             >
-              ยุบทั้งหมด
+              {t("ยุบทั้งหมด")}
             </Button>
           </div>
         </div>
@@ -609,8 +618,8 @@ export default function StockMovementSummaryReportPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ไม่พบสินค้าตามเงื่อนไขที่ค้นหา</strong>
-                ลองปรับช่วงวันที่หรือตัวกรองอื่น
+                <strong>{t("ไม่พบสินค้าตามเงื่อนไขที่ค้นหา")}</strong>
+                {t("ลองปรับช่วงวันที่หรือตัวกรองอื่น")}
               </div>
             ),
           }}
@@ -630,8 +639,11 @@ export default function StockMovementSummaryReportPage() {
         {showingSample ? null : (
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–{Math.min(page * limit, total)} จาก{" "}
-              {total.toLocaleString("th-TH")}
+              {t("แสดง {from}–{to} จาก {total}", {
+                from: total === 0 ? 0 : (page - 1) * limit + 1,
+                to: Math.min(page * limit, total),
+                total: total.toLocaleString("th-TH"),
+              })}
             </div>
             <Pagination
               size="small"

@@ -6,6 +6,7 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/production-cycles";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import { inventoryQueryKey } from "@/hooks/inventory/useInventoryQueries";
 import type {
   ConfirmShiftRecordBody,
@@ -73,13 +74,14 @@ export const useMachineTagReadingsQuery = (tagId?: string) =>
 // ── mutations
 function useHelpers(keys: ReadonlyArray<readonly string[]>) {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const done = (text: string) => {
     for (const key of keys) void queryClient.invalidateQueries({ queryKey: key });
-    message.success(text);
+    message.success(t(text));
   };
   const fail = (e: unknown, fallback: string) =>
-    message.error(e instanceof ApiError ? e.message : fallback);
+    message.error(e instanceof ApiError ? e.message : t(fallback));
   return { done, fail };
 }
 

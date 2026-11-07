@@ -7,10 +7,13 @@ import { Modal } from "antd";
 import {
   PRODUCTION_DOWNTIME_CATEGORY_LABEL,
   PRODUCTION_STOP_TYPE_LABEL,
+  tPoLabel,
   type CancelProductionOrderBody,
   type PauseProductionOrderBody,
 } from "@/types/production-order";
 import styles from "./ProductionOrderStartModal.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * กล่องยืนยัน 2 ตัวของการควบคุมงานที่กำลังเดินอยู่ — หยุดชั่วคราว และยกเลิกกลางคัน
@@ -19,9 +22,6 @@ import styles from "./ProductionOrderStartModal.module.css";
  * (ไม่ใช้ effect มา sync) สิ่งที่ผู้ใช้พิมพ์อยู่จึงไม่ถูกล้างเมื่อข้อมูลเบื้องหลัง refetch
  */
 
-const CATEGORY_OPTIONS = Object.entries(PRODUCTION_DOWNTIME_CATEGORY_LABEL).map(
-  ([value, label]) => ({ value, label }),
-);
 
 /** สั้นกว่านี้อ่านย้อนหลังไม่รู้เรื่อง — ใบที่ยกเลิกแล้วกู้ไม่ได้ */
 const CANCEL_REASON_MIN = 10;
@@ -34,6 +34,11 @@ type PauseModalProps = {
 };
 
 function PauseModalBody(props: Omit<PauseModalProps, "open">) {
+  const t = useT();
+  const lang = useLanguage();
+  const CATEGORY_OPTIONS = Object.entries(PRODUCTION_DOWNTIME_CATEGORY_LABEL).map(
+    ([value, label]) => ({ value, label: tPoLabel(label, lang) }),
+  );
   const [reason, setReason] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
   const [stopType, setStopType] = useState<"PLANNED" | "UNPLANNED">("UNPLANNED");
@@ -47,27 +52,27 @@ function PauseModalBody(props: Omit<PauseModalProps, "open">) {
         className={styles.notice}
         type="info"
         showIcon
-        title="นาฬิกา Cycle ไม่หยุดเดิน"
-        description="เตา 48 ชั่วโมงคือ 48 ชั่วโมงตามนาฬิกาจริง เวลาที่หยุดจะถูกบันทึกแยกไว้เป็นชั่วโมง Downtime ไม่ได้หักออกจาก Cycle"
+        title={t("นาฬิกา Cycle ไม่หยุดเดิน")}
+        description={t("เตา 48 ชั่วโมงคือ 48 ชั่วโมงตามนาฬิกาจริง เวลาที่หยุดจะถูกบันทึกแยกไว้เป็นชั่วโมง Downtime ไม่ได้หักออกจาก Cycle")}
       />
 
       <div className={styles.cellStack} style={{ marginBottom: 12 }}>
-        <span className={styles.cellMuted}>ประเภทการหยุด</span>
+        <span className={styles.cellMuted}>{t("ประเภทการหยุด")}</span>
         <Select
           value={stopType}
           onChange={setStopType}
           options={(["UNPLANNED", "PLANNED"] as const).map((value) => ({
             value,
-            label: PRODUCTION_STOP_TYPE_LABEL[value],
+            label: tPoLabel(PRODUCTION_STOP_TYPE_LABEL[value], lang),
           }))}
         />
       </div>
 
       <div className={styles.cellStack}>
-        <span className={styles.cellMuted}>หมวดสาเหตุ (ใช้ทำกราฟ Pareto)</span>
+        <span className={styles.cellMuted}>{t("หมวดสาเหตุ (ใช้ทำกราฟ Pareto)")}</span>
         <Select
           allowClear
-          placeholder="เลือกหมวด — ไม่เลือกก็ได้ แต่จะวิเคราะห์ไม่ได้"
+          placeholder={t("เลือกหมวด — ไม่เลือกก็ได้ แต่จะวิเคราะห์ไม่ได้")}
           options={CATEGORY_OPTIONS}
           value={category}
           onChange={setCategory}
@@ -75,31 +80,31 @@ function PauseModalBody(props: Omit<PauseModalProps, "open">) {
       </div>
 
       <div className={styles.cellStack} style={{ marginTop: 12 }}>
-        <span className={styles.cellMuted}>เกิดอะไรขึ้น (บังคับ)</span>
+        <span className={styles.cellMuted}>{t("เกิดอะไรขึ้น (บังคับ)")}</span>
         <Input.TextArea
           rows={3}
           maxLength={500}
           showCount
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="เช่น ปั๊มน้ำหล่อเย็นรั่ว รอช่างมาเปลี่ยนซีล"
+          placeholder={t("เช่น ปั๊มน้ำหล่อเย็นรั่ว รอช่างมาเปลี่ยนซีล")}
         />
       </div>
 
       <div className={styles.cellStack} style={{ marginTop: 12 }}>
-        <span className={styles.cellMuted}>Root Cause — สาเหตุราก (ไม่บังคับ กรอกทีหลังได้)</span>
+        <span className={styles.cellMuted}>{t("Root Cause — สาเหตุราก (ไม่บังคับ กรอกทีหลังได้)")}</span>
         <Input.TextArea
           rows={2}
           maxLength={500}
           showCount
           value={rootCause}
           onChange={(e) => setRootCause(e.target.value)}
-          placeholder="เช่น ซีลสึกหรอเกินอายุใช้งาน ไม่ได้เปลี่ยนตามรอบ PM"
+          placeholder={t("เช่น ซีลสึกหรอเกินอายุใช้งาน ไม่ได้เปลี่ยนตามรอบ PM")}
         />
       </div>
 
       <div className={styles.footer}>
-        <Button onClick={props.onCancel}>ปิด</Button>
+        <Button onClick={props.onCancel}>{t("ปิด")}</Button>
         <Button
           type="primary"
           disabled={!trimmed}
@@ -113,7 +118,7 @@ function PauseModalBody(props: Omit<PauseModalProps, "open">) {
             })
           }
         >
-          หยุดเดินเครื่อง
+          {t("หยุดเดินเครื่อง")}
         </Button>
       </div>
     </>
@@ -121,10 +126,11 @@ function PauseModalBody(props: Omit<PauseModalProps, "open">) {
 }
 
 export function ProductionOrderPauseModal(props: PauseModalProps) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
-      title="หยุดเดินเครื่องชั่วคราว"
+      title={t("หยุดเดินเครื่องชั่วคราว")}
       onCancel={props.onCancel}
       footer={null}
       destroyOnHidden
@@ -150,6 +156,8 @@ type CancelModalProps = {
 };
 
 function CancelModalBody(props: Omit<CancelModalProps, "open">) {
+  const t = useT();
+  const lang = useLanguage();
   const [reason, setReason] = useState("");
   const [typedName, setTypedName] = useState("");
 
@@ -166,15 +174,17 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           className={styles.notice}
           type="warning"
           showIcon
-          title="วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก"
-          description="ยางที่เข้าเตาไปแล้วไม่ได้กลับมาวางบนชั้นเพราะเตาพัง ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ"
+          title={t("วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก")}
+          description={t("ยางที่เข้าเตาไปแล้วไม่ได้กลับมาวางบนชั้นเพราะเตาพัง ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ")}
         />
       ) : null}
 
       <div className={styles.cellStack}>
         <span className={styles.cellMuted}>
-          เหตุผลที่ยกเลิก
-          {props.started ? ` (บังคับ อย่างน้อย ${CANCEL_REASON_MIN} ตัวอักษร)` : " (ไม่บังคับ)"}
+          {t("เหตุผลที่ยกเลิก")}
+          {props.started
+            ? ` ${t("(บังคับ อย่างน้อย {n} ตัวอักษร)", { n: CANCEL_REASON_MIN })}`
+            : ` ${t("(ไม่บังคับ)")}`}
         </span>
         <Input.TextArea
           rows={3}
@@ -182,7 +192,7 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           showCount
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="เช่น เตาหมายเลข 2 ฝาครอบแตกชั่วโมงที่ 20 เดินต่อไม่ได้"
+          placeholder={t("เช่น เตาหมายเลข 2 ฝาครอบแตกชั่วโมงที่ 20 เดินต่อไม่ได้")}
         />
       </div>
 
@@ -191,7 +201,11 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           {/* ด่านฝั่ง server รับได้แค่ "done" หรือชื่อผู้ใช้ที่ login อยู่
               — ต้องบอกให้ตรง ไม่งั้นผู้ใช้พิมพ์ชื่อจริงแล้วโดน 400 */}
           <span className={styles.cellMuted}>
-            พิมพ์ <strong>done</strong> เพื่อลงชื่อยืนยันการยกเลิก
+            {lang === "en" ? (
+              <>Type <strong>done</strong> to sign and confirm the cancellation</>
+            ) : (
+              <>พิมพ์ <strong>done</strong> เพื่อลงชื่อยืนยันการยกเลิก</>
+            )}
           </span>
           <Input
             value={typedName}
@@ -202,7 +216,7 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
       ) : null}
 
       <div className={styles.footer}>
-        <Button onClick={props.onCancel}>ไม่ยกเลิก</Button>
+        <Button onClick={props.onCancel}>{t("ไม่ยกเลิก")}</Button>
         <Button
           danger
           type="primary"
@@ -215,7 +229,7 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
             })
           }
         >
-          ยกเลิกใบสั่งผลิต
+          {t("ยกเลิกใบสั่งผลิต")}
         </Button>
       </div>
     </>
@@ -223,13 +237,14 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
 }
 
 export function ProductionOrderCancelModal(props: CancelModalProps) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
       title={
         props.orderNo
-          ? `ยกเลิกใบสั่งผลิต ${props.orderNo}`
-          : "ยกเลิกใบสั่งผลิต"
+          ? t("ยกเลิกใบสั่งผลิต {no}", { no: props.orderNo })
+          : t("ยกเลิกใบสั่งผลิต")
       }
       onCancel={props.onCancel}
       footer={null}

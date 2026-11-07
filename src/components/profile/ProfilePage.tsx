@@ -7,6 +7,8 @@ import dayjs from "dayjs";
 import MySignaturePage from "@/components/users/MySignaturePage";
 import { useMeQuery } from "@/hooks/auth/useMeQuery";
 import { initialsFromUser } from "@/lib/auth/session";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./profile.module.css";
@@ -35,6 +37,7 @@ function textOr(value?: string | null) {
 }
 
 export default function ProfilePage() {
+  const t = useT();
   const meQuery = useMeQuery();
   const me = meQuery.data?.data;
 
@@ -53,31 +56,31 @@ export default function ProfilePage() {
       <section className={masterStyles.page}>
         <Empty
           className={styles.loadingBox}
-          description="โหลดข้อมูลของคุณไม่สำเร็จ"
+          description={t("โหลดข้อมูลของคุณไม่สำเร็จ")}
         />
       </section>
     );
   }
 
   const infoRows: Array<{ label: string; value: string }> = [
-    { label: "รหัสพนักงาน", value: textOr(me.employeeCode) },
-    { label: "แผนก", value: textOr(me.departmentName) },
-    { label: "ตำแหน่ง", value: textOr(me.position) },
-    { label: "วันที่เริ่มงาน", value: formatDate(me.hireDate) },
-    { label: "อีเมล", value: textOr(me.email) },
-    { label: "เบอร์โทร", value: textOr(me.phone) },
-    { label: "เข้าสู่ระบบล่าสุด", value: formatDateTime(me.lastLoginAt) },
+    { label: t("รหัสพนักงาน"), value: textOr(me.employeeCode) },
+    { label: getStoredLanguage() === "en" ? "Department" : "แผนก", value: textOr(me.departmentName) },
+    { label: getStoredLanguage() === "en" ? "Position" : "ตำแหน่ง", value: textOr(me.position) },
+    { label: t("วันที่เริ่มงาน"), value: formatDate(me.hireDate) },
+    { label: t("อีเมล"), value: textOr(me.email) },
+    { label: t("เบอร์โทร"), value: textOr(me.phone) },
+    { label: t("เข้าสู่ระบบล่าสุด"), value: formatDateTime(me.lastLoginAt) },
     {
-      label: "เปลี่ยนรหัสผ่านล่าสุด",
+      label: t("เปลี่ยนรหัสผ่านล่าสุด"),
       value: formatDateTime(me.passwordChangedAt),
     },
-    { label: "สร้างบัญชีเมื่อ", value: formatDate(me.createdAt) },
+    { label: t("สร้างบัญชีเมื่อ"), value: formatDate(me.createdAt) },
   ];
 
   return (
     <section className={masterStyles.page}>
       <PageHeader
-        eyebrow="โปรไฟล์ของฉัน"
+        eyebrow={t("โปรไฟล์ของฉัน")}
         title={me.displayName || me.username}
         subtitle={me.username}
         actions={
@@ -94,10 +97,10 @@ export default function ProfilePage() {
                 </Tag>
               ))
             ) : (
-              <Tag>ยังไม่ได้กำหนดบทบาท</Tag>
+              <Tag>{t("ยังไม่ได้กำหนดบทบาท")}</Tag>
             )}
             <Tag color={me.isActive ? "success" : "default"}>
-              {me.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
+              {me.isActive ? t("ใช้งาน") : t("ปิดใช้งาน")}
             </Tag>
           </div>
       </PageHeader>
@@ -106,9 +109,9 @@ export default function ProfilePage() {
         <div className={masterStyles.tableHeader}>
           <div>
             <div className={masterStyles.tableEyebrow}>PROFILE</div>
-            <h3>ข้อมูลของฉัน</h3>
+            <h3>{t("ข้อมูลของฉัน")}</h3>
             <p>
-              ข้อมูลเหล่านี้แก้ไขเองไม่ได้ — ถ้าไม่ถูกต้องติดต่อผู้ดูแลระบบหรือฝ่ายบุคคล
+              {t("ข้อมูลเหล่านี้แก้ไขเองไม่ได้ — ถ้าไม่ถูกต้องติดต่อผู้ดูแลระบบหรือฝ่ายบุคคล")}
             </p>
           </div>
         </div>
@@ -126,7 +129,7 @@ export default function ProfilePage() {
       <div className={styles.signatureSection}>
         <div className={styles.sectionTitle}>
           <IdcardOutlined />
-          <span>ลายเซ็นของฉัน</span>
+          <span>{t("ลายเซ็นของฉัน")}</span>
         </div>
         <MySignaturePage embedded />
       </div>

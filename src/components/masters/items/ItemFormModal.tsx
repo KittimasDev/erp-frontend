@@ -22,6 +22,8 @@ import {
   initialItemType,
 } from "@/components/masters/items/item-type-options";
 import styles from "@/components/masters/shared/master-page.module.css";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 const OUTPUT_KIND_OPTIONS = [
   { value: "OIL", label: "น้ำมัน (Oil)" },
@@ -127,6 +129,8 @@ export default function ItemFormModal({
   onCancel,
   onSubmit,
 }: ItemFormModalProps) {
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<ItemFormValues>();
   // ใช้ไฮไลต์การ์ดที่เปิดอยู่ ให้เห็นสถานะได้จากการกวาดตาครั้งเดียว
   const watched = Form.useWatch<ItemFormValues>([], form);
@@ -138,7 +142,9 @@ export default function ItemFormModal({
 
   // ใช้ต่อท้ายช่องราคาให้รู้ว่าราคานี้ต่อหน่วยอะไร
   const selectedUnitLabel = watched?.unitId
-    ? `บาท / ${units.find((unit) => unit.id === watched.unitId)?.nameTh ?? "หน่วย"}`
+    ? t("บาท / {unit}", {
+        unit: units.find((unit) => unit.id === watched.unitId)?.nameTh ?? t("หน่วย"),
+      })
     : undefined;
 
   useEffect(() => {
@@ -243,7 +249,7 @@ export default function ItemFormModal({
   const isCreateMode = mode === "create";
   const lockCoreFields =
     !isCreateMode && Boolean(initialItem?.hasTransactions);
-  const lockHint = "มีเอกสารแล้ว แก้ไม่ได้";
+  const lockHint = t("มีเอกสารแล้ว แก้ไม่ได้");
   const lockedToggles = new Set<ToggleField>([
     "requiresLotControl",
     "requiresExpiryDate",
@@ -257,8 +263,8 @@ export default function ItemFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
+      okText={isCreateMode ? t("บันทึก") : t("อัปเดต")}
+      cancelText={t("ยกเลิก")}
       destroyOnHidden
       width={760}
       centered
@@ -273,12 +279,12 @@ export default function ItemFormModal({
             {isCreateMode ? "CREATE ITEM" : "EDIT ITEM"}
           </div>
 
-          <h2>{isCreateMode ? "เพิ่มสินค้า" : "แก้ไขสินค้า"}</h2>
+          <h2>{isCreateMode ? t("เพิ่มสินค้า") : t("แก้ไขสินค้า")}</h2>
 
           <p>
             {isCreateMode
-              ? "กรอกข้อมูลสินค้า/วัตถุดิบใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ"
-              : "แก้ไขรายละเอียดสินค้าและสถานะการใช้งาน"}
+              ? t("กรอกข้อมูลสินค้า/วัตถุดิบใหม่ที่ต้องการเพิ่มเข้าสู่ระบบ")
+              : t("แก้ไขรายละเอียดสินค้าและสถานะการใช้งาน")}
           </p>
         </div>
       </div>
@@ -292,25 +298,25 @@ export default function ItemFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>ข้อมูลหลัก</strong>
-            <span>ระบุรหัส ชื่อ หมวดหมู่ และหน่วยนับ</span>
+            <strong>{t("ข้อมูลหลัก")}</strong>
+            <span>{t("ระบุรหัส ชื่อ หมวดหมู่ และหน่วยนับ")}</span>
           </div>
         </div>
 
         <Row gutter={16}>
           <Col xs={24} sm={8}>
             <Form.Item
-              label="รหัสสินค้า"
+              label={t("รหัสสินค้า")}
               name="code"
               extra={lockCoreFields ? lockHint : undefined}
               rules={[
-                { required: true, message: "กรุณากรอกรหัสสินค้า" },
-                { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกรหัสสินค้า") },
+                { max: 50, message: t("รหัสต้องไม่เกิน 50 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น RM-001"
+                placeholder={t("เช่น RM-001")}
                 autoComplete="off"
                 disabled={lockCoreFields}
               />
@@ -319,16 +325,16 @@ export default function ItemFormModal({
 
           <Col xs={24} sm={16}>
             <Form.Item
-              label="ชื่อสินค้า"
+              label={t("ชื่อสินค้า")}
               name="name"
               rules={[
-                { required: true, message: "กรุณากรอกชื่อสินค้า" },
-                { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+                { required: true, message: t("กรุณากรอกชื่อสินค้า") },
+                { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
               ]}
             >
               <Input
                 size="large"
-                placeholder="เช่น ยางรถยนต์ใช้แล้ว"
+                placeholder={t("เช่น ยางรถยนต์ใช้แล้ว")}
                 autoComplete="off"
               />
             </Form.Item>
@@ -343,10 +349,10 @@ export default function ItemFormModal({
           />
         )}
 
-        <Form.Item label="คำอธิบาย" name="description">
+        <Form.Item label={t("คำอธิบาย")} name="description">
           <Input.TextArea
             rows={3}
-            placeholder="เช่น ยางรถยนต์ใช้แล้วสำหรับผลิตน้ำมัน pyrolysis"
+            placeholder={t("เช่น ยางรถยนต์ใช้แล้วสำหรับผลิตน้ำมัน pyrolysis")}
             autoComplete="off"
           />
         </Form.Item>
@@ -354,15 +360,15 @@ export default function ItemFormModal({
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item
-              label="หมวดหมู่สินค้า"
+              label={t("หมวดหมู่สินค้า")}
               name="itemCategoryId"
-              rules={[{ required: true, message: "กรุณาเลือกหมวดหมู่" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกหมวดหมู่") }]}
             >
               <Select
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกหมวดหมู่"
+                placeholder={t("เลือกหมวดหมู่")}
                 loading={categoriesQuery.isLoading}
                 options={categories.map((category) => ({
                   value: category.id,
@@ -374,15 +380,18 @@ export default function ItemFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="ประเภทสินค้า"
+              label={lang === "en" ? "Item type" : "ประเภทสินค้า"}
               name="itemType"
-              extra="สินค้าสำเร็จรูปคือ FINISHED_GOODS แม้ของจะอยู่คลังรอตรวจหรือของเสีย"
-              rules={[{ required: true, message: "กรุณาเลือกประเภทสินค้า" }]}
+              extra={t("สินค้าสำเร็จรูปคือ FINISHED_GOODS แม้ของจะอยู่คลังรอตรวจหรือของเสีย")}
+              rules={[{ required: true, message: t("กรุณาเลือกประเภทสินค้า") }]}
             >
               <Select
                 size="large"
-                placeholder="เลือกประเภทสินค้า"
-                options={[...ITEM_TYPE_OPTIONS]}
+                placeholder={t("เลือกประเภทสินค้า")}
+                options={ITEM_TYPE_OPTIONS.map((option) => ({
+                  ...option,
+                  label: t(option.label),
+                }))}
               />
             </Form.Item>
           </Col>
@@ -390,15 +399,18 @@ export default function ItemFormModal({
           {watched?.itemType === "FINISHED_GOODS" ? (
             <Col xs={24} sm={12}>
               <Form.Item
-                label="ประเภทผลผลิต"
+                label={t("ประเภทผลผลิต")}
                 name="outputKind"
-                extra="ใช้จัดกลุ่ม Dashboard — เว้นว่างแล้วยังจัดจากชื่อสินค้าแบบเดิม"
+                extra={t("ใช้จัดกลุ่ม Dashboard — เว้นว่างแล้วยังจัดจากชื่อสินค้าแบบเดิม")}
               >
                 <Select
                   size="large"
                   allowClear
-                  placeholder="ยังไม่กำหนด"
-                  options={OUTPUT_KIND_OPTIONS}
+                  placeholder={t("ยังไม่กำหนด")}
+                  options={OUTPUT_KIND_OPTIONS.map((option) => ({
+                    ...option,
+                    label: t(option.label),
+                  }))}
                 />
               </Form.Item>
             </Col>
@@ -406,16 +418,16 @@ export default function ItemFormModal({
 
           <Col xs={24} sm={12}>
             <Form.Item
-              label="หน่วยนับ"
+              label={t("หน่วยนับ")}
               name="unitId"
               extra={lockCoreFields ? lockHint : undefined}
-              rules={[{ required: true, message: "กรุณาเลือกหน่วยนับ" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกหน่วยนับ") }]}
             >
               <Select
                 size="large"
                 showSearch
                 optionFilterProp="label"
-                placeholder="เลือกหน่วยนับ"
+                placeholder={t("เลือกหน่วยนับ")}
                 loading={unitsQuery.isLoading}
                 disabled={lockCoreFields}
                 options={units.map((unit) => ({
@@ -430,13 +442,13 @@ export default function ItemFormModal({
         <Row gutter={16}>
           <Col xs={24} sm={12}>
             <Form.Item
-              label="กลุ่มคลัง"
+              label={t("กลุ่มคลัง")}
               name="warehouseGroup"
-              rules={[{ required: true, message: "กรุณาเลือกกลุ่มคลัง" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกกลุ่มคลัง") }]}
             >
               <Select
                 size="large"
-                placeholder="เลือกกลุ่มคลัง"
+                placeholder={t("เลือกกลุ่มคลัง")}
                 options={WAREHOUSE_GROUP_OPTIONS}
               />
             </Form.Item>
@@ -444,9 +456,9 @@ export default function ItemFormModal({
 
           <Col xs={24} sm={6}>
             <Form.Item
-              label="สต๊อกขั้นต่ำ"
+              label={t("สต๊อกขั้นต่ำ")}
               name="minimumStockQty"
-              extra="ยอดรวมทุกคลังต่ำกว่าค่านี้ จะขึ้นสีแดงในหน้ารายการสินค้าและแจ้งเตือน (0 = ไม่เตือน)"
+              extra={t("ยอดรวมทุกคลังต่ำกว่าค่านี้ จะขึ้นสีแดงในหน้ารายการสินค้าและแจ้งเตือน (0 = ไม่เตือน)")}
             >
               <InputNumber
                 size="large"
@@ -458,13 +470,13 @@ export default function ItemFormModal({
           </Col>
 
           <Col xs={24} sm={6}>
-            <Form.Item label="อายุเก็บ (วัน)" name="defaultShelfLifeDays">
+            <Form.Item label={t("อายุเก็บ (วัน)")} name="defaultShelfLifeDays">
               <InputNumber
                 size="large"
                 min={0}
                 precision={0}
                 style={{ width: "100%" }}
-                placeholder="เช่น 365"
+                placeholder={t("เช่น 365")}
               />
             </Form.Item>
           </Col>
@@ -473,14 +485,14 @@ export default function ItemFormModal({
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
           <div>
-            <strong>การใช้งาน</strong>
-            <span>กำหนดบทบาทของสินค้าในระบบ</span>
+            <strong>{t("การใช้งาน")}</strong>
+            <span>{t("กำหนดบทบาทของสินค้าในระบบ")}</span>
           </div>
         </div>
 
         {TOGGLE_GROUPS.map((group) => (
           <div className={styles.toggleGroup} key={group.title}>
-            <div className={styles.toggleGroupLabel}>{group.title}</div>
+            <div className={styles.toggleGroupLabel}>{t(group.title)}</div>
 
             <div className={styles.toggleGrid}>
               {group.items.map(([name, label]) => {
@@ -502,7 +514,7 @@ export default function ItemFormModal({
                       form.setFieldValue(name, !checked);
                     }}
                   >
-                    <span>{label}</span>
+                    <span>{t(label)}</span>
 
                     {/* กันไม่ให้คลิกสวิตช์เด้งไปโดน onClick ของการ์ดซ้ำอีกรอบ */}
                     <div
@@ -525,27 +537,27 @@ export default function ItemFormModal({
             {group.title === SALES_GROUP_TITLE && watched?.isSalesItem ? (
               <div className={styles.inlineField}>
                 <Form.Item
-                  label="ราคาขาย (ก่อน VAT)"
-                  extra="ใช้เติมราคาให้อัตโนมัติเมื่อเลือกสินค้านี้ในใบเสนอราคา แก้ไขในเอกสารได้"
+                  label={t("ราคาขาย (ก่อน VAT)")}
+                  extra={t("ใช้เติมราคาให้อัตโนมัติเมื่อเลือกสินค้านี้ในใบเสนอราคา แก้ไขในเอกสารได้")}
                 >
                   <Space.Compact style={{ width: "100%" }}>
                     <Form.Item
                       name="sellingPrice"
                       noStyle
-                      rules={[{ required: true, message: "กรุณากรอกราคาขาย" }]}
+                      rules={[{ required: true, message: t("กรุณากรอกราคาขาย") }]}
                     >
                       <InputNumber
                         size="large"
                         min={0}
                         step={1}
                         style={{ width: "100%" }}
-                        placeholder="เช่น 1250"
+                        placeholder={t("เช่น 1250")}
                       />
                     </Form.Item>
                     <Input
                       size="large"
                       disabled
-                      value={selectedUnitLabel ?? "บาท / หน่วย"}
+                      value={selectedUnitLabel ?? t("บาท / หน่วย")}
                       style={{ width: 132 }}
                     />
                   </Space.Compact>
@@ -559,13 +571,13 @@ export default function ItemFormModal({
           <div className={styles.statusContent}>
             <div className={styles.statusIcon}>●</div>
             <div>
-              <strong>สถานะใช้งาน</strong>
-              <span>เปิดใช้งานเพื่อเลือกสินค้านี้ในเอกสารต่าง ๆ ได้</span>
+              <strong>{t("สถานะใช้งาน")}</strong>
+              <span>{t("เปิดใช้งานเพื่อเลือกสินค้านี้ในเอกสารต่าง ๆ ได้")}</span>
             </div>
           </div>
 
           <Form.Item name="isActive" valuePropName="checked" noStyle>
-            <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+            <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
           </Form.Item>
         </div>
       </Form>

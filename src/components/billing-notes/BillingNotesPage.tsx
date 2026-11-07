@@ -25,6 +25,8 @@ import {
   type BillingNoteQuery,
   type PendingBillingAp,
 } from "@/types/billing-notes";
+import { tFin } from "@/components/payment-vouchers/paymentVoucherUtils";
+import { useT } from "@/lib/i18n/useT";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -35,8 +37,8 @@ const BASE_PATH = "/finance/payables/billing-notes";
 
 type DateRange = [Dayjs | null, Dayjs | null] | null;
 
-const STATUS_OPTIONS = Object.entries(BILLING_NOTE_STATUS_LABEL).map(([value, label]) => ({ value, label }));
-const PV_STATUS_OPTIONS = Object.entries(BILLING_PV_STATUS_LABEL).map(([value, label]) => ({ value, label }));
+const STATUS_OPTIONS_BASE = Object.entries(BILLING_NOTE_STATUS_LABEL).map(([value, label]) => ({ value, label }));
+const PV_STATUS_OPTIONS_BASE = Object.entries(BILLING_PV_STATUS_LABEL).map(([value, label]) => ({ value, label }));
 
 const ymd = (d?: Dayjs | null) => d?.format("YYYY-MM-DD");
 
@@ -45,8 +47,11 @@ const ymd = (d?: Dayjs | null) => d?.format("YYYY-MM-DD");
  * ส่วนล่าง: ใบวางบิลที่สร้างแล้ว + Export · ค้นหา/กรอง/แบ่งหน้าแยกกัน
  */
 export default function BillingNotesPage() {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
+  const STATUS_OPTIONS = STATUS_OPTIONS_BASE.map((o) => ({ ...o, label: tFin(o.label) }));
+  const PV_STATUS_OPTIONS = PV_STATUS_OPTIONS_BASE.map((o) => ({ ...o, label: t(o.label) }));
   const perms = useScreenActionPermissions(SCREEN_CODE);
 
   // ── ส่วนที่ 1: รอวางบิล ──
@@ -91,29 +96,29 @@ export default function BillingNotesPage() {
     try {
       const rows = (await getBillingNotesExport(getAccessToken(), filters)).data;
       const meta = [
-        `ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`,
-        filters.search ? `ค้นหา: ${filters.search}` : null,
+        `${t("ออกรายงาน")} ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        filters.search ? `${t("ค้นหา")}: ${filters.search}` : null,
         filters.dateFrom || filters.dateTo
-          ? `วันที่ใบวางบิล: ${formatThaiDate(filters.dateFrom)} - ${formatThaiDate(filters.dateTo)}`
+          ? `${t("วันที่ใบวางบิล")}: ${formatThaiDate(filters.dateFrom)} - ${formatThaiDate(filters.dateTo)}`
           : null,
-        filters.status ? `สถานะเอกสาร: ${BILLING_NOTE_STATUS_LABEL[filters.status] ?? filters.status}` : null,
-        filters.pvStatus ? `สถานะออก PV: ${BILLING_PV_STATUS_LABEL[filters.pvStatus] ?? filters.pvStatus}` : null,
-        `ทั้งหมด ${rows.length} รายการ · ยอดวางบิลรวม ${money.format(rows.reduce((s, r) => s + r.totalAmount, 0))} บาท`,
+        filters.status ? `${t("สถานะเอกสาร")}: ${BILLING_NOTE_STATUS_LABEL[filters.status] ? tFin(BILLING_NOTE_STATUS_LABEL[filters.status]) : filters.status}` : null,
+        filters.pvStatus ? `${t("สถานะออก PV")}: ${BILLING_PV_STATUS_LABEL[filters.pvStatus] ? tFin(BILLING_PV_STATUS_LABEL[filters.pvStatus]) : filters.pvStatus}` : null,
+        t("ทั้งหมด {n} รายการ · ยอดวางบิลรวม {amount} บาท", { n: rows.length, amount: money.format(rows.reduce((s, r) => s + r.totalAmount, 0)) }),
       ].filter((v): v is string => Boolean(v));
       await downloadTabularReport(format, {
-        title: "รายการใบวางบิล",
+        title: t("รายการใบวางบิล"),
         filename: `billing-notes-${dayjs().format("YYYYMMDD-HHmm")}`,
         meta,
         headers: [
-          "เลขที่ใบวางบิล",
-          "วันที่",
-          "ผู้ขาย",
-          "จำนวน AP",
-          "ยอดวางบิล",
-          "ยอดออก PV แล้ว",
-          "ยอดคงเหลือ",
-          "สถานะเอกสาร",
-          "สถานะออก PV",
+          t("เลขที่ใบวางบิล"),
+          t("วันที่"),
+          t("ผู้ขาย"),
+          t("จำนวน AP"),
+          t("ยอดวางบิล"),
+          t("ยอดออก PV แล้ว"),
+          t("ยอดคงเหลือ"),
+          t("สถานะเอกสาร"),
+          t("สถานะออก PV"),
         ],
         rows: rows.map((r) => [
           r.billingNo,
@@ -123,23 +128,23 @@ export default function BillingNotesPage() {
           money.format(r.totalAmount),
           money.format(r.issuedPvAmount),
           money.format(r.remainingAmount),
-          BILLING_NOTE_STATUS_LABEL[r.status] ?? r.status,
-          BILLING_PV_STATUS_LABEL[r.pvStatus] ?? r.pvStatus,
+          BILLING_NOTE_STATUS_LABEL[r.status] ? tFin(BILLING_NOTE_STATUS_LABEL[r.status]) : r.status,
+          BILLING_PV_STATUS_LABEL[r.pvStatus] ? tFin(BILLING_PV_STATUS_LABEL[r.pvStatus]) : r.pvStatus,
         ]),
         pdfColumns: [
-          { header: "เลขที่ใบวางบิล", cells: [0], width: 90 },
-          { header: "วันที่", cells: [1], width: 62 },
-          { header: "ผู้ขาย", cells: [2], width: 130 },
+          { header: t("เลขที่ใบวางบิล"), cells: [0], width: 90 },
+          { header: t("วันที่"), cells: [1], width: 62 },
+          { header: t("ผู้ขาย"), cells: [2], width: 130 },
           { header: "AP", cells: [3], width: 32, align: "right", numeric: true },
-          { header: "ยอดวางบิล", cells: [4], width: 72, align: "right", numeric: true },
-          { header: "ออก PV แล้ว", cells: [5], width: 72, align: "right", numeric: true },
-          { header: "คงเหลือ", cells: [6], width: 68, align: "right", numeric: true },
-          { header: "สถานะ", cells: [7], width: 58 },
-          { header: "สถานะออก PV", cells: [8], width: 80 },
+          { header: t("ยอดวางบิล"), cells: [4], width: 72, align: "right", numeric: true },
+          { header: t("ออก PV แล้ว"), cells: [5], width: 72, align: "right", numeric: true },
+          { header: t("คงเหลือ"), cells: [6], width: 68, align: "right", numeric: true },
+          { header: t("สถานะ"), cells: [7], width: 58 },
+          { header: t("สถานะออก PV"), cells: [8], width: 80 },
         ],
       });
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : "ส่งออกรายการใบวางบิลไม่สำเร็จ");
+      message.error(e instanceof Error && e.message ? e.message : t("ส่งออกรายการใบวางบิลไม่สำเร็จ"));
     } finally {
       setDownloading(null);
     }
@@ -147,28 +152,28 @@ export default function BillingNotesPage() {
 
   const pendingColumns: ColumnsType<PendingBillingAp> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (pPage - 1) * PENDING_PAGE_SIZE + index + 1,
     },
-    { title: "วันที่ AP", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่ AP"), dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
-      title: "เลขที่ AP",
+      title: t("เลขที่ AP"),
       dataIndex: "docNo",
       width: 170,
       render: (v: string, r) => <Link href={`/finance/payables/ap-invoices/${r.apId}`}>{v}</Link>,
     },
     {
-      title: "เลขที่ PO",
+      title: t("เลขที่ PO"),
       dataIndex: "poNo",
       width: 130,
       render: (v: string | undefined, r) =>
         v && r.purchaseOrderId ? <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link> : "—",
     },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (
         <span>
@@ -176,23 +181,23 @@ export default function BillingNotesPage() {
         </span>
       ),
     },
-    { title: "ยอดตั้งหนี้", dataIndex: "totalAmount", align: "right", width: 120, render: (v: number) => money.format(v) },
-    { title: "ยอดปรับหนี้", dataIndex: "adjustmentNet", align: "right", width: 120, render: (v: number) => money.format(v) },
+    { title: t("ยอดตั้งหนี้"), dataIndex: "totalAmount", align: "right", width: 120, render: (v: number) => money.format(v) },
+    { title: t("ยอดปรับหนี้"), dataIndex: "adjustmentNet", align: "right", width: 120, render: (v: number) => money.format(v) },
     {
-      title: "ยอดหักมัดจำ",
+      title: t("ยอดหักมัดจำ"),
       dataIndex: "depositDeductAmount",
       align: "right",
       width: 120,
       render: (v: number) => money.format(v),
     },
     {
-      title: "ยอดพร้อมวางบิล",
+      title: t("ยอดพร้อมวางบิล"),
       dataIndex: "billableAmount",
       align: "right",
       width: 140,
       render: (v: number) => <Typography.Text strong>{money.format(v)}</Typography.Text>,
     },
-    { title: "วันครบกำหนด", dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
+    { title: t("วันครบกำหนด"), dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
     {
       title: "",
       key: "action",
@@ -200,7 +205,7 @@ export default function BillingNotesPage() {
       render: (_v, r) =>
         perms.canAdd ? (
           <Button type="primary" size="small" onClick={() => goCreate([r.apId])}>
-            วางบิล
+            {t("วางบิล")}
           </Button>
         ) : null,
     },
@@ -208,21 +213,21 @@ export default function BillingNotesPage() {
 
   const createdColumns: ColumnsType<BillingNoteListItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (cPage - 1) * CREATED_PAGE_SIZE + index + 1,
     },
     {
-      title: "เลขที่ใบวางบิล",
+      title: t("เลขที่ใบวางบิล"),
       dataIndex: "billingNo",
       width: 160,
       render: (v: string) => <Typography.Text strong>{v}</Typography.Text>,
     },
-    { title: "วันที่", dataIndex: "billingDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่"), dataIndex: "billingDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "creditor",
       render: (_v, r) => (
         <span>
@@ -230,31 +235,31 @@ export default function BillingNotesPage() {
         </span>
       ),
     },
-    { title: "จำนวน AP", dataIndex: "apCount", align: "right", width: 100 },
-    { title: "ยอดวางบิล", dataIndex: "totalAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
+    { title: t("จำนวน AP"), dataIndex: "apCount", align: "right", width: 100 },
+    { title: t("ยอดวางบิล"), dataIndex: "totalAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
     {
-      title: "ยอดออก PV แล้ว",
+      title: t("ยอดออก PV แล้ว"),
       dataIndex: "issuedPvAmount",
       align: "right",
       width: 140,
       render: (v: number) => money.format(v),
     },
-    { title: "ยอดคงเหลือ", dataIndex: "remainingAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
+    { title: t("ยอดคงเหลือ"), dataIndex: "remainingAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
     {
-      title: "สถานะเอกสาร",
+      title: t("สถานะเอกสาร"),
       dataIndex: "status",
       width: 120,
-      render: (v: string) => <Tag color={BILLING_NOTE_STATUS_COLOR[v] ?? "default"}>{BILLING_NOTE_STATUS_LABEL[v] ?? v}</Tag>,
+      render: (v: string) => <Tag color={BILLING_NOTE_STATUS_COLOR[v] ?? "default"}>{BILLING_NOTE_STATUS_LABEL[v] ? tFin(BILLING_NOTE_STATUS_LABEL[v]) : v}</Tag>,
     },
     {
-      title: "สถานะออก PV",
+      title: t("สถานะออก PV"),
       dataIndex: "pvStatus",
       width: 140,
       render: (v: string, r) =>
         r.status === "CANCELLED" ? (
           "—"
         ) : (
-          <Tag color={BILLING_PV_STATUS_COLOR[v] ?? "default"}>{BILLING_PV_STATUS_LABEL[v] ?? v}</Tag>
+          <Tag color={BILLING_PV_STATUS_COLOR[v] ?? "default"}>{BILLING_PV_STATUS_LABEL[v] ? tFin(BILLING_PV_STATUS_LABEL[v]) : v}</Tag>
         ),
     },
     {
@@ -264,11 +269,11 @@ export default function BillingNotesPage() {
       render: (_v, r) => (
         <Space>
           <Link href={`${BASE_PATH}/${r.id}`}>
-            <Button size="small">ดูรายละเอียด</Button>
+            <Button size="small">{t("ดูรายละเอียด")}</Button>
           </Link>
           {r.status === "DRAFT" && perms.canEdit ? (
             <Link href={`${BASE_PATH}/${r.id}/edit`}>
-              <Button size="small">แก้ไข</Button>
+              <Button size="small">{t("แก้ไข")}</Button>
             </Link>
           ) : null}
         </Space>
@@ -305,14 +310,14 @@ export default function BillingNotesPage() {
       <PageHeader
         eyebrow="FINANCE · PAYABLES"
         icon={<FileTextOutlined />}
-        title="ใบวางบิล"
-        subtitle="AP ที่อนุมัติแล้วรอวางบิล และใบวางบิลที่สร้างแล้ว — เลือกหลายใบของผู้ขายเดียวกันรวมเป็นใบเดียวได้"
+        title={t("ใบวางบิล")}
+        subtitle={t("AP ที่อนุมัติแล้วรอวางบิล และใบวางบิลที่สร้างแล้ว — เลือกหลายใบของผู้ขายเดียวกันรวมเป็นใบเดียวได้")}
         actions={
           <>
 <Space>
           {perms.canAdd ? (
             <Button type="primary" disabled={selected.length === 0} onClick={() => goCreate(selected.map((s) => s.apId))}>
-              วางบิลที่เลือก ({selected.length})
+              {t("วางบิลที่เลือก ({n})", { n: selected.length })}
             </Button>
           ) : null}
           <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
@@ -323,55 +328,55 @@ export default function BillingNotesPage() {
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>รอวางบิล</span>
+          <span className={styles.statLabel}>{t("รอวางบิล")}</span>
           <span className={styles.statValue}>{(pending.data?.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>สร้างแล้ว</span>
+          <span className={styles.statLabel}>{t("สร้างแล้ว")}</span>
           <span className={styles.statValue}>{(created.data?.total ?? 0).toLocaleString("th-TH")}</span>
-          <span className={styles.statHint}>รายการ</span>
+          <span className={styles.statHint}>{t("รายการ")}</span>
         </div>
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รอวางบิล</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("รอวางบิล")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{(pending.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+          <span className={masterStyles.tableCount}>{(pending.data?.total ?? 0).toLocaleString("th-TH")} {t("รายการ")}</span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่ AP / PO / ผู้ขาย"
+                placeholder={t("เลขที่ AP / PO / ผู้ขาย")}
                 value={pSearch}
                 onChange={(e) => setPSearch(e.target.value)}
                 onPressEnter={applyPending}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>วันที่ AP</label>
+              <label>{t("วันที่ AP")}</label>
               <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={pApRange} onChange={setPApRange} />
             </div>
             <div className={styles.filterItem}>
-              <label>วันครบกำหนด</label>
+              <label>{t("วันครบกำหนด")}</label>
               <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={pDueRange} onChange={setPDueRange} />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearPending}>เคลียร์</Button>
+              <Button onClick={clearPending}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyPending}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
         </section>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          เลือกได้หลายใบเฉพาะ AP ของผู้ขายเดียวกัน เพื่อรวมเป็นใบวางบิลเดียว
+          {t("เลือกได้หลายใบเฉพาะ AP ของผู้ขายเดียวกัน เพื่อรวมเป็นใบวางบิลเดียว")}
         </Typography.Paragraph>
         <Table
           className={masterStyles.dataTable}
@@ -399,49 +404,49 @@ export default function BillingNotesPage() {
             total: pending.data?.total ?? 0,
             onChange: setPPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1300 }}
-          locale={{ emptyText: "ไม่มีรายการรอวางบิล" }}
+          locale={{ emptyText: t("ไม่มีรายการรอวางบิล") }}
         />
       </div>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>ใบวางบิลที่สร้างแล้ว</h3>
+            <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+            <h3>{t("ใบวางบิลที่สร้างแล้ว")}</h3>
           </div>
-          <span className={masterStyles.tableCount}>{(created.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+          <span className={masterStyles.tableCount}>{(created.data?.total ?? 0).toLocaleString("th-TH")} {t("รายการ")}</span>
         </div>
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
-              <label>ค้นหา</label>
+              <label>{t("ค้นหา")}</label>
               <Input
                 allowClear
-                placeholder="เลขที่ใบวางบิล / AP / PO / ผู้ขาย"
+                placeholder={t("เลขที่ใบวางบิล / AP / PO / ผู้ขาย")}
                 value={cSearch}
                 onChange={(e) => setCSearch(e.target.value)}
                 onPressEnter={applyCreated}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>วันที่ใบวางบิล</label>
+              <label>{t("วันที่ใบวางบิล")}</label>
               <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={cRange} onChange={setCRange} />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะเอกสาร</label>
-              <Select allowClear placeholder="ทั้งหมด" value={cStatus} onChange={setCStatus} options={STATUS_OPTIONS} />
+              <label>{t("สถานะเอกสาร")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={cStatus} onChange={setCStatus} options={STATUS_OPTIONS} />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะออก PV</label>
-              <Select allowClear placeholder="ทั้งหมด" value={cPvStatus} onChange={setCPvStatus} options={PV_STATUS_OPTIONS} />
+              <label>{t("สถานะออก PV")}</label>
+              <Select allowClear placeholder={t("ทั้งหมด")} value={cPvStatus} onChange={setCPvStatus} options={PV_STATUS_OPTIONS} />
             </div>
             <div className={styles.filterActions}>
-              <Button onClick={clearCreated}>เคลียร์</Button>
+              <Button onClick={clearCreated}>{t("เคลียร์")}</Button>
               <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCreated}>
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
             </div>
           </div>
@@ -460,10 +465,10 @@ export default function BillingNotesPage() {
             total: created.data?.total ?? 0,
             onChange: setCPage,
             showSizeChanger: false,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1400 }}
-          locale={{ emptyText: "ยังไม่มีใบวางบิล" }}
+          locale={{ emptyText: t("ยังไม่มีใบวางบิล") }}
         />
       </div>
     </section>

@@ -6,6 +6,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useRouter } from "next/navigation";
 
 import { useApInvoicePvMutation } from "@/hooks/ap-documents/useApDocuments";
+import { useT } from "@/lib/i18n/useT";
 import type { ApInvoiceDetail } from "@/types/ap-documents";
 
 import { money } from "./apDocumentConfig";
@@ -27,6 +28,7 @@ export default function IssueApPvModal({
   detail: ApInvoiceDetail;
   onClose: () => void;
 }) {
+  const t = useT();
   const { message } = App.useApp();
   const router = useRouter();
   const { issue } = useApInvoicePvMutation(detail.id);
@@ -61,20 +63,20 @@ export default function IssueApPvModal({
   const submit = async () => {
     try {
       await issue.mutateAsync({ amount: amount as number, desiredPayDate: payDate?.format("YYYY-MM-DD") });
-      message.success("ส่งรายการเข้าคิวรอสร้างใบสำคัญจ่ายแล้ว");
+      message.success(t("ส่งรายการเข้าคิวรอสร้างใบสำคัญจ่ายแล้ว"));
       close();
       router.push(PV_PATH);
     } catch (e) {
-      message.error(e instanceof Error && e.message ? e.message : "ออกใบสำคัญจ่ายไม่สำเร็จ");
+      message.error(e instanceof Error && e.message ? e.message : t("ออกใบสำคัญจ่ายไม่สำเร็จ"));
     }
   };
 
   return (
     <Modal
       open={open}
-      title={`ออกใบสำคัญจ่าย ${detail.docNo}`}
-      okText="ยืนยัน"
-      cancelText="ปิด"
+      title={t("ออกใบสำคัญจ่าย {docNo}", { docNo: detail.docNo })}
+      okText={t("ยืนยัน")}
+      cancelText={t("ปิด")}
       okButtonProps={{ disabled: invalid }}
       confirmLoading={issue.isPending}
       onOk={() => void submit()}
@@ -83,16 +85,16 @@ export default function IssueApPvModal({
     >
       <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Descriptions bordered size="small" column={1}>
-          <Descriptions.Item label="ยอดเจ้าหนี้คงเหลือ (หลังมัดจำ/ปรับหนี้/ชำระแล้ว)">
+          <Descriptions.Item label={t("ยอดเจ้าหนี้คงเหลือ (หลังมัดจำ/ปรับหนี้/ชำระแล้ว)")}>
             {money.format(detail.remainingAmount)}
           </Descriptions.Item>
-          <Descriptions.Item label="ยอดที่มี PV ค้างดำเนินการ">{money.format(detail.pvOpenAmount)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดที่ออกใบสำคัญจ่ายเพิ่มได้">
+          <Descriptions.Item label={t("ยอดที่มี PV ค้างดำเนินการ")}>{money.format(detail.pvOpenAmount)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดที่ออกใบสำคัญจ่ายเพิ่มได้")}>
             <Typography.Text strong>{money.format(issuable)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
         <Space>
-          <Typography.Text>จำนวนเงินที่ต้องการออก PV</Typography.Text>
+          <Typography.Text>{t("จำนวนเงินที่ต้องการออก PV")}</Typography.Text>
           <InputNumber
             min={0}
             max={issuable}
@@ -102,28 +104,30 @@ export default function IssueApPvModal({
             value={amount}
             onChange={(v) => setAmountInput(v)}
           />
-          <Typography.Text>บาท</Typography.Text>
+          <Typography.Text>{t("บาท")}</Typography.Text>
         </Space>
-        <Descriptions bordered size="small" column={1} title="ภาษีหัก ณ ที่จ่าย (ประมาณการจากแผน AP)">
-          <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">
+        <Descriptions bordered size="small" column={1} title={t("ภาษีหัก ณ ที่จ่าย (ประมาณการจากแผน AP)")}>
+          <Descriptions.Item label={t("ฐานภาษีหัก ณ ที่จ่าย")}>
             {whtPreview.wht > 0 ? money.format(whtPreview.base) : "—"}
           </Descriptions.Item>
-          <Descriptions.Item label="อัตรา WHT">
+          <Descriptions.Item label={t("อัตรา WHT")}>
             {whtPreview.wht > 0 ? `${whtPreview.rate}%` : "—"}
           </Descriptions.Item>
-          <Descriptions.Item label="ยอด WHT ที่จะหัก">{money.format(whtPreview.wht)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดโอนสุทธิโดยประมาณ">
+          <Descriptions.Item label={t("ยอด WHT ที่จะหัก")}>{money.format(whtPreview.wht)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดโอนสุทธิโดยประมาณ")}>
             <Typography.Text strong>{money.format(whtPreview.net)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
         <Space>
-          <Typography.Text>วันที่ต้องการจ่าย</Typography.Text>
+          <Typography.Text>{t("วันที่ต้องการจ่าย")}</Typography.Text>
           <DatePicker format="DD/MM/YYYY" value={payDate} onChange={(v) => setDateInput(v)} />
         </Space>
         <Alert
           type="info"
           showIcon
-          title="ออกบางส่วนได้และออกได้หลายใบ — ระบบสร้างรายการ “รอสร้างใบสำคัญจ่าย” แล้วพาไปหน้าใบสำคัญจ่ายเดิมเพื่อกดสร้าง/อนุมัติ PV · สถานะ AP จะเป็น “ชำระแล้ว” เมื่อบันทึกจ่ายเงินจริงครบเท่านั้น"
+          title={t(
+            "ออกบางส่วนได้และออกได้หลายใบ — ระบบสร้างรายการ “รอสร้างใบสำคัญจ่าย” แล้วพาไปหน้าใบสำคัญจ่ายเดิมเพื่อกดสร้าง/อนุมัติ PV · สถานะ AP จะเป็น “ชำระแล้ว” เมื่อบันทึกจ่ายเงินจริงครบเท่านั้น",
+          )}
         />
       </Space>
     </Modal>

@@ -1,4 +1,5 @@
 "use client";
+import { useT } from "@/lib/i18n/useT";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
@@ -12,6 +13,7 @@ import { warehouseLocationsQueryKey } from "./useWarehouseLocationsQuery";
 export function useCreateWarehouseLocationMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "warehouse-locations", "create"],
@@ -21,13 +23,13 @@ export function useCreateWarehouseLocationMutation() {
       await queryClient.invalidateQueries({
         queryKey: warehouseLocationsQueryKey,
       });
-      message.success(response.message || "สร้างตำแหน่งจัดเก็บสำเร็จแล้ว");
+      message.success(response.message || t("สร้างตำแหน่งจัดเก็บสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างตำแหน่งจัดเก็บไม่สำเร็จ",
+          : t("สร้างตำแหน่งจัดเก็บไม่สำเร็จ"),
       );
     },
   });

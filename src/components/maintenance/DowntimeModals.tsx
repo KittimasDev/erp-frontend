@@ -4,6 +4,7 @@ import { DatePicker, Form, Input, Modal, Select } from "antd";
 import dayjs from "dayjs";
 
 import { useEndDowntimeMutation, useRecordDowntimeMutation } from "@/hooks/maintenance/useMaintenance";
+import { useT } from "@/lib/i18n/useT";
 import { ROOT_CAUSE_OPTIONS, type EquipmentDowntime } from "@/types/maintenance";
 
 type RecordValues = {
@@ -15,14 +16,15 @@ type RecordValues = {
 
 /** เปิด Downtime ด้วยมือ (เช่น หยุดตามแผน/Shutdown) — แจ้งเสียใช้ปุ่ม "แจ้งเสีย" แทน */
 export function RecordDowntimeModal({ equipmentId, onClose }: { equipmentId: string; onClose: () => void }) {
+  const t = useT();
   const [form] = Form.useForm<RecordValues>();
   const record = useRecordDowntimeMutation();
   return (
     <Modal
       open
-      title="บันทึก Downtime"
-      okText="บันทึก"
-      cancelText="ยกเลิก"
+      title={t("บันทึก Downtime")}
+      okText={t("บันทึก")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={record.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -43,22 +45,22 @@ export function RecordDowntimeModal({ equipmentId, onClose }: { equipmentId: str
       }
     >
       <Form form={form} layout="vertical" initialValues={{ startAt: dayjs(), category: "UNPLANNED" }}>
-        <Form.Item name="category" label="ประเภท">
+        <Form.Item name="category" label={t("ประเภท")}>
           <Select
             options={[
-              { value: "PLANNED", label: "หยุดตามแผน (Shutdown / PM)" },
-              { value: "UNPLANNED", label: "หยุดไม่ได้วางแผน (Breakdown)" },
+              { value: "PLANNED", label: t("หยุดตามแผน (Shutdown / PM)") },
+              { value: "UNPLANNED", label: t("หยุดไม่ได้วางแผน (Breakdown)") },
             ]}
           />
         </Form.Item>
-        <Form.Item name="startAt" label="เวลาเริ่มหยุด" rules={[{ required: true }]}>
+        <Form.Item name="startAt" label={t("เวลาเริ่มหยุด")} rules={[{ required: true }]}>
           <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
         </Form.Item>
-        <Form.Item name="reason" label="เหตุผล" rules={[{ required: true, whitespace: true, message: "ใส่เหตุผล" }]}>
+        <Form.Item name="reason" label={t("เหตุผล")} rules={[{ required: true, whitespace: true, message: t("ใส่เหตุผล") }]}>
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
-        <Form.Item name="rootCauseCategory" label="กลุ่มสาเหตุ (ถ้าทราบ)">
-          <Select allowClear options={[...ROOT_CAUSE_OPTIONS]} />
+        <Form.Item name="rootCauseCategory" label={t("กลุ่มสาเหตุ (ถ้าทราบ)")}>
+          <Select allowClear options={ROOT_CAUSE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
         </Form.Item>
       </Form>
     </Modal>
@@ -82,14 +84,15 @@ export function EndDowntimeModal({
   downtime: EquipmentDowntime;
   onClose: () => void;
 }) {
+  const t = useT();
   const [form] = Form.useForm<EndValues>();
   const end = useEndDowntimeMutation();
   return (
     <Modal
       open
-      title="ปิด Downtime"
-      okText="ปิด Downtime"
-      cancelText="ยกเลิก"
+      title={t("ปิด Downtime")}
+      okText={t("ปิด Downtime")}
+      cancelText={t("ยกเลิก")}
       confirmLoading={end.isPending}
       onCancel={onClose}
       onOk={() =>
@@ -110,7 +113,7 @@ export function EndDowntimeModal({
         )
       }
     >
-      <p style={{ marginTop: 0 }}>เริ่มหยุด {dayjs(downtime.startAt).format("DD/MM/YYYY HH:mm")} — {downtime.reason}</p>
+      <p style={{ marginTop: 0 }}>{t("เริ่มหยุด")} {dayjs(downtime.startAt).format("DD/MM/YYYY HH:mm")} — {downtime.reason}</p>
       <Form
         form={form}
         layout="vertical"
@@ -121,16 +124,16 @@ export function EndDowntimeModal({
           rootCause: downtime.rootCause,
         }}
       >
-        <Form.Item name="repairStartedAt" label="เวลาเริ่มซ่อมจริง" extra="ไม่ระบุ = นับทั้งช่วงเป็น “รอซ่อม”">
+        <Form.Item name="repairStartedAt" label={t("เวลาเริ่มซ่อมจริง")} extra={t("ไม่ระบุ = นับทั้งช่วงเป็น “รอซ่อม”")}>
           <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" />
         </Form.Item>
-        <Form.Item name="endAt" label="เวลาเครื่องกลับมาใช้งาน" rules={[{ required: true }]}>
+        <Form.Item name="endAt" label={t("เวลาเครื่องกลับมาใช้งาน")} rules={[{ required: true }]}>
           <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" />
         </Form.Item>
-        <Form.Item name="rootCauseCategory" label="กลุ่มสาเหตุ (Root Cause)">
-          <Select allowClear options={[...ROOT_CAUSE_OPTIONS]} />
+        <Form.Item name="rootCauseCategory" label={t("กลุ่มสาเหตุ (Root Cause)")}>
+          <Select allowClear options={ROOT_CAUSE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
         </Form.Item>
-        <Form.Item name="rootCause" label="วิเคราะห์สาเหตุ">
+        <Form.Item name="rootCause" label={t("วิเคราะห์สาเหตุ")}>
           <Input.TextArea rows={2} maxLength={4000} />
         </Form.Item>
       </Form>
