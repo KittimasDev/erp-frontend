@@ -1,5 +1,7 @@
 .page {
   display: grid;
+  /* minmax(0, 1fr): กันคอลัมน์ขยายตามเนื้อหาที่กว้างที่สุด (ไม่งั้นการ์ดล้นจอมือถือ) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   padding-bottom: 8px;
 }
@@ -837,13 +839,39 @@
 
 .detailToolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
+.detailToolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+/* ตาราง Descriptions แบบมีกรอบ — บนจอแคบต้องตัดคำและไม่ดันความกว้างหน้า */
+.detailDescriptions :global(.ant-descriptions-view) {
+  overflow-x: auto;
+}
+
+.detailDescriptions :global(.ant-descriptions-view) table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.detailDescriptions :global(.ant-descriptions-item-label),
+.detailDescriptions :global(.ant-descriptions-item-content) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .detailTitleRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
@@ -2425,6 +2453,32 @@
   .previewGrid,
   .detailGrid {
     grid-template-columns: 1fr;
+  }
+
+  /* หน้ารายละเอียดตั๋ว: ปุ่มบนสุดเรียงเต็มแถว, การ์ดลด padding */
+  .detailToolbar {
+    align-items: stretch;
+  }
+
+  .detailToolbarActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .detailToolbarActions :global(.ant-btn) {
+    flex: 1 1 auto;
+  }
+
+  .cardHeader {
+    padding: 14px 14px 10px;
+  }
+
+  .cardBody {
+    padding: 14px;
+  }
+
+  .detailDescriptions :global(.ant-descriptions-item-label) {
+    width: 38%;
   }
 }
 

@@ -507,7 +507,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
           >
             {t("กลับภาพรวม")}
           </Button>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className={styles.detailToolbarActions}>
             <Button
               icon={<PrinterOutlined />}
               loading={isPrinting || receiptQuery.isFetching}
@@ -563,7 +563,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       {t("เลขที่ตั๋ว {no} · สถานะตั๋ว {status}", { no: ticket.ticketNo, status: ticket.status })}
                     </p>
                   </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div className={styles.detailTitleTags}>
                     <Tag color={TICKET_ORIGIN_COLOR[ticket.origin ?? "MANUAL"]}>
                       {tLabel(TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"])}
                       {ticket.origin === "T2900" && ticket.referenceDocNo
@@ -631,6 +631,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <Descriptions
                       bordered
                       size="small"
+                      className={styles.detailDescriptions}
                       column={{ xs: 1, md: 2 }}
                       items={[
                         { key: "no", label: t("เลขที่ตั๋วชั่ง"), children: ticket.ticketNo },
@@ -677,6 +678,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       <Descriptions
                         bordered
                         size="small"
+                        className={styles.detailDescriptions}
                         column={{ xs: 1, md: 2 }}
                         items={[
                           ...(receipt.items ?? []).map((item) => ({

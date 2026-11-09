@@ -206,12 +206,21 @@
 
 @media (max-width: 640px) {
   .topHeaderInner {
-    padding: 12px 14px 4px;
-    align-items: flex-start;
+    /* ขวา 22px เผื่อธงภาษาที่เกาะมุมปุ่มโปรไฟล์ไม่ให้ล้นจอ */
+    padding: 12px 22px 8px 14px;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
   }
 
+  /* ชื่อหน้าต้องไม่ถูกบีบเป็นแนวตั้งเมื่อปุ่มด้านขวากินที่ — ตัดด้วย … แทน */
   .pageTitle {
-    font-size: 20px;
+    flex: 1 1 0;
+    min-width: 0;
+    font-size: 17px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .dateChip span:last-child {
@@ -221,7 +230,14 @@
   }
 
   .topActions {
-    gap: 8px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* จอแคบมาก: เหลือแค่ไอคอนปฏิทิน (วันที่เต็มดูได้จากหน้าอื่น) */
+  .dateChip span:last-child {
+    display: none;
   }
 }
 
