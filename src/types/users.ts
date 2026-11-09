@@ -25,6 +25,8 @@ export type AppUser = {
   lastName?: string;
   email?: string;
   phone?: string;
+  /** topic ntfy ที่ผู้ใช้นี้ subscribe — ว่าง = ไม่รับแจ้งเตือนภายนอก */
+  ntfyTopic?: string;
   employeeCode?: string;
   departmentId?: string;
   departmentName?: string;
@@ -86,6 +88,7 @@ export type CreateUserRequest = {
   lastName?: string;
   email?: string;
   phone?: string;
+  ntfyTopic?: string;
   employeeCode?: string;
   departmentId?: string;
   sectionId?: string;
@@ -119,6 +122,7 @@ export type UpdateUserRequest = {
   lastName?: string;
   email?: string;
   phone?: string;
+  ntfyTopic?: string;
   employeeCode?: string;
   departmentId?: string | null;
   /** null = เคลียร์แผนกย่อย · เปลี่ยนแผนกโดยไม่ส่งค่านี้ backend เคลียร์ให้ */

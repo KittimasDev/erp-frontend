@@ -56,6 +56,7 @@ type UserFormValues = {
   canLogin: boolean;
   email?: string;
   phone?: string;
+  ntfyTopic?: string;
   password?: string;
   roleIds: string[];
   isActive: boolean;
@@ -141,6 +142,7 @@ export default function UserFormModal({
         canLogin: initialUser.canLogin,
         email: initialUser.email,
         phone: initialUser.phone,
+        ntfyTopic: initialUser.ntfyTopic,
         roleIds: initialUser.roles.map((role) => role.id),
         isActive: initialUser.isActive,
         password: undefined,
@@ -168,6 +170,7 @@ export default function UserFormModal({
       canLogin: true,
       email: undefined,
       phone: undefined,
+      ntfyTopic: undefined,
       password: "",
       roleIds: [],
       isActive: true,
@@ -203,6 +206,7 @@ export default function UserFormModal({
         canLogin: values.canLogin,
         email: values.email?.trim() || undefined,
         phone: values.phone?.trim() || undefined,
+        ntfyTopic: values.ntfyTopic?.trim() || undefined,
         password: values.canLogin ? values.password : undefined,
         roleIds: values.canLogin ? values.roleIds : [],
         isActive: values.isActive,
@@ -237,6 +241,7 @@ export default function UserFormModal({
       canLogin: values.canLogin,
       email: values.email?.trim() || undefined,
       phone: values.phone?.trim() || undefined,
+      ntfyTopic: values.ntfyTopic?.trim() ?? "",
       roleIds: values.canLogin ? values.roleIds : [],
       isActive: values.isActive,
     });
@@ -522,6 +527,26 @@ export default function UserFormModal({
 
         <Form.Item label={t("เบอร์โทร")} name="phone">
           <Input placeholder="08xxxxxxxx" />
+        </Form.Item>
+
+        <Form.Item
+          label={t("ntfy topic")}
+          name="ntfyTopic"
+          extra={t("ชื่อ topic ที่คนนี้ subscribe ในแอป ntfy ว่างไว้ถ้าไม่รับแจ้งเตือน")}
+          rules={[
+            {
+              validator: (_, value: string | undefined) => {
+                if (!value || /^[A-Za-z0-9_-]{1,64}$/.test(value)) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(
+                  new Error(t("ใช้ตัวอักษร ตัวเลข _ และ - ได้ไม่เกิน 64 ตัว")),
+                );
+              },
+            },
+          ]}
+        >
+          <Input placeholder="warehouse-lead" />
         </Form.Item>
 
         <Form.Item

@@ -146,6 +146,8 @@ export const EN_RECEIVING_DETAIL: Record<string, string> = {
   "หมายเหตุตั๋ว": "Ticket remark",
   "หมายเหตุตั๋ว (ไม่บังคับ)": "Ticket remark (optional)",
   "บันทึกและยืนยันใบรับซื้อ": "Save and confirm purchase receipt",
+  "เลือกผู้รับแจ้งเตือน (ไม่บังคับ)": "Choose who to notify (optional)",
+  "ยังไม่ตั้ง topic": "no ntfy topic yet",
 
   /* ---------- T2900 ticket detail ---------- */
   "กลับรายการรับซื้อ": "Back to purchase list",

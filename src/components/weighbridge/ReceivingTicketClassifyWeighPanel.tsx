@@ -22,6 +22,7 @@ import { useRawTirePriceRulesQuery } from "@/hooks/raw-tire-price-rules/useRawTi
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useCompleteWeighAndReceiptMutation } from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
+import { useNotifyRecipientsQuery } from "@/hooks/weighbridge-tickets/useNotifyRecipientsQuery";
 import { useScanWeighTicketOcrMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrMutation";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { appLocale } from "./receiving-i18n";
@@ -236,6 +237,7 @@ export default function ReceivingTicketClassifyWeighPanel({
   const [tareWeightKg, setTareWeightKg] = useState<number | null>(null);
   const [isManual, setIsManual] = useState(true);
   const [reason, setReason] = useState("");
+  const [notifyUserIds, setNotifyUserIds] = useState<string[]>([]);
   const [ocrResult, setOcrResult] = useState<WeighTicketOcrResult | null>(null);
   const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const scanOcrMutation = useScanWeighTicketOcrMutation(ticket.id);
@@ -246,6 +248,7 @@ export default function ReceivingTicketClassifyWeighPanel({
   const formEditable =
     (Boolean(ticket.canSaveClassificationPlan) || canComplete) &&
     !receiptConfirmed;
+  const notifyRecipientsQuery = useNotifyRecipientsQuery(formEditable);
 
   /**
    * hydrate ฟอร์มจากตั๋ว — ปรับ state ตอน render แทน effect
@@ -775,6 +778,7 @@ export default function ReceivingTicketClassifyWeighPanel({
       deductions: nextDeductions,
       remark: planRemark.trim() || undefined,
       priceSourceLineNo: submittedPriceSourceLineNo,
+      notifyUserIds: notifyUserIds.length ? notifyUserIds : undefined,
     });
   };
 
@@ -1505,6 +1509,25 @@ export default function ReceivingTicketClassifyWeighPanel({
               disabled={!formEditable}
               placeholder={t("หมายเหตุตั๋ว (ไม่บังคับ)")}
               onChange={(event) => setPlanRemark(event.target.value)}
+            />
+
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ width: "100%" }}
+              placeholder={t("เลือกผู้รับแจ้งเตือน (ไม่บังคับ)")}
+              disabled={!formEditable}
+              value={notifyUserIds}
+              onChange={setNotifyUserIds}
+              options={(notifyRecipientsQuery.data?.data ?? []).map((user) => ({
+                value: user.id,
+                disabled: !user.hasNtfyTopic,
+                label: user.hasNtfyTopic
+                  ? user.displayName
+                  : `${user.displayName} — ${t("ยังไม่ตั้ง topic")}`,
+              }))}
             />
 
             <div className={styles.weighActions}>

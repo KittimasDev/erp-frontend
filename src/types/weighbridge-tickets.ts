@@ -207,6 +207,18 @@ export type CompleteWeighAndReceiptRequest = {
   }>;
   remark?: string;
   priceSourceLineNo?: number;
+  notifyUserIds?: string[];
+};
+
+export type NotifyRecipient = {
+  id: string;
+  displayName: string;
+  hasNtfyTopic: boolean;
+};
+
+export type NotifyRecipientListApiResponse = {
+  message: string;
+  data: NotifyRecipient[];
 };
 
 export type WeighTicketRequest = {

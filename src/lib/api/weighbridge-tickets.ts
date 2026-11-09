@@ -10,6 +10,7 @@ import type {
   WeighbridgeTicketApiResponse,
   WeighbridgeTicketDetailApiResponse,
   WeighTicketRequest,
+  NotifyRecipientListApiResponse,
 } from "@/types/weighbridge-tickets";
 import type { CreateTicketFromOcrRequest } from "@/types/weighbridge-ocr";
 
@@ -123,6 +124,13 @@ export function saveClassificationPlan(
   return apiFetch<WeighbridgeTicketDetailApiResponse>(
     `/api/weighbridge/tickets/${id}/classification-plan`,
     { method: "PUT", token, body },
+  );
+}
+
+export function getNotifyRecipients(token: string) {
+  return apiFetch<NotifyRecipientListApiResponse>(
+    "/api/weighbridge/tickets/notify-recipients",
+    { method: "GET", token },
   );
 }
 
