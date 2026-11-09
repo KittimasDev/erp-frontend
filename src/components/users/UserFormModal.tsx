@@ -1,13 +1,14 @@
 "use client";
 
 import { isValidThaiNationalId } from "@/utils/thaiNationalId";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 import { DatePicker, Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
+import { useNtfyTopicsQuery } from "@/hooks/ntfy-topics/useNtfyTopicsQuery";
 import { usePayrollSettingsQuery } from "@/hooks/payroll/usePayroll";
 import { useOtSettingsQuery } from "@/hooks/overtime/useOtSettings";
 import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
@@ -83,6 +84,18 @@ export default function UserFormModal({
 }: UserFormModalProps) {
   const t = useT();
   const lang = useLanguage();
+  const topicsQuery = useNtfyTopicsQuery(undefined, { enabled: open });
+  const topicOptions = useMemo(() => {
+    const current = initialUser?.ntfyTopic;
+    return (topicsQuery.data?.data ?? [])
+      .filter((item) => item.isActive || item.topic === current)
+      .map((item) => ({
+        value: item.topic,
+        label: item.isActive
+          ? `${item.topic} — ${item.description}`
+          : `${item.topic} — ${item.description} (${t("ปิดใช้งาน")})`,
+      }));
+  }, [topicsQuery.data, initialUser?.ntfyTopic, t]);
   const [form] = Form.useForm<UserFormValues>();
   const canLogin = Form.useWatch("canLogin", form) ?? true;
   const departmentsQuery = useDepartmentsQuery({ isActive: true });
@@ -530,23 +543,18 @@ export default function UserFormModal({
         </Form.Item>
 
         <Form.Item
-          label={t("ntfy topic")}
+          label={t("หัวข้อแจ้งเตือน")}
           name="ntfyTopic"
-          extra={t("ชื่อ topic ที่คนนี้ subscribe ในแอป ntfy ว่างไว้ถ้าไม่รับแจ้งเตือน")}
-          rules={[
-            {
-              validator: (_, value: string | undefined) => {
-                if (!value || /^[A-Za-z0-9_-]{1,64}$/.test(value)) {
-                  return Promise.resolve();
-                }
-                return Promise.reject(
-                  new Error(t("ใช้ตัวอักษร ตัวเลข _ และ - ได้ไม่เกิน 64 ตัว")),
-                );
-              },
-            },
-          ]}
+          extra={t("เลือก topic ที่คนนี้ subscribe ในแอป ntfy ว่างไว้ถ้าไม่รับแจ้งเตือน")}
         >
-          <Input placeholder="warehouse-lead" />
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder={t("เลือกหัวข้อแจ้งเตือน")}
+            options={topicOptions}
+            loading={topicsQuery.isLoading}
+          />
         </Form.Item>
 
         <Form.Item

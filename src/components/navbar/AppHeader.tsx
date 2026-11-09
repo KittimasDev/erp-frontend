@@ -2294,6 +2294,14 @@ const masterMenus: MenuItem[] = [
     icon: <IconReceiving />,
     roles: [ROLE.WEIGHBRIDGE_OFFICER],
   },
+  {
+    key: "ntfy-topics",
+    screenCode: "MASTERS_NTFY_TOPICS",
+    label: "หัวข้อแจ้งเตือน ntfy",
+    href: "/masters/ntfy-topics",
+    icon: <IconMaster />,
+    roles: [ROLE.ADMINISTRATOR],
+  },
 ];
 
 /*

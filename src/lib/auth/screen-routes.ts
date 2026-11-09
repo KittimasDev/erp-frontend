@@ -465,6 +465,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["MASTERS_PURCHASE_REQUEST_TYPES"],
   },
   { prefix: "/masters/seller-types", screenCodes: ["MASTERS_SELLER_TYPES"] },
+  { prefix: "/masters/ntfy-topics", screenCodes: ["MASTERS_NTFY_TOPICS"] },
   { prefix: "/masters/sellers", screenCodes: ["MASTERS_SELLERS"] },
   {
     prefix: "/masters/seller-bank-accounts",
@@ -741,4 +742,5 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   MASTERS_TIRE_CLASSIFICATIONS: "/masters/tire-classifications",
   MASTERS_RAW_TIRE_PRICE_RULES: "/masters/raw-tire-price-rules",
   MASTERS_WEIGHBRIDGE_SCALES: "/masters/weighbridge-scales",
+  MASTERS_NTFY_TOPICS: "/masters/ntfy-topics",
 };

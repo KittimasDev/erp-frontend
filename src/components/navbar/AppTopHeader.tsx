@@ -204,6 +204,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/tire-classifications", title: "ประเภทสินค้า" },
   { href: "/masters/raw-tire-price-rules", title: "ราคายาง" },
   { href: "/masters/weighbridge-scales", title: "เครื่องชั่ง" },
+  { href: "/masters/ntfy-topics", title: "หัวข้อแจ้งเตือน ntfy" },
   { href: "/masters/items", title: "สินค้า" },
   { href: "/masters/chemicals", title: "สารเคมี" },
   { href: "/masters/item-categories", title: "หมวดสินค้า" },
