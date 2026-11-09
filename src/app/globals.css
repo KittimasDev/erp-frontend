@@ -36,6 +36,13 @@
   }
 }
 
+/* กันหน้าเลื่อนซ้าย-ขวาบนมือถือ (ทั้งหน้าไม่ควรกว้างเกินจอ) */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background: var(--erp-bg);
   color: var(--erp-text);
@@ -122,6 +129,7 @@ body {
   padding: 34px 32px 34px;
   box-sizing: border-box;
   flex: 1;
+  overflow-x: hidden; /* สำรองสำหรับ Safari รุ่นเก่าที่ไม่รู้จัก clip */
   overflow-x: clip;
   background: var(--brand-background);
   color: var(--brand-text);
@@ -189,15 +197,15 @@ body {
   }
 }
 
-@media (max-width: 560px) {
-  .appShell[data-sidebar="collapsed"] .appMain {
-    margin-left: 62px;
-  }
-
+/* มือถือ: เมนูข้างเป็น overlay ลอยทับ ไม่ดันเนื้อหา (เนื้อหาได้ความกว้างเต็มจอ) */
+@media (max-width: 640px) {
+  .appShell[data-sidebar="collapsed"] .appMain,
   .appShell[data-sidebar="expanded"] .appMain {
-    margin-left: 240px;
+    margin-left: 0;
   }
+}
 
+@media (max-width: 560px) {
   .mainLayout {
     padding: 6px 14px 14px;
   }
