@@ -132,4 +132,6 @@ export const EN_HRM_PAYROLL: Record<string, string> = {
   "เลขบัญชีธนาคาร": "Bank account number",
   "เลขบัญชีต้องเป็นตัวเลข 8-20 หลัก": "Account number must be 8–20 digits",
   "ชื่อบัญชี": "Account name",
+  "ค้นหาชื่องวด สถานะ วันที่": "Search period name, status, date",
+  "ทุกปี": "All years",
 };

@@ -70,12 +70,35 @@ export default function PayrollPage() {
   // งวดที่ช่วงวันทับกับงวดที่สร้าง: แจ้งชื่อ/ช่วง/สถานะ + ลิงก์ไปงวดเดิม
   const [overlap, setOverlap] = useState<OverlapInfo | null>(null);
   const [statusFilter, setStatusFilter] = useState<PayrollRunStatus | undefined>();
+  const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState<string | undefined>();
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const canAdd = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.ADD");
 
   const runsQuery = usePayrollRunsQuery();
   const createMutation = useCreatePayrollRunMutation();
   const allRuns = runsQuery.data?.data ?? [];
-  const runs = statusFilter ? allRuns.filter((r) => r.status === statusFilter) : allRuns;
+  const yearOptions = Array.from(
+    new Set(allRuns.flatMap((r) => [r.periodStart.slice(0, 4), r.periodEnd.slice(0, 4)])),
+  )
+    .sort((a, b) => b.localeCompare(a))
+    .map((y) => ({ value: y, label: language === "en" ? y : String(Number(y) + 543) }));
+  const keyword = search.trim().toLowerCase();
+  const runs = allRuns.filter((r) => {
+    if (statusFilter && r.status !== statusFilter) return false;
+    // งวดที่ช่วงวันทับกับปี/ช่วงวันที่ที่เลือก
+    if (yearFilter && !(r.periodStart.slice(0, 4) <= yearFilter && r.periodEnd.slice(0, 4) >= yearFilter)) return false;
+    if (dateRange?.[0] && r.periodEnd < dateRange[0].format("YYYY-MM-DD")) return false;
+    if (dateRange?.[1] && r.periodStart > dateRange[1].format("YYYY-MM-DD")) return false;
+    if (keyword) {
+      const hay = [r.name, r.periodStart, r.periodEnd, payrollStatusLabel(r.status, language), r.status]
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(keyword)) return false;
+    }
+    return true;
+  });
+  const hasFilter = Boolean(statusFilter || yearFilter || dateRange || keyword);
 
   /** เลือกเดือน/ปี → วันที่เริ่ม–สิ้นสุดอัตโนมัติ (วันแรก–วันสุดท้ายของเดือน) + ตั้งชื่องวดให้ถ้ายังไม่ได้พิมพ์เอง */
   const onMonthChange = (month: Dayjs | null) => {
@@ -239,6 +262,30 @@ export default function PayrollPage() {
               <h3>{t("งวดเงินเดือน")}</h3>
               <p>{t("กดชื่องวดเพื่อดูสลิป ปรับรายการ ส่งอนุมัติ บันทึกผลจ่าย และปิดงวด")}</p>
             </div>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 12px" }}>
+            <Input.Search
+              allowClear
+              style={{ width: 240 }}
+              placeholder={t("ค้นหาชื่องวด สถานะ วันที่")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label={t("ค้นหา")}
+            />
+            <Select
+              allowClear
+              style={{ width: 120 }}
+              placeholder={t("ทุกปี")}
+              value={yearFilter}
+              onChange={setYearFilter}
+              options={yearOptions}
+              aria-label={t("ปี")}
+            />
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(v) => setDateRange(v)}
+              aria-label={t("ช่วงวันที่")}
+            />
             <Select
               allowClear
               style={{ width: 180 }}
@@ -251,6 +298,18 @@ export default function PayrollPage() {
               }))}
               aria-label={t("สถานะ")}
             />
+            {hasFilter ? (
+              <Button
+                onClick={() => {
+                  setSearch("");
+                  setYearFilter(undefined);
+                  setDateRange(null);
+                  setStatusFilter(undefined);
+                }}
+              >
+                {t("ล้างตัวกรอง")}
+              </Button>
+            ) : null}
           </div>
           <Table
             rowKey="id"
