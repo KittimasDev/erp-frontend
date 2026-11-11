@@ -375,23 +375,6 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           </div>
           {/* ยอดจ่ายสุทธิรวมเป็น KPI หลัก · รายการอื่นเป็นตัวเลขประกอบ (UI เท่านั้น ไม่เปลี่ยนการคำนวณ) */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "stretch", marginBottom: 12 }}>
-            <div
-              style={{
-                minWidth: 280,
-                padding: "12px 20px",
-                borderRadius: 8,
-                border: "1px solid var(--ant-color-primary-border, #b7eb8f)",
-                background: "var(--ant-color-primary-bg, #f6ffed)",
-              }}
-            >
-              <div style={{ fontSize: 13, color: "var(--ant-color-text-secondary, #5b6475)" }}>
-                {t("ยอดจ่ายสุทธิรวม")}{" "}
-                <Tooltip title={t("ยอดเงินที่ต้องจ่ายให้พนักงานหลังหักรายการทั้งหมด ไม่ใช่สถานะยืนยันการโอนเงิน")}>
-                  <InfoCircleOutlined aria-label={t("ยอดจ่ายสุทธิรวม")} />
-                </Tooltip>
-              </div>
-              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.25 }}>{money(run.totals.netPay)}</div>
-            </div>
             <Descriptions size="small" column={{ xs: 1, md: 2, xl: 3 }} style={{ flex: 1, minWidth: 320 }}>
               <Descriptions.Item label={t("สถานะ")}>
                 <Tag color={PAYROLL_STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
@@ -415,6 +398,23 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               <Descriptions.Item label={t("เงินสมทบกองทุน (นายจ้าง)")}>{money(run.totals.providentFundEmployer)}</Descriptions.Item>
               <Descriptions.Item label={t("ภาษีเงินได้หัก ณ ที่จ่าย")}>{money(run.totals.withholdingTax)}</Descriptions.Item>
             </Descriptions>
+            <div
+              style={{
+                minWidth: 280,
+                padding: "12px 20px",
+                borderRadius: 8,
+                border: "1px solid var(--ant-color-primary-border, #b7eb8f)",
+                background: "var(--ant-color-primary-bg, #f6ffed)",
+              }}
+            >
+              <div style={{ fontSize: 13, color: "var(--ant-color-text-secondary, #5b6475)" }}>
+                {t("ยอดจ่ายสุทธิรวม")}{" "}
+                <Tooltip title={t("ยอดเงินที่ต้องจ่ายให้พนักงานหลังหักรายการทั้งหมด ไม่ใช่สถานะยืนยันการโอนเงิน")}>
+                  <InfoCircleOutlined aria-label={t("ยอดจ่ายสุทธิรวม")} />
+                </Tooltip>
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.25 }}>{money(run.totals.netPay)}</div>
+            </div>
           </div>
           {run.status === "CANCELLED" && run.cancelReason ? (
             <Alert type="info" showIcon title={`${t("เหตุผลที่ยกเลิก")}: ${run.cancelReason}`} style={{ marginBottom: 12 }} />
