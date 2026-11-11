@@ -139,4 +139,6 @@ export const EN_HRM_PAYROLL: Record<string, string> = {
   "เว้นว่าง = ยังปฏิบัติงานอยู่ (แสดงเป็น “ปัจจุบัน”)": "Leave blank if still employed (shown as “present”)",
   "เลือกคำนำหน้า": "Select title",
   "คำนำหน้า": "Title",
+  "ยังมีพนักงาน {n} คนที่ข้อมูลไม่ครบ (ไม่มีธนาคารหรือเลขบัญชี) — กรอกในข้อมูลพนักงานก่อน จึงจะส่งออกรายการจ่ายได้": "{n} employee(s) have incomplete data (no bank or account number) — fill it in on the employee record before exporting the payment list",
+  "และอีก {n} คน": "and {n} more",
 };

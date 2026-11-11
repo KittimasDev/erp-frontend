@@ -64,6 +64,8 @@ export default function PayrollPaymentsTab({ run, canPay, canExport }: Props) {
   const summary = run.paymentSummary;
   const payments = run.payments;
   const remaining = payments.filter((p) => p.status !== "SUCCESS");
+  // รายที่ยังต้องจ่ายแต่ข้อมูลบัญชีไม่ครบ — ตรงกับเงื่อนไขที่ backend ใช้บล็อกการส่งออก (ธนาคาร + เลขบัญชี)
+  const incompleteBank = remaining.filter((p) => !p.bankName || !p.bankAccountNo);
 
   const common = () => ({
     paidDate: paidDate.format("YYYY-MM-DD"),
@@ -213,6 +215,32 @@ export default function PayrollPaymentsTab({ run, canPay, canExport }: Props) {
         <Tag>{t("รอจ่าย")} {summary.pendingCount}</Tag>
         <Tag color="red">{t("ไม่สำเร็จ")} {summary.failedCount}</Tag>
       </Space>
+
+      {open && incompleteBank.length > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t("ยังมีพนักงาน {n} คนที่ข้อมูลไม่ครบ (ไม่มีธนาคารหรือเลขบัญชี) — กรอกในข้อมูลพนักงานก่อน จึงจะส่งออกรายการจ่ายได้", { n: incompleteBank.length })}
+          description={
+            <div>
+              {incompleteBank.slice(0, 8).map((p, i) => (
+                <span key={p.userId}>
+                  {i > 0 ? ", " : ""}
+                  {canSetup ? (
+                    <a href={userSetupHref(p.userId)} target="_blank" rel="noreferrer">
+                      {p.displayName}
+                    </a>
+                  ) : (
+                    p.displayName
+                  )}
+                </span>
+              ))}
+              {incompleteBank.length > 8 ? ` ${t("และอีก {n} คน", { n: incompleteBank.length - 8 })}` : ""}
+            </div>
+          }
+        />
+      ) : null}
 
       {open ? (
         <Alert
