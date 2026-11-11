@@ -134,4 +134,9 @@ export const EN_HRM_PAYROLL: Record<string, string> = {
   "ชื่อบัญชี": "Account name",
   "ค้นหาชื่องวด สถานะ วันที่": "Search period name, status, date",
   "ทุกปี": "All years",
+  "ดึงชื่อ-นามสกุล รหัส ตำแหน่ง แผนก ฝ่าย วันที่เริ่มงาน และฐานค่าจ้างปัจจุบันจากข้อมูลพนักงานอัตโนมัติ — แก้ข้อมูลได้ที่ฟอร์มผู้ใช้งาน /users": "Name, code, position, department, section, start date and current base pay are pulled from employee data — edit them on the /users form",
+  "วันที่สิ้นสุดการทำงาน": "Employment end date",
+  "เว้นว่าง = ยังปฏิบัติงานอยู่ (แสดงเป็น “ปัจจุบัน”)": "Leave blank if still employed (shown as “present”)",
+  "เลือกคำนำหน้า": "Select title",
+  "คำนำหน้า": "Title",
 };

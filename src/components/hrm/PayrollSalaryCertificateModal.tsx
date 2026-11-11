@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, App, Button, DatePicker, Form, Input, InputNumber, Modal, Select } from "antd";
+import { Alert, App, Button, DatePicker, Form, Input, Modal, Select } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -20,7 +20,8 @@ type FormValues = {
   addressedTo?: string;
   purpose?: string;
   issuedAt: Dayjs;
-  otherIncome?: number;
+  prefix?: string;
+  endDate?: Dayjs | null;
   signerName?: string;
   signerTitle?: string;
 };
@@ -48,19 +49,15 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
       const company = getCompanyInfoSnapshot();
       const issuedAt = values.issuedAt.format("YYYY-MM-DD");
       await openSalaryCertificatePdf({
-        certNo: `SAL-${values.issuedAt.format("YYYYMMDD")}-${emp.employeeCode ?? emp.userId.slice(0, 6)}`,
         issuedAt,
         addressedTo: values.addressedTo?.trim() ?? "",
         purpose: values.purpose,
-        company: {
-          name: company.nameTh,
-          taxId: company.taxId || undefined,
-          address: company.addressText || undefined,
-          phone: company.phone || undefined,
-        },
+        company: { name: company.nameTh },
         employee: {
-          name: emp.displayName,
-          nationalId: emp.nationalId ?? undefined,
+          prefix: values.prefix,
+          name: [emp.firstName, emp.lastName].filter(Boolean).join(" ") || emp.displayName,
+          sectionName: emp.sectionName ?? undefined,
+          endDate: values.endDate ? values.endDate.format("YYYY-MM-DD") : undefined,
           employeeCode: emp.employeeCode ?? undefined,
           position: emp.position ?? undefined,
           departmentName: emp.departmentName ?? undefined,
@@ -68,7 +65,6 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
         },
         payType: emp.payType,
         basePay: emp.basePay,
-        otherIncome: values.otherIncome,
         signerName: values.signerName,
         signerTitle: values.signerTitle,
       });
@@ -106,7 +102,7 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title={t("ใช้ฐานค่าจ้างปัจจุบันของพนักงานจากข้อมูลพนักงาน — เลขประจำตัวประชาชน วันที่เริ่มงาน และตำแหน่งตั้งได้ที่ฟอร์มผู้ใช้งาน /users")}
+        title={t("ดึงชื่อ-นามสกุล รหัส ตำแหน่ง แผนก ฝ่าย วันที่เริ่มงาน และฐานค่าจ้างปัจจุบันจากข้อมูลพนักงานอัตโนมัติ — แก้ข้อมูลได้ที่ฟอร์มผู้ใช้งาน /users")}
       />
       <Form<FormValues>
         form={form}
@@ -136,6 +132,13 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
             {selected.nationalId ? "" : ` · ${t("ยังไม่มีเลขประจำตัวประชาชน")}`}
           </div>
         ) : null}
+        <Form.Item name="prefix" label={t("คำนำหน้า")}>
+          <Select
+            allowClear
+            placeholder={t("เลือกคำนำหน้า")}
+            options={["นาย", "นาง", "นางสาว"].map((v) => ({ value: v, label: v }))}
+          />
+        </Form.Item>
         <Form.Item name="addressedTo" label={t("เรียน (ผู้รับ)")}>
           <Input maxLength={200} placeholder={t("เช่น ผู้จัดการธนาคาร… (ว่าง = ผู้ที่เกี่ยวข้อง)")} />
         </Form.Item>
@@ -145,11 +148,8 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
         <Form.Item name="issuedAt" label={t("วันที่ออกหนังสือ")} rules={[{ required: true, message: t("เลือกวันที่") }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" allowClear={false} />
         </Form.Item>
-        <Form.Item
-          name="otherIncome"
-          label={t("รายได้อื่นเฉลี่ยต่อเดือน (ถ้ามี เช่น ค่าตำแหน่ง เบี้ยขยัน)")}
-        >
-          <InputNumber min={0} style={{ width: "100%" }} suffix={t("บาท")} />
+        <Form.Item name="endDate" label={t("วันที่สิ้นสุดการทำงาน")} extra={t("เว้นว่าง = ยังปฏิบัติงานอยู่ (แสดงเป็น “ปัจจุบัน”)")}>
+          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
         </Form.Item>
         <Form.Item name="signerName" label={t("ชื่อผู้ลงนาม")}>
           <Input maxLength={200} />

@@ -367,8 +367,11 @@ export type SalaryCertificateEmployee = {
   userId: string;
   employeeCode?: string | null;
   displayName: string;
+  firstName?: string | null;
+  lastName?: string | null;
   position?: string | null;
   departmentName?: string | null;
+  sectionName?: string | null;
   hireDate?: string | null;
   nationalId?: string | null;
   payType: "MONTHLY" | "DAILY";
