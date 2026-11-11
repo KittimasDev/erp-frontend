@@ -32,6 +32,7 @@ interface WarehouseCatalogViewProps {
     roads?: CampusRoadConfig[],
   ) => Promise<void>;
   isLoading?: boolean;
+  onBackToRealMap?: () => void;
 }
 
 export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
@@ -39,6 +40,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
   onSelectWarehouse,
   onSaveSitePositions,
   isLoading = false,
+  onBackToRealMap,
 }) => {
   const t = useT();
   // View Type: 3D Campus Site Map (default!) vs Card List
@@ -98,7 +100,18 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
         </div>
 
         {/* View Switcher: 3D Map vs Card List */}
-        <div className="flex items-center rounded-xl bg-slate-950/80 p-1 border border-slate-800 text-xs shadow-inner">
+        <div className="flex items-center gap-2">
+          {onBackToRealMap && (
+            <button
+              type="button"
+              onClick={onBackToRealMap}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium transition cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow text-xs"
+            >
+              <CompassOutlined />
+              <span>{t("🗺️ แผนที่จริงโรงงาน (SMT Biomass)")}</span>
+            </button>
+          )}
+          <div className="flex items-center rounded-xl bg-slate-950/80 p-1 border border-slate-800 text-xs shadow-inner">
           <button
             type="button"
             onClick={() => setViewType("sitemap")}
@@ -124,6 +137,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
             <UnorderedListOutlined />
             <span>{t("📋 รายการการ์ดคลัง (Card List)")}</span>
           </button>
+        </div>
         </div>
       </header>
 

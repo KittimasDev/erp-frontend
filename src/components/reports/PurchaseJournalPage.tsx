@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { FileTextOutlined, HistoryOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
+import { FileExcelOutlined, FileTextOutlined, HistoryOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -111,6 +111,12 @@ export default function PurchaseJournalPage() {
   const [sendingExpress, setSendingExpress] = useState(false);
   // ส่งออกไป Express: 'range' = ตามช่วงวันที่, 'selected' = เฉพาะแถวที่ติ๊กเลือก
   const [exportMode, setExportMode] = useState<"range" | "selected" | null>(null);
+  // รูปแบบไฟล์ Express: csv (เดิม) หรือ xlsx — ใช้ pipeline/เงื่อนไข/ประวัติเดียวกัน
+  const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("csv");
+  const openExport = (mode: "range" | "selected", format: "csv" | "xlsx") => {
+    setExportFormat(format);
+    setExportMode(mode);
+  };
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -258,10 +264,11 @@ export default function PurchaseJournalPage() {
   const handleExpress = async (mode: "range" | "selected", reexport: boolean) => {
     setSendingExpress(true);
     try {
-      const { count, blob, filename } = await exportPurchaseJournalToExpress(getAccessToken(), {
-        ...exportScope(mode),
-        reexport,
-      });
+      const { count, blob, filename } = await exportPurchaseJournalToExpress(
+        getAccessToken(),
+        { ...exportScope(mode), reexport },
+        exportFormat,
+      );
       if (count === 0) {
         message.info(t("ไม่มีรายการที่ต้องส่งออก"));
         return;
@@ -545,18 +552,29 @@ export default function PurchaseJournalPage() {
                     <Button icon={<SendOutlined />} disabled>
                       {t("ส่งออกไป Express ({pending})", { pending })}
                     </Button>
+                    <Button icon={<FileExcelOutlined />} disabled style={{ marginLeft: 8 }}>
+                      {t("ส่งออก Express (Excel)")}
+                    </Button>
                   </span>
                 </Tooltip>
               ) : (
                 <>
                   {selectedKeys.length > 0 ? (
-                    <Button icon={<SendOutlined />} onClick={() => setExportMode("selected")}>
+                    <Button icon={<SendOutlined />} onClick={() => openExport("selected", "csv")}>
                       {t("ส่งออกที่เลือก ({n})", { n: selectedKeys.length })}
                     </Button>
                   ) : null}
-                  <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => setExportMode("range")}>
+                  <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => openExport("range", "csv")}>
                     {t("ส่งออกไป Express ({pending})", { pending })}
                   </Button>
+                  <Button icon={<FileExcelOutlined />} loading={sendingExpress} onClick={() => openExport("range", "xlsx")}>
+                    {t("ส่งออก Express (Excel)")}
+                  </Button>
+                  {selectedKeys.length > 0 ? (
+                    <Button icon={<FileExcelOutlined />} onClick={() => openExport("selected", "xlsx")}>
+                      {t("ส่งออกที่เลือก Excel ({n})", { n: selectedKeys.length })}
+                    </Button>
+                  ) : null}
                 </>
               )}
             </Space>
@@ -698,6 +716,7 @@ export default function PurchaseJournalPage() {
       </div>
       <ExpressExportDialog
         open={exportMode !== null}
+        format={exportFormat}
         title={t("ส่งออกสมุดรายวันซื้อไป Express")}
         unit="เอกสาร"
         scopeLabel={
@@ -705,7 +724,7 @@ export default function PurchaseJournalPage() {
             ? t("เอกสารที่เลือก {n} รายการ", { n: selectedKeys.length.toLocaleString("th-TH") })
             : t("ช่วงวันที่เอกสาร {from} - {to} (หนึ่งแถวต่อบรรทัดบัญชี)", { from: formatDate(filters.dateFrom), to: formatDate(filters.dateTo) })
         }
-        previewKey={JSON.stringify(exportScope(exportMode ?? "range"))}
+        previewKey={JSON.stringify({ ...exportScope(exportMode ?? "range"), format: exportFormat })}
         loadPreview={() =>
           previewPurchaseJournalExpress(getAccessToken(), exportScope(exportMode ?? "range")).then(
             (res) => res.data,

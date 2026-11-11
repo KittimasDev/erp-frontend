@@ -47,14 +47,15 @@ export function getPaymentJournalExport(token: string, params?: PaymentJournalFi
 }
 
 /**
- * ส่งออก CSV ไป Express — backend ทำเครื่องหมาย "ส่งแล้ว" ให้ในคำขอเดียวกัน
+ * ส่งออก CSV (default) หรือ Excel (.xlsx) ไป Express — pipeline เดียวกัน — backend ทำเครื่องหมาย "ส่งแล้ว" ให้ในคำขอเดียวกัน
  * (ส่งแล้วยกเลิกบันทึกจ่ายเงินไม่ได้) คืนจำนวนใบและไฟล์ (count = 0 ไม่ต้องดาวน์โหลด)
  */
 export async function exportPaymentJournalToExpress(
   token: string,
   body: PaymentExpressExportBody,
+  format: "csv" | "xlsx" = "csv",
 ): Promise<{ count: number; blob: Blob; filename: string }> {
-  const response = await fetch(`${BASE}/export/express-csv`, {
+  const response = await fetch(`${BASE}/export/express-${format}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -75,7 +76,7 @@ export async function exportPaymentJournalToExpress(
   return {
     count,
     blob: await response.blob(),
-    filename: match?.[1] ?? "payment-journal-express.csv",
+    filename: match?.[1] ?? `payment-journal-express.${format}`,
   };
 }
 

@@ -41,6 +41,8 @@ type ExpressExportDialogProps = {
   /** อธิบายขอบเขตที่จะส่ง เช่น "ช่วงวันที่เอกสาร 01/11/2026 - 30/11/2026" หรือ "เอกสารที่เลือก 3 รายการ" */
   scopeLabel: string;
   unit: "เอกสาร" | "รายการ";
+  /** รูปแบบไฟล์ที่จะสร้าง (ค่าเริ่มต้น csv) — ใช้กับข้อความและคีย์ตรวจก่อนส่ง */
+  format?: "csv" | "xlsx";
   /** คีย์ของขอบเขตที่ส่ง (เช่น JSON ของตัวกรอง/id ที่เลือก) — เปลี่ยนแล้วตรวจใหม่ */
   previewKey: string;
   loadPreview: () => Promise<ExpressExportPreview>;
@@ -57,6 +59,7 @@ export function ExpressExportDialog({
   title,
   scopeLabel,
   unit,
+  format = "csv",
   previewKey,
   loadPreview,
   onConfirm,
@@ -72,7 +75,7 @@ export function ExpressExportDialog({
 
   // ตรวจใหม่ทุกครั้งที่เปิด (ไม่ใช้ cache) เพื่อให้จำนวน "เคยส่งแล้ว" ตรงกับตอนกดส่งจริง
   const previewQuery = useQuery({
-    queryKey: ["journal-express-preview", title, previewKey],
+    queryKey: ["journal-express-preview", title, format, previewKey],
     queryFn: loadPreview,
     enabled: open,
     gcTime: 0,
@@ -143,7 +146,7 @@ export function ExpressExportDialog({
                 title={t("มี {n} {unit}ที่เคยส่งออกไป Express แล้ว", { n: preview.alreadyExportedCount.toLocaleString("th-TH"), unit: unitText })}
                 description={
                   <div>
-                    {t("การส่งซ้ำ")}<strong>{t("ไม่เปลี่ยนสถานะ")}</strong>{t("และไม่สร้างรายการบัญชีใหม่ใน ERP — เป็นการสร้างไฟล์ CSV ใหม่เท่านั้น")}
+                    {t("การส่งซ้ำ")}<strong>{t("ไม่เปลี่ยนสถานะ")}</strong>{format === "xlsx" ? t("และไม่สร้างรายการบัญชีใหม่ใน ERP — เป็นการสร้างไฟล์ Excel ใหม่เท่านั้น") : t("และไม่สร้างรายการบัญชีใหม่ใน ERP — เป็นการสร้างไฟล์ CSV ใหม่เท่านั้น")}
                     <div style={{ marginTop: 8 }}>
                       <Checkbox checked={confirmReexport} onChange={(e) => setConfirmReexport(e.target.checked)}>
                         {t("ยืนยันส่งออกซ้ำรวม {unit}ที่เคยส่งแล้ว", { unit: unitText })}
@@ -171,7 +174,7 @@ export function ExpressExportDialog({
             ) : null}
             <Alert type="warning" showIcon title={t(EXPRESS_DUPLICATE_WARNING)} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {t("ระบบสร้างไฟล์ CSV ให้ดาวน์โหลดเท่านั้น ไม่ได้ส่งข้อมูลเข้าโปรแกรม Express อัตโนมัติ")}
+              {format === "xlsx" ? t("ระบบสร้างไฟล์ Excel ให้ดาวน์โหลดเท่านั้น ไม่ได้ส่งข้อมูลเข้าโปรแกรม Express อัตโนมัติ") : t("ระบบสร้างไฟล์ CSV ให้ดาวน์โหลดเท่านั้น ไม่ได้ส่งข้อมูลเข้าโปรแกรม Express อัตโนมัติ")}
             </Typography.Text>
           </>
         ) : null}

@@ -6,6 +6,7 @@ import { useQueries } from "@tanstack/react-query";
 import { Select, Button, Spin, Empty, App, Tag } from "antd";
 import {
   AppstoreOutlined,
+  CompassOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined,
   SendOutlined,
@@ -38,6 +39,7 @@ import type {
 } from "@/types/warehouse-3d";
 
 import { WarehouseCatalogView } from "./WarehouseCatalogView";
+import { SMTBiomassMap3D } from "./SMTBiomassMap3D";
 import { QuickPlacementBar } from "./QuickPlacementBar";
 import { Warehouse3DCanvas } from "./Warehouse3DCanvas";
 import { Warehouse3DLeftPanel } from "./Warehouse3DLeftPanel";
@@ -200,6 +202,11 @@ export default function Warehouse3DViewerPage() {
   });
 
   const warehouses = warehousesData?.data ?? [];
+
+  // "real_map" (SMT Biomass 1:1 map from HTML) vs "interior" (Warehouse interior layout)
+  const [viewModeType, setViewModeType] = useState<"real_map" | "interior">(
+    searchParams.get("view") === "interior" ? "interior" : "real_map"
+  );
 
   // Currently selected warehouse: defaults to empty so user sees Catalog View first!
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(
@@ -697,6 +704,20 @@ export default function Warehouse3DViewerPage() {
     }
   };
 
+  // STEP 0: Show Real Factory 1:1 Map by Default (as requested)
+  if (viewModeType === "real_map") {
+    return (
+      <SMTBiomassMap3D
+        onOpenInterior={() => {
+          setViewModeType("interior");
+          if (!selectedWarehouseId && warehouses.length > 0) {
+            setSelectedWarehouseId(warehouses[0].id);
+          }
+        }}
+      />
+    );
+  }
+
   // STEP 1: If no warehouse is selected, show the Warehouse Catalog Gallery!
   if (!selectedWarehouseId) {
     return (
@@ -716,6 +737,7 @@ export default function Warehouse3DViewerPage() {
             setSelectedSlotKey(null);
           }}
           onSaveSitePositions={handleSaveSitePositions}
+          onBackToRealMap={() => setViewModeType("real_map")}
         />
       </div>
     );
@@ -748,6 +770,15 @@ export default function Warehouse3DViewerPage() {
             title={t("กลับไปหน้ารวมคลังสินค้า")}
           >
             <span className="hidden sm:inline text-xs font-semibold">{t("เปลี่ยนคลัง")}</span>
+          </Button>
+
+          <Button
+            type="primary"
+            icon={<CompassOutlined />}
+            onClick={() => setViewModeType("real_map")}
+            className="bg-blue-600 hover:bg-blue-500 font-semibold text-xs border-blue-500 shadow-sm"
+          >
+            {t("🗺️ แผนที่จริงโรงงาน")}
           </Button>
 
           <div className="h-4 w-[1px] bg-slate-700" />

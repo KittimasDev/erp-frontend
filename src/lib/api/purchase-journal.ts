@@ -47,14 +47,15 @@ export function getPurchaseJournalExport(token: string, params?: PurchaseJournal
 }
 
 /**
- * ส่งออก CSV ไป Express — backend ทำเครื่องหมาย "ส่งแล้ว" ให้ในคำขอเดียวกัน
+ * ส่งออก CSV (default) หรือ Excel (.xlsx) ไป Express — pipeline เดียวกัน — backend ทำเครื่องหมาย "ส่งแล้ว" ให้ในคำขอเดียวกัน
  * คืนจำนวนแถวและไฟล์ (count = 0 ไม่ต้องดาวน์โหลด)
  */
 export async function exportPurchaseJournalToExpress(
   token: string,
   body: ExpressExportBody,
+  format: "csv" | "xlsx" = "csv",
 ): Promise<{ count: number; blob: Blob; filename: string }> {
-  const response = await fetch(`${BASE}/export/express-csv`, {
+  const response = await fetch(`${BASE}/export/express-${format}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -75,7 +76,7 @@ export async function exportPurchaseJournalToExpress(
   return {
     count,
     blob: await response.blob(),
-    filename: match?.[1] ?? "purchase-journal-express.csv",
+    filename: match?.[1] ?? `purchase-journal-express.${format}`,
   };
 }
 
