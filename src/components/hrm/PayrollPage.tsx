@@ -263,7 +263,7 @@ export default function PayrollPage() {
               <p>{t("กดชื่องวดเพื่อดูสลิป ปรับรายการ ส่งอนุมัติ บันทึกผลจ่าย และปิดงวด")}</p>
             </div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 12px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "16px 22px" }}>
             <Input.Search
               allowClear
               style={{ width: 240 }}
