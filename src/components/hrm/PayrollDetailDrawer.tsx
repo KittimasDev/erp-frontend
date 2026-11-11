@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Descriptions, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag } from "antd";
+import { Alert, App, Button, Descriptions, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ClearOutlined, DownloadOutlined, EditOutlined, PrinterOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import { ClearOutlined, DownloadOutlined, EditOutlined, InfoCircleOutlined, PrinterOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 
 import {
   useCancelPayrollMutation,
@@ -310,22 +310,49 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           </Space>
         ) : null}
           </div>
-          <Descriptions size="small" column={{ xs: 1, md: 3 }} style={{ marginBottom: 12 }}>
-            <Descriptions.Item label={t("สถานะ")}>
-              <Tag color={STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label={t("จำนวนคน")}>{run.totals.slipCount}</Descriptions.Item>
-            <Descriptions.Item label={t("รายได้รวม")}>{money(run.totals.grossIncome)}</Descriptions.Item>
-            <Descriptions.Item label={t("ค่า OT")}>{money(run.totals.otAmount)}</Descriptions.Item>
-            <Descriptions.Item label={t("ประกันสังคม")}>{money(run.totals.socialSecurity)}</Descriptions.Item>
-            <Descriptions.Item label={t("กองทุน (พนักงาน / นายจ้างสมทบ)")}>
-              {money(run.totals.providentFund)} / {money(run.totals.providentFundEmployer)}
-            </Descriptions.Item>
-            <Descriptions.Item label={t("ภาษีหัก ณ ที่จ่าย")}>{money(run.totals.withholdingTax)}</Descriptions.Item>
-            <Descriptions.Item label={t("ยอดสุทธิรวม")}>
-              <strong>{money(run.totals.netPay)}</strong>
-            </Descriptions.Item>
-          </Descriptions>
+          {/* ยอดจ่ายสุทธิรวมเป็น KPI หลัก · รายการอื่นเป็นตัวเลขประกอบ (UI เท่านั้น ไม่เปลี่ยนการคำนวณ) */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "stretch", marginBottom: 12 }}>
+            <div
+              style={{
+                minWidth: 280,
+                padding: "12px 20px",
+                borderRadius: 8,
+                border: "1px solid var(--ant-color-primary-border, #b7eb8f)",
+                background: "var(--ant-color-primary-bg, #f6ffed)",
+              }}
+            >
+              <div style={{ fontSize: 13, color: "var(--ant-color-text-secondary, #5b6475)" }}>
+                {t("ยอดจ่ายสุทธิรวม")}{" "}
+                <Tooltip title={t("ยอดเงินที่ต้องจ่ายให้พนักงานหลังหักรายการทั้งหมด ไม่ใช่สถานะยืนยันการโอนเงิน")}>
+                  <InfoCircleOutlined aria-label={t("ยอดจ่ายสุทธิรวม")} />
+                </Tooltip>
+              </div>
+              <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.25 }}>{money(run.totals.netPay)}</div>
+            </div>
+            <Descriptions size="small" column={{ xs: 1, md: 2, xl: 3 }} style={{ flex: 1, minWidth: 320 }}>
+              <Descriptions.Item label={t("สถานะ")}>
+                <Tag color={STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label={t("พนักงานในงวด")}>{run.totals.slipCount}</Descriptions.Item>
+              <Descriptions.Item
+                label={
+                  <span>
+                    {t("รายได้รวมก่อนหัก")}{" "}
+                    <Tooltip title={t("รวมค่าจ้างปกติ ค่าล่วงเวลา และรายได้เพิ่มเติม ก่อนหักวันขาดงานและรายการหักอื่น ๆ")}>
+                      <InfoCircleOutlined aria-label={t("รายได้รวมก่อนหัก")} />
+                    </Tooltip>
+                  </span>
+                }
+              >
+                {money(run.totals.grossIncome)}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("ค่าล่วงเวลา (OT)")}>{money(run.totals.otAmount)}</Descriptions.Item>
+              <Descriptions.Item label={t("เงินสมทบประกันสังคม (พนักงาน)")}>{money(run.totals.socialSecurity)}</Descriptions.Item>
+              <Descriptions.Item label={t("เงินสะสมกองทุน (พนักงาน)")}>{money(run.totals.providentFund)}</Descriptions.Item>
+              <Descriptions.Item label={t("เงินสมทบกองทุน (นายจ้าง)")}>{money(run.totals.providentFundEmployer)}</Descriptions.Item>
+              <Descriptions.Item label={t("ภาษีเงินได้หัก ณ ที่จ่าย")}>{money(run.totals.withholdingTax)}</Descriptions.Item>
+            </Descriptions>
+          </div>
           {run.status === "CANCELLED" && run.cancelReason ? (
             <Alert type="info" showIcon title={`${t("เหตุผลที่ยกเลิก")}: ${run.cancelReason}`} style={{ marginBottom: 12 }} />
           ) : null}

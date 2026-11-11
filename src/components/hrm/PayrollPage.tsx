@@ -130,9 +130,9 @@ export default function PayrollPage() {
       ),
     },
     { title: t("ช่วงวันที่"), key: "range", width: 220, render: (_v, r) => formatBeRange(r.periodStart, r.periodEnd, language) },
-    { title: t("จำนวนคน"), key: "count", width: 100, align: "right", render: (_v, r) => r.totals.slipCount },
-    { title: t("ค่า OT"), key: "ot", width: 120, align: "right", render: (_v, r) => money(r.totals.otAmount) },
-    { title: t("ยอดสุทธิรวม"), key: "net", width: 140, align: "right", render: (_v, r) => money(r.totals.netPay) },
+    { title: t("พนักงานในงวด"), key: "count", width: 100, align: "right", render: (_v, r) => r.totals.slipCount },
+    { title: t("ค่าล่วงเวลา (OT)"), key: "ot", width: 120, align: "right", render: (_v, r) => money(r.totals.otAmount) },
+    { title: t("ยอดจ่ายสุทธิรวม"), key: "net", width: 140, align: "right", render: (_v, r) => money(r.totals.netPay) },
     {
       title: t("คำเตือน"),
       key: "warn",

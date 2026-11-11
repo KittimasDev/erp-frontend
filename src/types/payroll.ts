@@ -155,7 +155,7 @@ export type PayrollSettingsApiResponse = {
 };
 
 export const PAYROLL_STATUS_LABEL: Record<PayrollRunStatus, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "ฉบับร่าง",
   FINALIZED: "ปิดงวดแล้ว",
   CANCELLED: "ยกเลิก",
 };
