@@ -289,6 +289,7 @@ export const EN_MISC: Record<string, string> = {
   "ยกเลิกแผนไม่สำเร็จ": "Failed to cancel the plan",
   "สร้างงวดเงินเดือนไม่สำเร็จ": "Failed to create the payroll period",
   "คำนวณงวดใหม่ไม่สำเร็จ": "Failed to recalculate the period",
+  "ตรวจฐานค่าจ้างไม่สำเร็จ": "Failed to check employee pay bases",
   "บันทึกรายการปรับไม่สำเร็จ": "Failed to save the adjustments",
   "ปิดงวดไม่สำเร็จ": "Failed to close the period",
   "ยกเลิกงวดไม่สำเร็จ": "Failed to cancel the period",

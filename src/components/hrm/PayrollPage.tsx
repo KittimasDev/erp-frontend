@@ -1,20 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button, DatePicker, Form, Input, Modal, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, DatePicker, Form, Input, Modal, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DollarOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreatePayrollRunMutation, usePayrollRunsQuery } from "@/hooks/payroll/usePayroll";
+import { payBaseIssuesFromError, validatePayrollRun } from "@/lib/api/payroll";
+import { getAccessToken } from "@/lib/auth/token";
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { payrollStatusLabel, type PayrollRun } from "@/types/payroll";
+import {
+  payrollStatusLabel,
+  type CreatePayrollRunRequest,
+  type PayBaseIssue,
+  type PayrollExclusionInput,
+  type PayrollRun,
+} from "@/types/payroll";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import PayrollDetailDrawer from "./PayrollDetailDrawer";
+import PayrollPayBaseIssuesModal from "./PayrollPayBaseIssuesModal";
 import PayrollSettingsModal from "./PayrollSettingsModal";
 import PayrollWhtModal from "./PayrollWhtModal";
 import PayrollSalaryCertificateModal from "./PayrollSalaryCertificateModal";
@@ -36,30 +45,68 @@ export default function PayrollPage() {
   const [whtOpen, setWhtOpen] = useState(false);
   const [salaryCertOpen, setSalaryCertOpen] = useState(false);
   const [detailId, setDetailId] = useState<string>();
+  const { message } = App.useApp();
+  // ตรวจฐานค่าจ้างก่อนสร้างงวด: ถ้ามีคนไม่มีเงินเดือน เก็บคำขอไว้แล้วเปิด modal รายชื่อ
+  const [checking, setChecking] = useState(false);
+  const [pending, setPending] = useState<CreatePayrollRunRequest | null>(null);
+  const [issues, setIssues] = useState<PayBaseIssue[]>([]);
   const [form] = Form.useForm<CreateValues>();
 
   const runsQuery = usePayrollRunsQuery();
   const createMutation = useCreatePayrollRunMutation();
   const runs = runsQuery.data?.data ?? [];
 
+  const finishCreate = (id: string) => {
+    setCreateOpen(false);
+    setPending(null);
+    setIssues([]);
+    form.resetFields();
+    setDetailId(id);
+  };
+
+  const createWith = async (body: CreatePayrollRunRequest) => {
+    try {
+      const res = await createMutation.mutateAsync(body);
+      finishCreate(res.data.id);
+    } catch (error) {
+      const found = payBaseIssuesFromError(error);
+      if (found) {
+        setPending(body);
+        setIssues(found);
+      }
+    }
+  };
+
   const submit = () =>
-    void form.validateFields().then((v) =>
-      createMutation.mutate(
-        {
-          name: v.name.trim(),
-          periodStart: v.range[0].format("YYYY-MM-DD"),
-          periodEnd: v.range[1].format("YYYY-MM-DD"),
-          note: v.note?.trim() || undefined,
-        },
-        {
-          onSuccess: (res) => {
-            setCreateOpen(false);
-            form.resetFields();
-            setDetailId(res.data.id);
-          },
-        },
-      ),
-    );
+    void form.validateFields().then(async (v) => {
+      const body: CreatePayrollRunRequest = {
+        name: v.name.trim(),
+        periodStart: v.range[0].format("YYYY-MM-DD"),
+        periodEnd: v.range[1].format("YYYY-MM-DD"),
+        note: v.note?.trim() || undefined,
+      };
+      setChecking(true);
+      try {
+        const res = await validatePayrollRun(getAccessToken(), body);
+        if (res.data.count > 0) {
+          setPending(body);
+          setIssues(res.data.issues);
+          return;
+        }
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : t("ตรวจฐานค่าจ้างไม่สำเร็จ"));
+        return;
+      } finally {
+        setChecking(false);
+      }
+      await createWith(body);
+    });
+
+  /** "ตรวจใหม่และคำนวณ" จาก modal — ส่งรายการไม่คำนวณไปกับคำขอสร้างงวด ถ้ายังมีคนไม่ครบ backend คืนรายชื่อใหม่ */
+  const submitWithExclusions = async (exclusions: PayrollExclusionInput[]) => {
+    if (!pending) return;
+    await createWith({ ...pending, exclusions });
+  };
 
   const columns: ColumnsType<PayrollRun> = [
     {
@@ -161,7 +208,7 @@ export default function PayrollPage() {
           title={t("สร้างงวดเงินเดือน")}
           okText={t("สร้างและคำนวณ")}
           cancelText={t("ยกเลิก")}
-          confirmLoading={createMutation.isPending}
+          confirmLoading={checking || (createMutation.isPending && issues.length === 0)}
           onCancel={() => setCreateOpen(false)}
           onOk={submit}
           destroyOnHidden
@@ -186,6 +233,17 @@ export default function PayrollPage() {
             </Form.Item>
           </Form>
         </Modal>
+        <PayrollPayBaseIssuesModal
+          open={pending !== null && issues.length > 0}
+          issues={issues}
+          existing={pending?.exclusions}
+          loading={createMutation.isPending}
+          onSubmit={submitWithExclusions}
+          onClose={() => {
+            setPending(null);
+            setIssues([]);
+          }}
+        />
         <PayrollSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         <PayrollWhtModal open={whtOpen} onClose={() => setWhtOpen(false)} />
         <PayrollSalaryCertificateModal open={salaryCertOpen} onClose={() => setSalaryCertOpen(false)} />

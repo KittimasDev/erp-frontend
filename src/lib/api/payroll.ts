@@ -1,7 +1,10 @@
-import { apiFetch } from "./client";
+import { ApiError, apiFetch } from "./client";
 import type {
   CreatePayrollRunRequest,
+  PayBaseIssue,
+  PayBaseValidationApiResponse,
   PayrollAdjustmentInput,
+  PayrollExclusionInput,
   PayrollRunApiResponse,
   PayrollRunListApiResponse,
   PayrollSettings,
@@ -25,6 +28,26 @@ export function getPayrollRun(token: string, id: string) {
 
 export function createPayrollRun(token: string, body: CreatePayrollRunRequest) {
   return apiFetch<PayrollRunApiResponse>(BASE, { method: "POST", token, body });
+}
+
+/** ตรวจฐานเงินเดือน/ค่าแรงรายวันก่อนเริ่มคำนวณ (ไม่เขียนข้อมูล) */
+export function validatePayrollRun(
+  token: string,
+  body: { periodStart: string; periodEnd: string; exclusions?: PayrollExclusionInput[] },
+) {
+  return apiFetch<PayBaseValidationApiResponse>(`${BASE}/validate`, { method: "POST", token, body });
+}
+
+/** ตั้งรายชื่อพนักงานที่ไม่คำนวณค่าจ้างในงวดนี้ (แทนที่ทั้งชุด) — ต้องคำนวณใหม่ต่อ */
+export function setPayrollExclusions(token: string, id: string, items: PayrollExclusionInput[]) {
+  return apiFetch<PayrollRunApiResponse>(`${BASE}/${id}/exclusions`, { method: "PUT", token, body: { items } });
+}
+
+/** รายชื่อพนักงานไม่มีฐานค่าจ้างจาก error 400 ของ create/recalculate/finalize (ถ้าเป็น error ชนิดนี้) */
+export function payBaseIssuesFromError(error: unknown): PayBaseIssue[] | null {
+  if (!(error instanceof ApiError)) return null;
+  const body = error.body as { code?: string; issues?: PayBaseIssue[] } | null;
+  return body?.code === "PAYROLL_PAY_BASE_MISSING" && Array.isArray(body.issues) ? body.issues : null;
 }
 
 export function recalculatePayrollRun(token: string, id: string) {

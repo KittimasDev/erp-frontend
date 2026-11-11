@@ -7,21 +7,24 @@ import { ClearOutlined, DownloadOutlined, EditOutlined, PrinterOutlined, ReloadO
 
 import {
   useCancelPayrollMutation,
+  useExcludeAndRecalculateMutation,
   useFinalizePayrollMutation,
   usePayrollRunQuery,
   useRecalculatePayrollMutation,
 } from "@/hooks/payroll/usePayroll";
+import { payBaseIssuesFromError } from "@/lib/api/payroll";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { payrollStatusLabel, type PayrollSlip } from "@/types/payroll";
+import { payrollStatusLabel, type PayBaseIssue, type PayrollExclusionInput, type PayrollSlip } from "@/types/payroll";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { openPayslipPdf } from "@/utils/generatePayslipPdf";
 import { releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
 import { toPayrollSheet } from "@/utils/payrollSheet";
 
 import PayrollAdjustmentsModal from "./PayrollAdjustmentsModal";
+import PayrollPayBaseIssuesModal from "./PayrollPayBaseIssuesModal";
 import {
   EMPTY_SLIP_FILTER,
   SLIP_STATUS_OPTIONS,
@@ -56,6 +59,22 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   const recalc = useRecalculatePayrollMutation();
   const finalize = useFinalizePayrollMutation();
   const cancel = useCancelPayrollMutation();
+  const excludeAndRecalc = useExcludeAndRecalculateMutation();
+  // ฐานค่าจ้างไม่ครบตอนคำนวณใหม่/ปิดงวด → modal รายชื่อ (ตั้งค่าแล้วกลับมาคำนวณงวดเดิมได้)
+  const [issues, setIssues] = useState<PayBaseIssue[]>([]);
+  const onPayBaseError = (error: unknown) => {
+    const found = payBaseIssuesFromError(error);
+    if (found) setIssues(found);
+  };
+  const recheck = async (items: PayrollExclusionInput[]) => {
+    if (!runId) return;
+    try {
+      await excludeAndRecalc.mutateAsync({ id: runId, items });
+      setIssues([]);
+    } catch (error) {
+      onPayBaseError(error);
+    }
+  };
   const [adjusting, setAdjusting] = useState<PayrollSlip | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -266,7 +285,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 description={t("ดึงเวลา/ลา/OT/ฐานค่าจ้างล่าสุดมาคิดใหม่ทุกสลิป (รายการปรับคงอยู่)")}
                 okText={t("คำนวณใหม่")}
                 cancelText={t("ยกเลิก")}
-                onConfirm={() => recalc.mutate(run.id)}
+                onConfirm={() => recalc.mutate(run.id, { onError: onPayBaseError })}
               >
                 <Button icon={<ReloadOutlined />} loading={recalc.isPending}>
                   {t("คำนวณใหม่")}
@@ -279,7 +298,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 description={t("ปิดแล้วแก้ไข/คำนวณใหม่ไม่ได้ (ยกเลิกงวดได้)")}
                 okText={t("ปิดงวด")}
                 cancelText={t("ยกเลิก")}
-                onConfirm={() => finalize.mutate(run.id)}
+                onConfirm={() => finalize.mutate(run.id, { onError: onPayBaseError })}
               >
                 <Button type="primary" loading={finalize.isPending} disabled={negativeSlips.length > 0}>
                   {t("ปิดงวด")}
@@ -409,6 +428,18 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             runId={run.id}
             slip={adjusting ? (run.slips.find((s) => s.userId === adjusting.userId) ?? adjusting) : null}
             onClose={() => setAdjusting(null)}
+          />
+          <PayrollPayBaseIssuesModal
+            open={issues.length > 0}
+            issues={issues}
+            existing={(run.exclusions ?? []).map((e) => ({
+              userId: e.userId,
+              reasonCode: e.reasonCode,
+              reasonNote: e.reasonNote ?? undefined,
+            }))}
+            loading={excludeAndRecalc.isPending}
+            onSubmit={recheck}
+            onClose={() => setIssues([])}
           />
           <Modal
             open={cancelOpen}

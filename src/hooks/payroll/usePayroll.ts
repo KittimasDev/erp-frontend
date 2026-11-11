@@ -13,8 +13,10 @@ import {
   getPayrollSettings,
   getSalaryCertificateEmployees,
   getWithholdingCertificates,
+  payBaseIssuesFromError,
   recalculatePayrollRun,
   setPayrollAdjustments,
+  setPayrollExclusions,
   updatePayrollSettings,
 } from "@/lib/api/payroll";
 import { getAccessToken } from "@/lib/auth/token";
@@ -22,6 +24,7 @@ import { tNow } from "@/lib/i18n/useT";
 import type {
   CreatePayrollRunRequest,
   PayrollAdjustmentInput,
+  PayrollExclusionInput,
   PayrollSettings,
 } from "@/types/payroll";
 
@@ -64,9 +67,22 @@ function useRunMutation<TVars, TRes extends { message: string }>(
       void queryClient.invalidateQueries({ queryKey: payrollQueryKey });
     },
     onError: (error: Error) => {
+      // error "ไม่มีฐานค่าจ้าง" ผู้เรียกแสดง modal รายชื่อเอง — ไม่ต้องเด้งซ้ำ
+      if (payBaseIssuesFromError(error)) return;
       message.error(error instanceof ApiError ? error.message : tNow(fallbackError));
     },
   });
+}
+
+/** ตั้ง "ไม่คำนวณค่าจ้างงวดนี้" แล้วคำนวณงวดเดิมใหม่ (modal แจ้งฐานค่าจ้างในงวดที่สร้างแล้ว) */
+export function useExcludeAndRecalculateMutation() {
+  return useRunMutation(
+    async (v: { id: string; items: PayrollExclusionInput[] }) => {
+      await setPayrollExclusions(getAccessToken(), v.id, v.items);
+      return recalculatePayrollRun(getAccessToken(), v.id);
+    },
+    "คำนวณงวดใหม่ไม่สำเร็จ",
+  );
 }
 
 export function useCreatePayrollRunMutation() {

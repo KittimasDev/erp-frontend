@@ -72,13 +72,43 @@ export type PayrollRun = {
   createdAt: string;
 };
 
-export type PayrollRunDetail = PayrollRun & { slips: PayrollSlip[] };
+/** เหตุผลที่ไม่คำนวณค่าจ้างพนักงานในงวด (ตรงกับ backend) */
+export type PayrollExclusionReason = "RESIGNED" | "NOT_STARTED" | "NO_PAY_THIS_PERIOD" | "OTHER";
+
+export type PayrollExclusionInput = {
+  userId: string;
+  reasonCode: PayrollExclusionReason;
+  reasonNote?: string;
+};
+
+export type PayrollExclusion = PayrollExclusionInput & {
+  employeeCode?: string | null;
+  displayName: string;
+  reasonNote?: string | null;
+};
+
+/** พนักงานที่ยังไม่มีฐานค่าจ้าง — missing: BASE_PAY (เงินเดือน/ค่าแรงรายวัน) / EMPLOYMENT_TYPE (ประเภทการจ้าง) */
+export type PayBaseIssue = {
+  userId: string;
+  employeeCode?: string | null;
+  displayName: string;
+  missing: Array<"BASE_PAY" | "EMPLOYMENT_TYPE">;
+};
+
+export type PayBaseValidationApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: { count: number; issues: PayBaseIssue[] };
+};
+
+export type PayrollRunDetail = PayrollRun & { slips: PayrollSlip[]; exclusions: PayrollExclusion[] };
 
 export type CreatePayrollRunRequest = {
   name: string;
   periodStart: string;
   periodEnd: string;
   note?: string;
+  exclusions?: PayrollExclusionInput[];
 };
 
 export type PayrollAdjustmentInput = {

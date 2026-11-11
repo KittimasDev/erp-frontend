@@ -168,6 +168,19 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
   }
 
   const users = usersQuery.data?.data?.items ?? [];
+
+  // deep link จากหน้าเงินเดือน: /users?editUserId=<id> เปิดฟอร์มแก้ไขของคนนั้นหนึ่งครั้ง (ปรับ state ตอน render ตามแบบด้านบน)
+  const editUserId = searchParams.get("editUserId");
+  const [openedEditId, setOpenedEditId] = useState<string | null>(null);
+  if (editUserId && openedEditId !== editUserId) {
+    const target = users.find((user) => user.id === editUserId);
+    if (target) {
+      setOpenedEditId(editUserId);
+      setModalMode("edit");
+      setEditingUser(target);
+      setModalOpen(true);
+    }
+  }
   const roles = rolesQuery.data?.data ?? [];
   const activeUsers = users.filter((user) => user.isActive).length;
   const inactiveUsers = users.filter((user) => !user.isActive).length;
