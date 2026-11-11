@@ -1,24 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, App, Button, DatePicker, Form, Input, Modal, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, DatePicker, Form, Input, Modal, Segmented, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DollarOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreatePayrollRunMutation, usePayrollRunsQuery } from "@/hooks/payroll/usePayroll";
-import { payBaseIssuesFromError, validatePayrollRun } from "@/lib/api/payroll";
+import { overlapFromError, payBaseIssuesFromError, validatePayrollRun } from "@/lib/api/payroll";
+import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 import {
+  PAYROLL_STATUS_COLOR,
+  PAYROLL_STATUS_LABEL,
   payrollStatusLabel,
   type CreatePayrollRunRequest,
   type PayBaseIssue,
   type PayrollExclusionInput,
+  type PayrollOverlapRun,
   type PayrollRun,
+  type PayrollRunStatus,
 } from "@/types/payroll";
 import styles from "@/components/masters/shared/master-page.module.css";
 
@@ -30,11 +35,20 @@ import PayrollSalaryCertificateModal from "./PayrollSalaryCertificateModal";
 import { formatBeRange } from "./shutdownPlanFormat";
 import PageHeader from "@/components/common/PageHeader";
 
-const STATUS_COLOR = { DRAFT: "gold", FINALIZED: "green", CANCELLED: "default" } as const;
+type CreateValues = { name: string; month?: Dayjs; range: [Dayjs, Dayjs]; note?: string };
 
-type CreateValues = { name: string; range: [Dayjs, Dayjs]; note?: string };
+const STATUS_FILTER_OPTIONS: PayrollRunStatus[] = [
+  "DRAFT",
+  "PENDING_APPROVAL",
+  "PENDING_PAYMENT",
+  "PAID",
+  "FINALIZED",
+  "CANCELLED",
+];
 
-/** หน้า /hrm/payroll — งวดเงินเดือน: สร้างงวด (กำหนดวันเริ่ม–สิ้นสุดเอง) → ตรวจ/ปรับ → ปิดงวด → ส่งออก */
+type OverlapInfo = { body: CreatePayrollRunRequest; code: "PAYROLL_PERIOD_OVERLAP" | "PAYROLL_PERIOD_OVERLAP_FINALIZED"; runs: PayrollOverlapRun[] };
+
+/** หน้า /hrm/payroll — งวดเงินเดือน: สร้างงวด (เลือกเดือน/ปี หรือกำหนดช่วงเอง) → ตรวจ/ปรับ → ส่งอนุมัติ → อนุมัติ → จ่ายเงิน → ปิดงวด */
 export default function PayrollPage() {
   const t = useT();
   const language = useLanguage();
@@ -51,16 +65,35 @@ export default function PayrollPage() {
   const [pending, setPending] = useState<CreatePayrollRunRequest | null>(null);
   const [issues, setIssues] = useState<PayBaseIssue[]>([]);
   const [form] = Form.useForm<CreateValues>();
+  // โหมดช่วงวันที่: เลือกเดือน/ปี (เติมวันที่อัตโนมัติ) หรือกำหนดเอง (รอบเงินเดือนไม่ตรงเดือนปฏิทิน)
+  const [rangeMode, setRangeMode] = useState<"month" | "custom">("month");
+  // งวดที่ช่วงวันทับกับงวดที่สร้าง: แจ้งชื่อ/ช่วง/สถานะ + ลิงก์ไปงวดเดิม
+  const [overlap, setOverlap] = useState<OverlapInfo | null>(null);
+  const [statusFilter, setStatusFilter] = useState<PayrollRunStatus | undefined>();
+  const canAdd = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.ADD");
 
   const runsQuery = usePayrollRunsQuery();
   const createMutation = useCreatePayrollRunMutation();
-  const runs = runsQuery.data?.data ?? [];
+  const allRuns = runsQuery.data?.data ?? [];
+  const runs = statusFilter ? allRuns.filter((r) => r.status === statusFilter) : allRuns;
+
+  /** เลือกเดือน/ปี → วันที่เริ่ม–สิ้นสุดอัตโนมัติ (วันแรก–วันสุดท้ายของเดือน) + ตั้งชื่องวดให้ถ้ายังไม่ได้พิมพ์เอง */
+  const onMonthChange = (month: Dayjs | null) => {
+    if (!month) return;
+    const label = month.toDate().toLocaleDateString(language === "en" ? "en-GB" : "th-TH", { month: "long", year: "numeric" });
+    form.setFieldsValue({
+      range: [month.startOf("month"), month.endOf("month")],
+      name: form.getFieldValue("name")?.trim() ? form.getFieldValue("name") : `${t("เงินเดือน")} ${label}`,
+    });
+  };
 
   const finishCreate = (id: string) => {
     setCreateOpen(false);
     setPending(null);
     setIssues([]);
+    setOverlap(null);
     form.resetFields();
+    setRangeMode("month");
     setDetailId(id);
   };
 
@@ -73,8 +106,22 @@ export default function PayrollPage() {
       if (found) {
         setPending(body);
         setIssues(found);
+        return;
+      }
+      const clash = overlapFromError(error);
+      if (clash) {
+        setPending(null);
+        setIssues([]);
+        setOverlap({ body, code: clash.code, runs: clash.runs });
       }
     }
+  };
+
+  /** เปิดงวดเดิมที่ทับกัน — ปิด modal สร้างงวดแล้วเปิดรายละเอียดงวดนั้น */
+  const openExisting = (id: string) => {
+    setOverlap(null);
+    setCreateOpen(false);
+    setDetailId(id);
   };
 
   const submit = () =>
@@ -144,7 +191,7 @@ export default function PayrollPage() {
       title: t("สถานะ"),
       key: "status",
       width: 120,
-      render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{payrollStatusLabel(r.status, language)}</Tag>,
+      render: (_v, r) => <Tag color={PAYROLL_STATUS_COLOR[r.status]}>{payrollStatusLabel(r.status, language)}</Tag>,
     },
   ];
 
@@ -155,7 +202,7 @@ export default function PayrollPage() {
           eyebrow="HRM · PAYROLL"
           icon={<DollarOutlined />}
           title={t("เงินเดือน")}
-          subtitle={t("คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม/กองทุน/ภาษีหัก ณ ที่จ่าย เป็นงวด แล้วส่งออก Excel/CSV")}
+          subtitle={t("คำนวณเงินเดือน/ค่าแรง + OT เป็นงวด → ส่งอนุมัติ → อนุมัติ → ส่งออกรายการจ่าย/บันทึกผลจ่าย → ปิดงวด")}
           actions={
             <>
 <div style={{ display: "flex", gap: 8 }}>
@@ -168,9 +215,11 @@ export default function PayrollPage() {
             <Button size="large" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
               {t("ตั้งค่า")}
             </Button>
-            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              {t("สร้างงวดเงินเดือน")}
-            </Button>
+            {canAdd ? (
+              <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+                {t("สร้างงวดเงินเดือน")}
+              </Button>
+            ) : null}
           </div>
             </>
           }
@@ -188,8 +237,20 @@ export default function PayrollPage() {
           <div className={styles.tableHeader}>
             <div>
               <h3>{t("งวดเงินเดือน")}</h3>
-              <p>{t("กดชื่องวดเพื่อดูสลิป ปรับรายการ ปิดงวด และส่งออก")}</p>
+              <p>{t("กดชื่องวดเพื่อดูสลิป ปรับรายการ ส่งอนุมัติ บันทึกผลจ่าย และปิดงวด")}</p>
             </div>
+            <Select
+              allowClear
+              style={{ width: 180 }}
+              placeholder={t("ทุกสถานะ")}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={STATUS_FILTER_OPTIONS.map((status) => ({
+                value: status,
+                label: payrollStatusLabel(status, language),
+              }))}
+              aria-label={t("สถานะ")}
+            />
           </div>
           <Table
             rowKey="id"
@@ -209,7 +270,10 @@ export default function PayrollPage() {
           okText={t("สร้างและคำนวณ")}
           cancelText={t("ยกเลิก")}
           confirmLoading={checking || (createMutation.isPending && issues.length === 0)}
-          onCancel={() => setCreateOpen(false)}
+          onCancel={() => {
+            setCreateOpen(false);
+            setRangeMode("month");
+          }}
           onOk={submit}
           destroyOnHidden
         >
@@ -217,14 +281,40 @@ export default function PayrollPage() {
             <Form.Item name="name" label={t("ชื่องวด")} rules={[{ required: true, whitespace: true, message: t("ใส่ชื่องวด") }]}>
               <Input maxLength={200} placeholder={t("เช่น เงินเดือน ต.ค. 2569")} />
             </Form.Item>
+            <Segmented
+              block
+              style={{ marginBottom: 12 }}
+              value={rangeMode}
+              onChange={(v) => setRangeMode(v as "month" | "custom")}
+              options={[
+                { value: "month", label: t("เลือกเดือน/ปี") },
+                { value: "custom", label: t("กำหนดช่วงวันที่เอง") },
+              ]}
+            />
+            {rangeMode === "month" ? (
+              <Form.Item name="month" label={t("เดือน/ปี")} rules={[{ required: true, message: t("เลือกเดือน") }]}>
+                <DatePicker
+                  picker="month"
+                  style={{ width: "100%" }}
+                  format="MM/YYYY"
+                  onChange={onMonthChange}
+                  disabledDate={(d) => d.isAfter(dayjs().add(1, "year"))}
+                />
+              </Form.Item>
+            ) : null}
             <Form.Item
               name="range"
-              label={t("ช่วงวันที่ของงวด (เริ่ม–สิ้นสุด กำหนดเองได้ ไม่เกิน 62 วัน)")}
+              label={
+                rangeMode === "month"
+                  ? t("ช่วงวันที่ของงวด (กำหนดให้อัตโนมัติตามเดือนที่เลือก)")
+                  : t("ช่วงวันที่ของงวด (เริ่ม–สิ้นสุด กำหนดเองได้ ไม่เกิน 62 วัน)")
+              }
               rules={[{ required: true, message: t("เลือกช่วงวันที่") }]}
             >
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
                 format="DD/MM/YYYY"
+                disabled={rangeMode === "month"}
                 disabledDate={(d) => d.isAfter(dayjs().add(1, "year"))}
               />
             </Form.Item>
@@ -244,6 +334,67 @@ export default function PayrollPage() {
             setIssues([]);
           }}
         />
+        <Modal
+          open={overlap !== null}
+          title={t("ช่วงวันที่ทับกับงวดที่มีอยู่แล้ว")}
+          onCancel={() => setOverlap(null)}
+          footer={
+            <>
+              <Button onClick={() => setOverlap(null)}>{t("กลับไปแก้ช่วงวันที่")}</Button>
+              {overlap?.code === "PAYROLL_PERIOD_OVERLAP" ? (
+                <Button
+                  danger
+                  loading={createMutation.isPending}
+                  onClick={() => overlap && void createWith({ ...overlap.body, allowOverlap: true })}
+                >
+                  {t("ยืนยันสร้างซ้อน")}
+                </Button>
+              ) : null}
+            </>
+          }
+          destroyOnHidden
+        >
+          <Alert
+            type={overlap?.code === "PAYROLL_PERIOD_OVERLAP_FINALIZED" ? "error" : "warning"}
+            showIcon
+            style={{ marginBottom: 12 }}
+            title={
+              overlap?.code === "PAYROLL_PERIOD_OVERLAP_FINALIZED"
+                ? t("ทับกับงวดที่ปิดแล้ว — สร้างงวดซ้อนไม่ได้ (กันจ่ายค่าจ้างวันเดียวกันสองรอบ)")
+                : t("พบงวดที่ช่วงวันที่ทับกัน — ตรวจว่าไม่ใช่งวดซ้ำ ก่อนสร้างซ้อน")
+            }
+          />
+          <Table
+            rowKey="id"
+            size="small"
+            pagination={false}
+            dataSource={overlap?.runs ?? []}
+            columns={[
+              { title: t("งวด"), dataIndex: "name" },
+              {
+                title: t("ช่วงวันที่"),
+                key: "range",
+                render: (_v: unknown, r: PayrollOverlapRun) => formatBeRange(r.periodStart, r.periodEnd, language),
+              },
+              {
+                title: t("สถานะ"),
+                key: "status",
+                render: (_v: unknown, r: PayrollOverlapRun) => (
+                  <Tag color={PAYROLL_STATUS_COLOR[r.status]}>{PAYROLL_STATUS_LABEL[r.status] ? payrollStatusLabel(r.status, language) : r.status}</Tag>
+                ),
+              },
+              {
+                title: "",
+                key: "open",
+                render: (_v: unknown, r: PayrollOverlapRun) => (
+                  <Button size="small" onClick={() => openExisting(r.id)}>
+                    {t("เปิดงวดนี้")}
+                  </Button>
+                ),
+              },
+            ]}
+          />
+        </Modal>
         <PayrollSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         <PayrollWhtModal open={whtOpen} onClose={() => setWhtOpen(false)} />
         <PayrollSalaryCertificateModal open={salaryCertOpen} onClose={() => setSalaryCertOpen(false)} />

@@ -1,5 +1,5 @@
 import type { TabularReport } from "@/utils/downloadTabularReport";
-import type { PayrollRunDetail } from "@/types/payroll";
+import type { PayrollPaymentExport, PayrollRunDetail } from "@/types/payroll";
 
 const num = (v: number) => v.toFixed(2);
 
@@ -83,6 +83,32 @@ export function toPayrollSheet(run: PayrollRunDetail): TabularReport {
       "สุทธิ",
     ],
     rows: [...rows, totalRow],
+    groupRows: [rows.length],
+  };
+}
+
+/**
+ * ตารางรายการจ่ายเงินเดือน (ส่งออกให้ฝ่ายการเงินโอนเงิน) — หนึ่งแถวต่อพนักงาน: ธนาคาร/เลขบัญชี/ยอดที่ต้องจ่าย
+ * ข้อมูลมาจาก backend (POST :id/payment-export) ที่ตรวจข้อมูลธนาคารและบันทึกประวัติส่งออกแล้ว · เลขบัญชีเป็นข้อความ
+ */
+export function toPaymentSheet(data: PayrollPaymentExport): TabularReport {
+  const rows = data.rows.map((r) => [
+    r.employeeCode ?? "",
+    r.displayName,
+    r.bankName,
+    r.bankAccountNo,
+    r.bankAccountName ?? "",
+    num(r.amount),
+  ]);
+  return {
+    title: "รายการจ่ายเงินเดือน",
+    filename: `payroll-payment-${data.periodStart}_${data.periodEnd}`,
+    meta: [
+      `งวด: ${data.runName} (${data.periodStart} ถึง ${data.periodEnd})`,
+      `จำนวน ${data.rows.length} คน · ยอดรวม ${num(data.totalAmount)} บาท`,
+    ],
+    headers: ["รหัสพนักงาน", "ชื่อ", "ธนาคาร", "เลขบัญชี", "ชื่อบัญชี", "ยอดจ่าย (บาท)"],
+    rows: [...rows, ["รวม", "", "", "", "", num(data.totalAmount)]],
     groupRows: [rows.length],
   };
 }

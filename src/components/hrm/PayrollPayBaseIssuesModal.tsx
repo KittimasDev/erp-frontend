@@ -32,7 +32,7 @@ const REASONS: Array<{ value: PayrollExclusionReason; label: string }> = [
 ];
 
 /** เปิดหน้าตั้งค่าพนักงานในแท็บใหม่ — ไม่ทิ้งฟอร์ม/รายชื่อที่เลือกไว้ในหน้านี้ */
-const userSetupHref = (userId: string) => `/users?editUserId=${encodeURIComponent(userId)}`;
+export const userSetupHref = (userId: string) => `/users?editUserId=${encodeURIComponent(userId)}`;
 
 function Content({ issues, existing = [], loading, onSubmit, onClose }: Omit<Props, "open">) {
   const t = useT();

@@ -5,26 +5,39 @@ import { App } from "antd";
 
 import { ApiError } from "@/lib/api/client";
 import {
+  approvePayrollRun,
+  bankMissingFromError,
+  bulkRecordPayrollPayments,
   cancelPayrollRun,
+  checkFailureFromError,
   createPayrollRun,
+  exportPayrollPayments,
   finalizePayrollRun,
+  getPayrollChecks,
   getPayrollRun,
   getPayrollRuns,
   getPayrollSettings,
   getSalaryCertificateEmployees,
   getWithholdingCertificates,
+  overlapFromError,
   payBaseIssuesFromError,
   recalculatePayrollRun,
+  recordPayrollPayments,
+  returnPayrollRunToDraft,
+  sendBackPayrollRun,
   setPayrollAdjustments,
   setPayrollExclusions,
+  submitPayrollRun,
   updatePayrollSettings,
 } from "@/lib/api/payroll";
 import { getAccessToken } from "@/lib/auth/token";
 import { tNow } from "@/lib/i18n/useT";
 import type {
+  BulkPayrollPaymentsRequest,
   CreatePayrollRunRequest,
   PayrollAdjustmentInput,
   PayrollExclusionInput,
+  PayrollPaymentInput,
   PayrollSettings,
 } from "@/types/payroll";
 
@@ -67,8 +80,15 @@ function useRunMutation<TVars, TRes extends { message: string }>(
       void queryClient.invalidateQueries({ queryKey: payrollQueryKey });
     },
     onError: (error: Error) => {
-      // error "ไม่มีฐานค่าจ้าง" ผู้เรียกแสดง modal รายชื่อเอง — ไม่ต้องเด้งซ้ำ
-      if (payBaseIssuesFromError(error)) return;
+      // error ที่ผู้เรียกแสดง modal รายละเอียดเอง (ไม่มีฐานค่าจ้าง/งวดซ้ำ/ตรวจก่อนส่งไม่ผ่าน/ไม่มีข้อมูลธนาคาร) — ไม่ต้องเด้งซ้ำ
+      if (
+        payBaseIssuesFromError(error) ||
+        overlapFromError(error) ||
+        checkFailureFromError(error) ||
+        bankMissingFromError(error)
+      ) {
+        return;
+      }
       message.error(error instanceof ApiError ? error.message : tNow(fallbackError));
     },
   });
@@ -116,9 +136,66 @@ export function useFinalizePayrollMutation() {
 
 export function useCancelPayrollMutation() {
   return useRunMutation(
-    (v: { id: string; reason?: string }) =>
+    (v: { id: string; reason: string }) =>
       cancelPayrollRun(getAccessToken(), v.id, v.reason),
     "ยกเลิกงวดไม่สำเร็จ",
+  );
+}
+
+/** ผลตรวจก่อนส่งอนุมัติ — ดึงใหม่ทุกครั้งที่เปิด (ไม่ใช้ cache) */
+export function usePayrollChecksQuery(id: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: [...payrollQueryKey, "checks", id],
+    queryFn: () => getPayrollChecks(getAccessToken(), id as string),
+    enabled: Boolean(id) && enabled,
+    gcTime: 0,
+    staleTime: 0,
+    retry: false,
+  });
+}
+
+export function useSubmitPayrollMutation() {
+  return useRunMutation(
+    (v: { id: string; acknowledgeWarnings?: boolean; note?: string }) =>
+      submitPayrollRun(getAccessToken(), v.id, { acknowledgeWarnings: v.acknowledgeWarnings, note: v.note }),
+    "ส่งอนุมัติไม่สำเร็จ",
+  );
+}
+
+export function useApprovePayrollMutation() {
+  return useRunMutation((id: string) => approvePayrollRun(getAccessToken(), id), "อนุมัติงวดไม่สำเร็จ");
+}
+
+export function useSendBackPayrollMutation() {
+  return useRunMutation(
+    (v: { id: string; reason: string }) => sendBackPayrollRun(getAccessToken(), v.id, v.reason),
+    "ส่งกลับแก้ไขไม่สำเร็จ",
+  );
+}
+
+export function useReturnPayrollToDraftMutation() {
+  return useRunMutation(
+    (v: { id: string; reason: string }) => returnPayrollRunToDraft(getAccessToken(), v.id, v.reason),
+    "ส่งกลับเป็นร่างไม่สำเร็จ",
+  );
+}
+
+export function useExportPayrollPaymentsMutation() {
+  return useRunMutation((id: string) => exportPayrollPayments(getAccessToken(), id), "ส่งออกรายการจ่ายไม่สำเร็จ");
+}
+
+export function useRecordPayrollPaymentsMutation() {
+  return useRunMutation(
+    (v: { id: string; items: PayrollPaymentInput[] }) => recordPayrollPayments(getAccessToken(), v.id, v.items),
+    "บันทึกผลจ่ายไม่สำเร็จ",
+  );
+}
+
+export function useBulkRecordPayrollPaymentsMutation() {
+  return useRunMutation(
+    (v: { id: string; body: BulkPayrollPaymentsRequest }) =>
+      bulkRecordPayrollPayments(getAccessToken(), v.id, v.body),
+    "บันทึกผลจ่ายไม่สำเร็จ",
   );
 }
 

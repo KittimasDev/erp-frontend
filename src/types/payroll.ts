@@ -1,5 +1,12 @@
 /** เงินเดือน (HRM_PAYROLL) — ตรงกับ backend hrm/dto/payroll.dto.ts */
-export type PayrollRunStatus = "DRAFT" | "FINALIZED" | "CANCELLED";
+/** DRAFT → PENDING_APPROVAL → PENDING_PAYMENT → PAID → FINALIZED (+ CANCELLED) */
+export type PayrollRunStatus =
+  | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "FINALIZED"
+  | "CANCELLED";
 
 export type PayrollAdjustmentKind = "EARNING" | "DEDUCTION";
 
@@ -68,6 +75,15 @@ export type PayrollRun = {
   cancelReason?: string | null;
   calculatedAt?: string | null;
   finalizedAt?: string | null;
+  createdById?: string | null;
+  submittedById?: string | null;
+  submittedAt?: string | null;
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  paidAt?: string | null;
+  cancelledAt?: string | null;
+  /** เหตุผลที่ส่งกลับแก้ไขล่าสุด */
+  returnReason?: string | null;
   totals: PayrollTotals;
   createdAt: string;
 };
@@ -101,7 +117,136 @@ export type PayBaseValidationApiResponse = {
   data: { count: number; issues: PayBaseIssue[] };
 };
 
-export type PayrollRunDetail = PayrollRun & { slips: PayrollSlip[]; exclusions: PayrollExclusion[] };
+/** ประวัติเปลี่ยนสถานะงวด */
+export type PayrollEvent = {
+  id: string;
+  /** SUBMIT | APPROVE | SEND_BACK | RETURN_TO_DRAFT | CANCEL | EXPORT_PAYMENTS | RECORD_PAYMENT | PAID | FINALIZE */
+  action: string;
+  fromStatus?: string | null;
+  toStatus?: string | null;
+  note?: string | null;
+  performedById?: string | null;
+  performedByName?: string | null;
+  performedAt: string;
+};
+
+export type PayrollPaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
+
+export type PayrollPayment = {
+  userId: string;
+  employeeCode?: string | null;
+  displayName: string;
+  amountDue: number;
+  amountPaid: number;
+  status: PayrollPaymentStatus;
+  paidDate?: string | null;
+  method?: string | null;
+  referenceNo?: string | null;
+  note?: string | null;
+  bankName?: string | null;
+  bankAccountNo?: string | null;
+  bankAccountName?: string | null;
+  recordedByName?: string | null;
+  recordedAt?: string | null;
+};
+
+export type PayrollPaymentSummary = {
+  count: number;
+  dueTotal: number;
+  paidTotal: number;
+  successCount: number;
+  failedCount: number;
+  pendingCount: number;
+  /** จ่ายบางส่วน (มียอดจ่ายแต่ยังไม่ครบ) */
+  partialCount: number;
+};
+
+export type PayrollExportBatch = {
+  id: string;
+  exportedAt: string;
+  exportedByName?: string | null;
+  rowCount: number;
+  totalAmount: number;
+};
+
+export type PayrollRunDetail = PayrollRun & {
+  slips: PayrollSlip[];
+  exclusions: PayrollExclusion[];
+  events: PayrollEvent[];
+  payments: PayrollPayment[];
+  paymentSummary: PayrollPaymentSummary;
+  exportBatches: PayrollExportBatch[];
+};
+
+/** งวดที่ช่วงวันทับกับงวดที่กำลังสร้าง (409 PAYROLL_PERIOD_OVERLAP / _FINALIZED) */
+export type PayrollOverlapRun = {
+  id: string;
+  name: string;
+  periodStart: string;
+  periodEnd: string;
+  status: PayrollRunStatus;
+};
+
+export type PayrollCheckItem = {
+  code: string;
+  message: string;
+  userId?: string;
+  displayName?: string;
+};
+
+export type PayrollCheckResult = {
+  ok: boolean;
+  requiresAcknowledgement: boolean;
+  errors: PayrollCheckItem[];
+  warnings: PayrollCheckItem[];
+};
+
+export type PayrollCheckApiResponse = { statusCode?: number; message: string; data: PayrollCheckResult };
+
+export type PayrollPaymentMethod = "BANK_TRANSFER" | "CASH" | "CHEQUE" | "OTHER";
+
+export type PayrollPaymentInput = {
+  userId: string;
+  status: "SUCCESS" | "FAILED";
+  /** ยอดจ่ายรวมจริง (สะสม) — ไม่ส่ง = เต็มยอด · น้อยกว่ายอดที่ต้องจ่าย = จ่ายบางส่วน */
+  amountPaid?: number;
+  paidDate?: string;
+  method?: PayrollPaymentMethod;
+  referenceNo?: string;
+  note?: string;
+};
+
+export type BulkPayrollPaymentsRequest = {
+  /** ไม่ส่ง = ทุกคนที่ยังไม่จ่ายสำเร็จ */
+  userIds?: string[];
+  status: "SUCCESS" | "FAILED";
+  paidDate?: string;
+  method?: PayrollPaymentMethod;
+  referenceNo?: string;
+  note?: string;
+};
+
+export type PayrollPaymentExportRow = {
+  userId: string;
+  employeeCode?: string | null;
+  displayName: string;
+  bankName: string;
+  bankAccountNo: string;
+  bankAccountName?: string | null;
+  amount: number;
+};
+
+export type PayrollPaymentExport = {
+  runId: string;
+  runName: string;
+  periodStart: string;
+  periodEnd: string;
+  exportedAt: string;
+  rows: PayrollPaymentExportRow[];
+  totalAmount: number;
+};
+
+export type PayrollPaymentExportApiResponse = { statusCode?: number; message: string; data: PayrollPaymentExport };
 
 export type CreatePayrollRunRequest = {
   name: string;
@@ -109,6 +254,8 @@ export type CreatePayrollRunRequest = {
   periodEnd: string;
   note?: string;
   exclusions?: PayrollExclusionInput[];
+  /** ยืนยันสร้างซ้อนกับงวดที่ยังไม่ปิด (ทับงวดที่ปิดแล้วไม่ได้เสมอ) */
+  allowOverlap?: boolean;
 };
 
 export type PayrollAdjustmentInput = {
@@ -134,6 +281,10 @@ export type PayrollSettings = {
   providentFundEmployerPercent: number;
   providentFundMaxPercent: number;
   providentFundOptions: number[];
+  /** แยกหน้าที่: ผู้ส่งอนุมัติ ≠ ผู้อนุมัติ ≠ ผู้บันทึกจ่าย (ค่าเริ่มต้นเปิด) */
+  enforceSegregation?: boolean;
+  /** ตรวจยอดผิดปกติก่อนส่งอนุมัติ: สุทธิ > ค่าจ้างปกติ × ตัวคูณ (0 = ปิด) */
+  anomalyMultiplier?: number;
 };
 
 export type PayrollRunListApiResponse = {
@@ -156,9 +307,25 @@ export type PayrollSettingsApiResponse = {
 
 export const PAYROLL_STATUS_LABEL: Record<PayrollRunStatus, string> = {
   DRAFT: "ฉบับร่าง",
+  PENDING_APPROVAL: "รออนุมัติ",
+  PENDING_PAYMENT: "รอจ่ายเงิน",
+  PAID: "จ่ายเงินแล้ว",
   FINALIZED: "ปิดงวดแล้ว",
   CANCELLED: "ยกเลิก",
 };
+
+/** สี Tag ของสถานะงวด (ใช้ร่วมทั้งหน้ารายการและหน้ารายละเอียด) */
+export const PAYROLL_STATUS_COLOR: Record<PayrollRunStatus, string> = {
+  DRAFT: "gold",
+  PENDING_APPROVAL: "orange",
+  PENDING_PAYMENT: "blue",
+  PAID: "cyan",
+  FINALIZED: "green",
+  CANCELLED: "default",
+};
+
+/** รายการงวดที่ล็อกแล้ว แก้ยอด/รายการปรับ/คำนวณใหม่ไม่ได้ (ทุกสถานะที่ไม่ใช่ร่าง) */
+export const isPayrollLocked = (status: PayrollRunStatus) => status !== "DRAFT";
 
 export const LEAVE_TYPE_OPTIONS = [
   { value: "ANNUAL", label: "ลาพักร้อน" },
@@ -224,7 +391,14 @@ export type WithholdingCertificatesApiResponse = {
 /** ป้ายสถานะงวดตามภาษา — ไทยใช้ PAYROLL_STATUS_LABEL เดิม (คีย์ "ยกเลิก" ชนกับปุ่ม Cancel จึงไม่ผ่าน dictionary) */
 export function payrollStatusLabel(status: PayrollRunStatus, lang: "th" | "en"): string {
   if (lang === "en") {
-    return { DRAFT: "Draft", FINALIZED: "Finalized", CANCELLED: "Cancelled" }[status];
+    return {
+      DRAFT: "Draft",
+      PENDING_APPROVAL: "Pending approval",
+      PENDING_PAYMENT: "Awaiting payment",
+      PAID: "Paid",
+      FINALIZED: "Finalized",
+      CANCELLED: "Cancelled",
+    }[status];
   }
   return PAYROLL_STATUS_LABEL[status];
 }

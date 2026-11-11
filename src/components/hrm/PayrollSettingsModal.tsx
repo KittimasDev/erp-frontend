@@ -114,6 +114,21 @@ function SettingsForm({
           <InputNumber min={0} max={100} precision={2} style={{ width: "100%" }} />
         </Form.Item>
 
+        <Divider titlePlacement="left">{t("การอนุมัติและการจ่ายเงิน")}</Divider>
+        <Form.Item
+          name="enforceSegregation"
+          label={t("แยกหน้าที่: ผู้ส่งอนุมัติ/ผู้จัดทำ ≠ ผู้อนุมัติ ≠ ผู้บันทึกจ่ายเงิน (ใช้กับทุกคนรวมผู้ดูแลระบบ)")}
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+        <Form.Item
+          name="anomalyMultiplier"
+          label={t("ตรวจยอดผิดปกติก่อนส่งอนุมัติ: ยอดสุทธิเกินค่าจ้างปกติกี่เท่า (0 = ไม่ตรวจ)")}
+        >
+          <InputNumber min={0} max={100} precision={1} style={{ width: "100%" }} />
+        </Form.Item>
+
         <Divider titlePlacement="left">{t("ภาษีหัก ณ ที่จ่าย")}</Divider>
         <Form.Item
           name="taxEnabled"

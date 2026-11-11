@@ -1,30 +1,53 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Descriptions, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag, Tooltip } from "antd";
+import { Alert, App, Badge, Button, Descriptions, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tabs, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ClearOutlined, DownloadOutlined, EditOutlined, InfoCircleOutlined, PrinterOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  CheckOutlined,
+  ClearOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  InfoCircleOutlined,
+  PrinterOutlined,
+  ReloadOutlined,
+  RollbackOutlined,
+  SearchOutlined,
+  SendOutlined,
+} from "@ant-design/icons";
 
 import {
+  useApprovePayrollMutation,
   useCancelPayrollMutation,
   useExcludeAndRecalculateMutation,
   useFinalizePayrollMutation,
   usePayrollRunQuery,
   useRecalculatePayrollMutation,
+  useReturnPayrollToDraftMutation,
+  useSendBackPayrollMutation,
 } from "@/hooks/payroll/usePayroll";
 import { payBaseIssuesFromError } from "@/lib/api/payroll";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { payrollStatusLabel, type PayBaseIssue, type PayrollExclusionInput, type PayrollSlip } from "@/types/payroll";
+import {
+  PAYROLL_STATUS_COLOR,
+  payrollStatusLabel,
+  type PayBaseIssue,
+  type PayrollExclusionInput,
+  type PayrollSlip,
+} from "@/types/payroll";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { openPayslipPdf } from "@/utils/generatePayslipPdf";
 import { releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
 import { toPayrollSheet } from "@/utils/payrollSheet";
 
 import PayrollAdjustmentsModal from "./PayrollAdjustmentsModal";
+import PayrollHistoryTab from "./PayrollHistoryTab";
 import PayrollPayBaseIssuesModal from "./PayrollPayBaseIssuesModal";
+import PayrollPaymentsTab from "./PayrollPaymentsTab";
+import { PayrollChecksModal, ReasonModal } from "./PayrollWorkflowModals";
 import {
   EMPTY_SLIP_FILTER,
   SLIP_STATUS_OPTIONS,
@@ -36,11 +59,12 @@ import {
 import { formatBeRange } from "./shutdownPlanFormat";
 
 
-const STATUS_COLOR = { DRAFT: "gold", FINALIZED: "green", CANCELLED: "default" } as const;
-
 type Props = { runId?: string; onClose: () => void };
 
-/** รายละเอียดงวด: สลิปทุกคน ยอดรวม รายการปรับ + คำนวณใหม่/ปิดงวด/ยกเลิก/ส่งออก */
+/**
+ * รายละเอียดงวด: สลิปทุกคน ยอดรวม รายการปรับ + ขั้นตอน ส่งอนุมัติ → อนุมัติ → ส่งออก/บันทึกผลจ่าย → ปิดงวด
+ * ปุ่มแสดงตามสถานะ+สิทธิ์ (SUBMIT / APPROVE / PAY / EXPORT / DELETE) — backend ตรวจซ้ำทุกครั้ง
+ */
 export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   const { message } = App.useApp();
   const t = useT();
@@ -59,6 +83,9 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   const recalc = useRecalculatePayrollMutation();
   const finalize = useFinalizePayrollMutation();
   const cancel = useCancelPayrollMutation();
+  const approve = useApprovePayrollMutation();
+  const sendBack = useSendBackPayrollMutation();
+  const returnToDraft = useReturnPayrollToDraftMutation();
   const excludeAndRecalc = useExcludeAndRecalculateMutation();
   // ฐานค่าจ้างไม่ครบตอนคำนวณใหม่/ปิดงวด → modal รายชื่อ (ตั้งค่าแล้วกลับมาคำนวณงวดเดิมได้)
   const [issues, setIssues] = useState<PayBaseIssue[]>([]);
@@ -76,8 +103,9 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
     }
   };
   const [adjusting, setAdjusting] = useState<PayrollSlip | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [reason, setReason] = useState("");
+  const [reasonDialog, setReasonDialog] = useState<"cancel" | "sendBack" | "returnToDraft" | null>(null);
+  const [checksOpen, setChecksOpen] = useState(false);
+  const [tab, setTab] = useState("slips");
   const [filter, setFilter] = useState<SlipFilter>(EMPTY_SLIP_FILTER);
 
   const run = query.data?.data;
@@ -90,8 +118,13 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
     [run?.slips],
   );
   const isDraft = run?.status === "DRAFT";
-  const canExport = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.EXPORT");
-  const canApprove = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.APPROVE");
+  const can = (code: string) => !isMatrixPermissionMode() || hasPermission(`HRM_PAYROLL.${code}`);
+  const canExport = can("EXPORT");
+  const canEdit = can("EDIT");
+  const canSubmit = can("SUBMIT");
+  const canApprove = can("APPROVE");
+  const canPay = can("PAY");
+  const canCancel = can("DELETE");
 
   const exportAs = async (format: "csv" | "xlsx") => {
     if (!run) return;
@@ -114,6 +147,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   };
   // สลิปที่ไม่มีรายได้เลย (ไม่มีฐานค่าจ้าง) ไม่พิมพ์ในชุดทั้งงวด
   const negativeSlips = run?.slips.filter((s) => s.netPay < 0) ?? [];
+  const zeroSlips = run?.slips.filter((s) => s.netPay === 0) ?? [];
   const printableSlips = run?.slips.filter((s) => s.grossIncome > 0) ?? [];
 
   const rangeInputs = (label: string, key: "basePay" | "otAmount" | "netPay") => {
@@ -244,6 +278,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       open={Boolean(runId)}
       onCancel={() => {
         setFilter(EMPTY_SLIP_FILTER);
+        setTab("slips");
         onClose();
       }}
       centered
@@ -276,12 +311,12 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 </Button>
               </>
             ) : null}
-            {isDraft ? (
+            {isDraft && canEdit ? (
               <Popconfirm
                 title={t("คำนวณใหม่?")}
                 description={t("ดึงเวลา/ลา/OT/ฐานค่าจ้างล่าสุดมาคิดใหม่ทุกสลิป (รายการปรับคงอยู่)")}
                 okText={t("คำนวณใหม่")}
-                cancelText={t("ยกเลิก")}
+                cancelText={t("ปิดหน้าต่าง")}
                 onConfirm={() => recalc.mutate(run.id, { onError: onPayBaseError })}
               >
                 <Button icon={<ReloadOutlined />} loading={recalc.isPending}>
@@ -289,21 +324,49 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 </Button>
               </Popconfirm>
             ) : null}
-            {isDraft && canApprove ? (
+            {isDraft && canSubmit ? (
+              <Button type="primary" icon={<SendOutlined />} onClick={() => setChecksOpen(true)}>
+                {t("ตรวจและส่งอนุมัติ")}
+              </Button>
+            ) : null}
+            {run.status === "PENDING_APPROVAL" && canApprove ? (
+              <>
+                <Popconfirm
+                  title={t("อนุมัติงวดนี้?")}
+                  description={t("อนุมัติแล้วระบบสร้างรายการจ่ายรายพนักงาน และแก้ยอดโดยตรงไม่ได้")}
+                  okText={t("อนุมัติ")}
+                  cancelText={t("ปิดหน้าต่าง")}
+                  onConfirm={() => approve.mutate(run.id)}
+                >
+                  <Button type="primary" icon={<CheckOutlined />} loading={approve.isPending}>
+                    {t("อนุมัติ")}
+                  </Button>
+                </Popconfirm>
+                <Button icon={<RollbackOutlined />} onClick={() => setReasonDialog("sendBack")}>
+                  {t("ส่งกลับแก้ไข")}
+                </Button>
+              </>
+            ) : null}
+            {run.status === "PENDING_PAYMENT" && canApprove ? (
+              <Button icon={<RollbackOutlined />} onClick={() => setReasonDialog("returnToDraft")}>
+                {t("ถอนกลับเป็นร่าง")}
+              </Button>
+            ) : null}
+            {run.status === "PAID" && canApprove ? (
               <Popconfirm
                 title={t("ปิดงวดนี้?")}
-                description={t("ปิดแล้วแก้ไข/คำนวณใหม่ไม่ได้ (ยกเลิกงวดได้)")}
+                description={t("ปิดแล้วล็อกทุกอย่าง และข้อมูลงวดนี้ใช้ออก 50 ทวิ ได้")}
                 okText={t("ปิดงวด")}
-                cancelText={t("ยกเลิก")}
-                onConfirm={() => finalize.mutate(run.id, { onError: onPayBaseError })}
+                cancelText={t("ปิดหน้าต่าง")}
+                onConfirm={() => finalize.mutate(run.id)}
               >
-                <Button type="primary" loading={finalize.isPending} disabled={negativeSlips.length > 0}>
+                <Button type="primary" icon={<CheckOutlined />} loading={finalize.isPending}>
                   {t("ปิดงวด")}
                 </Button>
               </Popconfirm>
             ) : null}
-            {run.status !== "CANCELLED" && canApprove ? (
-              <Button danger onClick={() => setCancelOpen(true)}>
+            {["DRAFT", "PENDING_APPROVAL", "PENDING_PAYMENT"].includes(run.status) && canCancel ? (
+              <Button danger onClick={() => setReasonDialog("cancel")}>
                 {t("ยกเลิกงวด")}
               </Button>
             ) : null}
@@ -331,7 +394,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             </div>
             <Descriptions size="small" column={{ xs: 1, md: 2, xl: 3 }} style={{ flex: 1, minWidth: 320 }}>
               <Descriptions.Item label={t("สถานะ")}>
-                <Tag color={STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
+                <Tag color={PAYROLL_STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label={t("พนักงานในงวด")}>{run.totals.slipCount}</Descriptions.Item>
               <Descriptions.Item
@@ -356,11 +419,36 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           {run.status === "CANCELLED" && run.cancelReason ? (
             <Alert type="info" showIcon title={`${t("เหตุผลที่ยกเลิก")}: ${run.cancelReason}`} style={{ marginBottom: 12 }} />
           ) : null}
+          {isDraft && run.returnReason ? (
+            <Alert
+              type="warning"
+              showIcon
+              title={`${t("ถูกส่งกลับแก้ไข")}: ${run.returnReason}`}
+              description={t("แก้ไข/คำนวณใหม่ตามเหตุผล แล้วส่งอนุมัติอีกครั้ง")}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
+          {run.status === "PENDING_APPROVAL" ? (
+            <Alert
+              type="info"
+              showIcon
+              title={t("รออนุมัติ — แก้รายการปรับ/คำนวณใหม่ถูกล็อก ผู้อนุมัติตรวจยอดแล้วอนุมัติ หรือส่งกลับแก้ไขพร้อมเหตุผล")}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
+          {run.status === "PAID" ? (
+            <Alert
+              type="success"
+              showIcon
+              title={t("จ่ายเงินครบทุกรายการแล้ว — ตรวจยอดแล้วปิดงวด")}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
           {isDraft && negativeSlips.length > 0 ? (
             <Alert
               type="error"
               showIcon
-              title={t("ปิดงวดไม่ได้ — {n} สลิปมียอดสุทธิติดลบ: {names} (แก้รายการหัก/รายการปรับก่อน)", {
+              title={t("ส่งอนุมัติไม่ได้ — {n} สลิปมียอดสุทธิติดลบ: {names} (แก้รายการหัก/รายการปรับก่อน)", {
                 n: negativeSlips.length,
                 names: `${negativeSlips
                   .slice(0, 5)
@@ -370,79 +458,127 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               style={{ marginBottom: 12 }}
             />
           ) : null}
-          {run.totals.warningCount > 0 ? (
+          {isDraft && zeroSlips.length > 0 ? (
+            <Alert
+              type="error"
+              showIcon
+              title={t("ส่งอนุมัติไม่ได้ — {n} สลิปมียอดสุทธิเป็น 0: {names} (แก้ไข หรือระบุว่าไม่คำนวณค่าจ้างงวดนี้)", {
+                n: zeroSlips.length,
+                names: `${zeroSlips
+                  .slice(0, 5)
+                  .map((s) => s.displayName)
+                  .join(", ")}${zeroSlips.length > 5 ? " ..." : ""}`,
+              })}
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
+          {isDraft && run.totals.warningCount > 0 ? (
             <Alert
               type="warning"
               showIcon
-              title={t("มี {n} สลิปที่มีคำเตือน (เช่น ไม่มีฐานค่าจ้าง, OT คิดเงินไม่ได้) — ตรวจก่อนปิดงวด", {
+              title={t("มี {n} สลิปที่มีคำเตือน (เช่น ไม่มีฐานค่าจ้าง, OT คิดเงินไม่ได้) — ตรวจก่อนส่งอนุมัติ", {
                 n: run.totals.warningCount,
               })}
               style={{ marginBottom: 12 }}
             />
           ) : null}
-          <Space wrap size={[12, 8]} style={{ marginBottom: 12 }}>
-            <Input
-              allowClear
-              size="small"
-              prefix={<SearchOutlined />}
-              placeholder={t("ค้นหา ชื่อ / รหัส / ตำแหน่ง / แผนก")}
-              style={{ width: 260 }}
-              value={filter.keyword}
-              onChange={(e) => setFilter((f) => ({ ...f, keyword: e.target.value }))}
-            />
-            <Select
-              size="small"
-              style={{ width: 120 }}
-              value={filter.payType}
-              onChange={(payType) => setFilter((f) => ({ ...f, payType }))}
-              options={[
-                { value: "ALL", label: t("ทุกประเภท") },
-                { value: "MONTHLY", label: t("รายเดือน") },
-                { value: "DAILY", label: t("รายวัน") },
-              ]}
-            />
-            <Select
-              size="small"
-              style={{ width: 190 }}
-              value={filter.status}
-              onChange={(status) => setFilter((f) => ({ ...f, status }))}
-              options={SLIP_STATUS_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
-            />
-            <Select
-              size="small"
-              allowClear
-              showSearch
-              placeholder={t("ทุกแผนก")}
-              style={{ width: 170 }}
-              value={filter.department || undefined}
-              onChange={(department) => setFilter((f) => ({ ...f, department: department ?? "" }))}
-              options={departmentOptions}
-            />
-            {rangeInputs(t("เงินเดือน/ค่าแรง"), "basePay")}
-            {rangeInputs(t("ค่า OT (บาท)"), "otAmount")}
-            {rangeInputs(t("สุทธิ"), "netPay")}
-            <Button
-              size="small"
-              icon={<ClearOutlined />}
-              disabled={!isSlipFilterActive(filter)}
-              onClick={() => setFilter(EMPTY_SLIP_FILTER)}
-            >
-              {t("ล้างตัวกรอง")}
-            </Button>
-          </Space>
-          <Table
-            rowKey="id"
-            size="small"
-            columns={columns}
-            dataSource={filteredSlips}
-            pagination={{
-              pageSize: 50,
-              showTotal: (total) =>
-                isSlipFilterActive(filter)
-                  ? t("พบ {n} จาก {total} คน", { n: total, total: run.slips.length })
-                  : t("ทั้งหมด {n} คน", { n: total }),
-            }}
-            tableLayout="auto"
+          <Tabs
+            activeKey={tab}
+            onChange={setTab}
+            items={[
+              {
+                key: "slips",
+                label: t("สลิปเงินเดือน"),
+                children: (
+                  <>
+              <Space wrap size={[12, 8]} style={{ marginBottom: 12 }}>
+                <Input
+                  allowClear
+                  size="small"
+                  prefix={<SearchOutlined />}
+                  placeholder={t("ค้นหา ชื่อ / รหัส / ตำแหน่ง / แผนก")}
+                  style={{ width: 260 }}
+                  value={filter.keyword}
+                  onChange={(e) => setFilter((f) => ({ ...f, keyword: e.target.value }))}
+                />
+                <Select
+                  size="small"
+                  style={{ width: 120 }}
+                  value={filter.payType}
+                  onChange={(payType) => setFilter((f) => ({ ...f, payType }))}
+                  options={[
+                    { value: "ALL", label: t("ทุกประเภท") },
+                    { value: "MONTHLY", label: t("รายเดือน") },
+                    { value: "DAILY", label: t("รายวัน") },
+                  ]}
+                />
+                <Select
+                  size="small"
+                  style={{ width: 190 }}
+                  value={filter.status}
+                  onChange={(status) => setFilter((f) => ({ ...f, status }))}
+                  options={SLIP_STATUS_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+                />
+                <Select
+                  size="small"
+                  allowClear
+                  showSearch
+                  placeholder={t("ทุกแผนก")}
+                  style={{ width: 170 }}
+                  value={filter.department || undefined}
+                  onChange={(department) => setFilter((f) => ({ ...f, department: department ?? "" }))}
+                  options={departmentOptions}
+                />
+                {rangeInputs(t("เงินเดือน/ค่าแรง"), "basePay")}
+                {rangeInputs(t("ค่า OT (บาท)"), "otAmount")}
+                {rangeInputs(t("สุทธิ"), "netPay")}
+                <Button
+                  size="small"
+                  icon={<ClearOutlined />}
+                  disabled={!isSlipFilterActive(filter)}
+                  onClick={() => setFilter(EMPTY_SLIP_FILTER)}
+                >
+                  {t("ล้างตัวกรอง")}
+                </Button>
+              </Space>
+              <Table
+                rowKey="id"
+                size="small"
+                columns={columns}
+                dataSource={filteredSlips}
+                pagination={{
+                  pageSize: 50,
+                  showTotal: (total) =>
+                    isSlipFilterActive(filter)
+                      ? t("พบ {n} จาก {total} คน", { n: total, total: run.slips.length })
+                      : t("ทั้งหมด {n} คน", { n: total }),
+                }}
+                tableLayout="auto"
+              />
+                  </>
+                ),
+              },
+              {
+                key: "payments",
+                label: (
+                  <span>
+                    {t("การจ่ายเงิน")}{" "}
+                    {run.paymentSummary.count > 0 ? (
+                      <Badge
+                        count={`${run.paymentSummary.successCount}/${run.paymentSummary.count}`}
+                        color={run.paymentSummary.successCount === run.paymentSummary.count ? "green" : "blue"}
+                      />
+                    ) : null}
+                  </span>
+                ),
+                children: <PayrollPaymentsTab run={run} canPay={canPay} canExport={canExport} />,
+              },
+              {
+                key: "history",
+                label: t("ประวัติ"),
+                children: <PayrollHistoryTab events={run.events} exportBatches={run.exportBatches} />,
+              },
+            ]}
           />
           <PayrollAdjustmentsModal
             key={adjusting?.userId ?? "none"}
@@ -462,34 +598,57 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             onSubmit={recheck}
             onClose={() => setIssues([])}
           />
-          <Modal
-            open={cancelOpen}
+          <PayrollChecksModal open={checksOpen} runId={run.id} onClose={() => setChecksOpen(false)} />
+          <ReasonModal
+            open={reasonDialog === "sendBack"}
+            title={t("ส่งกลับแก้ไข")}
+            okText={t("ยืนยันส่งกลับแก้ไข")}
+            placeholder={t("เหตุผลที่ส่งกลับแก้ไข (บังคับ)")}
+            loading={sendBack.isPending}
+            onOk={(reason) => sendBack.mutateAsync({ id: run.id, reason })}
+            onClose={() => setReasonDialog(null)}
+          />
+          <ReasonModal
+            open={reasonDialog === "returnToDraft"}
+            title={t("ถอนอนุมัติกลับเป็นร่าง")}
+            okText={t("ยืนยันถอนกลับเป็นร่าง")}
+            placeholder={t("เหตุผลที่ถอนกลับเป็นร่าง (บังคับ)")}
+            notice={
+              <Alert
+                type="warning"
+                showIcon
+                title={t("รายการจ่ายที่สร้างไว้จะถูกลบ และต้องส่งอนุมัติใหม่ — ทำได้เฉพาะเมื่อยังไม่มีรายการจ่ายสำเร็จ/บางส่วน")}
+              />
+            }
+            loading={returnToDraft.isPending}
+            onOk={(reason) => returnToDraft.mutateAsync({ id: run.id, reason })}
+            onClose={() => setReasonDialog(null)}
+          />
+          <ReasonModal
+            open={reasonDialog === "cancel"}
             title={t("ยกเลิกงวดเงินเดือน")}
             okText={t("ยืนยันยกเลิกงวด")}
-            okButtonProps={{ danger: true }}
-            cancelText={t("ไม่ยกเลิก")}
-            confirmLoading={cancel.isPending}
-            onCancel={() => setCancelOpen(false)}
-            onOk={() =>
-              cancel.mutate(
-                { id: run.id, reason: reason.trim() || undefined },
-                {
-                  onSuccess: () => {
-                    setCancelOpen(false);
-                    setReason("");
-                  },
-                },
-              )
+            danger
+            placeholder={t("เหตุผลที่ยกเลิก (บังคับ)")}
+            notice={
+              <Alert
+                type="warning"
+                showIcon
+                title={t("ผลกระทบของการยกเลิก")}
+                description={
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    <li>{t("สลิปของงวดนี้ ({n} ใบ) ใช้ไม่ได้ และไม่นับในรายงาน", { n: run.totals.slipCount })}</li>
+                    <li>{t("ข้อมูลของงวดนี้จะไม่ถูกนำไปออก 50 ทวิ")}</li>
+                    <li>{t("รายการจ่ายที่สร้างไว้ (ถ้ามี) จะถูกลบ — ยกเลิกไม่ได้เมื่อมีรายการจ่ายแล้ว")}</li>
+                    <li>{t("งวดที่ยกเลิกแล้วไม่บล็อกการสร้างงวดใหม่ในช่วงวันเดียวกัน")}</li>
+                  </ul>
+                }
+              />
             }
-          >
-            <Input.TextArea
-              rows={3}
-              maxLength={2000}
-              placeholder={t("เหตุผล (ไม่บังคับ)")}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </Modal>
+            loading={cancel.isPending}
+            onOk={(reason) => cancel.mutateAsync({ id: run.id, reason })}
+            onClose={() => setReasonDialog(null)}
+          />
         </>
       ) : null}
     </Modal>

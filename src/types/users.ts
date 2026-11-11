@@ -54,6 +54,10 @@ export type AppUser = {
   taxExtraAllowance?: number;
   /** เลขประจำตัวประชาชน 13 หลัก — ใช้ออก 50 ทวิ */
   nationalId?: string | null;
+  /** บัญชีธนาคารรับเงินเดือน (ใช้ส่งออกรายการจ่าย) */
+  bankName?: string | null;
+  bankAccountNo?: string | null;
+  bankAccountName?: string | null;
   address?: string | null;
   canLogin: boolean;
   isActive: boolean;
@@ -108,6 +112,10 @@ export type CreateUserRequest = {
   taxExtraAllowance?: number;
   /** เลขประจำตัวประชาชน 13 หลัก — ใช้ออก 50 ทวิ */
   nationalId?: string | null;
+  /** บัญชีธนาคารรับเงินเดือน (ใช้ส่งออกรายการจ่าย) */
+  bankName?: string | null;
+  bankAccountNo?: string | null;
+  bankAccountName?: string | null;
   address?: string | null;
   canLogin?: boolean;
   password?: string;
@@ -146,6 +154,10 @@ export type UpdateUserRequest = {
   taxExtraAllowance?: number;
   /** เลขประจำตัวประชาชน 13 หลัก — ใช้ออก 50 ทวิ */
   nationalId?: string | null;
+  /** บัญชีธนาคารรับเงินเดือน (ใช้ส่งออกรายการจ่าย) */
+  bankName?: string | null;
+  bankAccountNo?: string | null;
+  bankAccountName?: string | null;
   address?: string | null;
   canLogin?: boolean;
   isActive?: boolean;

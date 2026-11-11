@@ -4,6 +4,7 @@ export type SlipStatusFilter =
   | "ALL"
   | "WARNING"
   | "NEGATIVE"
+  | "ZERO_NET"
   | "NO_BASE"
   | "HAS_OT"
   | "HAS_ADJUSTMENT"
@@ -13,6 +14,7 @@ export const SLIP_STATUS_OPTIONS: Array<{ value: SlipStatusFilter; label: string
   { value: "ALL", label: "ทุกสถานะ" },
   { value: "WARNING", label: "มีคำเตือน" },
   { value: "NEGATIVE", label: "สุทธิติดลบ" },
+  { value: "ZERO_NET", label: "สุทธิเป็น 0" },
   { value: "NO_BASE", label: "ไม่มีฐานค่าจ้าง" },
   { value: "HAS_OT", label: "มี OT" },
   { value: "HAS_ADJUSTMENT", label: "มีรายการปรับ" },
@@ -63,6 +65,8 @@ function matchStatus(s: PayrollSlip, status: SlipStatusFilter): boolean {
       return s.warnings.length > 0;
     case "NEGATIVE":
       return s.netPay < 0;
+    case "ZERO_NET":
+      return s.netPay === 0;
     case "NO_BASE":
       return !(s.basePay > 0);
     case "HAS_OT":

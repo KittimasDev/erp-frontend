@@ -24,6 +24,7 @@ import { EN_MASTERS_ADMIN } from "./modules/masters-admin";
 import { EN_MASTERS_NTFY } from "./modules/masters-ntfy";
 import { EN_HRM_SHIFTS } from "./modules/hrm-shifts";
 import { EN_HRM_TIME } from "./modules/hrm-time";
+import { EN_HRM_PAYROLL } from "./modules/hrm-payroll";
 import { EN_REPORTS } from "./modules/reports";
 import { EN_DASHBOARDS } from "./modules/dashboards";
 import { EN_LAB } from "./modules/lab";
@@ -65,6 +66,7 @@ export const EN_MESSAGES: Record<string, string> = {
   ...EN_MASTERS_NTFY,
   ...EN_HRM_SHIFTS,
   ...EN_HRM_TIME,
+  ...EN_HRM_PAYROLL,
   ...EN_REPORTS,
   ...EN_DASHBOARDS,
   ...EN_LAB,

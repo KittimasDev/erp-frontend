@@ -54,6 +54,9 @@ type UserFormValues = {
   taxExtraAllowance: number;
   nationalId?: string;
   address?: string;
+  bankName?: string;
+  bankAccountNo?: string;
+  bankAccountName?: string;
   canLogin: boolean;
   email?: string;
   phone?: string;
@@ -152,6 +155,9 @@ export default function UserFormModal({
         taxExtraAllowance: initialUser.taxExtraAllowance ?? 0,
         nationalId: initialUser.nationalId ?? undefined,
         address: initialUser.address ?? undefined,
+        bankName: initialUser.bankName ?? undefined,
+        bankAccountNo: initialUser.bankAccountNo ?? undefined,
+        bankAccountName: initialUser.bankAccountName ?? undefined,
         canLogin: initialUser.canLogin,
         email: initialUser.email,
         phone: initialUser.phone,
@@ -216,6 +222,9 @@ export default function UserFormModal({
         taxExtraAllowance: values.taxExtraAllowance ?? 0,
         nationalId: values.nationalId?.trim() ?? "",
         address: values.address?.trim() ?? "",
+        bankName: values.bankName?.trim() ?? "",
+        bankAccountNo: values.bankAccountNo?.trim() ?? "",
+        bankAccountName: values.bankAccountName?.trim() ?? "",
         canLogin: values.canLogin,
         email: values.email?.trim() || undefined,
         phone: values.phone?.trim() || undefined,
@@ -251,6 +260,9 @@ export default function UserFormModal({
         taxExtraAllowance: values.taxExtraAllowance ?? 0,
         nationalId: values.nationalId?.trim() ?? "",
         address: values.address?.trim() ?? "",
+        bankName: values.bankName?.trim() ?? "",
+        bankAccountNo: values.bankAccountNo?.trim() ?? "",
+        bankAccountName: values.bankAccountName?.trim() ?? "",
       canLogin: values.canLogin,
       email: values.email?.trim() || undefined,
       phone: values.phone?.trim() || undefined,
@@ -465,6 +477,20 @@ export default function UserFormModal({
 
         <Form.Item label={t("ที่อยู่ (สำหรับ 50 ทวิ)")} name="address">
           <Input.TextArea rows={2} maxLength={500} />
+        </Form.Item>
+
+        <Form.Item label={t("ธนาคารรับเงินเดือน")} name="bankName" extra={t("ใช้ส่งออกรายการจ่ายเงินเดือนให้ฝ่ายการเงิน")}>
+          <Input maxLength={100} placeholder={t("เช่น กสิกรไทย")} />
+        </Form.Item>
+        <Form.Item
+          label={t("เลขบัญชีธนาคาร")}
+          name="bankAccountNo"
+          rules={[{ pattern: /^[0-9-]{8,20}$/, message: t("เลขบัญชีต้องเป็นตัวเลข 8-20 หลัก") }]}
+        >
+          <Input inputMode="numeric" maxLength={20} />
+        </Form.Item>
+        <Form.Item label={t("ชื่อบัญชี")} name="bankAccountName">
+          <Input maxLength={200} />
         </Form.Item>
 
         <Form.Item
