@@ -294,6 +294,9 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
             {run ? (
           <Space wrap>
+            <Button icon={<ReloadOutlined />} loading={query.isFetching} onClick={() => void query.refetch()}>
+              {t("รีเฟรชข้อมูล")}
+            </Button>
             {canExport ? (
               <>
                 <Button icon={<DownloadOutlined />} onClick={() => void exportAs("xlsx")}>
