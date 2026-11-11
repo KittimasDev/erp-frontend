@@ -320,7 +320,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   if (loadError) {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="error" showIcon message={errText(loadError, t("โหลดข้อมูลไม่สำเร็จ"))} />
+        <Alert type="error" showIcon title={errText(loadError, t("โหลดข้อมูลไม่สำเร็จ"))} />
         <Button onClick={() => router.push(BASE_PATH)}>{t("กลับไปหน้ารายการ")}</Button>
       </Space>
     );
@@ -328,7 +328,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   if (!id && apIds.length === 0) {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="info" showIcon message={t("เลือก AP ที่ต้องการวางบิลจากหน้ารายการรอวางบิลก่อน")} />
+        <Alert type="info" showIcon title={t("เลือก AP ที่ต้องการวางบิลจากหน้ารายการรอวางบิลก่อน")} />
         <Button onClick={() => router.push(BASE_PATH)}>{t("ไปหน้ารายการรอวางบิล")}</Button>
       </Space>
     );
@@ -337,7 +337,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   if (detail && detail.status !== "DRAFT") {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="warning" showIcon message={t("ใบวางบิลนี้ยืนยันหรือยกเลิกแล้ว แก้ไขยอดไม่ได้")} />
+        <Alert type="warning" showIcon title={t("ใบวางบิลนี้ยืนยันหรือยกเลิกแล้ว แก้ไขยอดไม่ได้")} />
         <Button onClick={() => router.push(`${BASE_PATH}/${detail.id}`)}>{t("ดูรายละเอียด")}</Button>
       </Space>
     );
@@ -355,7 +355,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           </>
         }
       />
-      {!allowed ? <Alert type="warning" showIcon message={t("คุณไม่มีสิทธิ์บันทึกใบวางบิล")} /> : null}
+      {!allowed ? <Alert type="warning" showIcon title={t("คุณไม่มีสิทธิ์บันทึกใบวางบิล")} /> : null}
 
       <Card title={t("ข้อมูลเอกสาร")}>
         <Descriptions column={{ xs: 1, md: 2 }} bordered size="small">

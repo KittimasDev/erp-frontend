@@ -45,7 +45,7 @@ export default function MachineSelectionCard({ formula, choices, onChange }: Pro
           { code: formula.formulaCode },
         )}
       </Typography.Paragraph>
-      <Space direction="vertical" size={10} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={10} style={{ width: "100%" }}>
         {equipmentIds.map((formulaEquipmentId) => {
           const original = byId.get(formulaEquipmentId);
           const chosenId = choices[formulaEquipmentId] ?? formulaEquipmentId;

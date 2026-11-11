@@ -155,7 +155,7 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
   if (query.error) {
     return (
       <Space orientation="vertical" style={{ width: "100%" }}>
-        <Alert type="error" showIcon message={errText(query.error, t("โหลดใบวางบิลไม่สำเร็จ"))} />
+        <Alert type="error" showIcon title={errText(query.error, t("โหลดใบวางบิลไม่สำเร็จ"))} />
         <Button onClick={() => router.push(BASE_PATH)}>{t("กลับไปหน้ารายการ")}</Button>
       </Space>
     );
@@ -307,7 +307,7 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
         <Alert
           type="error"
           showIcon
-          message={`${t("ยกเลิกเมื่อ")} ${dateTime(n.cancelledAt)}${n.cancelledByName ? ` ${t("โดย")} ${n.cancelledByName}` : ""}`}
+          title={`${t("ยกเลิกเมื่อ")} ${dateTime(n.cancelledAt)}${n.cancelledByName ? ` ${t("โดย")} ${n.cancelledByName}` : ""}`}
           description={n.cancelReason ? `${t("เหตุผล")}: ${n.cancelReason}` : undefined}
         />
       ) : null}

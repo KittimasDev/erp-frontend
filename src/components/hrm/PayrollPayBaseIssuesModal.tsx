@@ -134,7 +134,7 @@ function Content({ issues, existing = [], loading, onSubmit, onClose }: Omit<Pro
       width={820}
       title={t("พบพนักงาน {n} คนที่ยังไม่ได้ตั้งเงินเดือน/ค่าแรงรายวัน", { n: issues.length })}
       onCancel={loading ? undefined : onClose}
-      maskClosable={false}
+      mask={{ closable: false }}
       footer={
         <Space>
           <Button onClick={onClose} disabled={loading}>

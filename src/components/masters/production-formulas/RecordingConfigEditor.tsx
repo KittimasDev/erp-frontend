@@ -560,7 +560,7 @@ export default function RecordingConfigEditor({
             <Alert
               type="warning"
               showIcon
-              message={t("ยังไม่ได้ลิงก์ {n} รายการ: {names}", { n: unlinkedNames.length, names: unlinkedNames.join(", ") })}
+              title={t("ยังไม่ได้ลิงก์ {n} รายการ: {names}", { n: unlinkedNames.length, names: unlinkedNames.join(", ") })}
               description={t("บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่ต้องลิงก์หรือยกเว้นพร้อมเหตุผลให้ครบก่อนเปิดใช้งาน")}
             />
           ) : null}

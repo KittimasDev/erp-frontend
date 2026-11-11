@@ -733,7 +733,7 @@ export default function AppTopHeader() {
               onOpenChange={setUserMenuOpen}
               content={userMenu}
               arrow={false}
-              overlayClassName={styles.userMenuPopover}
+              classNames={{ root: styles.userMenuPopover }}
             >
               <button
                 type="button"

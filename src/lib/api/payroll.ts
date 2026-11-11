@@ -35,7 +35,13 @@ export function validatePayrollRun(
   token: string,
   body: { periodStart: string; periodEnd: string; exclusions?: PayrollExclusionInput[] },
 ) {
-  return apiFetch<PayBaseValidationApiResponse>(`${BASE}/validate`, { method: "POST", token, body });
+  // ส่งเฉพาะฟิลด์ที่ endpoint รับ — backend ใช้ forbidNonWhitelisted จึงปฏิเสธ name/note ที่ติดมากับคำขอสร้างงวด
+  const { periodStart, periodEnd, exclusions } = body;
+  return apiFetch<PayBaseValidationApiResponse>(`${BASE}/validate`, {
+    method: "POST",
+    token,
+    body: { periodStart, periodEnd, exclusions },
+  });
 }
 
 /** ตั้งรายชื่อพนักงานที่ไม่คำนวณค่าจ้างในงวดนี้ (แทนที่ทั้งชุด) — ต้องคำนวณใหม่ต่อ */

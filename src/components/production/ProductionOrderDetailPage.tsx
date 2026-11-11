@@ -2062,7 +2062,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               type="warning"
               showIcon
               style={{ marginBottom: 12 }}
-              message={t("ยังรับเข้าคลังไม่ครบแผน — เข้าคลังแล้ว {approved} จากแผน {planned}", {
+              title={t("ยังรับเข้าคลังไม่ครบแผน — เข้าคลังแล้ว {approved} จากแผน {planned}", {
                 approved: fmt(String(outputHistorySummary.approved)),
                 planned: fmt(String(outputHistorySummary.planned)),
               })}
