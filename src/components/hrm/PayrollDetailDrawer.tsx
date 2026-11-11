@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Alert, App, Button, Descriptions, Drawer, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag } from "antd";
+import { Alert, App, Button, Descriptions, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ClearOutlined, DownloadOutlined, EditOutlined, PrinterOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 
@@ -148,15 +148,14 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
     {
       title: t("ลำดับ"),
       key: "seq",
-      width: 64,
+      width: 48,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
       title: t("พนักงาน"),
       key: "user",
-      fixed: "left",
-      width: 210,
+      width: 190,
       render: (_v, s) => (
         <div>
           <strong>{s.displayName}</strong>
@@ -172,22 +171,16 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       ),
     },
     {
-      title: t("ประเภท"),
-      key: "payType",
-      width: 90,
-      render: (_v, s) => (s.payType === "DAILY" ? t("รายวัน") : t("รายเดือน")),
-    },
-    {
       title: t("เงินเดือน / ค่าแรงรายวัน"),
       key: "base",
-      width: 150,
+      width: 140,
       align: "right",
       render: (_v, s) => `${money(s.basePay)} ${s.payType === "DAILY" ? t("/วัน") : t("/เดือน")}`,
     },
     {
       title: t("วัน (มา/ขาด/ลาจ่าย/ลาไม่จ่าย)"),
       key: "days",
-      width: 190,
+      width: 130,
       render: (_v, s) => `${s.attendedDays}/${s.absentDays}/${s.paidLeaveDays}/${s.unpaidLeaveDays}`,
     },
     { title: t("ค่าจ้างปกติ"), key: "reg", width: 110, align: "right", render: (_v, s) => money(s.regularPay) },
@@ -223,14 +216,12 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       key: "net",
       width: 120,
       align: "right",
-      fixed: "right",
       render: (_v, s) => <strong>{money(s.netPay)}</strong>,
     },
     {
       title: "",
       key: "actions",
-      width: 170,
-      fixed: "right",
+      width: 150,
       render: (_v, s) => (
         <Space size={4}>
           {isDraft ? (
@@ -249,18 +240,24 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   ];
 
   return (
-    <Drawer
+    <Modal
       open={Boolean(runId)}
-      onClose={() => {
+      onCancel={() => {
         setFilter(EMPTY_SLIP_FILTER);
         onClose();
       }}
-      size="large"
-      styles={{ wrapper: { width: "min(1200px, 96vw)" } }}
+      centered
+      width="min(1700px, 97vw)"
+      footer={null}
+      destroyOnHidden
+      styles={{ body: { maxHeight: "calc(100vh - 160px)", overflowY: "auto", overflowX: "hidden" } }}
       title={run ? `${run.name} · ${formatBeRange(run.periodStart, run.periodEnd, language)}` : t("งวดเงินเดือน")}
       loading={query.isLoading}
-      extra={
-        run ? (
+    >
+      {run ? (
+        <>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+            {run ? (
           <Space wrap>
             {canExport ? (
               <>
@@ -311,11 +308,8 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               </Button>
             ) : null}
           </Space>
-        ) : null
-      }
-    >
-      {run ? (
-        <>
+        ) : null}
+          </div>
           <Descriptions size="small" column={{ xs: 1, md: 3 }} style={{ marginBottom: 12 }}>
             <Descriptions.Item label={t("สถานะ")}>
               <Tag color={STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
@@ -421,7 +415,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                   ? t("พบ {n} จาก {total} คน", { n: total, total: run.slips.length })
                   : t("ทั้งหมด {n} คน", { n: total }),
             }}
-            scroll={{ x: 1440 }}
+            tableLayout="auto"
           />
           <PayrollAdjustmentsModal
             key={adjusting?.userId ?? "none"}
@@ -471,6 +465,6 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           </Modal>
         </>
       ) : null}
-    </Drawer>
+    </Modal>
   );
 }
