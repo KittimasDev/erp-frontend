@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useMaterialConversionRoutesQuery } from "@/hooks/material-conversions/useMaterialConversionQueries";
@@ -31,10 +32,17 @@ export default function MaterialConversionRoutesPage() {
   const actions = useScreenActionPermissions("MATERIAL_CONVERSION_ROUTES");
   const canWrite = actions.canAdd || actions.canEdit;
 
+  const [draftSearch, setDraftSearch] = useState("");
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MaterialConversionRoute | undefined>();
   const [drawerRouteId, setDrawerRouteId] = useState<string | undefined>();
+
+  const applyFilters = () => setSearch(draftSearch);
+  const clearFilters = () => {
+    setDraftSearch("");
+    setSearch("");
+  };
 
   const listQuery = useMaterialConversionRoutesQuery(
     search.trim() ? { search: search.trim() } : undefined,
@@ -182,26 +190,17 @@ export default function MaterialConversionRoutesPage() {
           }
         />
 
-        <div className={masterStyles.filterCard}>
-          <div className={masterStyles.filterHeader}>
-            <div>
-              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
-              <h3>{t("รายการเส้นทาง")}</h3>
-              <p>{t("ทั้งหมด {n} เส้นทาง", { n: routes.length })}</p>
-            </div>
-          </div>
-          <div className={masterStyles.filterForm}>
-            <div className={masterStyles.formGrid}>
-              <Input
-                allowClear
-                prefix={<SearchOutlined />}
-                placeholder={t("ค้นหาด้วยรหัสหรือชื่อเส้นทาง")}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("ค้นหา")} wide>
+            <Input
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้นหาด้วยรหัสหรือชื่อเส้นทาง")}
+              value={draftSearch}
+              onChange={(e) => setDraftSearch(e.target.value)}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>

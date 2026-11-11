@@ -57,6 +57,7 @@ import PendingPrItemsPanel, {
 } from "./PendingPrItemsPanel";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import styles from "./PurchaseOrdersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -194,6 +195,10 @@ export default function PurchaseOrdersListPage() {
     return parsed?.isValid() ? parsed : null;
   });
   const [itemIds, setItemIds] = useState<string[]>(() => csvParam("items"));
+  /* draft ของตัวกรองตาราง "ใบขอซื้อรอสร้างใบสั่งซื้อ" — applied อยู่ใน URL (prItems) */
+  const [draftPendingItemIds, setDraftPendingItemIds] = useState<string[]>(() =>
+    csvParam("prItems"),
+  );
   const poNoParam = searchParams.get("poNo") ?? "";
   const statusParam = searchParams.get("status") ?? "";
   const dateParam = searchParams.get("date") ?? "";
@@ -776,19 +781,6 @@ export default function PurchaseOrdersListPage() {
             {t("ใบขอซื้อรอสร้างใบสั่งซื้อ")} <strong>{pendingTotal}</strong>{" "}
             {t("รายการ")}
           </div>
-          <Select
-            allowClear
-            showSearch
-            mode="multiple"
-            maxTagCount="responsive"
-            optionFilterProp="label"
-            className={styles.toolbarItemSelect}
-            placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
-            aria-label={t("สินค้าในคิวใบขอซื้อ")}
-            value={pendingItemIds}
-            onChange={(value) => setPendingItemIds(value)}
-            options={itemOptions}
-          />
           {selectedLines.length ? (
             <div className={styles.selectionActions}>
               <span className={styles.selectionCount}>
@@ -821,6 +813,30 @@ export default function PurchaseOrdersListPage() {
             </div>
           ) : null}
         </div>
+
+        <FilterCard
+          onSearch={() => setPendingItemIds(draftPendingItemIds)}
+          onClear={() => {
+            setDraftPendingItemIds([]);
+            setPendingItemIds([]);
+          }}
+          loading={pendingQuery.isFetching}
+        >
+          <FilterField label={t("สินค้า")} wide>
+            <Select
+              allowClear
+              showSearch
+              mode="multiple"
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+              aria-label={t("สินค้าในคิวใบขอซื้อ")}
+              value={draftPendingItemIds}
+              onChange={(value) => setDraftPendingItemIds(value)}
+              options={itemOptions}
+            />
+          </FilterField>
+        </FilterCard>
 
         <Table
           rowKey="id"

@@ -5,6 +5,7 @@ import { Button, Select, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EditOutlined, PlusOutlined, ToolOutlined } from "@ant-design/icons";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
   useCreateShutdownPlanMutation,
@@ -28,6 +29,8 @@ export default function ShutdownPlansPage() {
   const t = useT();
   const lang = useLanguage();
   const [page, setPage] = useState(1);
+  // draft = ค่าที่กำลังเลือก · status = ค่าที่ใช้กรองตารางจริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const [draftStatus, setDraftStatus] = useState<StatusFilter>("ACTIVE");
   const [status, setStatus] = useState<StatusFilter>("ACTIVE");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ShutdownPlan | null>(null);
@@ -37,6 +40,16 @@ export default function ShutdownPlansPage() {
   const createMutation = useCreateShutdownPlanMutation();
   const updateMutation = useUpdateShutdownPlanMutation();
   const plans = plansQuery.data?.data ?? [];
+
+  const applyFilters = () => {
+    setStatus(draftStatus);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftStatus("ACTIVE");
+    setStatus("ACTIVE");
+    setPage(1);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -175,22 +188,27 @@ export default function ShutdownPlansPage() {
           }
         />
 
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <div>
-              <h3>{t("รายการแผน")}</h3>
-              <p>{t("กดชื่อแผนเพื่อกำหนดผู้ทำงานและดูคำเตือน")}</p>
-            </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={plansQuery.isFetching}>
+          <FilterField label={t("สถานะ")}>
             <Select<StatusFilter>
-              value={status}
-              style={{ width: 160 }}
-              onChange={setStatus}
+              value={draftStatus}
+              style={{ width: "100%" }}
+              onChange={setDraftStatus}
               options={[
                 { value: "ACTIVE", label: t("ใช้งาน") },
                 { value: "CANCELLED", label: t("ยกเลิกแล้ว") },
                 { value: "ALL", label: t("ทั้งหมด") },
               ]}
             />
+          </FilterField>
+        </FilterCard>
+
+        <div className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <div>
+              <h3>{t("รายการแผน")}</h3>
+              <p>{t("กดชื่อแผนเพื่อกำหนดผู้ทำงานและดูคำเตือน")}</p>
+            </div>
           </div>
           <Table
             rowKey="id"
@@ -198,7 +216,7 @@ export default function ShutdownPlansPage() {
             columns={columns}
             dataSource={plans}
             loading={plansQuery.isFetching}
-            pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} แผน", { n: total }) }}
+            pagination={{ current: page, onChange: setPage, pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} แผน", { n: total }) }}
             scroll={{ x: 900 }}
             locale={{ emptyText: t("ยังไม่มีแผน Shutdown — กด สร้างแผน Shutdown") }}
           />

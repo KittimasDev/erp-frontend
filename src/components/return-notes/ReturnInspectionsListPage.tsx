@@ -10,6 +10,7 @@ import { usePendingInspectionsQuery } from "@/hooks/return-notes/useReturnNotesQ
 import type { ReturnNote } from "@/types/return-notes";
 import styles from "./ReturnNotesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { useT } from "@/lib/i18n/useT";
 
 function formatQty(value: string) {
@@ -118,21 +119,29 @@ export default function ReturnInspectionsListPage() {
         subtitle={t("สินค้าที่รับเข้าคลังตรวจสอบแล้ว รอคัดแยกของดีและของเสีย")}
       />
 
-      <div className={styles.filterCard}>
-        <Input
-          allowClear
-          prefix={<SearchOutlined />}
-          placeholder={t("ค้นหาเลขที่ใบคืน ลูกค้า หรือ SO")}
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          onPressEnter={() => {
-            setPage(1);
-            setApplied(keyword.trim());
-          }}
-          style={{ maxWidth: 360 }}
-          aria-label={t("ค้นหารายการรอตรวจสอบ")}
-        />
-      </div>
+      <FilterCard
+        onSearch={() => {
+          setPage(1);
+          setApplied(keyword.trim());
+        }}
+        onClear={() => {
+          setPage(1);
+          setKeyword("");
+          setApplied("");
+        }}
+        loading={query.isFetching}
+      >
+        <FilterField label={t("ค้นหา")} wide>
+          <Input
+            allowClear
+            prefix={<SearchOutlined />}
+            placeholder={t("ค้นหาเลขที่ใบคืน ลูกค้า หรือ SO")}
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            aria-label={t("ค้นหารายการรอตรวจสอบ")}
+          />
+        </FilterField>
+      </FilterCard>
 
       <Table
         rowKey="id"

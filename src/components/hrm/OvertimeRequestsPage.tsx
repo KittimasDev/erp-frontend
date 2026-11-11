@@ -38,6 +38,7 @@ import {
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useReviewOvertimeRequestMutation } from "@/hooks/overtime/useOvertimeMutations";
 import {
@@ -63,6 +64,8 @@ const MUTED = "#77777C";
 /** DRAFT = รออนุมัติ — ตั้งเป็นแท็บแรกเพราะเป็นงานที่ต้องทำ */
 type StatusTab = "DRAFT" | "APPROVED" | "REJECTED" | "CANCELLED" | "ALL";
 
+type OvertimeFilters = { range: [Dayjs, Dayjs]; keyword: string };
+
 function formatHours(value: string | number, lang: "th" | "en") {
   const n = Number(value);
   return Number.isNaN(n)
@@ -79,12 +82,25 @@ export default function OvertimeRequestsPage() {
   const today = dayjs();
 
   const [tab, setTab] = useState<StatusTab>("DRAFT");
-  const [range, setRange] = useState<[Dayjs, Dayjs]>([
-    today.startOf("month"),
-    today.endOf("month"),
-  ]);
-  const [keyword, setKeyword] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
+  // draft = ค่าที่กำลังกรอก · applied = ค่าที่ใช้กรองจริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const defaultFilters = (): OvertimeFilters => ({
+    range: [today.startOf("month"), today.endOf("month")],
+    keyword: "",
+  });
+  const [draft, setDraft] = useState<OvertimeFilters>(defaultFilters);
+  const [applied, setApplied] = useState<OvertimeFilters>(defaultFilters);
+  const { range } = applied;
+  const appliedKeyword = applied.keyword;
+  const applyFilters = () => {
+    setApplied({ ...draft, keyword: draft.keyword.trim() });
+    setPage(1);
+  };
+  const clearFilters = () => {
+    const fresh = defaultFilters();
+    setDraft(fresh);
+    setApplied(defaultFilters());
+    setPage(1);
+  };
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -420,6 +436,41 @@ export default function OvertimeRequestsPage() {
           </div>
         </div>
 
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("ช่วงวันที่")} wide>
+            <Tooltip
+              title={
+                isPendingTab
+                  ? t("แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่")
+                  : undefined
+              }
+            >
+              <DatePicker.RangePicker
+                allowClear={false}
+                disabled={isPendingTab}
+                style={{ width: "100%" }}
+                value={draft.range}
+                format="DD/MM/YYYY"
+                onChange={(values) => {
+                  if (!values?.[0] || !values[1]) return;
+                  const next: [Dayjs, Dayjs] = [values[0], values[1]];
+                  setDraft((d) => ({ ...d, range: next }));
+                }}
+              />
+            </Tooltip>
+          </FilterField>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              placeholder={t("ค้นหาชื่อ / รหัส / เหตุผล")}
+              prefix={<SearchOutlined />}
+              value={draft.keyword}
+              onChange={(event) => setDraft((d) => ({ ...d, keyword: event.target.value }))}
+              style={{ width: "100%" }}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.toolbar}>
           <Segmented
             value={tab}
@@ -450,34 +501,6 @@ export default function OvertimeRequestsPage() {
           />
 
           <div className={styles.toolbarRight}>
-            <Tooltip
-              title={
-                isPendingTab
-                  ? t("แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่")
-                  : undefined
-              }
-            >
-              <DatePicker.RangePicker
-                allowClear={false}
-                disabled={isPendingTab}
-                value={range}
-                format="DD/MM/YYYY"
-                onChange={(values) => {
-                  if (!values?.[0] || !values[1]) return;
-                  setRange([values[0], values[1]]);
-                }}
-              />
-            </Tooltip>
-            <Input
-              allowClear
-              placeholder={t("ค้นหาชื่อ / รหัส / เหตุผล")}
-              prefix={<SearchOutlined />}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              onPressEnter={() => setAppliedKeyword(keyword)}
-              onBlur={() => setAppliedKeyword(keyword)}
-              style={{ width: 240 }}
-            />
             <Button
               icon={<ReloadOutlined />}
               onClick={() => {

@@ -38,6 +38,7 @@ import {
 } from "recharts";
 
 import { useT } from "@/lib/i18n/useT";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import AttendanceRecordModal from "@/components/hrm/AttendanceRecordModal";
 import {
@@ -61,6 +62,15 @@ const BLUE = "#1677ff";
 const MUTED = "#77777C";
 
 type RangeMode = "day" | "month" | "custom";
+
+type AttendanceFilters = {
+  mode: RangeMode;
+  day: Dayjs;
+  month: Dayjs;
+  customRange: [Dayjs, Dayjs];
+  keyword: string;
+  status: string | undefined;
+};
 
 const MODE_OPTIONS = [
   { label: "รายวัน", value: "day" as const },
@@ -115,17 +125,28 @@ export default function AttendancePage() {
     }
   };
 
-  const [mode, setMode] = useState<RangeMode>("month");
-  const [day, setDay] = useState<Dayjs>(today);
-  const [month, setMonth] = useState<Dayjs>(today);
-  const [customRange, setCustomRange] = useState<[Dayjs, Dayjs]>([
-    today.subtract(6, "day"),
-    today,
-  ]);
-
-  const [keyword, setKeyword] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
-  const [status, setStatus] = useState<string | undefined>();
+  // draft = ค่าที่กำลังกรอก · applied = ค่าที่ใช้กรองจริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const defaultFilters = (): AttendanceFilters => ({
+    mode: "month",
+    day: today,
+    month: today,
+    customRange: [today.subtract(6, "day"), today],
+    keyword: "",
+    status: undefined,
+  });
+  const [draft, setDraft] = useState<AttendanceFilters>(defaultFilters);
+  const [applied, setApplied] = useState<AttendanceFilters>(defaultFilters);
+  const { mode, day, month, customRange, status } = applied;
+  const appliedKeyword = applied.keyword;
+  const applyFilters = () => {
+    setApplied({ ...draft, keyword: draft.keyword.trim() });
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(defaultFilters());
+    setApplied(defaultFilters());
+    setPage(1);
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AttendanceRecord | null>(null);
 
@@ -356,78 +377,74 @@ export default function AttendancePage() {
             </div>
         </PageHeader>
 
-        <div className={styles.toolbar}>
-          <label className={styles.filterField}>
-            <span>{t("ช่วงข้อมูล")}</span>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={recordsQuery.isFetching}>
+          <FilterField label={t("ช่วงข้อมูล")}>
             <Segmented
               options={MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
-              value={mode}
-              onChange={(value) => setMode(value as RangeMode)}
+              value={draft.mode}
+              onChange={(value) => setDraft((d) => ({ ...d, mode: value as RangeMode }))}
             />
-          </label>
+          </FilterField>
 
-          {mode === "day" ? (
-            <label className={styles.filterField}>
-              <span>{t("วันที่")}</span>
+          {draft.mode === "day" ? (
+            <FilterField label={t("วันที่")}>
               <DatePicker
                 allowClear={false}
-                value={day}
+                style={{ width: "100%" }}
+                value={draft.day}
                 format="DD/MM/YYYY"
-                onChange={(value) => value && setDay(value)}
+                onChange={(value) => value && setDraft((d) => ({ ...d, day: value }))}
               />
-            </label>
+            </FilterField>
           ) : null}
 
-          {mode === "month" ? (
-            <label className={styles.filterField}>
-              <span>{t("เดือน")}</span>
+          {draft.mode === "month" ? (
+            <FilterField label={t("เดือน")}>
               <DatePicker
                 picker="month"
                 allowClear={false}
-                value={month}
+                style={{ width: "100%" }}
+                value={draft.month}
                 format="MM/YYYY"
-                onChange={(value) => value && setMonth(value)}
+                onChange={(value) => value && setDraft((d) => ({ ...d, month: value }))}
               />
-            </label>
+            </FilterField>
           ) : null}
 
-          {mode === "custom" ? (
-            <label className={styles.filterField}>
-              <span>{t("ช่วงวันที่")}</span>
+          {draft.mode === "custom" ? (
+            <FilterField label={t("ช่วงวันที่")} wide>
               <DatePicker.RangePicker
                 allowClear={false}
-                value={customRange}
+                style={{ width: "100%" }}
+                value={draft.customRange}
                 format="DD/MM/YYYY"
                 onChange={(values) => {
                   if (!values?.[0] || !values[1]) return;
-                  setCustomRange([values[0], values[1]]);
+                  const next: [Dayjs, Dayjs] = [values[0], values[1]];
+                  setDraft((d) => ({ ...d, customRange: next }));
                 }}
               />
-            </label>
+            </FilterField>
           ) : null}
 
-          <label className={styles.filterField}>
-            <span>{t("ค้นหาพนักงาน")}</span>
+          <FilterField label={t("ค้นหาพนักงาน")}>
             <Input
               allowClear
               placeholder={t("ชื่อ หรือ รหัสพนักงาน")}
               prefix={<SearchOutlined />}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              onPressEnter={() => setAppliedKeyword(keyword)}
-              onBlur={() => setAppliedKeyword(keyword)}
-              style={{ width: 220 }}
+              value={draft.keyword}
+              onChange={(event) => setDraft((d) => ({ ...d, keyword: event.target.value }))}
+              style={{ width: "100%" }}
             />
-          </label>
+          </FilterField>
 
-          <label className={styles.filterField}>
-            <span>{t("สถานะ")}</span>
+          <FilterField label={t("สถานะ")}>
             <Select
               allowClear
               placeholder={t("ทั้งหมด")}
-              value={status}
-              onChange={setStatus}
-              style={{ width: 140 }}
+              value={draft.status}
+              onChange={(v) => setDraft((d) => ({ ...d, status: v }))}
+              style={{ width: "100%" }}
               options={[
                 { label: t("ปกติ"), value: "PRESENT" },
                 { label: t("สาย"), value: "LATE" },
@@ -435,8 +452,10 @@ export default function AttendancePage() {
                 { label: t("ลางาน"), value: "ON_LEAVE" },
               ]}
             />
-          </label>
+          </FilterField>
+        </FilterCard>
 
+        <div className={styles.toolbar}>
           <Button
             icon={<ReloadOutlined />}
             onClick={() => {

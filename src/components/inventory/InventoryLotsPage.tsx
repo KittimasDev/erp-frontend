@@ -14,13 +14,13 @@ import {
   Typography,
 } from "antd";
 import {
-  ClearOutlined,
   SearchOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { tNow, useT } from "@/lib/i18n/useT";
 import LotQcModal from "./LotQcModal";
@@ -465,11 +465,13 @@ export default function InventoryLotsPage() {
       dateTo: draft.receivedRange?.[1]?.format("YYYY-MM-DD"),
       ...scopeFilter,
     });
+    setPage(1);
   };
 
   const handleClear = () => {
     setDraft({ q: "", hasStock: true, nearExpiry: false });
     setFilters({ hasStock: true, ...scopeFilter });
+    setPage(1);
   };
 
   return (
@@ -575,128 +577,105 @@ export default function InventoryLotsPage() {
           </div>
         </div>
 
+        <FilterCard onSearch={handleSearch} onClear={handleClear} loading={lotsQuery.isFetching}>
+          <FilterField label={t("คลัง")}>
+            <Select
+              allowClear
+              showSearch
+              style={{ width: "100%" }}
+              optionFilterProp="label"
+              placeholder={t("ทุกคลัง")}
+              options={warehouseOptions}
+              value={draft.warehouseId}
+              onChange={(value) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  warehouseId: value,
+                  locationId: undefined,
+                }))
+              }
+            />
+          </FilterField>
+          <FilterField label={t("ตำแหน่ง")}>
+            <Select
+              allowClear
+              showSearch
+              style={{ width: "100%" }}
+              optionFilterProp="label"
+              placeholder={
+                draft.warehouseId ? t("ทุกตำแหน่ง") : t("เลือกคลังก่อน")
+              }
+              options={locationOptions}
+              disabled={!draft.warehouseId}
+              value={draft.locationId}
+              onChange={(value) =>
+                setDraft((prev) => ({ ...prev, locationId: value }))
+              }
+            />
+          </FilterField>
+          <FilterField label={t("สถานะ Lot")}>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("ทุกสถานะ")}
+              options={statusOptions}
+              value={draft.status}
+              onChange={(value) =>
+                setDraft((prev) => ({ ...prev, status: value }))
+              }
+            />
+          </FilterField>
+          <FilterField label={t("วันที่รับเข้า")} wide>
+            <DatePicker.RangePicker
+              allowEmpty={[true, true]}
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              placeholder={[t("ตั้งแต่"), t("ถึง")]}
+              value={draft.receivedRange ?? null}
+              onChange={(range) =>
+                setDraft((prev) => ({ ...prev, receivedRange: range }))
+              }
+            />
+          </FilterField>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+              placeholder={t("Lot / สินค้า / เอกสาร...")}
+              value={draft.q}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, q: e.target.value }))
+              }
+            />
+          </FilterField>
+          <FilterField label={t("ใกล้หมดอายุ")}>
+            <Switch
+              checked={draft.nearExpiry}
+              checkedChildren={t("ใกล้หมดอายุ")}
+              unCheckedChildren={t("ทั้งหมด")}
+              onChange={(checked) =>
+                setDraft((prev) => ({ ...prev, nearExpiry: checked }))
+              }
+            />
+          </FilterField>
+          <FilterField label={t("มียอด")}>
+            <Switch
+              checked={draft.hasStock}
+              checkedChildren={t("มียอด")}
+              unCheckedChildren={t("ทั้งหมด")}
+              onChange={(checked) =>
+                setDraft((prev) => ({ ...prev, hasStock: checked }))
+              }
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
               <h3>{t("รายการ Lot ในคลัง")}</h3>
               <p>{filterHint}</p>
-            </div>
-          </div>
-
-          <div className={styles.filterBar}>
-            <div className={styles.filterField} style={{ minWidth: 170 }}>
-              <span className={styles.filterLabel}>{t("คลัง")}</span>
-              <Select
-                allowClear
-                showSearch
-                className={styles.filterControl}
-                optionFilterProp="label"
-                placeholder={t("ทุกคลัง")}
-                options={warehouseOptions}
-                value={draft.warehouseId}
-                onChange={(value) =>
-                  setDraft((prev) => ({
-                    ...prev,
-                    warehouseId: value,
-                    locationId: undefined,
-                  }))
-                }
-              />
-            </div>
-            <div className={styles.filterField} style={{ minWidth: 170 }}>
-              <span className={styles.filterLabel}>{t("ตำแหน่ง")}</span>
-              <Select
-                allowClear
-                showSearch
-                className={styles.filterControl}
-                optionFilterProp="label"
-                placeholder={
-                  draft.warehouseId ? t("ทุกตำแหน่ง") : t("เลือกคลังก่อน")
-                }
-                options={locationOptions}
-                disabled={!draft.warehouseId}
-                value={draft.locationId}
-                onChange={(value) =>
-                  setDraft((prev) => ({ ...prev, locationId: value }))
-                }
-              />
-            </div>
-            <div className={styles.filterField} style={{ width: 130 }}>
-              <span className={styles.filterLabel}>{t("สถานะ Lot")}</span>
-              <Select
-                allowClear
-                className={styles.filterControl}
-                placeholder={t("ทุกสถานะ")}
-                options={statusOptions}
-                value={draft.status}
-                onChange={(value) =>
-                  setDraft((prev) => ({ ...prev, status: value }))
-                }
-              />
-            </div>
-            <div className={styles.filterField} style={{ width: 240 }}>
-              <span className={styles.filterLabel}>{t("วันที่รับเข้า")}</span>
-              <DatePicker.RangePicker
-                allowEmpty={[true, true]}
-                className={styles.filterControl}
-                format="DD/MM/YYYY"
-                placeholder={[t("ตั้งแต่"), t("ถึง")]}
-                value={draft.receivedRange ?? null}
-                onChange={(range) =>
-                  setDraft((prev) => ({ ...prev, receivedRange: range }))
-                }
-              />
-            </div>
-            <div className={styles.filterField} style={{ width: 230 }}>
-              <span className={styles.filterLabel}>{t("ค้นหา")}</span>
-              <Input
-                allowClear
-                className={styles.filterControl}
-                prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                placeholder={t("Lot / สินค้า / เอกสาร...")}
-                value={draft.q}
-                onChange={(e) =>
-                  setDraft((prev) => ({ ...prev, q: e.target.value }))
-                }
-                onPressEnter={handleSearch}
-              />
-            </div>
-            <div className={styles.stockToggle}>
-              <Switch
-                checked={draft.nearExpiry}
-                checkedChildren={t("ใกล้หมดอายุ")}
-                unCheckedChildren={t("ทั้งหมด")}
-                onChange={(checked) =>
-                  setDraft((prev) => ({ ...prev, nearExpiry: checked }))
-                }
-              />
-            </div>
-            <div className={styles.stockToggle}>
-              <Switch
-                checked={draft.hasStock}
-                checkedChildren={t("มียอด")}
-                unCheckedChildren={t("ทั้งหมด")}
-                onChange={(checked) =>
-                  setDraft((prev) => ({ ...prev, hasStock: checked }))
-                }
-              />
-            </div>
-            <div className={styles.filterActions}>
-              <Button
-                type="primary"
-                icon={<SearchOutlined />}
-                className={styles.searchButton}
-                onClick={handleSearch}
-              >
-                {t("ค้นหา")}
-              </Button>
-              <Button
-                icon={<ClearOutlined />}
-                className={styles.clearButton}
-                onClick={handleClear}
-              >
-                {t("ล้าง")}
-              </Button>
             </div>
           </div>
 
@@ -709,6 +688,8 @@ export default function InventoryLotsPage() {
               loading={lotsQuery.isFetching}
               rowClassName={(row) => expiryRowClass(row.expiryStatus)}
               pagination={{
+                current: page,
+                onChange: setPage,
                 pageSize: 15,
                 showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
                 hideOnSinglePage: true,

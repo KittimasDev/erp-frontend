@@ -45,6 +45,7 @@ import ProductionRoundDetailDrawer from "./ProductionRoundDetailDrawer";
 import { fmtDate } from "./schedule-dates";
 import styles from "./ProductionSchedulePage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { useT } from "@/lib/i18n/useT";
 
 const STATUS_LABEL: Record<ScheduleDisplayStatus, string> = {
@@ -90,8 +91,10 @@ export default function ProductionSchedulePage() {
         : requestedTab;
 
   const [month, setMonth] = useState<Dayjs>(dayjs());
-  const [keyword, setKeyword] = useState("");
-  const [status, setStatus] = useState<ScheduleDisplayStatus | "">("");
+  const [draft, setDraft] = useState<{ keyword: string; status: ScheduleDisplayStatus | "" }>({ keyword: "", status: "" });
+  const [applied, setApplied] = useState<{ keyword: string; status: ScheduleDisplayStatus | "" }>({ keyword: "", status: "" });
+  const [roundsPage, setRoundsPage] = useState(1);
+  const { keyword, status } = applied;
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [leadDays, setLeadDays] = useState<number>(15);
@@ -237,35 +240,51 @@ export default function ProductionSchedulePage() {
 
   const list = (
     <div style={{ display: "grid", gap: 12 }}>
-      <Space wrap>
-        <Input
-          aria-label={t("ค้นหารหัสรอบ")}
-          allowClear
-          placeholder={t("ค้นหารหัสรอบ")}
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          style={{ width: 220 }}
-        />
-        <Select
-          aria-label={t("กรองสถานะ")}
-          allowClear
-          placeholder={t("สถานะ")}
-          value={status || undefined}
-          onChange={(value) => setStatus(value ?? "")}
-          style={{ width: 200 }}
-          options={[
-            { value: "PENDING", label: t(STATUS_LABEL.PENDING) },
-            { value: "CONFIRMED", label: t(STATUS_LABEL.CONFIRMED) },
-            { value: "OVERDUE", label: t(STATUS_LABEL.OVERDUE) },
-          ]}
-        />
-      </Space>
+      <FilterCard
+        onSearch={() => {
+          setApplied(draft);
+          setRoundsPage(1);
+        }}
+        onClear={() => {
+          const defaults = { keyword: "", status: "" as const };
+          setDraft(defaults);
+          setApplied(defaults);
+          setRoundsPage(1);
+        }}
+        loading={roundsQuery.isFetching}
+      >
+        <FilterField label={t("ค้นหา")}>
+          <Input
+            aria-label={t("ค้นหารหัสรอบ")}
+            allowClear
+            placeholder={t("ค้นหารหัสรอบ")}
+            value={draft.keyword}
+            onChange={(event) => setDraft((d) => ({ ...d, keyword: event.target.value }))}
+            style={{ width: "100%" }}
+          />
+        </FilterField>
+        <FilterField label={t("สถานะ")}>
+          <Select
+            aria-label={t("กรองสถานะ")}
+            allowClear
+            placeholder={t("สถานะ")}
+            value={draft.status || undefined}
+            onChange={(value) => setDraft((d) => ({ ...d, status: value ?? "" }))}
+            style={{ width: "100%" }}
+            options={[
+              { value: "PENDING", label: t(STATUS_LABEL.PENDING) },
+              { value: "CONFIRMED", label: t(STATUS_LABEL.CONFIRMED) },
+              { value: "OVERDUE", label: t(STATUS_LABEL.OVERDUE) },
+            ]}
+          />
+        </FilterField>
+      </FilterCard>
       <Table
         rowKey="id"
         columns={columns}
         dataSource={filtered}
         loading={roundsQuery.isLoading}
-        pagination={{ pageSize: 12, showSizeChanger: false }}
+        pagination={{ current: roundsPage, onChange: setRoundsPage, pageSize: 12, showSizeChanger: false }}
         locale={{ emptyText: items.length === 0 ? t("ยังไม่มีแผนการผลิต") : t("ไม่พบรอบตามเงื่อนไข") }}
       />
     </div>

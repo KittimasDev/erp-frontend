@@ -42,6 +42,7 @@ import {
 } from "@/hooks/gl-accounts/useGlAccounts";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { GlAccount } from "@/types/gl-accounts";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "MASTERS_GL_ACCOUNTS";
@@ -117,6 +118,17 @@ export default function GlAccountsPage() {
       glAccountId: valueOf(s.settingKey, s.glAccountId),
     }));
     saveSettings.mutate(payload, { onSuccess: () => setDraft({}) });
+  };
+
+  const applyFilters = () => {
+    setKeyword(search.trim());
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setKeyword("");
+    setPage(1);
   };
 
   const openForm = (target: GlAccount | "new") => {
@@ -244,6 +256,18 @@ export default function GlAccountsPage() {
         </Form>
       </Card>
 
+      <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={accountsQuery.isFetching}>
+        <FilterField label={t("ค้นรหัสหรือชื่อบัญชี")}>
+          <Input
+            allowClear
+            placeholder={t("ค้นรหัสหรือชื่อบัญชี")}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            style={{ width: "100%" }}
+          />
+        </FilterField>
+      </FilterCard>
+
       <Card
         title={t("ผังบัญชี")}
         extra={
@@ -254,17 +278,6 @@ export default function GlAccountsPage() {
           ) : null
         }
       >
-        <Input.Search
-          allowClear
-          placeholder={t("ค้นรหัสหรือชื่อบัญชี")}
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onSearch={(value) => {
-            setKeyword(value.trim());
-            setPage(1);
-          }}
-          style={{ width: "100%", maxWidth: 320, marginBottom: 12 }}
-        />
         <Table
           rowKey="id"
           size="small"

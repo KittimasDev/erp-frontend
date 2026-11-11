@@ -21,6 +21,7 @@ import { CopyOutlined, PlusOutlined, ScanOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { useT } from "@/lib/i18n/useT";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
   useAttendanceDeviceEventsQuery,
@@ -65,7 +66,10 @@ export default function AttendanceDevicesPage() {
   const t = useT();
   const [createOpen, setCreateOpen] = useState(false);
   const [issued, setIssued] = useState<AttendanceDeviceWithKey | null>(null);
+  // draft = ค่าที่กำลังเลือก · eventStatus = ค่าที่ใช้กรอง log จริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const [draftEventStatus, setDraftEventStatus] = useState<string>();
   const [eventStatus, setEventStatus] = useState<string>();
+  const [eventPage, setEventPage] = useState(1);
   const [form] = Form.useForm<CreateValues>();
 
   const devicesQuery = useAttendanceDevicesQuery();
@@ -73,6 +77,16 @@ export default function AttendanceDevicesPage() {
   const create = useCreateAttendanceDeviceMutation();
   const update = useUpdateAttendanceDeviceMutation();
   const rotate = useRotateAttendanceDeviceKeyMutation();
+
+  const applyEventFilters = () => {
+    setEventStatus(draftEventStatus);
+    setEventPage(1);
+  };
+  const clearEventFilters = () => {
+    setDraftEventStatus(undefined);
+    setEventStatus(undefined);
+    setEventPage(1);
+  };
 
   const copyKey = async (key: string) => {
     try {
@@ -245,26 +259,28 @@ export default function AttendanceDevicesPage() {
                 label: t("log การสแกน"),
                 children: (
                   <>
-                    <div style={{ marginBottom: 8 }}>
-                      <Select
-                        allowClear
-                        placeholder={t("ทุกผลลัพธ์")}
-                        style={{ width: 200 }}
-                        value={eventStatus}
-                        onChange={setEventStatus}
-                        options={(Object.keys(DEVICE_SCAN_STATUS_LABEL) as DeviceScanStatus[]).map((k) => ({
-                          value: k,
-                          label: t(DEVICE_SCAN_STATUS_LABEL[k]),
-                        }))}
-                      />
-                    </div>
+                    <FilterCard onSearch={applyEventFilters} onClear={clearEventFilters} loading={eventsQuery.isFetching}>
+                      <FilterField label={t("สถานะ")}>
+                        <Select
+                          allowClear
+                          placeholder={t("ทุกผลลัพธ์")}
+                          style={{ width: "100%" }}
+                          value={draftEventStatus}
+                          onChange={setDraftEventStatus}
+                          options={(Object.keys(DEVICE_SCAN_STATUS_LABEL) as DeviceScanStatus[]).map((k) => ({
+                            value: k,
+                            label: t(DEVICE_SCAN_STATUS_LABEL[k]),
+                          }))}
+                        />
+                      </FilterField>
+                    </FilterCard>
                     <Table
                       rowKey="id"
                       className={styles.dataTable}
                       columns={eventColumns}
                       dataSource={eventsQuery.data?.data ?? []}
                       loading={eventsQuery.isFetching}
-                      pagination={{ pageSize: 20 }}
+                      pagination={{ current: eventPage, onChange: setEventPage, pageSize: 20 }}
                       scroll={{ x: 800 }}
                       locale={{ emptyText: t("ยังไม่มีการสแกนเข้าระบบ") }}
                     />

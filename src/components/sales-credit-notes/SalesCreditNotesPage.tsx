@@ -17,6 +17,7 @@ import {
   type SalesCreditNotePendingRow,
 } from "@/types/sales-credit-notes";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
@@ -32,6 +33,7 @@ export default function SalesCreditNotesPage() {
   const [status, setStatus] = useState<string | undefined>();
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [draftStatus, setDraftStatus] = useState<string | undefined>();
   const listQuery = useSalesCreditNotesQuery({
     page,
     limit: 20,
@@ -126,6 +128,19 @@ export default function SalesCreditNotesPage() {
     },
   ];
 
+  const applyFilters = () => {
+    setPage(1);
+    setStatus(draftStatus);
+    setKeyword(search.trim());
+  };
+  const clearFilters = () => {
+    setPage(1);
+    setStatus(undefined);
+    setDraftStatus(undefined);
+    setSearch("");
+    setKeyword("");
+  };
+
   async function createFromDelivery(deliveryOrderId: string) {
     const group = groups.find((row) => row.deliveryOrderId === deliveryOrderId);
     if (!group) return;
@@ -190,28 +205,22 @@ export default function SalesCreditNotesPage() {
         </Space>
       </Card>
 
-      <Card title={t("ใบลดหนี้ทั้งหมด")}>
-        <Space style={{ marginBottom: 12 }} wrap>
-          <Input.Search
+      <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+        <FilterField label={t("ค้นหา")} wide>
+          <Input
             allowClear
             placeholder={t("เลขที่ / ลูกค้า / SO / ใบส่ง")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            onSearch={(value) => {
-              setPage(1);
-              setKeyword(value);
-            }}
-            style={{ width: 280 }}
           />
+        </FilterField>
+        <FilterField label={t("สถานะ")}>
           <Select
             allowClear
             placeholder={t("สถานะ")}
-            value={status}
-            style={{ width: 160 }}
-            onChange={(value) => {
-              setPage(1);
-              setStatus(value);
-            }}
+            value={draftStatus}
+            style={{ width: "100%" }}
+            onChange={(value) => setDraftStatus(value)}
             options={Object.entries(SALES_CREDIT_NOTE_STATUS_LABEL).map(
               ([value]) => ({
                 value,
@@ -219,7 +228,10 @@ export default function SalesCreditNotesPage() {
               }),
             )}
           />
-        </Space>
+        </FilterField>
+      </FilterCard>
+
+      <Card title={t("ใบลดหนี้ทั้งหมด")}>
         <Table
           rowKey="id"
           loading={listQuery.isLoading}

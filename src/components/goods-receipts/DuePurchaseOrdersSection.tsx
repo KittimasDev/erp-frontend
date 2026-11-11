@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Table, Tooltip } from "antd";
+import { Button, Select, Table, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   ClockCircleOutlined,
@@ -13,6 +13,7 @@ import {
 import dayjs from "dayjs";
 
 import { useT } from "@/lib/i18n/useT";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { useDuePurchaseOrdersQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import type {
   DuePurchaseOrderGroup,
@@ -66,6 +67,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
   const router = useRouter();
   const query = useDuePurchaseOrdersQuery();
   const [group, setGroup] = useState<DuePurchaseOrderGroup | undefined>();
+  const [draftGroup, setDraftGroup] = useState<DuePurchaseOrderGroup | undefined>();
   const [page, setPage] = useState(1);
 
   const allRows = useMemo(() => query.data?.data ?? [], [query.data]);
@@ -75,8 +77,13 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
     ? allRows.filter((row) => row.dueGroup === group)
     : allRows;
 
-  const selectGroup = (next?: DuePurchaseOrderGroup) => {
-    setGroup(next);
+  const applyFilters = () => {
+    setGroup(draftGroup);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftGroup(undefined);
+    setGroup(undefined);
     setPage(1);
   };
 
@@ -212,37 +219,23 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
           {t("PO ใกล้ถึงกำหนดรับสินค้า")} <strong>{allRows.length}</strong>{" "}
           {t("รายการ")}
         </div>
-        <div className={styles.chips} role="group" aria-label={t("กรองตามกำหนดส่ง")}>
-          <button
-            type="button"
-            className={`${styles.chip} ${!group ? styles.chipActive : ""}`}
-            onClick={() => selectGroup(undefined)}
-          >
-            {t("ทั้งหมด")}{" "}
-            <span className={styles.chipCount}>{allRows.length}</span>
-          </button>
-          <button
-            type="button"
-            className={`${styles.chip} ${styles.chipOverdue} ${
-              group === "OVERDUE" ? styles.chipActive : ""
-            }`}
-            onClick={() => selectGroup("OVERDUE")}
-          >
-            {t("ค้างรับ / เลยกำหนดส่ง")}{" "}
-            <span className={styles.chipCount}>{overdueCount}</span>
-          </button>
-          <button
-            type="button"
-            className={`${styles.chip} ${styles.chipSoon} ${
-              group === "DUE_SOON" ? styles.chipActive : ""
-            }`}
-            onClick={() => selectGroup("DUE_SOON")}
-          >
-            {t("ใกล้ถึงกำหนดส่ง")}{" "}
-            <span className={styles.chipCount}>{dueSoonCount}</span>
-          </button>
-        </div>
       </div>
+
+      <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={query.isFetching}>
+        <FilterField label={t("กรองตามกำหนดส่ง")}>
+          <Select
+            allowClear
+            placeholder={`${t("ทั้งหมด")} (${allRows.length})`}
+            style={{ width: "100%" }}
+            value={draftGroup}
+            onChange={(value) => setDraftGroup(value)}
+            options={[
+              { value: "OVERDUE", label: `${t("ค้างรับ / เลยกำหนดส่ง")} (${overdueCount})` },
+              { value: "DUE_SOON", label: `${t("ใกล้ถึงกำหนดส่ง")} (${dueSoonCount})` },
+            ]}
+          />
+        </FilterField>
+      </FilterCard>
 
       <Table
         rowKey={(row) => row.scheduleId ?? `po-${row.purchaseOrderId}`}

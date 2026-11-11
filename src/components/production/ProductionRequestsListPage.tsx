@@ -23,6 +23,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
   MaterialRow,
@@ -69,10 +70,29 @@ export default function ProductionRequestsListPage() {
   const canCreateProductionOrder =
     useScreenActionPermissions("PRODUCTION_ORDERS").canAdd;
 
+  const [draftRequestNo, setDraftRequestNo] = useState("");
+  const [draftSoNo, setDraftSoNo] = useState("");
+  const [draftStatus, setDraftStatus] = useState<string | undefined>();
   const [requestNo, setRequestNo] = useState("");
   const [soNo, setSoNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [page, setPage] = useState(1);
+
+  const applyFilters = () => {
+    setRequestNo(draftRequestNo);
+    setSoNo(draftSoNo);
+    setStatus(draftStatus);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftRequestNo("");
+    setDraftSoNo("");
+    setDraftStatus(undefined);
+    setRequestNo("");
+    setSoNo("");
+    setStatus(undefined);
+    setPage(1);
+  };
   const [selectedById, setSelectedById] = useState<
     Record<string, ProductionRequest>
   >({});
@@ -394,54 +414,41 @@ export default function ProductionRequestsListPage() {
           }
         />
 
-        <div className={masterStyles.filterCard}>
-          <div className={masterStyles.filterHeader}>
-            <div>
-              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
-              <h3>{t("รายการใบขอผลิต")}</h3>
-              <p>{t("ทั้งหมด {n} ใบ", { n: total })}</p>
-            </div>
-          </div>
-          <div className={masterStyles.filterForm}>
-            <div className={masterStyles.formGrid}>
-              <Input
-                allowClear
-                aria-label={t("ค้นหาเลขที่ใบขอผลิต")}
-                prefix={<SearchOutlined />}
-                placeholder={t("ค้นหาเลขที่ใบขอผลิต")}
-                value={requestNo}
-                onChange={(e) => {
-                  setRequestNo(e.target.value);
-                  setPage(1);
-                }}
-              />
-              <Input
-                allowClear
-                aria-label={t("ค้นหาเลขที่ใบสั่งขาย")}
-                prefix={<SearchOutlined />}
-                placeholder={t("ค้นหาเลขที่ใบสั่งขาย")}
-                value={soNo}
-                onChange={(e) => {
-                  setSoNo(e.target.value);
-                  setPage(1);
-                }}
-              />
-              <Select
-                allowClear
-                aria-label={t("กรองตามสถานะ")}
-                placeholder={t("สถานะทั้งหมด")}
-                value={status}
-                onChange={(value) => {
-                  setStatus(value);
-                  setPage(1);
-                }}
-                options={Object.entries(PRODUCTION_REQUEST_STATUS_FILTER_LABEL).map(
-                  ([value, label]) => ({ value, label: tProductionStatus(label) }),
-                )}
-              />
-            </div>
-          </div>
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("เลขที่ใบขอผลิต")}>
+            <Input
+              allowClear
+              aria-label={t("ค้นหาเลขที่ใบขอผลิต")}
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้นหาเลขที่ใบขอผลิต")}
+              value={draftRequestNo}
+              onChange={(e) => setDraftRequestNo(e.target.value)}
+            />
+          </FilterField>
+          <FilterField label={t("ใบสั่งขายอ้างอิง")}>
+            <Input
+              allowClear
+              aria-label={t("ค้นหาเลขที่ใบสั่งขาย")}
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้นหาเลขที่ใบสั่งขาย")}
+              value={draftSoNo}
+              onChange={(e) => setDraftSoNo(e.target.value)}
+            />
+          </FilterField>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              aria-label={t("กรองตามสถานะ")}
+              placeholder={t("สถานะทั้งหมด")}
+              value={draftStatus}
+              onChange={setDraftStatus}
+              options={Object.entries(PRODUCTION_REQUEST_STATUS_FILTER_LABEL).map(
+                ([value, label]) => ({ value, label: tProductionStatus(label) }),
+              )}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>

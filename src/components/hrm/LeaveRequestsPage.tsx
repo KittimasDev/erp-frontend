@@ -36,6 +36,7 @@ import {
 
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useReviewLeaveRequestMutation } from "@/hooks/leave/useLeaveMutations";
 import { getLeaveStaffingCheck } from "@/lib/api/leave";
@@ -73,6 +74,8 @@ const TYPE_CHART_COLOR: Record<string, string> = {
 /** DRAFT = รออนุมัติ — ตั้งเป็นแท็บแรกเพราะเป็นงานที่ต้องทำ */
 type StatusTab = "DRAFT" | "APPROVED" | "REJECTED" | "CANCELLED" | "ALL";
 
+type LeaveFilters = { range: [Dayjs, Dayjs]; leaveType: string | undefined; keyword: string };
+
 function formatRange(startDate: string, endDate: string) {
   const start = dayjs(startDate);
   const end = dayjs(endDate);
@@ -91,13 +94,30 @@ export default function LeaveRequestsPage() {
   const today = dayjs();
 
   const [tab, setTab] = useState<StatusTab>("DRAFT");
-  const [range, setRange] = useState<[Dayjs, Dayjs]>([
-    today.startOf("month"),
-    today.endOf("month"),
-  ]);
-  const [leaveType, setLeaveType] = useState<string | undefined>();
-  const [keyword, setKeyword] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
+  // draft = ค่าที่กำลังกรอก · applied = ค่าที่ใช้กรองจริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const defaultRange = (): [Dayjs, Dayjs] => [today.startOf("month"), today.endOf("month")];
+  const [draft, setDraft] = useState<LeaveFilters>(() => ({
+    range: defaultRange(),
+    leaveType: undefined,
+    keyword: "",
+  }));
+  const [applied, setApplied] = useState<LeaveFilters>(() => ({
+    range: defaultRange(),
+    leaveType: undefined,
+    keyword: "",
+  }));
+  const { range, leaveType } = applied;
+  const appliedKeyword = applied.keyword;
+  const applyFilters = () => {
+    setApplied({ ...draft, keyword: draft.keyword.trim() });
+    setPage(1);
+  };
+  const clearFilters = () => {
+    const fresh: LeaveFilters = { range: defaultRange(), leaveType: undefined, keyword: "" };
+    setDraft(fresh);
+    setApplied(fresh);
+    setPage(1);
+  };
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const rangeParams = {
@@ -438,6 +458,51 @@ export default function LeaveRequestsPage() {
           </div>
         </div>
 
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("ประเภท")}>
+            <Select
+              allowClear
+              placeholder={t("ทุกประเภท")}
+              value={draft.leaveType}
+              onChange={(v) => setDraft((d) => ({ ...d, leaveType: v }))}
+              style={{ width: "100%" }}
+              options={LEAVE_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+            />
+          </FilterField>
+          <FilterField label={t("ช่วงวันที่")} wide>
+            <Tooltip
+              title={
+                isPendingTab
+                  ? t("แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่")
+                  : undefined
+              }
+            >
+              <DatePicker.RangePicker
+                allowClear={false}
+                disabled={isPendingTab}
+                style={{ width: "100%" }}
+                value={draft.range}
+                format="DD/MM/YYYY"
+                onChange={(values) => {
+                  if (!values?.[0] || !values[1]) return;
+                  const next: [Dayjs, Dayjs] = [values[0], values[1]];
+                  setDraft((d) => ({ ...d, range: next }));
+                }}
+              />
+            </Tooltip>
+          </FilterField>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              placeholder={t("ค้นหาชื่อ / รหัส / เหตุผล")}
+              prefix={<SearchOutlined />}
+              value={draft.keyword}
+              onChange={(event) => setDraft((d) => ({ ...d, keyword: event.target.value }))}
+              style={{ width: "100%" }}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.toolbar}>
           <Segmented
             value={tab}
@@ -468,42 +533,6 @@ export default function LeaveRequestsPage() {
           />
 
           <div className={styles.toolbarRight}>
-            <Select
-              allowClear
-              placeholder={t("ทุกประเภท")}
-              value={leaveType}
-              onChange={setLeaveType}
-              style={{ width: 150 }}
-              options={LEAVE_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
-            />
-            <Tooltip
-              title={
-                isPendingTab
-                  ? t("แท็บรออนุมัติแสดงคำขอค้างทั้งหมด ไม่จำกัดช่วงวันที่")
-                  : undefined
-              }
-            >
-              <DatePicker.RangePicker
-                allowClear={false}
-                disabled={isPendingTab}
-                value={range}
-                format="DD/MM/YYYY"
-                onChange={(values) => {
-                  if (!values?.[0] || !values[1]) return;
-                  setRange([values[0], values[1]]);
-                }}
-              />
-            </Tooltip>
-            <Input
-              allowClear
-              placeholder={t("ค้นหาชื่อ / รหัส / เหตุผล")}
-              prefix={<SearchOutlined />}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              onPressEnter={() => setAppliedKeyword(keyword)}
-              onBlur={() => setAppliedKeyword(keyword)}
-              style={{ width: 220 }}
-            />
             <Button
               icon={<ReloadOutlined />}
               onClick={() => {

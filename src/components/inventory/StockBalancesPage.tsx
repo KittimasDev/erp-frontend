@@ -3,15 +3,15 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Button, Input, Select, Switch, Table, Tabs, Typography, Alert } from "antd";
+import { Input, Select, Switch, Table, Tabs, Typography, Alert } from "antd";
 import {
   AppstoreOutlined,
-  ClearOutlined,
   SearchOutlined,
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { tNow, useT } from "@/lib/i18n/useT";
 import {
@@ -376,22 +376,23 @@ export default function StockBalancesPage() {
       hasStock: draft.hasStock,
       ...scopeFilter,
     });
+    setPage(1);
   };
 
   const handleClear = () => {
     setDraft({ q: "", hasStock: true });
     setFilters({ hasStock: true, ...scopeFilter });
+    setPage(1);
   };
 
   const filterBar = (
-    <div className={styles.filterBar}>
-      <div className={styles.filterField}>
-        <span className={styles.filterLabel}>{t("คลัง")}</span>
+    <FilterCard onSearch={handleSearch} onClear={handleClear} loading={isFetching}>
+      <FilterField label={t("คลัง")}>
         <Select
           allowClear
           showSearch
           aria-label={t("คลังสินค้า")}
-          className={styles.filterControl}
+          style={{ width: "100%" }}
           optionFilterProp="label"
           placeholder={t("ทุกคลัง")}
           options={warehouseOptions}
@@ -404,14 +405,13 @@ export default function StockBalancesPage() {
             }))
           }
         />
-      </div>
-      <div className={styles.filterField}>
-        <span className={styles.filterLabel}>{t("ตำแหน่ง")}</span>
+      </FilterField>
+      <FilterField label={t("ตำแหน่ง")}>
         <Select
           allowClear
           showSearch
           aria-label={t("ตำแหน่งในคลัง")}
-          className={styles.filterControl}
+          style={{ width: "100%" }}
           options={locationOptions}
           disabled={!draft.warehouseId}
           value={draft.locationId}
@@ -419,21 +419,19 @@ export default function StockBalancesPage() {
             setDraft((prev) => ({ ...prev, locationId: value }))
           }
         />
-      </div>
-      <div className={styles.filterField}>
-        <span className={styles.filterLabel}>{t("ค้นหาสินค้า")}</span>
+      </FilterField>
+      <FilterField label={t("ค้นหาสินค้า")}>
         <Input
           allowClear
           aria-label={t("ค้นหาสินค้า")}
-          className={styles.filterControl}
+          style={{ width: "100%" }}
           prefix={<SearchOutlined />}
           placeholder={t("รหัส / ชื่อสินค้า")}
           value={draft.q}
           onChange={(e) => setDraft((prev) => ({ ...prev, q: e.target.value }))}
-          onPressEnter={handleSearch}
         />
-      </div>
-      <div className={styles.stockToggle}>
+      </FilterField>
+      <FilterField label={t("แสดงเฉพาะรายการที่มียอดคงเหลือ")}>
         <Switch
           aria-label={t("แสดงเฉพาะรายการที่มียอดคงเหลือ")}
           checked={draft.hasStock}
@@ -443,25 +441,8 @@ export default function StockBalancesPage() {
             setDraft((prev) => ({ ...prev, hasStock: checked }))
           }
         />
-      </div>
-      <div className={styles.filterActions}>
-        <Button
-          type="primary"
-          icon={<SearchOutlined />}
-          className={styles.searchButton}
-          onClick={handleSearch}
-        >
-          {t("ค้นหา")}
-        </Button>
-        <Button
-          icon={<ClearOutlined />}
-          className={styles.clearButton}
-          onClick={handleClear}
-        >
-          {t("ล้าง")}
-        </Button>
-      </div>
-    </div>
+      </FilterField>
+    </FilterCard>
   );
 
   return (
@@ -527,6 +508,8 @@ export default function StockBalancesPage() {
           </div>
         </div>
 
+        {filterBar}
+
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
@@ -534,8 +517,6 @@ export default function StockBalancesPage() {
               <p>{filterHint}</p>
             </div>
           </div>
-
-          {filterBar}
 
           <Tabs
             className={styles.viewTabs}

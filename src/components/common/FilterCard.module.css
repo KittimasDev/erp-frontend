@@ -1,0 +1,70 @@
+/* กล่องตัวกรองมาตรฐาน — อ้างอิงหน้า /purchase-requests (ตัวกรองแยกจากตาราง + ปุ่ม ล้าง/ค้นหา) */
+.card {
+  margin: 0 0 16px;
+  padding: 18px 22px;
+  border: 1px solid var(--unit-border, #e3e6da);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px 14px;
+}
+
+.item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.item label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ฟิลด์และปุ่มสูงเท่ากัน (40px) ทุกหน้า */
+.card :global(.ant-input-affix-wrapper),
+.card :global(.ant-picker),
+.card :global(.ant-input-number),
+.card :global(.ant-select:not(.ant-select-multiple) .ant-select-selector) {
+  min-height: 40px;
+}
+
+.card :global(.ant-input-affix-wrapper),
+.card :global(.ant-picker) {
+  width: 100%;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.actions :global(button) {
+  height: 40px;
+  min-width: 96px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .wide {
+    grid-column: auto;
+  }
+  .actions :global(button) {
+    flex: 1;
+  }
+}

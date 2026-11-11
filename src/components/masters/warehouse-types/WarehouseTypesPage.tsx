@@ -2,10 +2,11 @@
 import { useT, type TFunction } from "@/lib/i18n/useT";
 
 import { useMemo, useState } from "react";
-import { Button, Col, Input, Row, Select, Space, Table, Tag, Typography } from "antd";
+import { Button, Input, Select, Space, Table, Tag, Typography } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import {
@@ -51,8 +52,23 @@ function behaviorTags(type: WarehouseTypeMaster, t: TFunction) {
 
 export default function WarehouseTypesPage() {
   const t = useT();
+  const [draftSearch, setDraftSearch] = useState("");
+  const [draftStatus, setDraftStatus] = useState<boolean | undefined>(undefined);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<boolean | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const applyFilters = () => {
+    setSearch(draftSearch);
+    setStatus(draftStatus);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftSearch("");
+    setDraftStatus(undefined);
+    setSearch("");
+    setStatus(undefined);
+    setPage(1);
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<WarehouseTypeMaster | null>(null);
 
@@ -237,32 +253,30 @@ export default function WarehouseTypesPage() {
           }
         />
 
-        <div className={styles.filterCard}>
-          <Row gutter={[16, 12]}>
-            <Col xs={24} sm={16} lg={10}>
-              <Input
-                allowClear
-                placeholder={t("ค้นหารหัสหรือชื่อ")}
-                prefix={<SearchOutlined />}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </Col>
-            <Col xs={24} sm={8} lg={6}>
-              <Select
-                allowClear
-                style={{ width: "100%" }}
-                placeholder={t("สถานะทั้งหมด")}
-                value={status}
-                onChange={(value) => setStatus(value)}
-                options={[
-                  { value: true, label: t("ใช้งาน") },
-                  { value: false, label: t("ปิดใช้งาน") },
-                ]}
-              />
-            </Col>
-          </Row>
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              placeholder={t("ค้นหารหัสหรือชื่อ")}
+              prefix={<SearchOutlined />}
+              value={draftSearch}
+              onChange={(e) => setDraftSearch(e.target.value)}
+            />
+          </FilterField>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("สถานะทั้งหมด")}
+              value={draftStatus}
+              onChange={(value) => setDraftStatus(value)}
+              options={[
+                { value: true, label: t("ใช้งาน") },
+                { value: false, label: t("ปิดใช้งาน") },
+              ]}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>
@@ -289,7 +303,7 @@ export default function WarehouseTypesPage() {
               columns={columns}
               dataSource={items}
               loading={listQuery.isFetching}
-              pagination={{ pageSize: 20, showSizeChanger: false }}
+              pagination={{ current: page, onChange: setPage, pageSize: 20, showSizeChanger: false }}
               scroll={{ x: 1040 }}
               locale={{ emptyText: t("ไม่พบประเภทคลัง") }}
             />

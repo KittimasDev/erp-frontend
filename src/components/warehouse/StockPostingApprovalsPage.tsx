@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Table, Tag, Typography } from "antd";
+import { Button, Select, Table, Tag, Typography } from "antd";
 import {
   InboxOutlined,
   ReloadOutlined,
@@ -10,6 +10,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useQueries } from "@tanstack/react-query";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
@@ -74,10 +75,28 @@ export default function StockPostingApprovalsPage() {
   const router = useRouter();
   const t = useT();
   const lang = useLanguage();
+  const [draftStatus, setDraftStatus] = useState<string>(
+    StockPostingRequestStatus.PENDING_APPROVAL,
+  );
   const [status, setStatus] = useState<string>(
     StockPostingRequestStatus.PENDING_APPROVAL,
   );
   const [page, setPage] = useState(1);
+  const applyFilters = () => {
+    setStatus(draftStatus);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftStatus(StockPostingRequestStatus.PENDING_APPROVAL);
+    setStatus(StockPostingRequestStatus.PENDING_APPROVAL);
+    setPage(1);
+  };
+  /** การ์ดสรุปที่กดได้ = ทางลัดเลือกสถานะ (กดแล้วค้นหาทันที) */
+  const jumpToStatus = (next: string) => {
+    setDraftStatus(next);
+    setStatus(next);
+    setPage(1);
+  };
   const canApprove = useCanApproveStockPostingApprovals();
   const approvalsQuery = useStockPostingApprovalsQuery(status);
   const rows = useMemo(() => {
@@ -263,10 +282,7 @@ export default function StockPostingApprovalsPage() {
             ]
               .filter(Boolean)
               .join(" ")}
-            onClick={() => {
-              setStatus(StockPostingRequestStatus.APPROVED);
-              setPage(1);
-            }}
+            onClick={() => jumpToStatus(StockPostingRequestStatus.APPROVED)}
           >
             <span>{t("อนุมัติแล้ว")}</span>
             <strong>
@@ -286,10 +302,7 @@ export default function StockPostingApprovalsPage() {
             ]
               .filter(Boolean)
               .join(" ")}
-            onClick={() => {
-              setStatus(StockPostingRequestStatus.REJECTED);
-              setPage(1);
-            }}
+            onClick={() => jumpToStatus(StockPostingRequestStatus.REJECTED)}
           >
             <span>{stockPostingStatusLabel(StockPostingRequestStatus.REJECTED, lang)}</span>
             <strong>
@@ -316,36 +329,19 @@ export default function StockPostingApprovalsPage() {
           </div>
         ) : null}
 
-        <div className={styles.filterBar}>
-          <div className={styles.stageStrip}>
-            <span className={styles.stageStripLabel}>{t("สถานะ")}</span>
-            <div className={styles.stageChips}>
-              {STATUS_FILTERS.map((option) => {
-                const active = status === option.key;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className={[
-                      styles.stageChip,
-                      active ? styles.stageChipActive : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    title={t(option.description)}
-                    onClick={() => {
-                      setStatus(option.key);
-                      setPage(1);
-                    }}
-                  >
-                    <span>{stockPostingStatusLabel(option.key, lang)}</span>
-                    <em>{statusCounts[option.key] ?? 0}</em>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={approvalsQuery.isFetching}>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              style={{ width: "100%" }}
+              value={draftStatus}
+              onChange={setDraftStatus}
+              options={STATUS_FILTERS.map((option) => ({
+                value: option.key,
+                label: `${stockPostingStatusLabel(option.key, lang)} (${statusCounts[option.key] ?? 0})`,
+              }))}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={styles.card}>
           <div className={styles.listHeader}>

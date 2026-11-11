@@ -43,8 +43,21 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useT } from "@/lib/i18n/useT";
 import { tConvStatusLabel } from "@/types/material-conversion";
 import styles from "./MaterialConversionPage.module.css";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 
 const PAGE_SIZE = 20;
+
+type ConversionFilters = {
+  runNo: string;
+  batchNo: string;
+  routeId?: string;
+  stepCode?: string;
+  status?: string;
+  range: [Dayjs, Dayjs] | null;
+  includeLegacy: boolean;
+  hasJob?: boolean;
+};
+const DEFAULT_FILTERS: ConversionFilters = { runNo: "", batchNo: "", range: null, includeLegacy: true };
 const ROUTE_BASE = "/production/material-conversions";
 
 /** `2026-09-08` → `08/09/2026` — ตรงกับรูปแบบของ RangePicker ในกล่องค้นหา */
@@ -85,16 +98,16 @@ export default function MaterialConversionsListPage() {
   const [pickedTab, setPickedTab] = useState<"runs" | "jobs">("runs");
   const tab = tabTouched ? pickedTab : tabFromUrl;
 
-  const [runNo, setRunNo] = useState("");
-  const [batchNo, setBatchNo] = useState("");
-  const [pickedRouteId, setPickedRouteId] = useState<string | undefined>();
-  const [routeTouched, setRouteTouched] = useState(false);
-  const [stepCode, setStepCode] = useState<string | undefined>();
-  const [status, setStatus] = useState<string | undefined>();
-  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
-  const [includeLegacy, setIncludeLegacy] = useState(true);
-  const [hasJob, setHasJob] = useState<boolean | undefined>();
+  /*
+    draft = ค่าที่ผู้ใช้กำลังกรอก · applied = ค่าที่ใช้ยิง API จริง (เปลี่ยนเมื่อกดค้นหา/Enter เท่านั้น)
+    ตัวกรองชุดเดียวใช้ร่วมกันทั้งสองแท็บ (สลับแท็บแล้วเงื่อนไขยังอยู่)
+  */
+  const [draft, setDraft] = useState<ConversionFilters>(DEFAULT_FILTERS);
+  const [applied, setApplied] = useState<ConversionFilters>(DEFAULT_FILTERS);
+  const [draftRouteTouched, setDraftRouteTouched] = useState(false);
+  const [appliedRouteTouched, setAppliedRouteTouched] = useState(false);
   const [page, setPage] = useState(1);
+  const { runNo, batchNo, stepCode, status, range, includeLegacy, hasJob } = applied;
 
   const routesQuery = useMaterialConversionRoutesQuery();
   const routes = useMemo(() => routesQuery.data?.data ?? [], [routesQuery.data]);
@@ -106,27 +119,40 @@ export default function MaterialConversionsListPage() {
         : undefined,
     [routes, routeCodeFromUrl],
   );
-  const routeId = routeTouched ? pickedRouteId : (routeIdFromUrl ?? pickedRouteId);
+  /** เส้นทางที่ใช้ยิง API — ถ้าผู้ใช้ยังไม่เคยแตะ ใช้ค่าจาก ?route= ใน URL */
+  const routeId = appliedRouteTouched ? applied.routeId : (routeIdFromUrl ?? applied.routeId);
+  /** เส้นทางที่แสดงในช่องกรอก (draft) */
+  const draftRouteId = draftRouteTouched ? draft.routeId : (routeIdFromUrl ?? draft.routeId);
 
-  const setRouteId = (value?: string) => {
-    setRouteTouched(true);
-    setPickedRouteId(value);
+  const patchDraft = (patch: Partial<ConversionFilters>) => setDraft((d) => ({ ...d, ...patch }));
+
+  const applyFilters = () => {
+    setApplied(draft);
+    setAppliedRouteTouched(draftRouteTouched);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(DEFAULT_FILTERS);
+    setApplied(DEFAULT_FILTERS);
+    setDraftRouteTouched(false);
+    setAppliedRouteTouched(false);
+    setPage(1);
   };
 
   /** ขั้นตอนของเส้นทางที่เลือก — ไม่เลือกเส้นทางก็ให้เลือกจากทุกขั้น */
   const stepOptions = useMemo(() => {
-    const source = routeId
-      ? routes.filter((route) => route.id === routeId)
+    const source = draftRouteId
+      ? routes.filter((route) => route.id === draftRouteId)
       : routes;
     return source.flatMap((route) =>
       route.steps.map((step) => ({
         value: step.stepCode,
-        label: routeId
+        label: draftRouteId
           ? `${step.stepOrder}. ${step.nameTh}`
           : `${route.nameTh} · ${step.nameTh}`,
       })),
     );
-  }, [routes, routeId]);
+  }, [routes, draftRouteId]);
 
   const queryParams = useMemo(
     () => ({
@@ -480,6 +506,119 @@ export default function MaterialConversionsListPage() {
           ]}
         />
 
+        <FilterCard
+          onSearch={applyFilters}
+          onClear={clearFilters}
+          loading={tab === "jobs" ? jobsQuery.isFetching : listQuery.isFetching}
+        >
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              prefix={<SearchOutlined />}
+              placeholder={
+                tab === "jobs"
+                  ? t("ค้นหาเลขที่ใบงาน เช่น MCJ-20260908-001")
+                  : t("ค้นหาเลขที่เอกสาร เช่น TPS-20260907-001")
+              }
+              value={draft.runNo}
+              onChange={(e) => patchDraft({ runNo: e.target.value })}
+            />
+          </FilterField>
+          <FilterField label="Batch">
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("ค้นหาด้วย Batch")}
+              value={draft.batchNo}
+              onChange={(e) => patchDraft({ batchNo: e.target.value })}
+            />
+          </FilterField>
+          {tab === "runs" ? (
+            <FilterField label={t("สถานะ")}>
+              <Select
+                allowClear
+                style={{ width: "100%" }}
+                placeholder={t("สถานะทั้งหมด")}
+                value={draft.status}
+                onChange={(value) => patchDraft({ status: value })}
+                options={Object.entries(MATERIAL_CONVERSION_STATUS_LABEL).map(
+                  ([value, label]) => ({ value, label: tConvStatusLabel(label) }),
+                )}
+              />
+            </FilterField>
+          ) : null}
+          <FilterField label={t("เส้นทาง")}>
+            <Select
+              allowClear
+              showSearch
+              style={{ width: "100%" }}
+              optionFilterProp="label"
+              placeholder={t("เส้นทางทั้งหมด")}
+              value={draftRouteId}
+              onChange={(value) => {
+                setDraftRouteTouched(true);
+                patchDraft({ routeId: value, stepCode: undefined });
+              }}
+              options={routes.map((route) => ({
+                value: route.id,
+                label: route.nameTh,
+              }))}
+            />
+          </FilterField>
+          {tab === "runs" ? (
+            <FilterField label={t("ขั้นตอน")}>
+              <Select
+                allowClear
+                showSearch
+                style={{ width: "100%" }}
+                optionFilterProp="label"
+                placeholder={t("ขั้นตอนทั้งหมด")}
+                value={draft.stepCode}
+                onChange={(value) => patchDraft({ stepCode: value })}
+                options={stepOptions}
+              />
+            </FilterField>
+          ) : null}
+          <FilterField label={t("ช่วงวันที่")} wide>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              value={draft.range}
+              onChange={(value) => patchDraft({ range: value as [Dayjs, Dayjs] | null })}
+              format="DD/MM/YYYY"
+              placeholder={[t("ตั้งแต่วันที่"), t("ถึงวันที่")]}
+            />
+          </FilterField>
+          {tab === "runs" ? (
+            <FilterField label={t("ใบงานตามเส้นทาง")}>
+              <Select
+                allowClear
+                style={{ width: "100%" }}
+                placeholder={t("ทั้งหมด (ในใบงาน + เดี่ยว)")}
+                value={draft.hasJob}
+                onChange={(value) => patchDraft({ hasJob: value })}
+                options={[
+                  { value: true, label: t("เฉพาะที่อยู่ในใบงาน") },
+                  { value: false, label: t("เฉพาะเอกสารเดี่ยว") },
+                ]}
+              />
+            </FilterField>
+          ) : null}
+          {tab === "runs" ? (
+            <FilterField label={t("รวมประวัติจากเมนูเดิม")}>
+              <Tooltip title={t("เอกสารจาก ขั้นตอนเตรียมยาง / กระบวนการผลิต rCB จะแสดงรวมด้วย ติดป้าย “เมนูเดิม” และกดแล้วพาไปหน้าเดิม")}>
+                <span>
+                  <Switch
+                    size="small"
+                    checked={draft.includeLegacy}
+                    onChange={(checked) => patchDraft({ includeLegacy: checked })}
+                  />
+                </span>
+              </Tooltip>
+            </FilterField>
+          ) : null}
+        </FilterCard>
+
         {tab === "jobs" ? (
           <JobsTab
             rows={jobRows}
@@ -488,25 +627,6 @@ export default function MaterialConversionsListPage() {
             loading={jobsQuery.isFetching}
             onPage={setPage}
             onOpen={(id) => router.push(`${ROUTE_BASE}/jobs/${id}`)}
-            jobNo={runNo}
-            onJobNo={(value) => {
-              setRunNo(value);
-              setPage(1);
-            }}
-            batchNo={batchNo}
-            onBatchNo={(value) => {
-              setBatchNo(value);
-              setPage(1);
-            }}
-            routeId={routeId}
-            onRouteId={(value) => {
-              setRouteId(value);
-              setPage(1);
-            }}
-            routeOptions={routes.map((route) => ({
-              value: route.id,
-              label: route.nameTh,
-            }))}
           />
         ) : (
         <>
@@ -550,103 +670,6 @@ export default function MaterialConversionsListPage() {
               <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
               <h3 style={{ margin: 0 }}>{t("ใบแปรสภาพวัตถุดิบ")}</h3>
             </div>
-            <Tooltip title={t("เอกสารจาก ขั้นตอนเตรียมยาง / กระบวนการผลิต rCB จะแสดงรวมด้วย ติดป้าย “เมนูเดิม” และกดแล้วพาไปหน้าเดิม")}>
-              <label className={styles.filterToggle}>
-                <Switch
-                  size="small"
-                  checked={includeLegacy}
-                  onChange={(checked) => {
-                    setIncludeLegacy(checked);
-                    setPage(1);
-                  }}
-                />
-                {t("รวมประวัติจากเมนูเดิม")}
-              </label>
-            </Tooltip>
-          </div>
-
-          <div className={styles.filterGrid}>
-            <Input
-              allowClear
-              prefix={<SearchOutlined />}
-              placeholder={t("ค้นหาเลขที่เอกสาร เช่น TPS-20260907-001")}
-              value={runNo}
-              onChange={(e) => {
-                setRunNo(e.target.value);
-                setPage(1);
-              }}
-            />
-            <Input
-              allowClear
-              placeholder={t("ค้นหาด้วย Batch")}
-              value={batchNo}
-              onChange={(e) => {
-                setBatchNo(e.target.value);
-                setPage(1);
-              }}
-            />
-            <Select
-              allowClear
-              placeholder={t("สถานะทั้งหมด")}
-              value={status}
-              onChange={(value) => {
-                setStatus(value);
-                setPage(1);
-              }}
-              options={Object.entries(MATERIAL_CONVERSION_STATUS_LABEL).map(
-                ([value, label]) => ({ value, label: tConvStatusLabel(label) }),
-              )}
-            />
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder={t("เส้นทางทั้งหมด")}
-              value={routeId}
-              onChange={(value) => {
-                setRouteId(value);
-                setStepCode(undefined);
-                setPage(1);
-              }}
-              options={routes.map((route) => ({
-                value: route.id,
-                label: route.nameTh,
-              }))}
-            />
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder={t("ขั้นตอนทั้งหมด")}
-              value={stepCode}
-              onChange={(value) => {
-                setStepCode(value);
-                setPage(1);
-              }}
-              options={stepOptions}
-            />
-            <DatePicker.RangePicker
-              value={range}
-              onChange={(value) => {
-                setRange(value as [Dayjs, Dayjs] | null);
-                setPage(1);
-              }}
-              format="DD/MM/YYYY"
-              placeholder={[t("ตั้งแต่วันที่"), t("ถึงวันที่")]}
-            />
-            <Select
-              allowClear
-              placeholder={t("ทั้งหมด (ในใบงาน + เดี่ยว)")}
-              value={hasJob}
-              onChange={(value) => {
-                setHasJob(value);
-                setPage(1);
-              }}
-              options={[
-                { value: true, label: t("เฉพาะที่อยู่ในใบงาน") },
-                { value: false, label: t("เฉพาะเอกสารเดี่ยว") },
-              ]}
-            />
           </div>
 
           <Table
@@ -720,13 +743,6 @@ function JobsTab({
   loading,
   onPage,
   onOpen,
-  jobNo,
-  onJobNo,
-  batchNo,
-  onBatchNo,
-  routeId,
-  onRouteId,
-  routeOptions,
 }: {
   rows: MaterialConversionJob[];
   total: number;
@@ -734,13 +750,6 @@ function JobsTab({
   loading: boolean;
   onPage: (page: number) => void;
   onOpen: (id: string) => void;
-  jobNo: string;
-  onJobNo: (value: string) => void;
-  batchNo: string;
-  onBatchNo: (value: string) => void;
-  routeId?: string;
-  onRouteId: (value?: string) => void;
-  routeOptions: Array<{ value: string; label: string }>;
 }) {
   const t = useT();
   const columns: ColumnsType<MaterialConversionJob> = [
@@ -837,31 +846,6 @@ function JobsTab({
           <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
           <h3 style={{ margin: 0 }}>{t("ใบงานแปรสภาพตามเส้นทาง")}</h3>
         </div>
-      </div>
-
-      <div className={styles.filterGrid}>
-        <Input
-          allowClear
-          prefix={<SearchOutlined />}
-          placeholder={t("ค้นหาเลขที่ใบงาน เช่น MCJ-20260908-001")}
-          value={jobNo}
-          onChange={(e) => onJobNo(e.target.value)}
-        />
-        <Input
-          allowClear
-          placeholder={t("ค้นหาด้วย Batch")}
-          value={batchNo}
-          onChange={(e) => onBatchNo(e.target.value)}
-        />
-        <Select
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          placeholder={t("เส้นทางทั้งหมด")}
-          value={routeId}
-          onChange={onRouteId}
-          options={routeOptions}
-        />
       </div>
 
       <Table

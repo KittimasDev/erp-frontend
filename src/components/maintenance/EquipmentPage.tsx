@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, Select, Table, Tabs, Tag, Typography } from "antd";
+import { Button, Input, Select, Table, Tabs, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ClearOutlined, PlusOutlined, SearchOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
+import { PlusOutlined, SearchOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
@@ -25,6 +25,10 @@ import EquipmentFormModal from "./EquipmentFormModal";
 import EquipmentHistoryDrawer from "./EquipmentHistoryDrawer";
 import { equipmentStatusLabel, fmtDate } from "./maintenance-format";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
+
+type EquipmentFilters = { keyword: string; equipmentTypeId?: string; status?: string };
+const EMPTY_FILTERS: EquipmentFilters = { keyword: "" };
 
 const STATUS_COLOR: Record<string, string> = { ACTIVE: "green", UNDER_MAINTENANCE: "orange", RETIRED: "default" };
 
@@ -33,22 +37,31 @@ export default function EquipmentPage() {
   const t = useT();
   const lang = useLanguage();
   const [page, setPage] = useState(1);
-  const [keyword, setKeyword] = useState("");
-  const [applied, setApplied] = useState("");
-  const [equipmentTypeId, setEquipmentTypeId] = useState<string>();
-  const [status, setStatus] = useState<string>();
+  const [activeTab, setActiveTab] = useState("list");
+  const [draft, setDraft] = useState<EquipmentFilters>(EMPTY_FILTERS);
+  const [applied, setApplied] = useState<EquipmentFilters>(EMPTY_FILTERS);
   const [editing, setEditing] = useState<Equipment | "new" | null>(null);
   const [historyOf, setHistoryOf] = useState<Equipment | null>(null);
   const [breakdownFor, setBreakdownFor] = useState<string | "any" | null>(null);
 
   const typesQuery = useEquipmentTypesQuery();
   const allQuery = useEquipmentQuery({});
-  const query = useEquipmentQuery({ q: applied, equipmentTypeId, status });
+  const query = useEquipmentQuery({ q: applied.keyword, equipmentTypeId: applied.equipmentTypeId, status: applied.status });
   const create = useCreateEquipmentMutation();
   const update = useUpdateEquipmentMutation();
   const { canAdd, canEdit } = getScreenActionPermissions("EQUIPMENT");
 
   const rows = query.data?.data ?? [];
+
+  const applyFilters = () => {
+    setApplied(draft);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(EMPTY_FILTERS);
+    setApplied(EMPTY_FILTERS);
+    setPage(1);
+  };
 
   const columns: ColumnsType<Equipment> = [
     {
@@ -139,8 +152,47 @@ export default function EquipmentPage() {
           }
         />
 
+        {activeTab === "list" ? (
+          <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={query.isFetching}>
+            <FilterField label={t("ค้นหา")}>
+              <Input
+                allowClear
+                style={{ width: "100%" }}
+                prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+                placeholder={t("ค้นหารหัส / ชื่อ / Serial / หมวด...")}
+                value={draft.keyword}
+                onChange={(e) => setDraft((d) => ({ ...d, keyword: e.target.value }))}
+              />
+            </FilterField>
+            <FilterField label={t("ประเภท")}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder={t("ทุกประเภท")}
+                style={{ width: "100%" }}
+                value={draft.equipmentTypeId}
+                onChange={(v) => setDraft((d) => ({ ...d, equipmentTypeId: v }))}
+                options={(typesQuery.data ?? []).map((ty) => ({ value: ty.id, label: ty.nameTh }))}
+              />
+            </FilterField>
+            <FilterField label={t("สถานะ")}>
+              <Select
+                allowClear
+                placeholder={t("ทุกสถานะ")}
+                style={{ width: "100%" }}
+                value={draft.status}
+                onChange={(v) => setDraft((d) => ({ ...d, status: v }))}
+                options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value]) => ({ value, label: equipmentStatusLabel(value, lang) }))}
+              />
+            </FilterField>
+          </FilterCard>
+        ) : null}
+
         <div className={styles.tableCard}>
           <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
             tabBarStyle={{ padding: "0 20px", marginBottom: 0 }}
             items={[
               {
@@ -148,74 +200,7 @@ export default function EquipmentPage() {
                 label: t("เครื่องจักร"),
                 children: (
                   <>
-                    <div
-                      style={{
-                        padding: "16px 20px",
-                        borderBottom: "1px solid #f0f2f5",
-                        background: "#fafbfc",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 16,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                        <Input
-                          allowClear
-                          style={{ width: 280 }}
-                          prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                          placeholder={t("ค้นหารหัส / ชื่อ / Serial / หมวด...")}
-                          value={keyword}
-                          onChange={(e) => setKeyword(e.target.value)}
-                          onPressEnter={() => setApplied(keyword)}
-                          onBlur={() => setApplied(keyword)}
-                        />
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                            {t("ประเภท")}:
-                          </span>
-                          <Select
-                            allowClear
-                            showSearch
-                            optionFilterProp="label"
-                            placeholder={t("ทุกประเภท")}
-                            style={{ width: 180 }}
-                            value={equipmentTypeId}
-                            onChange={setEquipmentTypeId}
-                            options={(typesQuery.data ?? []).map((ty) => ({ value: ty.id, label: ty.nameTh }))}
-                          />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                            {t("สถานะ")}:
-                          </span>
-                          <Select
-                            allowClear
-                            placeholder={t("ทุกสถานะ")}
-                            style={{ width: 150 }}
-                            value={status}
-                            onChange={setStatus}
-                            options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value]) => ({ value, label: equipmentStatusLabel(value, lang) }))}
-                          />
-                        </div>
-                        {(keyword || applied || equipmentTypeId || status) && (
-                          <Button
-                            type="text"
-                            icon={<ClearOutlined />}
-                            onClick={() => {
-                              setKeyword("");
-                              setApplied("");
-                              setEquipmentTypeId(undefined);
-                              setStatus(undefined);
-                            }}
-                            style={{ color: "#64748b" }}
-                          >
-                            {t("ล้างตัวกรอง")}
-                          </Button>
-                        )}
-                      </div>
-
+                    <div style={{ padding: "12px 20px", borderBottom: "1px solid #f0f2f5", background: "#fafbfc", textAlign: "right" }}>
                       <div style={{ fontSize: 13, color: "#64748b" }}>
                         {t("แสดง")} <strong style={{ color: "#1e293b" }}>{rows.length}</strong> {t("จาก {n} เครื่อง", { n: allQuery.data?.data?.length ?? rows.length })}
                       </div>
@@ -226,7 +211,7 @@ export default function EquipmentPage() {
                       columns={columns}
                       dataSource={rows}
                       loading={query.isFetching}
-                      pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} เครื่อง", { n: total }) }}
+                      pagination={{ current: page, onChange: setPage, pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} เครื่อง", { n: total }) }}
                       scroll={{ x: 1000 }}
                       locale={{ emptyText: t("ยังไม่มีข้อมูลเครื่องจักร") }}
                     />

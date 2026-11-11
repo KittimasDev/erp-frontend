@@ -25,6 +25,7 @@ import {
 import dayjs, { type Dayjs } from "dayjs";
 import Link from "next/link";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
@@ -57,6 +58,15 @@ import {
 import PageHeader from "@/components/common/PageHeader";
 
 type RangeMode = "day" | "month" | "custom";
+type AssignmentFilters = {
+  mode: RangeMode;
+  day: Dayjs;
+  month: Dayjs;
+  customRange: [Dayjs, Dayjs];
+  shiftId: string | undefined;
+  departmentId: string | undefined;
+  keyword: string;
+};
 type ViewMode = "day" | "person" | "events" | "roster";
 
 const MODE_OPTIONS = [
@@ -111,19 +121,31 @@ export default function ShiftAssignmentsPage() {
   const [pageSize, setPageSize] = useState(20);
   const today = dayjs();
 
-  const [mode, setMode] = useState<RangeMode>("month");
-  const [day, setDay] = useState<Dayjs>(today);
-  const [month, setMonth] = useState<Dayjs>(today);
-  const [customRange, setCustomRange] = useState<[Dayjs, Dayjs]>([
-    today.startOf("week"),
-    today.endOf("week"),
-  ]);
+  // draft = ค่าที่กำลังกรอก · applied = ค่าที่ใช้กรองจริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const defaultFilters = (): AssignmentFilters => ({
+    mode: "month",
+    day: today,
+    month: today,
+    customRange: [today.startOf("week"), today.endOf("week")],
+    shiftId: undefined,
+    departmentId: undefined,
+    keyword: "",
+  });
+  const [draft, setDraft] = useState<AssignmentFilters>(defaultFilters);
+  const [applied, setApplied] = useState<AssignmentFilters>(defaultFilters);
+  const { mode, day, month, customRange, shiftId, departmentId } = applied;
+  const appliedKeyword = applied.keyword;
+  const applyFilters = () => {
+    setApplied({ ...draft, keyword: draft.keyword.trim() });
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(defaultFilters());
+    setApplied(defaultFilters());
+    setPage(1);
+  };
 
   const [view, setView] = useState<ViewMode>("day");
-  const [shiftId, setShiftId] = useState<string | undefined>();
-  const [departmentId, setDepartmentId] = useState<string | undefined>();
-  const [keyword, setKeyword] = useState("");
-  const [appliedKeyword, setAppliedKeyword] = useState("");
   const [person, setPerson] = useState<ShiftAssignmentUser | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -896,98 +918,95 @@ export default function ShiftAssignmentsPage() {
               </Link></>}
         />
 
-        <div className={styles.toolbar}>
-          <label className={styles.filterField}>
-            <span>{t("ช่วงข้อมูล")}</span>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={assignmentsQuery.isFetching}>
+          <FilterField label={t("ช่วงข้อมูล")}>
             <Segmented
               options={modeOptions}
-              value={mode}
-              onChange={(value) => setMode(value as RangeMode)}
+              value={draft.mode}
+              onChange={(value) => setDraft((d) => ({ ...d, mode: value as RangeMode }))}
             />
-          </label>
+          </FilterField>
 
-          {mode === "day" ? (
-            <label className={styles.filterField}>
-              <span>{t("วันที่")}</span>
+          {draft.mode === "day" ? (
+            <FilterField label={t("วันที่")}>
               <DatePicker
                 allowClear={false}
-                value={day}
+                style={{ width: "100%" }}
+                value={draft.day}
                 format="DD/MM/YYYY"
-                onChange={(value) => value && setDay(value)}
+                onChange={(value) => value && setDraft((d) => ({ ...d, day: value }))}
               />
-            </label>
+            </FilterField>
           ) : null}
 
-          {mode === "month" ? (
-            <label className={styles.filterField}>
-              <span>{t("เดือน")}</span>
+          {draft.mode === "month" ? (
+            <FilterField label={t("เดือน")}>
               <DatePicker
                 picker="month"
                 allowClear={false}
-                value={month}
+                style={{ width: "100%" }}
+                value={draft.month}
                 format="MM/YYYY"
-                onChange={(value) => value && setMonth(value)}
+                onChange={(value) => value && setDraft((d) => ({ ...d, month: value }))}
               />
-            </label>
+            </FilterField>
           ) : null}
 
-          {mode === "custom" ? (
-            <label className={styles.filterField}>
-              <span>{t("ช่วงวันที่")}</span>
+          {draft.mode === "custom" ? (
+            <FilterField label={t("ช่วงวันที่")} wide>
               <DatePicker.RangePicker
                 allowClear={false}
-                value={customRange}
+                style={{ width: "100%" }}
+                value={draft.customRange}
                 format="DD/MM/YYYY"
                 onChange={(values) => {
                   if (!values?.[0] || !values[1]) return;
-                  setCustomRange([values[0], values[1]]);
+                  const next: [Dayjs, Dayjs] = [values[0], values[1]];
+                  setDraft((d) => ({ ...d, customRange: next }));
                 }}
               />
-            </label>
+            </FilterField>
           ) : null}
 
-          <label className={styles.filterField}>
-            <span>{t("กะ")}</span>
+          <FilterField label={t("กะ")}>
             <Select
               allowClear
               placeholder={t("ทุกกะ")}
-              value={shiftId}
-              onChange={setShiftId}
+              value={draft.shiftId}
+              onChange={(v) => setDraft((d) => ({ ...d, shiftId: v }))}
               options={shiftOptions}
               loading={shiftsQuery.isLoading}
-              style={{ width: 200, maxWidth: "100%" }}
+              style={{ width: "100%" }}
             />
-          </label>
+          </FilterField>
 
-          <label className={styles.filterField}>
-            <span>{lang === "en" ? "Department" : "แผนก"}</span>
+          <FilterField label={lang === "en" ? "Department" : "แผนก"}>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
               placeholder={t("ทุกแผนก")}
-              value={departmentId}
-              onChange={setDepartmentId}
+              value={draft.departmentId}
+              onChange={(v) => setDraft((d) => ({ ...d, departmentId: v }))}
               options={departmentOptions}
               loading={departmentsQuery.isLoading}
-              style={{ width: 180, maxWidth: "100%" }}
+              style={{ width: "100%" }}
             />
-          </label>
+          </FilterField>
 
-          <label className={styles.filterField}>
-            <span>{t("ค้นหาพนักงาน")}</span>
+          <FilterField label={t("ค้นหาพนักงาน")}>
             <Input
               allowClear
               placeholder={t("ชื่อ หรือ รหัสพนักงาน")}
               prefix={<SearchOutlined />}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              onPressEnter={() => setAppliedKeyword(keyword)}
-              onBlur={() => setAppliedKeyword(keyword)}
-              style={{ width: 220, maxWidth: "100%" }}
+              value={draft.keyword}
+              onChange={(event) => setDraft((d) => ({ ...d, keyword: event.target.value }))}
+              style={{ width: "100%" }}
             />
-          </label>
+          </FilterField>
+        </FilterCard>
 
+        <div className={styles.toolbar}>
           <Button
             icon={<ReloadOutlined />}
             onClick={() => void assignmentsQuery.refetch()}

@@ -7,6 +7,7 @@ import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCancelProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
@@ -41,9 +42,24 @@ export default function ProductionOrdersListPage() {
     orderActions.canEdit || orderActions.canAdd || orderActions.canApprove;
   const cancelMutation = useCancelProductionOrderMutation();
 
+  const [draftOrderNo, setDraftOrderNo] = useState("");
+  const [draftStatus, setDraftStatus] = useState<string | undefined>();
   const [orderNo, setOrderNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [page, setPage] = useState(1);
+
+  const applyFilters = () => {
+    setOrderNo(draftOrderNo);
+    setStatus(draftStatus);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftOrderNo("");
+    setDraftStatus(undefined);
+    setOrderNo("");
+    setStatus(undefined);
+    setPage(1);
+  };
 
   const queryParams = useMemo(
     () => ({
@@ -178,41 +194,29 @@ export default function ProductionOrdersListPage() {
           }
         />
 
-        <div className={masterStyles.filterCard}>
-          <div className={masterStyles.filterHeader}>
-            <div>
-              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
-              <h3>{t("รายการใบสั่งผลิต")}</h3>
-              <p>{lang === "en" ? `${total} orders in total` : `ทั้งหมด ${total} ใบ`}</p>
-            </div>
-          </div>
-          <div className={masterStyles.filterForm}>
-            <div className={masterStyles.formGrid}>
-              <Input
-                allowClear
-                prefix={<SearchOutlined />}
-                placeholder={t("ค้นหาเลขที่ใบสั่งผลิต")}
-                value={orderNo}
-                onChange={(e) => {
-                  setOrderNo(e.target.value);
-                  setPage(1);
-                }}
-              />
-              <Select
-                allowClear
-                placeholder={t("สถานะทั้งหมด")}
-                value={status}
-                onChange={(value) => {
-                  setStatus(value);
-                  setPage(1);
-                }}
-                options={Object.entries(PRODUCTION_ORDER_STATUS_LABEL).map(
-                  ([value, label]) => ({ value, label: tPoLabel(label, lang) }),
-                )}
-              />
-            </div>
-          </div>
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("เลขที่ใบสั่งผลิต")}>
+            <Input
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้นหาเลขที่ใบสั่งผลิต")}
+              value={draftOrderNo}
+              onChange={(e) => setDraftOrderNo(e.target.value)}
+            />
+          </FilterField>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("สถานะทั้งหมด")}
+              value={draftStatus}
+              onChange={setDraftStatus}
+              options={Object.entries(PRODUCTION_ORDER_STATUS_LABEL).map(
+                ([value, label]) => ({ value, label: tPoLabel(label, lang) }),
+              )}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>

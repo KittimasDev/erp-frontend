@@ -31,6 +31,7 @@ import ReportExportButtons, {
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { toArAgingSheet } from "@/utils/salesReportSheets";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import PageHeader from "@/components/common/PageHeader";
 
 const BUCKET_COLOR: Record<string, string> = {
@@ -54,9 +55,23 @@ function formatDate(value?: string) {
 export default function ArAgingReportPage() {
   const t = useT();
   const lang = useLanguage();
+  const [draftRange, setDraftRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [draftCustomerId, setDraftCustomerId] = useState<string | undefined>();
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
+  const applyFilters = () => {
+    setRange(draftRange);
+    setCustomerId(draftCustomerId);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftRange(null);
+    setDraftCustomerId(undefined);
+    setRange(null);
+    setCustomerId(undefined);
+    setPage(1);
+  };
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const { message } = App.useApp();
   /** CSV เดิมไม่ผูกสิทธิ์ (backend เช็คแค่ VIEW) — Excel/PDF ที่เพิ่มใหม่ผูก EXPORT เหมือนรายงานตัวอื่น */
@@ -218,35 +233,33 @@ export default function ArAgingReportPage() {
         </div>
       </div>
 
-      <div className={masterStyles.filterCard}>
-        <div className={masterStyles.filterForm}>
-          <div className={masterStyles.formGrid}>
-            <DatePicker.RangePicker
-              format="DD/MM/YYYY"
-              value={range}
-              onChange={(values) => {
-                setRange(values && values[0] && values[1] ? [values[0], values[1]] : null);
-                setPage(1);
-              }}
-            />
-            <Select
-              allowClear
-              showSearch
-              placeholder={t("ลูกค้าทั้งหมด")}
-              optionFilterProp="label"
-              value={customerId}
-              onChange={(value) => {
-                setCustomerId(value);
-                setPage(1);
-              }}
-              options={(customersQuery.data?.data ?? []).map((c) => ({
-                value: c.id,
-                label: `${c.customerCode} — ${c.nameTh}`,
-              }))}
-            />
-          </div>
-        </div>
-      </div>
+      <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={reportQuery.isFetching}>
+        <FilterField label={t("วันที่ออก")} wide>
+          <DatePicker.RangePicker
+            style={{ width: "100%" }}
+            format="DD/MM/YYYY"
+            value={draftRange}
+            onChange={(values) =>
+              setDraftRange(values && values[0] && values[1] ? [values[0], values[1]] : null)
+            }
+          />
+        </FilterField>
+        <FilterField label={t("ลูกค้า")}>
+          <Select
+            allowClear
+            showSearch
+            style={{ width: "100%" }}
+            placeholder={t("ลูกค้าทั้งหมด")}
+            optionFilterProp="label"
+            value={draftCustomerId}
+            onChange={setDraftCustomerId}
+            options={(customersQuery.data?.data ?? []).map((c) => ({
+              value: c.id,
+              label: `${c.customerCode} — ${c.nameTh}`,
+            }))}
+          />
+        </FilterField>
+      </FilterCard>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>

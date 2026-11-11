@@ -24,6 +24,10 @@ import {
 } from "@/types/chemicals";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
+
+type LotFilters = { coaStatus: string; expiringOnly: boolean; keyword: string };
+const DEFAULT_FILTERS: LotFilters = { coaStatus: "PENDING", expiringOnly: false, keyword: "" };
 
 const COA_COLOR: Record<CoaStatus, string> = {
   NOT_REQUIRED: "default",
@@ -137,17 +141,24 @@ function CoaModal({ lot, onClose }: { lot: ChemicalLot; onClose: () => void }) {
 export default function ChemicalLotsPage() {
   const t = useT();
   const [page, setPage] = useState(1);
-  const [coaStatus, setCoaStatus] = useState<string>("PENDING");
-  const [expiringOnly, setExpiringOnly] = useState(false);
-  const [keyword, setKeyword] = useState("");
-  const [applied, setApplied] = useState("");
+  const [draft, setDraft] = useState<LotFilters>(DEFAULT_FILTERS);
+  const [applied, setApplied] = useState<LotFilters>(DEFAULT_FILTERS);
   const [selectedId, setSelectedId] = useState<string>();
 
   const query = useChemicalLotsQuery({
-    coaStatus: coaStatus || undefined,
-    q: applied,
-    expiringWithinDays: expiringOnly ? 30 : undefined,
+    coaStatus: applied.coaStatus || undefined,
+    q: applied.keyword,
+    expiringWithinDays: applied.expiringOnly ? 30 : undefined,
   });
+  const applyFilters = () => {
+    setApplied(draft);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(DEFAULT_FILTERS);
+    setApplied(DEFAULT_FILTERS);
+    setPage(1);
+  };
   const lots = query.data?.data ?? [];
   const selected = lots.find((l) => l.id === selectedId);
 
@@ -227,12 +238,22 @@ export default function ChemicalLotsPage() {
           }
         />
 
-        <div className={styles.tableCard}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={query.isFetching}>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้น Lot / Batch / สารเคมี")}
+              value={draft.keyword}
+              onChange={(e) => setDraft((d) => ({ ...d, keyword: e.target.value }))}
+            />
+          </FilterField>
+          <FilterField label="COA">
             <Select
-              style={{ width: 180 }}
-              value={coaStatus}
-              onChange={setCoaStatus}
+              style={{ width: "100%" }}
+              value={draft.coaStatus}
+              onChange={(v) => setDraft((d) => ({ ...d, coaStatus: v }))}
               options={[
                 { value: "", label: t("ทุกสถานะ COA") },
                 { value: "PENDING", label: t(COA_STATUS_LABEL.PENDING) },
@@ -241,27 +262,25 @@ export default function ChemicalLotsPage() {
                 { value: "NOT_REQUIRED", label: t("Lot เดิม (ไม่ต้องตรวจ)") },
               ]}
             />
-            <Checkbox checked={expiringOnly} onChange={(e) => setExpiringOnly(e.target.checked)}>
+          </FilterField>
+          <FilterField label={t("หมดอายุ")}>
+            <Checkbox
+              checked={draft.expiringOnly}
+              onChange={(e) => setDraft((d) => ({ ...d, expiringOnly: e.target.checked }))}
+            >
               {t("เฉพาะใกล้หมดอายุ (≤ 30 วัน) / หมดอายุแล้ว")}
             </Checkbox>
-            <Input
-              allowClear
-              style={{ width: 260 }}
-              prefix={<SearchOutlined />}
-              placeholder={t("ค้น Lot / Batch / สารเคมี")}
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onPressEnter={() => setApplied(keyword)}
-              onBlur={() => setApplied(keyword)}
-            />
-          </div>
+          </FilterField>
+        </FilterCard>
+
+        <div className={styles.tableCard}>
           <Table
             rowKey="id"
             className={styles.dataTable}
             columns={columns}
             dataSource={lots}
             loading={query.isFetching}
-            pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} Lot", { n: total }) }}
+            pagination={{ current: page, onChange: setPage, pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} Lot", { n: total }) }}
             scroll={{ x: 1000 }}
             locale={{ emptyText: t("ไม่มี Lot ตามเงื่อนไข") }}
           />

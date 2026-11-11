@@ -25,6 +25,7 @@ import {
   type PayrollRun,
   type PayrollRunStatus,
 } from "@/types/payroll";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import PayrollDetailDrawer from "./PayrollDetailDrawer";
@@ -48,12 +49,19 @@ const STATUS_FILTER_OPTIONS: PayrollRunStatus[] = [
 
 type OverlapInfo = { body: CreatePayrollRunRequest; code: "PAYROLL_PERIOD_OVERLAP" | "PAYROLL_PERIOD_OVERLAP_FINALIZED"; runs: PayrollOverlapRun[] };
 
+type PayrollFilters = {
+  search: string;
+  yearFilter?: string;
+  dateRange: [Dayjs | null, Dayjs | null] | null;
+  statusFilter?: PayrollRunStatus;
+};
+const EMPTY_FILTERS: PayrollFilters = { search: "", dateRange: null };
+
 /** หน้า /hrm/payroll — งวดเงินเดือน: สร้างงวด (เลือกเดือน/ปี หรือกำหนดช่วงเอง) → ตรวจ/ปรับ → ส่งอนุมัติ → อนุมัติ → จ่ายเงิน → ปิดงวด */
 export default function PayrollPage() {
   const t = useT();
   const language = useLanguage();
   const money = (v: number) => formatMoney(v, language);
-  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [whtOpen, setWhtOpen] = useState(false);
@@ -69,10 +77,11 @@ export default function PayrollPage() {
   const [rangeMode, setRangeMode] = useState<"month" | "custom">("month");
   // งวดที่ช่วงวันทับกับงวดที่สร้าง: แจ้งชื่อ/ช่วง/สถานะ + ลิงก์ไปงวดเดิม
   const [overlap, setOverlap] = useState<OverlapInfo | null>(null);
-  const [statusFilter, setStatusFilter] = useState<PayrollRunStatus | undefined>();
-  const [search, setSearch] = useState("");
-  const [yearFilter, setYearFilter] = useState<string | undefined>();
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  // draft = ค่าที่กำลังกรอก · applied = ค่าที่ใช้กรองตารางจริง (เปลี่ยนเมื่อกด ค้นหา / Enter / ล้าง เท่านั้น)
+  const [draft, setDraft] = useState<PayrollFilters>(EMPTY_FILTERS);
+  const [applied, setApplied] = useState<PayrollFilters>(EMPTY_FILTERS);
+  const [tablePage, setTablePage] = useState(1);
+  const { search, yearFilter, dateRange, statusFilter } = applied;
   const canAdd = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.ADD");
 
   const runsQuery = usePayrollRunsQuery();
@@ -98,7 +107,15 @@ export default function PayrollPage() {
     }
     return true;
   });
-  const hasFilter = Boolean(statusFilter || yearFilter || dateRange || keyword);
+  const applyFilters = () => {
+    setApplied(draft);
+    setTablePage(1);
+  };
+  const clearFilters = () => {
+    setDraft(EMPTY_FILTERS);
+    setApplied(EMPTY_FILTERS);
+    setTablePage(1);
+  };
 
   /** เลือกเดือน/ปี → วันที่เริ่ม–สิ้นสุดอัตโนมัติ (วันแรก–วันสุดท้ายของเดือน) + ตั้งชื่องวดให้ถ้ายังไม่ได้พิมพ์เอง */
   const onMonthChange = (month: Dayjs | null) => {
@@ -184,7 +201,7 @@ export default function PayrollPage() {
       key: "seq",
       width: 64,
       align: "center",
-      render: (_, __, index) => (page - 1) * 20 + index + 1,
+      render: (_, __, index) => (tablePage - 1) * 20 + index + 1,
     },
     {
       title: t("งวด"),
@@ -256,6 +273,48 @@ export default function PayrollPage() {
           style={{ marginBottom: 12 }}
         />
 
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={runsQuery.isFetching}>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              placeholder={t("ค้นหาชื่องวด สถานะ วันที่")}
+              value={draft.search}
+              onChange={(e) => setDraft((d) => ({ ...d, search: e.target.value }))}
+            />
+          </FilterField>
+          <FilterField label={t("ปี")}>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("ทุกปี")}
+              value={draft.yearFilter}
+              onChange={(v) => setDraft((d) => ({ ...d, yearFilter: v }))}
+              options={yearOptions}
+            />
+          </FilterField>
+          <FilterField label={t("ช่วงวันที่")} wide>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              value={draft.dateRange}
+              onChange={(v) => setDraft((d) => ({ ...d, dateRange: v }))}
+            />
+          </FilterField>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("ทุกสถานะ")}
+              value={draft.statusFilter}
+              onChange={(v) => setDraft((d) => ({ ...d, statusFilter: v }))}
+              options={STATUS_FILTER_OPTIONS.map((status) => ({
+                value: status,
+                label: payrollStatusLabel(status, language),
+              }))}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>
             <div>
@@ -263,61 +322,13 @@ export default function PayrollPage() {
               <p>{t("กดชื่องวดเพื่อดูสลิป ปรับรายการ ส่งอนุมัติ บันทึกผลจ่าย และปิดงวด")}</p>
             </div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "16px 22px" }}>
-            <Input.Search
-              allowClear
-              style={{ width: 240 }}
-              placeholder={t("ค้นหาชื่องวด สถานะ วันที่")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label={t("ค้นหา")}
-            />
-            <Select
-              allowClear
-              style={{ width: 120 }}
-              placeholder={t("ทุกปี")}
-              value={yearFilter}
-              onChange={setYearFilter}
-              options={yearOptions}
-              aria-label={t("ปี")}
-            />
-            <DatePicker.RangePicker
-              value={dateRange}
-              onChange={(v) => setDateRange(v)}
-              aria-label={t("ช่วงวันที่")}
-            />
-            <Select
-              allowClear
-              style={{ width: 180 }}
-              placeholder={t("ทุกสถานะ")}
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={STATUS_FILTER_OPTIONS.map((status) => ({
-                value: status,
-                label: payrollStatusLabel(status, language),
-              }))}
-              aria-label={t("สถานะ")}
-            />
-            {hasFilter ? (
-              <Button
-                onClick={() => {
-                  setSearch("");
-                  setYearFilter(undefined);
-                  setDateRange(null);
-                  setStatusFilter(undefined);
-                }}
-              >
-                {t("ล้างตัวกรอง")}
-              </Button>
-            ) : null}
-          </div>
           <Table
             rowKey="id"
             className={styles.dataTable}
             columns={columns}
             dataSource={runs}
             loading={runsQuery.isFetching}
-            pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} งวด", { n: total }) }}
+            pagination={{ current: tablePage, onChange: setTablePage, pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} งวด", { n: total }) }}
             scroll={{ x: 900 }}
             locale={{ emptyText: t("ยังไม่มีงวดเงินเดือน — กด สร้างงวดเงินเดือน") }}
           />

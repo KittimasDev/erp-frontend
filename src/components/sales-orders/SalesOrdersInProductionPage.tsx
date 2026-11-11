@@ -7,6 +7,7 @@ import { SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useLinkedSalesOrdersQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import {
@@ -133,8 +134,19 @@ function shouldShowPoolBanner(pool: SharedItemPool) {
 export default function SalesOrdersInProductionPage() {
   const t = useT();
   const router = useRouter();
+  const [draftQ, setDraftQ] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+
+  const applyFilters = () => {
+    setQ(draftQ);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraftQ("");
+    setQ("");
+    setPage(1);
+  };
 
   const queryParams = useMemo(
     () => ({
@@ -294,30 +306,18 @@ export default function SalesOrdersInProductionPage() {
           </div>
         ) : null}
 
-        <div className={masterStyles.filterCard}>
-          <div className={masterStyles.filterHeader}>
-            <div>
-              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
-              <h3>{t("รายการรอยืนยันใบสั่งขาย")}</h3>
-              <p>{t("ทั้งหมด {total} ใบ", { total })}</p>
-            </div>
-          </div>
-          <div className={masterStyles.filterForm}>
-            <div className={masterStyles.formGrid}>
-              <Input
-                allowClear
-                aria-label={t("ค้นหาเลขที่ใบสั่งขาย ลูกค้า หรือใบขอผลิต")}
-                prefix={<SearchOutlined />}
-                placeholder={t("ค้นหาเลขที่ SO / ลูกค้า / ใบขอผลิต")}
-                value={q}
-                onChange={(e) => {
-                  setQ(e.target.value);
-                  setPage(1);
-                }}
-              />
-            </div>
-          </div>
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("ค้นหา")} wide>
+            <Input
+              allowClear
+              aria-label={t("ค้นหาเลขที่ใบสั่งขาย ลูกค้า หรือใบขอผลิต")}
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้นหาเลขที่ SO / ลูกค้า / ใบขอผลิต")}
+              value={draftQ}
+              onChange={(e) => setDraftQ(e.target.value)}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={styles.list}>
           {listQuery.isFetching && !rows.length ? (

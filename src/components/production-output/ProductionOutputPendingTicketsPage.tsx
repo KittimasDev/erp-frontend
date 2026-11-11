@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Input, Popconfirm, Space, Table, Tooltip } from "antd";
+import { Alert, Button, Input, Popconfirm, Select, Space, Table, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   BuildOutlined,
@@ -20,6 +20,7 @@ import type { ProductionOutputReadyOrder } from "@/types/production-output-stock
 import { hasRequestableProductionOutput } from "@/types/production-output-stock-request";
 import styles from "./ProductionOutputPendingTicketsPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { useT } from "@/lib/i18n/useT";
 import { appLocale } from "@/components/weighbridge/receiving-i18n";
 
@@ -53,10 +54,20 @@ export default function ProductionOutputPendingTicketsPage() {
   const t = useT();
   const [page, setPage] = useState(1);
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [q, setQ] = useState("");
-  /** ค่าเริ่มต้นของ API คือ 7 วันล่าสุด — คิวงานควรเห็นของค้างเก่าด้วย จึงดึงทั้งหมด */
-  const [allRange, setAllRange] = useState(true);
+  /** ค่าเริ่มต้นของ API คือ 7 วันล่าสุด — คิวงานควรเห็นของค้างเก่าด้วย จึงดึงทั้งหมด (allRange = true) */
+  const [draft, setDraft] = useState({ search: "", allRange: true });
+  const [applied, setApplied] = useState({ search: "", allRange: true });
+  const { search: q, allRange } = applied;
+  const applyFilters = () => {
+    setApplied(draft);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    const defaults = { search: "", allRange: true };
+    setDraft(defaults);
+    setApplied(defaults);
+    setPage(1);
+  };
 
   const readyQuery = useProductionOutputReadyOrdersQuery({
     all: allRange || undefined,
@@ -357,6 +368,30 @@ export default function ProductionOutputPendingTicketsPage() {
           </div>
         </div>
 
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={readyQuery.isFetching}>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              prefix={<SearchOutlined />}
+              placeholder={t("ค้นหาเลขที่ใบสั่งผลิต / Batch")}
+              value={draft.search}
+              onChange={(e) => setDraft((d) => ({ ...d, search: e.target.value }))}
+            />
+          </FilterField>
+          <FilterField label={t("ช่วงวันที่")}>
+            <Select
+              style={{ width: "100%" }}
+              value={draft.allRange ? "all" : "7d"}
+              onChange={(v) => setDraft((d) => ({ ...d, allRange: v === "all" }))}
+              options={[
+                { value: "all", label: t("ทั้งหมด") },
+                { value: "7d", label: t("7 วันล่าสุด") },
+              ]}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
@@ -392,40 +427,6 @@ export default function ProductionOutputPendingTicketsPage() {
             </div>
           </div>
 
-          <div className={styles.filterBar}>
-            <Input
-              allowClear
-              className={styles.filterSearch}
-              prefix={<SearchOutlined />}
-              placeholder={t("ค้นหาเลขที่ใบสั่งผลิต / Batch")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onPressEnter={() => setQ(search)}
-              onBlur={() => setQ(search)}
-            />
-            <div />
-            <div className={styles.presetChips}>
-              <button
-                type="button"
-                className={`${styles.presetChip} ${
-                  allRange ? styles.presetChipActive : ""
-                }`}
-                onClick={() => setAllRange(true)}
-              >
-                {t("ทั้งหมด")}
-              </button>
-              <button
-                type="button"
-                className={`${styles.presetChip} ${
-                  allRange ? "" : styles.presetChipActive
-                }`}
-                onClick={() => setAllRange(false)}
-              >
-                {t("7 วันล่าสุด")}
-              </button>
-            </div>
-          </div>
-
           {!canCreateRequest ? (
             <div className={styles.permissionNote}>
               {t("คุณดูคิวได้อย่างเดียว — การเปิดคำขอรับผลผลิตต้องมีสิทธิ์เพิ่มของหน้า “ขอรับผลผลิตเข้าคลัง”")}
@@ -439,7 +440,7 @@ export default function ProductionOutputPendingTicketsPage() {
               columns={columns}
               dataSource={rows}
               loading={readyQuery.isFetching}
-              pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} ใบ", { n: total }) }}
+              pagination={{ current: page, onChange: setPage, pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} ใบ", { n: total }) }}
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>

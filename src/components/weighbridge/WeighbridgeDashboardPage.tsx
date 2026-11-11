@@ -69,6 +69,7 @@ import {
 } from "./ticket-origin";
 import styles from "./WeighbridgeDashboardPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 
 const { RangePicker } = DatePicker;
 
@@ -587,7 +588,11 @@ export default function WeighbridgeDashboardPage() {
   const [ticketDrawerOpen, setTicketDrawerOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
   const [truckDrawerOpen, setTruckDrawerOpen] = useState(false);
+  // draft = ค่าในช่องกรอก · applied = พารามิเตอร์ใน URL (q / from / to / source) ที่ขับ query และตาราง
   const [searchDraft, setSearchDraft] = useState("");
+  const [rangeDraft, setRangeDraft] = useState<[Dayjs, Dayjs] | null>(null);
+  const [sourceDraft, setSourceDraft] = useState<SourceFilter>("all");
+  const [ticketPage, setTicketPage] = useState(1);
   // SideSheet unmounts Form when closed — use local state instead of Form.useWatch
   const [sellerId, setSellerId] = useState<string | undefined>();
   const [truckId, setTruckId] = useState<string | undefined>();
@@ -753,30 +758,33 @@ export default function WeighbridgeDashboardPage() {
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
-  useEffect(() => {
+  // URL เปลี่ยน (เช่น กดปุ่มวันนี้/ทั้งหมด หรือสลับขั้นตอน) → ซิงก์ช่องกรอกให้ตรงกับที่ใช้จริง
+  const urlFilterKey = `${searchQuery}|${fromParam ?? ""}|${toParam ?? ""}|${source}`;
+  const [syncedUrlKey, setSyncedUrlKey] = useState(urlFilterKey);
+  if (syncedUrlKey !== urlFilterKey) {
+    setSyncedUrlKey(urlFilterKey);
     setSearchDraft(searchQuery);
-  }, [searchQuery]);
+    setRangeDraft(fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null);
+    setSourceDraft(source);
+  }
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const nextValue = searchDraft.trim();
-      const currentValue = searchParams.get("q")?.trim() ?? "";
-      if (nextValue === currentValue) {
-        return;
-      }
-      const next = new URLSearchParams(searchParams.toString());
-      if (nextValue) {
-        next.set("q", nextValue);
-      } else {
-        next.delete("q");
-      }
-      const query = next.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, {
-        scroll: false,
-      });
-    }, 300);
-    return () => window.clearTimeout(timer);
-  }, [searchDraft, searchParams, pathname, router]);
+  const applyFilters = () => {
+    updateParams({
+      q: searchDraft,
+      from: rangeDraft ? rangeDraft[0].format("YYYY-MM-DD") : null,
+      to: rangeDraft ? rangeDraft[1].format("YYYY-MM-DD") : null,
+      all: showAll && !rangeDraft ? true : false,
+      source: sourceDraft,
+    });
+    setTicketPage(1);
+  };
+  const clearFilters = () => {
+    setSearchDraft("");
+    setRangeDraft(null);
+    setSourceDraft("all");
+    updateParams({ q: null, from: null, to: null, all: false, source: "all" });
+    setTicketPage(1);
+  };
 
   const stageCounts = useMemo(() => {
     const counts: Record<ReceivingStage, number> = {
@@ -1028,8 +1036,6 @@ export default function WeighbridgeDashboardPage() {
   const activeStageLabel = t(
     STAGE_OPTIONS.find((item) => item.key === stage)?.label ?? "ทั้งหมด",
   );
-  const dateRangeValue: [Dayjs, Dayjs] | null =
-    fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
   const dateLabel = (() => {
     if (showAll) return t("ทั้งหมด");
     if (!fromParam && !toParam) return t("วันนี้");
@@ -1427,6 +1433,46 @@ export default function WeighbridgeDashboardPage() {
           })}
         </div>
 
+        <FilterCard
+          onSearch={applyFilters}
+          onClear={clearFilters}
+          loading={dashboardQuery.isFetching || t2900Query.isFetching}
+        >
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              value={searchDraft}
+              prefix={<SearchOutlined />}
+              placeholder={t("เลขตั๋ว ผู้ขาย ทะเบียนรถ คนขับ ใบรับซื้อ")}
+              onChange={(event) => setSearchDraft(event.target.value)}
+            />
+          </FilterField>
+          <FilterField label={t("ช่วงวันทำงาน")} wide>
+            <RangePicker
+              allowClear
+              style={{ width: "100%" }}
+              value={rangeDraft}
+              format="DD/MM/YYYY"
+              placeholder={[t("เริ่มต้น"), t("สิ้นสุด")]}
+              onChange={(values) =>
+                setRangeDraft(values && values[0] && values[1] ? [values[0], values[1]] : null)
+              }
+            />
+          </FilterField>
+          <FilterField label={t("ที่มา")}>
+            <Select
+              style={{ width: "100%" }}
+              value={sourceDraft}
+              options={SOURCE_OPTIONS.map((o) => ({
+                ...o,
+                label: t(o.label),
+              }))}
+              onChange={(value) => setSourceDraft(value)}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
@@ -1441,52 +1487,6 @@ export default function WeighbridgeDashboardPage() {
           </div>
 
           <div className={styles.filterBar}>
-            <div className={styles.filterTop}>
-              <div className={styles.filterField}>
-                <span>{t("ค้นหา")}</span>
-                <Input
-                  allowClear
-                  value={searchDraft}
-                  prefix={<SearchOutlined />}
-                  placeholder={t("เลขตั๋ว ผู้ขาย ทะเบียนรถ คนขับ ใบรับซื้อ")}
-                  className={styles.filterSearch}
-                  onChange={(event) => setSearchDraft(event.target.value)}
-                />
-              </div>
-              <div className={styles.filterField}>
-                <span>{t("ช่วงวันทำงาน")}</span>
-                <RangePicker
-                  allowClear
-                  value={dateRangeValue}
-                  format="DD/MM/YYYY"
-                  placeholder={[t("เริ่มต้น"), t("สิ้นสุด")]}
-                  className={styles.filterDateRange}
-                  onChange={(values) => {
-                    if (!values || !values[0] || !values[1]) {
-                      updateParams({ from: null, to: null, all: false });
-                      return;
-                    }
-                    updateParams({
-                      from: values[0].format("YYYY-MM-DD"),
-                      to: values[1].format("YYYY-MM-DD"),
-                      all: false,
-                    });
-                  }}
-                />
-              </div>
-              <div className={styles.filterField}>
-                <span>{t("ที่มา")}</span>
-                <Select
-                  value={source}
-                  options={SOURCE_OPTIONS.map((o) => ({
-                    ...o,
-                    label: t(o.label),
-                  }))}
-                  className={styles.productSelect}
-                  onChange={(value) => updateParams({ source: value })}
-                />
-              </div>
-            </div>
             <div className={styles.stageStrip}>
               <span className={styles.stageStripLabel}>{t("ขั้นตอน")}</span>
               <div className={styles.stageChips}>
@@ -1539,7 +1539,7 @@ export default function WeighbridgeDashboardPage() {
                 columns={columns}
                 dataSource={filteredTickets}
                 loading={dashboardQuery.isFetching || t2900Query.isFetching}
-                pagination={{ pageSize: 10, showSizeChanger: false }}
+                pagination={{ current: ticketPage, onChange: setTicketPage, pageSize: 10, showSizeChanger: false }}
                 scroll={{ x: 1290 }}
                 locale={{
                   emptyText:

@@ -20,6 +20,7 @@ import {
   UndoOutlined,
 } from "@ant-design/icons";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useRolesQuery } from "@/hooks/users/useRolesQuery";
 import {
@@ -273,6 +274,7 @@ export default function PermissionMatrixPage({
     [screensQuery.data],
   );
 
+  const [draftModuleFilter, setDraftModuleFilter] = useState<string[]>([]);
   const [moduleFilter, setModuleFilter] = useState<string[]>([]);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
 
@@ -790,23 +792,32 @@ export default function PermissionMatrixPage({
                 </Popconfirm>
               </div>
             </label>
-            <label className={styles.filterField}>
-              <span className={styles.filterLabel}>{t("โมดูล")}</span>
-              <Select
-                className={styles.moduleSelect}
-                mode="multiple"
-                allowClear
-                maxTagCount="responsive"
-                value={moduleFilter}
-                onChange={(value) => setModuleFilter(value)}
-                showSearch
-                optionFilterProp="label"
-                placeholder={t("ทุกโมดูล (เลือกได้หลายอัน)")}
-                options={moduleFilterOptions}
-              />
-            </label>
           </div>
         </div>
+
+        <FilterCard
+          onSearch={() => setModuleFilter(draftModuleFilter)}
+          onClear={() => {
+            setDraftModuleFilter([]);
+            setModuleFilter([]);
+          }}
+          loading={screensQuery.isFetching}
+        >
+          <FilterField label={t("โมดูล")} wide>
+            <Select
+              style={{ width: "100%" }}
+              mode="multiple"
+              allowClear
+              maxTagCount="responsive"
+              value={draftModuleFilter}
+              onChange={(value) => setDraftModuleFilter(value)}
+              showSearch
+              optionFilterProp="label"
+              placeholder={t("ทุกโมดูล (เลือกได้หลายอัน)")}
+              options={moduleFilterOptions}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={masterStyles.tableCard}>
           <div className={masterStyles.tableHeader}>

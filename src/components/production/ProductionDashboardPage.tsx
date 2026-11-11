@@ -18,6 +18,7 @@ import {
   YAxis,
 } from "recharts";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import ProductionDailySection from "@/components/dashboard/ProductionDailySection";
 import {
@@ -69,12 +70,23 @@ function fmtHours(value?: number | null) {
 export default function ProductionDashboardPage() {
   const router = useRouter();
   const t = useT();
-  const [range, setRange] = useState<[Dayjs, Dayjs]>([
-    // 30 วันไม่ใช่ 7 — รอบเตา 48 ชั่วโมง 7 วันได้แค่ ~3 จุดข้อมูล วาดแนวโน้มไม่ได้
-    dayjs().subtract(30, "day"),
-    dayjs(),
-  ]);
+  // 30 วันไม่ใช่ 7 — รอบเตา 48 ชั่วโมง 7 วันได้แค่ ~3 จุดข้อมูล วาดแนวโน้มไม่ได้
+  const defaultRange = (): [Dayjs, Dayjs] => [dayjs().subtract(30, "day"), dayjs()];
+  const [draftRange, setDraftRange] = useState<[Dayjs, Dayjs]>(defaultRange);
+  const [draftBucket, setDraftBucket] = useState<ProductionDashboardBucket>("DAY");
+  const [range, setRange] = useState<[Dayjs, Dayjs]>(defaultRange);
   const [bucket, setBucket] = useState<ProductionDashboardBucket>("DAY");
+  const applyFilters = () => {
+    setRange(draftRange);
+    setBucket(draftBucket);
+  };
+  const clearFilters = () => {
+    const next = defaultRange();
+    setDraftRange(next);
+    setDraftBucket("DAY");
+    setRange(next);
+    setBucket("DAY");
+  };
 
   const params = useMemo(
     () => ({
@@ -263,24 +275,27 @@ export default function ProductionDashboardPage() {
           subtitle={t("ผลผลิตจริง · Yield · เวลาหยุดเดินเครื่อง · งานอยู่ขั้นไหน")}
         />
 
-        <div className={styles.toolbar}>
-          <div className={styles.filterField}>
-            <span>{t("ช่วงวันที่ (กว้างสุด 90 วัน)")}</span>
+        <FilterCard
+          onSearch={applyFilters}
+          onClear={clearFilters}
+          loading={summaryQuery.isFetching}
+        >
+          <FilterField label={t("ช่วงวันที่ (กว้างสุด 90 วัน)")} wide>
             <RangePicker
-              value={range}
+              style={{ width: "100%" }}
+              value={draftRange}
               allowClear={false}
               format="DD/MM/YYYY"
               onChange={(value) => {
-                if (value?.[0] && value[1]) setRange([value[0], value[1]]);
+                if (value?.[0] && value[1]) setDraftRange([value[0], value[1]]);
               }}
             />
-          </div>
-          <div className={styles.filterField}>
-            <span>{t("ความละเอียด")}</span>
+          </FilterField>
+          <FilterField label={t("ความละเอียด")}>
             <Segmented
-              value={bucket}
+              value={draftBucket}
               onChange={(value) =>
-                setBucket(value as ProductionDashboardBucket)
+                setDraftBucket(value as ProductionDashboardBucket)
               }
               options={[
                 { label: t("รายวัน"), value: "DAY" },
@@ -288,8 +303,8 @@ export default function ProductionDashboardPage() {
                 { label: t("รายเดือน"), value: "MONTH" },
               ]}
             />
-          </div>
-        </div>
+          </FilterField>
+        </FilterCard>
 
         <div className={styles.summaryGrid}>
           <div className={styles.summaryCard}>

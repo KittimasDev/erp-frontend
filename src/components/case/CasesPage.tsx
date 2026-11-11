@@ -19,6 +19,7 @@ import {
 } from "@ant-design/icons";
 import { App } from "antd";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateTempCaseMutation } from "@/hooks/temp-cases/useCreateTempCaseMutation";
@@ -48,6 +49,7 @@ export default function CasesPage() {
   const [page, setPage] = useState(1);
   const { message } = App.useApp();
   const queryClient = useQueryClient();
+  const [statusDraft, setStatusDraft] = useState<StatusFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
@@ -71,6 +73,17 @@ export default function CasesPage() {
 
   const openCount = cases.filter((c) => c.status === "OPEN").length;
   const doneCount = cases.filter((c) => c.status === "DONE").length;
+
+  const applyFilters = () => {
+    setStatusFilter(statusDraft);
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setStatusDraft("ALL");
+    setStatusFilter("ALL");
+    setPage(1);
+  };
 
   const openCreateModal = () => {
     setModalMode("create");
@@ -355,17 +368,19 @@ export default function CasesPage() {
           </div>
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <Segmented
-            value={statusFilter}
-            onChange={(value) => setStatusFilter(value as StatusFilter)}
-            options={[
-              { label: t("ทั้งหมด"), value: "ALL" },
-              { label: t("ยังไม่ทำ"), value: "OPEN" },
-              { label: t("ทำแล้ว"), value: "DONE" },
-            ]}
-          />
-        </div>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={casesQuery.isFetching}>
+          <FilterField label={t("สถานะ")}>
+            <Segmented
+              value={statusDraft}
+              onChange={(value) => setStatusDraft(value as StatusFilter)}
+              options={[
+                { label: t("ทั้งหมด"), value: "ALL" },
+                { label: t("ยังไม่ทำ"), value: "OPEN" },
+                { label: t("ทำแล้ว"), value: "DONE" },
+              ]}
+            />
+          </FilterField>
+        </FilterCard>
 
         <Table<TempCase>
           rowKey="id"

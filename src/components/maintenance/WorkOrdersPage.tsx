@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, Select, Table, Tag, Typography } from "antd";
+import { Button, Input, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ClearOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
+import { FileTextOutlined, PlusOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useWorkOrdersQuery } from "@/hooks/maintenance/useMaintenance";
@@ -18,6 +18,10 @@ import { fmtDate, fmtMoney, woStatusLabel } from "./maintenance-format";
 import WorkOrderDetailDrawer from "./WorkOrderDetailDrawer";
 import { CreateWorkOrderModal } from "./WorkOrderModals";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
+
+type WorkOrderFilters = { status: string; type?: string; priority?: string; keyword: string };
+const DEFAULT_FILTERS: WorkOrderFilters = { status: "ACTIVE", keyword: "" };
 
 const STATUS_COLOR: Record<string, string> = { DRAFT: "default", OPEN: "blue", IN_PROGRESS: "orange", COMPLETED: "green", CANCELLED: "default" };
 const PRIORITY_COLOR: Record<string, string> = { LOW: "default", NORMAL: "blue", HIGH: "orange", CRITICAL: "red" };
@@ -27,21 +31,32 @@ export default function WorkOrdersPage() {
   const t = useT();
   const lang = useLanguage();
   const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<string>("ACTIVE");
-  const [type, setType] = useState<string>();
-  const [priority, setPriority] = useState<string>();
-  const [keyword, setKeyword] = useState("");
-  const [applied, setApplied] = useState("");
+  const [draft, setDraft] = useState<WorkOrderFilters>(DEFAULT_FILTERS);
+  const [applied, setApplied] = useState<WorkOrderFilters>(DEFAULT_FILTERS);
   const [creating, setCreating] = useState(false);
   const [breakdown, setBreakdown] = useState(false);
   const [selectedId, setSelectedId] = useState<string>();
 
-  const query = useWorkOrdersQuery({ type, priority, workOrderNo: applied });
+  const query = useWorkOrdersQuery({ type: applied.type, priority: applied.priority, workOrderNo: applied.keyword });
   const { canAdd } = getScreenActionPermissions("WORK_ORDERS");
   const all = query.data?.data ?? [];
   const rows = all.filter((w) =>
-    status === "ACTIVE" ? ["DRAFT", "OPEN", "IN_PROGRESS"].includes(w.status) : status === "ALL" ? true : w.status === status,
+    applied.status === "ACTIVE"
+      ? ["DRAFT", "OPEN", "IN_PROGRESS"].includes(w.status)
+      : applied.status === "ALL"
+        ? true
+        : w.status === applied.status,
   );
+
+  const applyFilters = () => {
+    setApplied(draft);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDraft(DEFAULT_FILTERS);
+    setApplied(DEFAULT_FILTERS);
+    setPage(1);
+  };
 
   const columns: ColumnsType<WorkOrder> = [
     {
@@ -107,97 +122,57 @@ export default function WorkOrdersPage() {
           }
         />
 
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={query.isFetching}>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              style={{ width: "100%" }}
+              value={draft.status}
+              onChange={(v) => setDraft((d) => ({ ...d, status: v }))}
+              options={[
+                { value: "ACTIVE", label: t("ที่ยังไม่ปิด") },
+                { value: "COMPLETED", label: lang === "en" ? "Completed" : "เสร็จแล้ว" },
+                { value: "CANCELLED", label: woStatusLabel("CANCELLED", lang) },
+                { value: "ALL", label: t("ทั้งหมด") },
+              ]}
+            />
+          </FilterField>
+          <FilterField label={t("ประเภท")}>
+            <Select
+              allowClear
+              placeholder={t("ทุกประเภท")}
+              style={{ width: "100%" }}
+              value={draft.type}
+              onChange={(v) => setDraft((d) => ({ ...d, type: v }))}
+              options={[
+                { value: "PM", label: t("PM (บำรุงรักษา)") },
+                { value: "CM", label: t("CM (ซ่อมแซม)") },
+              ]}
+            />
+          </FilterField>
+          <FilterField label={t("ความเร่งด่วน")}>
+            <Select
+              allowClear
+              placeholder={t("ทุกระดับ")}
+              style={{ width: "100%" }}
+              value={draft.priority}
+              onChange={(v) => setDraft((d) => ({ ...d, priority: v }))}
+              options={PRIORITY_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+            />
+          </FilterField>
+          <FilterField label={t("ค้นหา")}>
+            <Input
+              allowClear
+              style={{ width: "100%" }}
+              prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+              placeholder={t("ค้นหาเลขที่ใบสั่งงาน...")}
+              value={draft.keyword}
+              onChange={(e) => setDraft((d) => ({ ...d, keyword: e.target.value }))}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.tableCard}>
-          <div
-            style={{
-              padding: "16px 20px",
-              borderBottom: "1px solid #f0f2f5",
-              background: "#fafbfc",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                  {t("สถานะ")}:
-                </span>
-                <Select
-                  style={{ width: 140 }}
-                  value={status}
-                  onChange={setStatus}
-                  options={[
-                    { value: "ACTIVE", label: t("ที่ยังไม่ปิด") },
-                    { value: "COMPLETED", label: lang === "en" ? "Completed" : "เสร็จแล้ว" },
-                    { value: "CANCELLED", label: woStatusLabel("CANCELLED", lang) },
-                    { value: "ALL", label: t("ทั้งหมด") },
-                  ]}
-                />
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                  {t("ประเภท")}:
-                </span>
-                <Select
-                  allowClear
-                  placeholder={t("ทุกประเภท")}
-                  style={{ width: 145 }}
-                  value={type}
-                  onChange={setType}
-                  options={[
-                    { value: "PM", label: t("PM (บำรุงรักษา)") },
-                    { value: "CM", label: t("CM (ซ่อมแซม)") },
-                  ]}
-                />
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                  {t("ความเร่งด่วน")}:
-                </span>
-                <Select
-                  allowClear
-                  placeholder={t("ทุกระดับ")}
-                  style={{ width: 130 }}
-                  value={priority}
-                  onChange={setPriority}
-                  options={PRIORITY_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
-                />
-              </div>
-
-              <Input
-                allowClear
-                style={{ width: 220 }}
-                prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                placeholder={t("ค้นหาเลขที่ใบสั่งงาน...")}
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-                onPressEnter={() => setApplied(keyword)}
-                onBlur={() => setApplied(keyword)}
-              />
-
-              {(status !== "ACTIVE" || type || priority || keyword || applied) && (
-                <Button
-                  type="text"
-                  icon={<ClearOutlined />}
-                  onClick={() => {
-                    setStatus("ACTIVE");
-                    setType(undefined);
-                    setPriority(undefined);
-                    setKeyword("");
-                    setApplied("");
-                  }}
-                  style={{ color: "#64748b" }}
-                >
-                  {t("ล้างตัวกรอง")}
-                </Button>
-              )}
-            </div>
-
+          <div style={{ padding: "12px 20px", borderBottom: "1px solid #f0f2f5", background: "#fafbfc", textAlign: "right" }}>
             <div style={{ fontSize: 13, color: "#64748b" }}>
               {t("แสดง")} <strong style={{ color: "#1e293b" }}>{rows.length}</strong> {t("จาก {n} ใบ", { n: all.length })}
             </div>
@@ -208,7 +183,7 @@ export default function WorkOrdersPage() {
             columns={columns}
             dataSource={rows}
             loading={query.isFetching}
-            pagination={{ pageSize: 20, showTotal: (total) => lang === "en" ? `${total} work orders in total` : `ทั้งหมด ${total} ใบ` }}
+            pagination={{ current: page, onChange: setPage, pageSize: 20, showTotal: (total) => lang === "en" ? `${total} work orders in total` : `ทั้งหมด ${total} ใบ` }}
             scroll={{ x: 1100 }}
             locale={{ emptyText: t("ไม่มีใบสั่งงานตามเงื่อนไข") }}
           />

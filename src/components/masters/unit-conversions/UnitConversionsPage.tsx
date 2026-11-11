@@ -6,6 +6,7 @@ import { Button, Segmented, Select, Table, Tag, Typography } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -49,6 +50,9 @@ export default function UnitConversionsPage() {
   const presetItemId = searchParams.get("itemId") ?? undefined;
   const presetUnitId = searchParams.get("unitId") ?? undefined;
 
+  const [scopeDraft, setScopeDraft] = useState<UnitConversionScope>("ALL");
+  const [itemDraft, setItemDraft] = useState<string | undefined>(presetItemId);
+  const [unitDraft, setUnitDraft] = useState<string | undefined>(presetUnitId);
   const [scope, setScope] = useState<UnitConversionScope>("ALL");
   const [itemFilter, setItemFilter] = useState<string | undefined>(presetItemId);
   const [unitFilter, setUnitFilter] = useState<string | undefined>(presetUnitId);
@@ -104,6 +108,23 @@ export default function UnitConversionsPage() {
       }),
     [conversions, scope, itemFilter, unitFilter],
   );
+
+  const applyFilters = () => {
+    setScope(scopeDraft);
+    setItemFilter(itemDraft);
+    setUnitFilter(unitDraft);
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setScopeDraft("ALL");
+    setItemDraft(undefined);
+    setUnitDraft(undefined);
+    setScope("ALL");
+    setItemFilter(undefined);
+    setUnitFilter(undefined);
+    setPage(1);
+  };
 
   const openCreateModal = () => {
     setModalMode("create");
@@ -311,6 +332,52 @@ export default function UnitConversionsPage() {
           </div>
         </div>
 
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={conversionsQuery.isFetching}>
+          <FilterField label={t("ขอบเขต")}>
+            <Segmented
+              value={scopeDraft}
+              onChange={(value) => setScopeDraft(value as UnitConversionScope)}
+              options={[
+                { label: t("ทั้งหมด"), value: "ALL" },
+                { label: t("กฎกลาง"), value: "GLOBAL" },
+                { label: t("รายสินค้า"), value: "ITEM" },
+              ]}
+            />
+          </FilterField>
+          <FilterField label={t("กรองตามสินค้า")}>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ width: "100%" }}
+              placeholder={t("กรองตามสินค้า")}
+              value={itemDraft}
+              onChange={setItemDraft}
+              loading={itemsQuery.isLoading}
+              options={items.map((item) => ({
+                value: item.id,
+                label: `${item.itemCode} — ${item.itemNameTh}`,
+              }))}
+            />
+          </FilterField>
+          <FilterField label={t("กรองตามหน่วย")}>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ width: "100%" }}
+              placeholder={t("กรองตามหน่วย")}
+              value={unitDraft}
+              onChange={setUnitDraft}
+              loading={unitsQuery.isLoading}
+              options={units.map((unit) => ({
+                value: unit.id,
+                label: `${unit.code} — ${unit.nameTh}`,
+              }))}
+            />
+          </FilterField>
+        </FilterCard>
+
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>
             <div>
@@ -324,55 +391,6 @@ export default function UnitConversionsPage() {
             </div>
 
             <div className={styles.tableCount}>{t("{n} รายการ", { n: filtered.length })}</div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 12,
-              padding: "0 16px 16px",
-            }}
-          >
-            <Segmented
-              value={scope}
-              onChange={(value) => setScope(value as UnitConversionScope)}
-              options={[
-                { label: t("ทั้งหมด"), value: "ALL" },
-                { label: t("กฎกลาง"), value: "GLOBAL" },
-                { label: t("รายสินค้า"), value: "ITEM" },
-              ]}
-            />
-
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 260 }}
-              placeholder={t("กรองตามสินค้า")}
-              value={itemFilter}
-              onChange={setItemFilter}
-              loading={itemsQuery.isLoading}
-              options={items.map((item) => ({
-                value: item.id,
-                label: `${item.itemCode} — ${item.itemNameTh}`,
-              }))}
-            />
-
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              style={{ minWidth: 220 }}
-              placeholder={t("กรองตามหน่วย")}
-              value={unitFilter}
-              onChange={setUnitFilter}
-              loading={unitsQuery.isLoading}
-              options={units.map((unit) => ({
-                value: unit.id,
-                label: `${unit.code} — ${unit.nameTh}`,
-              }))}
-            />
           </div>
 
           {conversionsQuery.isError ? (

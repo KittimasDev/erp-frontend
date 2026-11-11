@@ -20,7 +20,6 @@ import {
   FilePdfOutlined,
   FileTextOutlined,
   PlusOutlined,
-  SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -43,6 +42,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import { formatErpDate } from "@/lib/datetime/erp-timezone";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import styles from "./PurchaseRequestsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -133,9 +133,8 @@ export default function PurchaseRequestsListPage() {
 
   // โหลด generator แบบ dynamic — ไฟล์ pdf ใหญ่ ไม่ควรติดมากับ bundle ของหน้า list
   const handlePrintPdf = useCallback(async (row: PurchaseRequest) => {
-    const { generatePurchaseRequestPdf } = await import(
-      "@/utils/generatePurchaseRequestPdf"
-    );
+    const { generatePurchaseRequestPdf } =
+      await import("@/utils/generatePurchaseRequestPdf");
     generatePurchaseRequestPdf({
       prNo: row.prNo,
       requestBy: row.requestedBy?.displayName ?? "—",
@@ -236,17 +235,14 @@ export default function PurchaseRequestsListPage() {
         key: "itemCount",
         width: 170,
         align: "center",
-        render: (_v, row) =>
-          t("{n} รายการ", { n: row.items?.length ?? 0 }),
+        render: (_v, row) => t("{n} รายการ", { n: row.items?.length ?? 0 }),
       },
       {
         title: t("สินค้า"),
         key: "items",
         width: 240,
         className: styles.itemColumn,
-        render: (_v, row) => (
-          <CollapsibleItemList items={row.items ?? []} />
-        ),
+        render: (_v, row) => <CollapsibleItemList items={row.items ?? []} />,
       },
       {
         title: t("สถานะ"),
@@ -284,8 +280,7 @@ export default function PurchaseRequestsListPage() {
                 key: "edit",
                 icon: <EditOutlined />,
                 label: t("แก้ไข"),
-                onClick: () =>
-                  router.push(`/purchase-requests/${row.id}/edit`),
+                onClick: () => router.push(`/purchase-requests/${row.id}/edit`),
               },
             ]}
           />
@@ -301,99 +296,90 @@ export default function PurchaseRequestsListPage() {
         eyebrow="Purchase Request"
         icon={<FileTextOutlined />}
         title={t("รายการใบขอซื้อ")}
-        subtitle={t("ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด")}
+        subtitle={t(
+          "ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด",
+        )}
         actions={
           <>
-{canAccessApprovals ? (
-            <Link href="/purchase-requests/approvals">
-              <Button className={styles.secondaryBtn} icon={<AuditOutlined />}>
-                {t("รออนุมัติ")}
+            {canAccessApprovals ? (
+              <Link href="/purchase-requests/approvals">
+                <Button
+                  className={styles.secondaryBtn}
+                  icon={<AuditOutlined />}
+                >
+                  {t("รออนุมัติ")}
+                </Button>
+              </Link>
+            ) : null}
+            <Link href="/purchase-requests/create">
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<PlusOutlined />}
+              >
+                {t("สร้างใบขอซื้อ")}
               </Button>
             </Link>
-          ) : null}
-          <Link href="/purchase-requests/create">
-            <Button
-              className={styles.primaryBtn}
-              type="primary"
-              icon={<PlusOutlined />}
-            >
-              {t("สร้างใบขอซื้อ")}
-            </Button>
-          </Link>
           </>
         }
       />
 
-      <section className={styles.filterCard}>
-        <div className={styles.filterGrid}>
-          <div className={styles.filterItem}>
-            <label>{t("เลขที่ใบขอซื้อ")}</label>
-            <Input
-              allowClear
-              placeholder={t("เช่น PR-20260718-001")}
-              value={prNo}
-              onChange={(e) => setPrNo(e.target.value)}
-              onPressEnter={applyFilters}
-            />
-          </div>
-          <div className={styles.filterItem}>
-            <label>{t("วันที่ขอซื้อ")}</label>
-            <DatePicker
-              style={{ width: "100%" }}
-              value={prDate}
-              onChange={(value) => setPrDate(value)}
-              format="DD/MM/YYYY"
-              placeholder={t("เลือกวันที่")}
-            />
-          </div>
-          <div className={styles.filterItem}>
-            <label>{t("สินค้า")}</label>
-            <Select
-              allowClear
-              showSearch
-              mode="multiple"
-              maxTagCount="responsive"
-              optionFilterProp="label"
-              style={{ width: "100%" }}
-              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
-              aria-label={t("สินค้า")}
-              value={itemIds}
-              onChange={(value) => setItemIds(value)}
-              options={catalogItems.map((item) => ({
-                value: item.id,
-                label: `${item.itemCode} — ${item.itemNameTh}`,
-              }))}
-            />
-          </div>
-          <div className={styles.filterItem}>
-            <label>{t("สถานะเอกสาร")}</label>
-            <Select
-              allowClear
-              style={{ width: "100%" }}
-              placeholder={t("ทั้งหมด")}
-              value={status}
-              onChange={(value) => setStatus(value)}
-              options={Object.entries(PURCHASE_REQUEST_STATUS_LABEL).map(
-                ([value]) => ({
-                  value,
-                  label: purchaseRequestStatusLabel(value, lang),
-                }),
-              )}
-            />
-          </div>
-        </div>
-        <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
-          <Button
-            type="primary"
-            className={styles.primaryBtn}
-            icon={<SearchOutlined />}
-            onClick={applyFilters}
-          >
-            {t("ค้นหา")}
-          </Button>
-        </div>
-      </section>
+      <FilterCard
+        onSearch={applyFilters}
+        onClear={clearFilters}
+        loading={query.isFetching}
+      >
+        <FilterField label={t("เลขที่ใบขอซื้อ")}>
+          <Input
+            allowClear
+            placeholder={t("เช่น PR-20260718-001")}
+            value={prNo}
+            onChange={(e) => setPrNo(e.target.value)}
+          />
+        </FilterField>
+        <FilterField label={t("วันที่ขอซื้อ")}>
+          <DatePicker
+            style={{ width: "100%" }}
+            value={prDate}
+            onChange={(value) => setPrDate(value)}
+            format="DD/MM/YYYY"
+            placeholder={t("เลือกวันที่")}
+          />
+        </FilterField>
+        <FilterField label={t("สินค้า")}>
+          <Select
+            allowClear
+            showSearch
+            mode="multiple"
+            maxTagCount="responsive"
+            optionFilterProp="label"
+            style={{ width: "100%" }}
+            placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+            aria-label={t("สินค้า")}
+            value={itemIds}
+            onChange={(value) => setItemIds(value)}
+            options={catalogItems.map((item) => ({
+              value: item.id,
+              label: `${item.itemCode} — ${item.itemNameTh}`,
+            }))}
+          />
+        </FilterField>
+        <FilterField label={t("สถานะเอกสาร")}>
+          <Select
+            allowClear
+            style={{ width: "100%" }}
+            placeholder={t("ทั้งหมด")}
+            value={status}
+            onChange={(value) => setStatus(value)}
+            options={Object.entries(PURCHASE_REQUEST_STATUS_LABEL).map(
+              ([value]) => ({
+                value,
+                label: purchaseRequestStatusLabel(value, lang),
+              }),
+            )}
+          />
+        </FilterField>
+      </FilterCard>
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>

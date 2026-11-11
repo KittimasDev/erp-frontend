@@ -15,7 +15,7 @@ import {
 import {
   Button,
   Input,
-  Space,
+  Select,
   Table,
   Typography,
 } from "antd";
@@ -36,6 +36,7 @@ import {
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./ProductionOutputStockRequestsPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 import { appLocale } from "@/components/weighbridge/receiving-i18n";
@@ -115,6 +116,7 @@ export default function ProductionOutputStockRequestsPage() {
   const t = useT();
   const router = useRouter();
   const [status, setStatus] = useState<string | undefined>();
+  const [draftStatus, setDraftStatus] = useState<string | undefined>();
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -182,6 +184,19 @@ export default function ProductionOutputStockRequestsPage() {
       );
     });
   }, [listQuery.data?.data, status]);
+
+  const applyFilters = () => {
+    setStatus(draftStatus);
+    setQ(searchInput.trim());
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setStatus(undefined);
+    setDraftStatus(undefined);
+    setSearchInput("");
+    setQ("");
+    setPage(1);
+  };
 
   const activeFilter = STATUS_FILTERS.find((item) => item.key === status);
 
@@ -398,7 +413,7 @@ export default function ProductionOutputStockRequestsPage() {
           {STATUS_FILTERS.map((filter) => {
             const countKey = filter.key ?? "all";
             const count = statusCounts[countKey] ?? 0;
-            const active = status === filter.key;
+            const active = draftStatus === filter.key;
             const isPendingFilter = filter.pendingTone === true;
             return (
               <button
@@ -414,10 +429,7 @@ export default function ProductionOutputStockRequestsPage() {
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                onClick={() => {
-                  setStatus(filter.key);
-                  setPage(1);
-                }}
+                onClick={() => setDraftStatus(filter.key)}
               >
                 <span className={styles.statLabel}>{filter.key ? productionOutputStatusLabel(filter.key) : t("ทั้งหมด")}</span>
                 <strong
@@ -433,39 +445,30 @@ export default function ProductionOutputStockRequestsPage() {
           })}
         </div>
 
-        <div className={styles.filterCard}>
-          <Space wrap>
+        <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={listQuery.isFetching}>
+          <FilterField label={t("ค้นหา")} wide>
             <Input
               allowClear
               prefix={<SearchOutlined />}
               placeholder={t("ค้นหาเลขคำขอ / สินค้า / Lot")}
-              style={{ width: 300 }}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              onPressEnter={() => {
-                setQ(searchInput.trim());
-                setPage(1);
-              }}
             />
-            <Button
-              type="primary"
-              icon={<SearchOutlined />}
-              onClick={() => {
-                setQ(searchInput.trim());
-                setPage(1);
-              }}
-            >
-              {t("ค้นหา")}
-            </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={listQuery.isFetching}
-              onClick={() => void listQuery.refetch()}
-            >
-              {t("รีเฟรช")}
-            </Button>
-          </Space>
-        </div>
+          </FilterField>
+          <FilterField label={t("สถานะ")}>
+            <Select
+              allowClear
+              placeholder={t("ทั้งหมด")}
+              style={{ width: "100%" }}
+              value={draftStatus}
+              onChange={(value) => setDraftStatus(value)}
+              options={STATUS_FILTERS.filter((f) => f.key).map((f) => ({
+                value: f.key as string,
+                label: productionOutputStatusLabel(f.key as string),
+              }))}
+            />
+          </FilterField>
+        </FilterCard>
 
         <div className={styles.tableCard}>
           <div className={styles.listHeader}>
@@ -479,6 +482,13 @@ export default function ProductionOutputStockRequestsPage() {
                     : t("แสดงทุกสถานะ — รายการรออนุมัติจะอยู่ด้านบนและถูกเน้นสี")}
               </p>
             </div>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={listQuery.isFetching}
+              onClick={() => void listQuery.refetch()}
+            >
+              {t("รีเฟรช")}
+            </Button>
           </div>
           <Table
             rowKey="id"

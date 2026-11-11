@@ -15,6 +15,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 
 import ChemicalProfileModal from "./ChemicalProfileModal";
 import HazardMatrixTab from "./HazardMatrixTab";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
 
@@ -24,6 +25,7 @@ export default function ChemicalsPage() {
   const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState("");
+  const [hazardDraft, setHazardDraft] = useState<string>();
   const [applied, setApplied] = useState("");
   const [hazardFilter, setHazardFilter] = useState<string>();
   const [editing, setEditing] = useState<ChemicalRow | null>(null);
@@ -32,6 +34,19 @@ export default function ChemicalsPage() {
   const hazardsQuery = useHazardClassesQuery();
   const rows = (query.data?.data ?? []).filter((r) => !hazardFilter || r.hazardClassId === hazardFilter);
   const { canEdit } = getScreenActionPermissions("MASTERS_CHEMICALS");
+
+  const applyFilters = () => {
+    setApplied(keyword);
+    setHazardFilter(hazardDraft);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setKeyword("");
+    setHazardDraft(undefined);
+    setApplied("");
+    setHazardFilter(undefined);
+    setPage(1);
+  };
 
   const columns: ColumnsType<ChemicalRow> = [
     {
@@ -109,33 +124,35 @@ export default function ChemicalsPage() {
                         </span>
                       }
                     />
-                    <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-                      <Input
-                        allowClear
-                        style={{ width: 280 }}
-                        prefix={<SearchOutlined />}
-                        placeholder={t("ค้นรหัส / ชื่อ / CAS / ผู้ผลิต")}
-                        value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
-                        onPressEnter={() => setApplied(keyword)}
-                        onBlur={() => setApplied(keyword)}
-                      />
-                      <Select
-                        allowClear
-                        style={{ width: 200 }}
-                        placeholder={t("ทุก Hazard Class")}
-                        value={hazardFilter}
-                        onChange={setHazardFilter}
-                        options={(hazardsQuery.data?.data ?? []).map((h) => ({ value: h.id, label: h.nameTh }))}
-                      />
-                    </div>
+                    <FilterCard onSearch={applyFilters} onClear={clearFilters} loading={query.isFetching}>
+                      <FilterField label={t("ค้นรหัส / ชื่อ / CAS / ผู้ผลิต")}>
+                        <Input
+                          allowClear
+                          style={{ width: "100%" }}
+                          prefix={<SearchOutlined />}
+                          placeholder={t("ค้นรหัส / ชื่อ / CAS / ผู้ผลิต")}
+                          value={keyword}
+                          onChange={(e) => setKeyword(e.target.value)}
+                        />
+                      </FilterField>
+                      <FilterField label="Hazard Class">
+                        <Select
+                          allowClear
+                          style={{ width: "100%" }}
+                          placeholder={t("ทุก Hazard Class")}
+                          value={hazardDraft}
+                          onChange={setHazardDraft}
+                          options={(hazardsQuery.data?.data ?? []).map((h) => ({ value: h.id, label: h.nameTh }))}
+                        />
+                      </FilterField>
+                    </FilterCard>
                     <Table
                       rowKey="itemId"
                       className={styles.dataTable}
                       columns={columns}
                       dataSource={rows}
                       loading={query.isFetching}
-                      pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }) }}
+                      pagination={{ current: page, onChange: setPage, pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }) }}
                       scroll={{ x: 900 }}
                       locale={{ emptyText: t("ยังไม่มีสินค้าประเภทสารเคมี") }}
                     />

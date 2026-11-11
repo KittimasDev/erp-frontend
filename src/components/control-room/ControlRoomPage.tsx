@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { Alert, App, Button, Progress, Select, Switch, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { FullscreenExitOutlined, FullscreenOutlined, ReloadOutlined } from "@ant-design/icons";
@@ -119,6 +120,8 @@ export default function ControlRoomPage() {
     () => document.fullscreenElement !== null,
     () => false,
   );
+  // draft = สวิตช์ที่กำลังเลือก · onlyProblems = ค่าที่ใช้กรองการ์ดเครื่องจักรจริง (เปลี่ยนเมื่อกด ค้นหา/ล้าง)
+  const [draftOnlyProblems, setDraftOnlyProblems] = useState(false);
   const [onlyProblems, setOnlyProblems] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const query = useControlRoomQuery(refreshMin * 60_000);
@@ -327,11 +330,19 @@ export default function ControlRoomPage() {
 
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>
-          {t("สถานะเครื่องจักรแต่ละชุด")}{" "}
-          <span style={{ marginLeft: 12, fontWeight: 400 }}>
-            <Switch size="small" checked={onlyProblems} onChange={setOnlyProblems} aria-label={t("แสดงเฉพาะที่ไม่ปกติ")} /> {t("เฉพาะที่ไม่ปกติ")}
-          </span>
+          {t("สถานะเครื่องจักรแต่ละชุด")}
         </h3>
+        <FilterCard
+          onSearch={() => setOnlyProblems(draftOnlyProblems)}
+          onClear={() => {
+            setDraftOnlyProblems(false);
+            setOnlyProblems(false);
+          }}
+        >
+          <FilterField label={t("เฉพาะที่ไม่ปกติ")}>
+            <Switch checked={draftOnlyProblems} onChange={setDraftOnlyProblems} aria-label={t("แสดงเฉพาะที่ไม่ปกติ")} />
+          </FilterField>
+        </FilterCard>
         {equipment.length === 0 ? (
           <Typography.Text className={styles.muted}>
             {onlyProblems ? t("ทุกเครื่องปกติ") : t("ยังไม่มีทะเบียนเครื่องจักร")}
