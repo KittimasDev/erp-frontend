@@ -107,12 +107,12 @@ export default function PoDeliverySchedulesSection({
                   <strong>{t("รอบที่ {n}", { n: schedule.roundNo })}</strong>
                   <div>
                     {t("กำหนดส่ง {date}", {
-                      date: dayjs(schedule.effectiveDeliveryDate).format("DD/MM/YYYY"),
+                      date: dayjs(schedule.effectiveDeliveryDate).format("DD/MM/BBBB"),
                     })}
                     {schedule.originalDeliveryDate &&
                     schedule.originalDeliveryDate !== schedule.deliveryDate
                       ? ` ${t("(เลื่อนจาก {date})", {
-                          date: dayjs(schedule.originalDeliveryDate).format("DD/MM/YYYY"),
+                          date: dayjs(schedule.originalDeliveryDate).format("DD/MM/BBBB"),
                         })}`
                       : null}
                   </div>
@@ -128,7 +128,7 @@ export default function PoDeliverySchedulesSection({
                     >
                       <span>
                         {t("รับจริงล่าสุด {date}", {
-                          date: dayjs(schedule.latestActualReceiveDate).format("DD/MM/YYYY"),
+                          date: dayjs(schedule.latestActualReceiveDate).format("DD/MM/BBBB"),
                         })}
                       </span>
                       {timing ? (
@@ -267,7 +267,7 @@ export default function PoDeliverySchedulesSection({
             label={t("วันที่ส่งใหม่")}
             rules={[{ required: true, message: t("ระบุวันที่ส่งใหม่") }]}
           >
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
           </Form.Item>
           <Form.Item
             name="reason"
@@ -342,13 +342,13 @@ export default function PoDeliverySchedulesSection({
         {(active?.reschedules ?? []).map((row) => (
           <div key={row.id} style={{ marginBottom: 12 }}>
             <div>
-              {dayjs(row.fromDate).format("DD/MM/YYYY")} →{" "}
-              {dayjs(row.toDate).format("DD/MM/YYYY")}
+              {dayjs(row.fromDate).format("DD/MM/BBBB")} →{" "}
+              {dayjs(row.toDate).format("DD/MM/BBBB")}
             </div>
             <div>{row.reason}</div>
             <div>
               {row.createdByName ?? ""}{" "}
-              {row.createdAt ? dayjs(row.createdAt).format("DD/MM/YYYY HH:mm") : ""}
+              {row.createdAt ? dayjs(row.createdAt).format("DD/MM/BBBB HH:mm") : ""}
             </div>
           </div>
         ))}

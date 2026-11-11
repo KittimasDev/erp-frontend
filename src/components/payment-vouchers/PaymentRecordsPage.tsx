@@ -100,7 +100,7 @@ export default function PaymentRecordsPage() {
       await downloadTabularReport(format, {
         title: t("รายการที่บันทึกจ่ายแล้ว"),
         filename: `payment-records-${dayjs().format("YYYYMMDD-HHmm")}`,
-        meta: [`${t("ออกรายงาน")} ${dayjs().format("DD/MM/YYYY HH:mm")}`, ...filterText, t("ทั้งหมด {n} รายการ · รวม {amount} บาท", { n: rows.length, amount: fmtMoney(total) })],
+        meta: [`${t("ออกรายงาน")} ${dayjs().format("DD/MM/BBBB HH:mm")}`, ...filterText, t("ทั้งหมด {n} รายการ · รวม {amount} บาท", { n: rows.length, amount: fmtMoney(total) })],
         headers: [
           t("เลขที่รายการจ่าย"),
           t("วันที่จ่ายจริง"),
@@ -344,7 +344,7 @@ export default function PaymentRecordsPage() {
             </div>
             <div className={styles.filterItem}>
               <label>{t("วันที่จ่าย")}</label>
-              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={rRange} onChange={setRRange} />
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/BBBB" value={rRange} onChange={setRRange} />
             </div>
             <div className={styles.filterItem}>
               <label>{t("วิธีชำระ")}</label>

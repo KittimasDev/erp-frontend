@@ -46,11 +46,10 @@ import { getAccessToken } from "@/lib/auth/token";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PickingItem } from "@/types/pickings";
-import { PICKING_STATUS_LABEL } from "@/types/pickings";
+import { pickingStatusColor, pickingStatusLabel } from "@/types/pickings";
 import styles from "./PickingFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string; mode: "view" | "edit" };
 
@@ -215,11 +214,7 @@ export default function PickingFormPage({ id, mode }: Props) {
     return <AccessDenied screenCodes={["PICKINGS"]} />;
   }
 
-  const statusLabel = statusT(
-    t,
-    PICKING_STATUS_LABEL[data.status as keyof typeof PICKING_STATUS_LABEL] ??
-      data.status,
-  );
+  const statusLabel = pickingStatusLabel(data.status);
 
   const reservationReady =
     data.status === "DRAFT" &&
@@ -432,15 +427,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                 {data.customerName ?? "—"}
               </span>
             </span>
-            <Tag
-              color={
-                data.status === "CONFIRMED"
-                  ? "success"
-                  : data.status === "CANCELLED"
-                    ? "default"
-                    : "processing"
-              }
-            >
+            <Tag color={pickingStatusColor(data.status)}>
               {statusLabel}
             </Tag>
           </div>
@@ -470,7 +457,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               );
               void generatePickingPdf({
                 pickingNo: data.pickingNo,
-                pickingDate: dayjs(data.pickingDate).format("DD/MM/YYYY"),
+                pickingDate: dayjs(data.pickingDate).format("DD/MM/BBBB"),
                 salesOrderNo: data.salesOrderNo ?? "—",
                 customerName: data.customerName ?? "—",
                 remark: data.remark?.trim() || "",
@@ -663,6 +650,7 @@ export default function PickingFormPage({ id, mode }: Props) {
             <span>{t("วันที่จ่าย")}</span>
             <DatePicker
               value={pickingDate}
+              format="DD/MM/BBBB"
               disabled={!editable}
               onChange={setPickingDate}
               style={{ width: "100%" }}

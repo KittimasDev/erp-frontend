@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 import { PRODUCTION_ORDER_RUNNING_STATUSES } from "./production-order";
 import { stockPostingStatusLabel } from "./stock-posting-request";
 import { getStoredLanguage } from "@/lib/i18n/language";
@@ -16,10 +17,18 @@ export const REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET = "WEIGHBRIDGE_TICKET";
 export const REFERENCE_DOC_TYPE_PRODUCTION_ORDER = "PRODUCTION_ORDER";
 
 export const PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL: Record<string, string> = {
-  PENDING_APPROVAL: "รออนุมัติ",
-  APPROVED: "อนุมัติแล้ว",
-  REJECTED: "ไม่อนุมัติ",
-  CANCELLED: "ยกเลิก",
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
+  APPROVED: standardStatusLabel("APPROVED"),
+  REJECTED: standardStatusLabel("REJECTED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะคำขอนำผลผลิตเข้าสต๊อก — ตามมาตรฐานกลาง */
+export const PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR: Record<string, string> = {
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  APPROVED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** ป้ายสถานะคำขอตามภาษา ("ยกเลิก" = Cancelled, "ไม่อนุมัติ" = Rejected ไม่ชนกับปุ่ม) — ใช้ตอนเรนเดอร์ */

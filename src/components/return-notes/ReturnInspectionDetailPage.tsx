@@ -10,13 +10,12 @@ import dayjs from "dayjs";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useInspectionDetailQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import { useConfirmInspectionMutation } from "@/hooks/return-notes/useReturnNoteMutations";
-import type { ReturnNoteItem, ReturnNoteStatus } from "@/types/return-notes";
-import { RETURN_NOTE_STATUS_LABEL } from "@/types/return-notes";
+import type { ReturnNoteItem } from "@/types/return-notes";
+import { returnNoteStatusLabel } from "@/types/return-notes";
 import ReturnInspectionSortModal from "./ReturnInspectionSortModal";
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string };
 
@@ -148,7 +147,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
               <span>{t("วันที่คืน")}</span>
-              <strong>{dayjs(data.createdAt).format("DD/MM/YYYY")}</strong>
+              <strong>{dayjs(data.createdAt).format("DD/MM/BBBB")}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>{t("ลูกค้า")}</span>
@@ -175,8 +174,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
               <strong>
                 {confirmed
                   ? t("ตรวจสอบแล้ว")
-                  : statusT(t, RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ??
-                    data.status)}
+                  : returnNoteStatusLabel(data.status)}
               </strong>
             </div>
           </div>

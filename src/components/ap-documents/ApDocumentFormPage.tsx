@@ -514,7 +514,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           </Col>
           <Col xs={24} sm={12} md={6}>
             <Form.Item name="docDate" label={t("วันที่เอกสาร")} rules={[{ required: true }]}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -533,13 +533,13 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           </Col>
           <Col xs={24} sm={12} md={6}>
             <Form.Item name="supplierDocDate" label={t("วันที่เอกสารผู้ขาย")}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
           </Col>
           {isInvoice ? (
             <Col xs={24} sm={12} md={6}>
               <Form.Item name="dueDate" label={t("ครบกำหนดชำระ")}>
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
               </Form.Item>
             </Col>
           ) : null}

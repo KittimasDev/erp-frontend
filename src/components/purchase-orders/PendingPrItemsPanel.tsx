@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
 import { memo } from "react";
 import Link from "next/link";
 import { Checkbox, Table, Tag } from "antd";
@@ -40,7 +41,7 @@ function formatDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "—"
-    : date.toLocaleDateString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", {
+    : formatBuddhistIntl(date, getStoredLanguage() === "en" ? "en" : "th", {
         day: "2-digit",
         month: "short",
         year: "numeric",

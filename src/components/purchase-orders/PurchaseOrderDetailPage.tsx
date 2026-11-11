@@ -7,7 +7,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPurchaseOrderBackHref } from "@/lib/navigation/purchase-order-list-return";
-import { App, Button, Descriptions, Input, Modal, Spin, Table, Typography, Upload } from "antd";
+import { App, Button, Descriptions, Input, Modal, Spin, Table, Tag, Typography, Upload } from "antd";
 import type { UploadProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -60,6 +60,7 @@ import {
   isPoReceivableStatus,
   listPurchaseRequests,
   PO_CHARGE_TYPE_LABEL,
+  purchaseOrderStatusColor,
   purchaseOrderStatusLabel,
   type PoPaymentAdjustmentItem,
 } from "@/types/purchase-orders";
@@ -167,7 +168,7 @@ function formatDate(value?: string) {
   // วันที่ทั้งหน้าใช้ปี พ.ศ. เหมือนหน้า AP / รายการจ่ายเงิน (แสดงผลเท่านั้น ไม่แก้ค่าที่เก็บ) เช่น 2026-12-15 → 15/12/2569
   const day = dayjs(value);
   if (!day.isValid()) return "—";
-  return `${day.format("DD/MM")}/${getStoredLanguage() === "en" ? day.year() : day.year() + 543}`;
+  return day.format("DD/MM/BBBB");
 }
 
 /** หัวรอบใน PDF ใช้ปี พ.ศ. เช่น 09/10/2569 */
@@ -175,15 +176,14 @@ function formatBuddhistDate(value?: string) {
   if (!value) return "—";
   const day = dayjs(value);
   if (!day.isValid()) return "—";
-  return `${day.format("DD/MM")}/${day.year() + 543}`;
+  return day.format("DD/MM/BBBB");
 }
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
   const day = dayjs(value);
   if (!day.isValid()) return "—";
-  const year = getStoredLanguage() === "en" ? day.year() : day.year() + 543;
-  return `${day.format("DD/MM")}/${year} ${day.format("HH:mm")}`;
+  return day.format("DD/MM/BBBB HH:mm");
 }
 
 function formatMoney(value?: string | number) {
@@ -222,24 +222,6 @@ function toPdfDeliveryRounds(schedules: PoDeliverySchedule[]) {
       };
     })
     .filter((round) => round.items.length > 0);
-}
-
-function statusClass(status: string) {
-  switch (status) {
-    case "CONFIRMED":
-    case "COMPLETED":
-    case "CLOSED_PARTIAL":
-    case "PARTIALLY_RECEIVED":
-      return styles.statusApproved;
-    case "REVISING":
-      return styles.statusRevision;
-    case "CANCELLED":
-    case "RECEIVE_CANCELLED":
-    case "REJECTED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
 }
 
 function hasOpenReceivableQty(schedules: PoDeliverySchedule[]) {
@@ -957,8 +939,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.poNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {tStatus(purchaseOrderStatusLabel(data))}
+          <div>
+            <Tag color={purchaseOrderStatusColor(data.status)}>
+              {tStatus(purchaseOrderStatusLabel(data))}
+            </Tag>
           </div>
 
           <div className={styles.sideRows}>

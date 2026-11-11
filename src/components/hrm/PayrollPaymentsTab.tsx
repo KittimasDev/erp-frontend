@@ -270,7 +270,7 @@ export default function PayrollPaymentsTab({ run, canPay, canExport }: Props) {
         <div style={{ border: "1px solid #e5e8ef", borderRadius: 8, padding: 12, marginBottom: 12 }}>
           <Typography.Text strong>{t("บันทึกผลจ่ายทีเดียว")}</Typography.Text>
           <Space wrap size={[12, 8]} style={{ display: "flex", marginTop: 8 }}>
-            <DatePicker value={paidDate} onChange={(d) => d && setPaidDate(d)} format="DD/MM/YYYY" allowClear={false} aria-label={t("วันที่จ่าย")} />
+            <DatePicker value={paidDate} onChange={(d) => d && setPaidDate(d)} format="DD/MM/BBBB" allowClear={false} aria-label={t("วันที่จ่าย")} />
             <Select
               style={{ width: 160 }}
               value={method}

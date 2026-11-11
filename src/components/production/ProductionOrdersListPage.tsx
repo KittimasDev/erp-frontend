@@ -14,6 +14,7 @@ import { useCancelProductionOrderMutation } from "@/hooks/production-orders/useP
 import { useProductionOrdersQuery } from "@/hooks/production-orders/useProductionOrderQueries";
 import type { ProductionOrder } from "@/types/production-order";
 import {
+  PRODUCTION_ORDER_STATUS_COLOR,
   PRODUCTION_ORDER_STATUS_LABEL,
   ProductionOrderStatus,
   tPoLabel,
@@ -23,15 +24,6 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
-
-const STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
-  IN_PROGRESS: "processing",
-  // เหลืองอำพัน — สถานะหยุดต้องอ่านออกจากสีก่อนอ่านข้อความ
-  PAUSED: "warning",
-  COMPLETED: "success",
-  CANCELLED: "error",
-};
 
 export default function ProductionOrdersListPage() {
   const t = useT();
@@ -123,7 +115,7 @@ export default function ProductionOrdersListPage() {
       dataIndex: "status",
       key: "status",
       render: (value: string) => (
-        <Tag color={STATUS_COLOR[value] ?? "default"}>
+        <Tag color={PRODUCTION_ORDER_STATUS_COLOR[value] ?? "default"}>
           {PRODUCTION_ORDER_STATUS_LABEL[value]
             ? tPoLabel(PRODUCTION_ORDER_STATUS_LABEL[value], lang)
             : value}
@@ -135,14 +127,14 @@ export default function ProductionOrdersListPage() {
       dataIndex: "startedAt",
       key: "startedAt",
       render: (value?: string) =>
-        value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-",
+        value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "-",
     },
     {
       title: t("เสร็จสิ้น"),
       dataIndex: "completedAt",
       key: "completedAt",
       render: (value?: string) =>
-        value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-",
+        value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "-",
     },
     {
       title: "",

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -1040,12 +1041,12 @@ export default function WeighbridgeDashboardPage() {
     if (showAll) return t("ทั้งหมด");
     if (!fromParam && !toParam) return t("วันนี้");
     if (fromParam && toParam && fromParam === toParam) {
-      return dayjs(fromParam).format("DD/MM/YYYY");
+      return dayjs(fromParam).format("DD/MM/BBBB");
     }
     if (fromParam && toParam) {
-      return `${dayjs(fromParam).format("DD/MM/YYYY")} – ${dayjs(toParam).format("DD/MM/YYYY")}`;
+      return `${dayjs(fromParam).format("DD/MM/BBBB")} – ${dayjs(toParam).format("DD/MM/BBBB")}`;
     }
-    return dayjs(fromParam ?? toParam).format("DD/MM/YYYY");
+    return dayjs(fromParam ?? toParam).format("DD/MM/BBBB");
   })();
 
   const columns: ColumnsType<WeighbridgeTicketListItem> = [
@@ -1133,7 +1134,7 @@ export default function WeighbridgeDashboardPage() {
       width: 160,
       render: (value: string) =>
         value
-          ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH")
+          ? formatErpDateTime(value, "-")
           : "-",
     },
     {
@@ -1453,7 +1454,7 @@ export default function WeighbridgeDashboardPage() {
               allowClear
               style={{ width: "100%" }}
               value={rangeDraft}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={[t("เริ่มต้น"), t("สิ้นสุด")]}
               onChange={(values) =>
                 setRangeDraft(values && values[0] && values[1] ? [values[0], values[1]] : null)

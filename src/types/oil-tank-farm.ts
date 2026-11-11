@@ -1,11 +1,19 @@
 import type { Language } from "@/lib/i18n/translate";
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 
 type Envelope<T> = { statusCode?: number; message: string; data: T };
 
 export const OIL_DOC_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "รออนุมัติ",
-  POSTED: "อนุมัติแล้ว",
-  CANCELLED: "ยกเลิก",
+  DRAFT: standardStatusLabel("DRAFT"),
+  POSTED: standardStatusLabel("APPROVED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะเอกสารถังน้ำมัน — ใช้ร่วมทุกหน้า (รับเข้า/จ่ายออก/โอนย้าย) */
+export const OIL_DOC_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  POSTED: standardStatusColor("APPROVED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export const OIL_TANK_STATUS_LABEL: Record<string, string> = {
@@ -14,7 +22,11 @@ export const OIL_TANK_STATUS_LABEL: Record<string, string> = {
   INACTIVE: "ปิดใช้งาน",
 };
 
-const OIL_DOC_STATUS_EN: Record<string, string> = { DRAFT: "Pending approval", POSTED: "Approved", CANCELLED: "Cancelled" };
+const OIL_DOC_STATUS_EN: Record<string, string> = {
+  DRAFT: standardStatusLabel("DRAFT", "en"),
+  POSTED: standardStatusLabel("APPROVED", "en"),
+  CANCELLED: standardStatusLabel("CANCELLED", "en"),
+};
 const OIL_TANK_STATUS_EN: Record<string, string> = { ACTIVE: "Active", MAINTENANCE: "Under maintenance", INACTIVE: "Inactive" };
 
 /** ป้ายสถานะเอกสารถังน้ำมันตามภาษา (ยกเลิก = Cancelled ไม่ใช่ปุ่ม Cancel) */

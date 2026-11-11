@@ -301,7 +301,7 @@ function DraftEditor({
       <Card>
       <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Space wrap>
-          <DatePicker value={date} format="DD/MM/YYYY" onChange={(value) => value && setDate(value)} />
+          <DatePicker value={date} format="DD/MM/BBBB" onChange={(value) => value && setDate(value)} />
           <Typography.Text>{t("ลูกค้า")} {note.customerName}</Typography.Text>
           <Typography.Text>SO {note.salesOrderNo}</Typography.Text>
           <Typography.Text>{t("ใบส่ง")} {note.deliveryOrderNo}</Typography.Text>
@@ -347,7 +347,7 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
 
       <Card>
       <Descriptions column={2} size="small" style={{ marginBottom: 16 }}>
-        <Descriptions.Item label={t("วันที่")}>{note.creditNoteDate}</Descriptions.Item>
+        <Descriptions.Item label={t("วันที่")}>{dayjs(note.creditNoteDate).format("DD/MM/BBBB")}</Descriptions.Item>
         <Descriptions.Item label={t("ลูกค้า")}>{note.customerName}</Descriptions.Item>
         <Descriptions.Item label={t("ใบสั่งขาย")}>{note.salesOrderNo}</Descriptions.Item>
         <Descriptions.Item label={t("ใบส่งสินค้า")}>{note.deliveryOrderNo}</Descriptions.Item>
@@ -357,7 +357,7 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         <Descriptions.Item label={t("ผู้อนุมัติ")}>
           {note.approvedByName || "—"}
           {note.approvedAt
-            ? ` · ${dayjs(note.approvedAt).format("DD/MM/YYYY HH:mm")}`
+            ? ` · ${dayjs(note.approvedAt).format("DD/MM/BBBB HH:mm")}`
             : ""}
         </Descriptions.Item>
       </Descriptions>
@@ -493,7 +493,7 @@ function ActionBar({
     );
     await generateSalesCreditNotePdf({
       creditNoteNo: note.creditNoteNo,
-      creditNoteDate: note.creditNoteDate,
+      creditNoteDate: dayjs(note.creditNoteDate).format("DD/MM/BBBB"),
       customerName: note.customerName,
       salesOrderNo: note.salesOrderNo,
       deliveryOrderNo: note.deliveryOrderNo,

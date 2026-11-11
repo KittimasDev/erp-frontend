@@ -120,7 +120,7 @@ export default function IssueApPvModal({
         </Descriptions>
         <Space>
           <Typography.Text>{t("วันที่ต้องการจ่าย")}</Typography.Text>
-          <DatePicker format="DD/MM/YYYY" value={payDate} onChange={(v) => setDateInput(v)} />
+          <DatePicker format="DD/MM/BBBB" value={payDate} onChange={(v) => setDateInput(v)} />
         </Space>
         <Alert
           type="info"

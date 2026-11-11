@@ -90,12 +90,12 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
         </div>
       ),
     },
-    { title: t("เริ่มหยุด"), dataIndex: "startAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },
+    { title: t("เริ่มหยุด"), dataIndex: "startAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/BBBB HH:mm") },
     {
       title: t("กลับมาเดิน"),
       dataIndex: "endAt",
       width: 150,
-      render: (v: string | undefined, r) => (r.isOpen ? <Tag color="orange">{t("ยังหยุดอยู่")}</Tag> : dayjs(v).format("DD/MM/YYYY HH:mm")),
+      render: (v: string | undefined, r) => (r.isOpen ? <Tag color="orange">{t("ยังหยุดอยู่")}</Tag> : dayjs(v).format("DD/MM/BBBB HH:mm")),
     },
     { title: t("ระยะเวลา"), dataIndex: "durationMinutes", width: 110, align: "right", render: (m: number) => fmtMinutes(m, t) },
     {
@@ -184,7 +184,7 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
             />
           </Form.Item>
           <Form.Item name="startAt" label={t("เวลาที่เริ่มหยุด")} rules={[{ required: true }]}>
-            <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" />
+            <DatePicker showTime style={{ width: "100%" }} format="DD/MM/BBBB HH:mm" />
           </Form.Item>
           <Form.Item name="reason" label={t("สาเหตุที่หยุด")} rules={[{ required: true, message: t("ใส่สาเหตุ") }]}>
             <Input.TextArea rows={2} maxLength={2000} placeholder={t("เช่น ใบมีดทื่อ หยุดเปลี่ยนใบมีด")} />

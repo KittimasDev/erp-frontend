@@ -29,7 +29,7 @@ type Props = {
 };
 
 function formatDate(value: string) {
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 const TIMING_CLASS: Record<ReceiveTiming, string> = {

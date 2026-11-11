@@ -65,9 +65,9 @@ const THAI_WEEKDAYS = [
 
 function formatThaiFullDate(value: dayjs.Dayjs, lang: "th" | "en") {
   if (lang === "en") {
-    return value.locale("en").format("dddd, D MMMM YYYY");
+    return value.locale("en").format("dddd, D MMMM BBBB");
   }
-  return `วัน${THAI_WEEKDAYS[value.day()]}ที่ ${value.date()} ${THAI_MONTHS[value.month()]} ${value.year() + 543}`;
+  return `วัน${THAI_WEEKDAYS[value.day()]}ที่ ${value.date()} ${THAI_MONTHS[value.month()]} ${value.format("BBBB")}`;
 }
 
 function formatTime(value?: string) {
@@ -244,7 +244,7 @@ export default function TimeClockPage() {
     modal.confirm({
       title: t("ยืนยันการออกงาน"),
       content: pendingDate
-        ? t("ปิดกะของวันที่ {date} ด้วยเวลา {time} น.", { date: dayjs(pendingDate).format("DD/MM/YYYY"), time: clock ? clock.format("HH:mm") : "" })
+        ? t("ปิดกะของวันที่ {date} ด้วยเวลา {time} น.", { date: dayjs(pendingDate).format("DD/MM/BBBB"), time: clock ? clock.format("HH:mm") : "" })
         : t("บันทึกเวลาออกงาน {time} น.", { time: clock ? clock.format("HH:mm") : "" }),
       okText: t("ออกงาน"),
       cancelText: t("ยกเลิก"),
@@ -351,7 +351,7 @@ export default function TimeClockPage() {
             <div>
               <strong>{t("ยังไม่ได้กดออกงานของเมื่อวาน")}</strong>
               <p>
-                {t("กะวันที่ {date} เข้างาน {time} น. — กดออกงานให้เรียบร้อยก่อนจึงจะเข้างานวันนี้ได้", { date: dayjs(pendingDate).format("DD/MM/YYYY"), time: formatTime(status.pendingCheckInAt) })}
+                {t("กะวันที่ {date} เข้างาน {time} น. — กดออกงานให้เรียบร้อยก่อนจึงจะเข้างานวันนี้ได้", { date: dayjs(pendingDate).format("DD/MM/BBBB"), time: formatTime(status.pendingCheckInAt) })}
               </p>
             </div>
           </div>
@@ -376,7 +376,7 @@ export default function TimeClockPage() {
         <section className={styles.todayCard}>
           {pendingDate ? (
             <p className={styles.todayCardNote}>
-              {t("กะค้างของวันที่ {date}", { date: dayjs(pendingDate).format("DD/MM/YYYY") })}
+              {t("กะค้างของวันที่ {date}", { date: dayjs(pendingDate).format("DD/MM/BBBB") })}
             </p>
           ) : null}
           <div className={styles.todayTimes}>

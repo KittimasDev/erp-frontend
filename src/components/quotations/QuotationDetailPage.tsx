@@ -55,7 +55,7 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string | number) {
@@ -90,7 +90,8 @@ function flowStatusClass(tone: QuotationFlowTone, status: string) {
   if (tone === "waiting") {
     return styles.statusPending;
   }
-  return styles.statusDraft;
+  // แบบร่างเอกสาร = เทา (มาตรฐานสถานะ)
+  return styles.statusNeutral;
 }
 
 export default function QuotationDetailPage({ id }: Props) {

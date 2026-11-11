@@ -15,8 +15,7 @@ import dayjs from "dayjs";
 
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useReturnNoteQuery } from "@/hooks/return-notes/useReturnNotesQuery";
-import type { ReturnNoteStatus } from "@/types/return-notes";
-import { RETURN_NOTE_STATUS_LABEL } from "@/types/return-notes";
+import { returnNoteStatusLabel } from "@/types/return-notes";
 import {
   ApproveReturnNoteModal,
   RejectReturnNoteModal,
@@ -24,12 +23,11 @@ import {
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string };
 
 function formatDateTime(value?: string) {
-  return value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "—";
+  return value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "—";
 }
 
 function formatQty(value: string) {
@@ -39,8 +37,8 @@ function formatQty(value: string) {
 
 function statusClass(status: string) {
   if (status === "APPROVED") return styles.statusApproved;
-  if (status === "REJECTED") return styles.statusCancelled;
-  return styles.statusDraft;
+  if (status === "REJECTED") return styles.statusRejected;
+  return styles.statusPending;
 }
 
 export default function ReturnNoteDetailPage({ id }: Props) {
@@ -96,11 +94,10 @@ export default function ReturnNoteDetailPage({ id }: Props) {
               const { generateReturnNotePdf } = await import(
                 "@/utils/generateReturnNotePdf"
               );
-              const statusLabel =
-                RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ?? data.status;
+              const statusLabel = returnNoteStatusLabel(data.status);
               void generateReturnNotePdf({
                 returnNoteNo: data.returnNoteNo,
-                docDate: dayjs(data.createdAt).format("DD/MM/YYYY"),
+                docDate: dayjs(data.createdAt).format("DD/MM/BBBB"),
                 statusLabel,
                 draftBanner:
                   data.status === "APPROVED"
@@ -245,8 +242,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
             <h2 className={styles.sideTitle}>{data.returnNoteNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {statusT(t, RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ??
-              data.status)}
+            {returnNoteStatusLabel(data.status)}
           </div>
 
           <div className={styles.sideRows}>

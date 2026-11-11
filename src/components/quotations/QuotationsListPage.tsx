@@ -48,12 +48,12 @@ const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   GENERAL: "ทั่วไป",
 };
 
-/** วันที่เอกสารแสดงเป็น พ.ศ. ตามดีไซน์หน้ารายการใบเสนอราคา (อังกฤษ = ค.ศ.) */
-function formatDate(value: string | undefined, lang: "th" | "en") {
+/** วันที่เอกสารแสดงเป็น พ.ศ. ทั้งภาษาไทยและอังกฤษ (ให้ตรงกับหน้า detail/create/edit) */
+function formatDate(value: string | undefined) {
   if (!value) return "—";
   const d = dayjs(value);
   if (!d.isValid()) return "—";
-  return `${d.format("DD/MM")}/${d.year() + (lang === "en" ? 0 : 543)}`;
+  return d.format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -87,7 +87,7 @@ function resolveStatusBadge(
     case "CANCELLED":
       return { label: quotationStatusLabel("CANCELLED", lang), tone: styles.statusCancelled };
     default:
-      return { label: t("ร่าง (Draft)"), tone: styles.statusDraft };
+      return { label: quotationStatusLabel("DRAFT", lang), tone: styles.statusDraft };
   }
 }
 
@@ -308,7 +308,7 @@ export default function QuotationsListPage() {
         title: t("วันที่เอกสาร"),
         dataIndex: "quotationDate",
         width: 130,
-        render: (value: string) => formatDate(value, lang),
+        render: (value: string) => formatDate(value),
       },
       {
         title: t("ลูกค้า"),
@@ -543,7 +543,7 @@ export default function QuotationsListPage() {
             <DatePicker
               value={date}
               onChange={setDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
               placeholder={t("เลือกวันที่")}
             />

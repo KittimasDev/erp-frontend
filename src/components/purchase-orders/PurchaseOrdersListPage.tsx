@@ -41,6 +41,7 @@ import { rememberPurchaseOrderListHref } from "@/lib/navigation/purchase-order-l
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import {
   listPurchaseRequests,
+  purchaseOrderStatusColor,
   purchaseOrderStatusLabel,
 } from "@/types/purchase-orders";
 import type {
@@ -95,33 +96,9 @@ function lineCheckState(
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข ทำอย่างเดียวกันได้ทั้งคู่ — ให้ตรงกับ guard ฝั่ง backend */
 const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
 
-function statusColor(status: string) {
-  switch (status) {
-    case "CONFIRMED":
-    case "COMPLETED":
-    case "CLOSED_PARTIAL":
-      return "success";
-    case "PENDING_APPROVAL":
-      return "gold";
-    // ส่งกลับแก้ไข = มีงานค้างต้องทำ ใช้สีส้มให้ต่างจากร่าง (processing)
-    case "REVISING":
-      return "orange";
-    case "DRAFT":
-    case "PARTIALLY_RECEIVED":
-      return "processing";
-    case "REJECTED":
-    case "RECEIVE_CANCELLED":
-      return "error";
-    case "CANCELLED":
-      return "default";
-    default:
-      return "default";
-  }
-}
-
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -710,7 +687,7 @@ export default function PurchaseOrdersListPage() {
         key: "status",
         width: 120,
         render: (value: string, row) => (
-          <Tag color={statusColor(value)}>{tStatus(purchaseOrderStatusLabel(row))}</Tag>
+          <Tag color={purchaseOrderStatusColor(value)}>{tStatus(purchaseOrderStatusLabel(row))}</Tag>
         ),
       },
       {
@@ -913,7 +890,7 @@ export default function PurchaseOrdersListPage() {
               style={{ width: "100%" }}
               value={poDate}
               onChange={setPoDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
             />
           </div>
           <div className={styles.filterItem}>

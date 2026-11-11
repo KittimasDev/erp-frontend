@@ -1,3 +1,12 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+  type StandardStatus,
+} from "@/lib/status/standard-status";
+
 export type DeliveryOrderStatus =
   | "DRAFT"
   | "CONFIRMED"
@@ -5,11 +14,32 @@ export type DeliveryOrderStatus =
   | "CANCELLED";
 
 export const DELIVERY_ORDER_STATUS_LABEL: Record<DeliveryOrderStatus, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   CONFIRMED: "ยืนยันแล้ว",
-  DELIVERED: "ส่งแล้ว",
-  CANCELLED: "ยกเลิก",
+  DELIVERED: STANDARD_STATUS.DELIVERED.th,
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
+
+const DELIVERY_ORDER_STANDARD: Partial<Record<string, StandardStatus>> = {
+  DRAFT: "DRAFT",
+  DELIVERED: "DELIVERED",
+  CANCELLED: "CANCELLED",
+};
+
+/** ป้ายสถานะตามภาษา — แบบร่าง/ส่งแล้ว/ยกเลิก ใช้ชื่อมาตรฐานกลาง */
+export function deliveryOrderStatusLabel(status: string, lang?: Language): string {
+  const l = lang ?? getStoredLanguage();
+  const std = DELIVERY_ORDER_STANDARD[status];
+  if (std) return standardStatusLabel(std, l);
+  return translate(l, DELIVERY_ORDER_STATUS_LABEL[status as DeliveryOrderStatus] ?? status);
+}
+
+/** สีป้ายสถานะ — ใช้ร่วมกันหน้ารายการ/รายละเอียด */
+export function deliveryOrderStatusColor(status: string): string {
+  const std = DELIVERY_ORDER_STANDARD[status];
+  if (std) return standardStatusColor(std);
+  return status === "CONFIRMED" ? "processing" : "default";
+}
 
 export type DeliveryResult = "SUCCESS" | "FULL_RETURN" | "PARTIAL_RETURN";
 

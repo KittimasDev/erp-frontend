@@ -230,12 +230,12 @@ export default function EquipmentFormModal({ equipment, loading, onCancel, onSub
           </Col>
           <Col xs={24} md={8}>
             <Form.Item name="installedDate" label={t("วันที่ติดตั้ง")}>
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+              <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
             <Form.Item name="warrantyExpiryDate" label={t("ประกันหมดอายุ")}>
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+              <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>

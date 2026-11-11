@@ -38,7 +38,7 @@ export function previewSixRounds(startDate: string): PlannedRound[] {
 
 export function fmtDate(iso?: string | null) {
   if (!iso) return "—";
-  return dayjs(iso.slice(0, 10)).format("DD/MM/YYYY");
+  return dayjs(iso.slice(0, 10)).format("DD/MM/BBBB");
 }
 
 export function roundWindow(startDate: string) {

@@ -24,7 +24,7 @@ import {
 import { useCustomerQuery } from "@/hooks/customers/useCustomerQuery";
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { SALES_ORDER_STATUS_LABEL, tSoStatus } from "@/types/sales-orders";
+import { salesOrderStatusColor, salesOrderStatusLabel } from "@/types/sales-orders";
 import type { SalesOrder, SalesOrderStatus } from "@/types/sales-orders";
 import styles from "@/components/masters/shared/master-page.module.css";
 import detailStyles from "./customer-detail.module.css";
@@ -36,24 +36,6 @@ const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DEALER: "ตัวแทนจำหน่าย",
   GENERAL: "ทั่วไป",
 };
-
-function statusColor(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "success";
-    case "CONFIRMED":
-    case "STOCK_CHECKED":
-    case "PICKING":
-    case "PACKED":
-    case "DELIVERED":
-    case "PARTIALLY_ISSUED":
-      return "processing";
-    case "CANCELLED":
-      return "default";
-    default:
-      return "warning";
-  }
-}
 
 function formatMoney(value: string | undefined, lang: Language) {
   const amount = Number(value ?? 0);
@@ -196,8 +178,8 @@ export default function CustomerDetailPage({ id }: Props) {
       width: 160,
       align: "center",
       render: (value: string) => (
-        <Tag color={statusColor(value)}>
-          {tSoStatus(SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value, lang)}
+        <Tag color={salesOrderStatusColor(value)}>
+          {salesOrderStatusLabel(value, lang)}
         </Tag>
       ),
     },

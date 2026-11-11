@@ -118,14 +118,13 @@ import {
 } from "@/types/document-attachments";
 import {
   SALES_ORDER_PAYMENT_METHOD_LABEL,
-  SALES_ORDER_STATUS_LABEL,
+  salesOrderStatusLabel,
   isPreConfirmSalesOrderStatus,
   tSoStatus,
   type SalesOrder,
   type SalesOrderPaymentMethod,
   type SalesOrderPdfSnapshotPayload,
   type SalesOrderReservationLine,
-  type SalesOrderStatus,
 } from "@/types/sales-orders";
 import type { SalesOrderPdfData } from "@/utils/generateSalesOrderPdf";
 import {
@@ -158,12 +157,12 @@ function isImageMime(mimeType?: string) {
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY HH:mm");
+  return dayjs(value).format("DD/MM/BBBB HH:mm");
 }
 
 function todayInErp() {
@@ -378,17 +377,18 @@ function mapSnapshotPayloadToPdfData(
 function statusClass(status: string) {
   switch (status) {
     case "COMPLETED":
+    case "DELIVERED":
       return styles.statusApproved;
     case "AWAITING_CONFIRM":
     case "CONFIRMED":
     case "STOCK_CHECKED":
     case "PICKING":
     case "PACKED":
-    case "DELIVERED":
     case "PARTIALLY_ISSUED":
       return styles.statusPending;
+    case "DRAFT":
     case "CANCELLED":
-      return styles.statusCancelled;
+      return styles.statusNeutral;
     default:
       return styles.statusDraft;
   }
@@ -1506,7 +1506,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 style={{ minWidth: 220 }}
                 options={pdfSnapshots.map((snapshot) => ({
                   value: snapshot.id,
-                  label: t("ประวัติครั้งที่ {no} — {date}", { no: snapshot.versionNo, date: dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm") }),
+                  label: t("ประวัติครั้งที่ {no} — {date}", { no: snapshot.versionNo, date: dayjs(snapshot.createdAt).format("DD/MM/BBBB HH:mm") }),
                 }))}
               />
               {selectedPdfVersion !== "current" ? (
@@ -1684,7 +1684,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   {canEditHeader ? (
                     <DatePicker
                       aria-label={t("วันที่เอกสาร PO")}
-                      format="DD/MM/YYYY"
+                      format="DD/MM/BBBB"
                       style={{ width: "100%" }}
                       value={
                         headerDraft.customerPoDate
@@ -1759,7 +1759,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   {canEditHeader ? (
                     <DatePicker
                       aria-label={t("ครบกำหนดชำระ")}
-                      format="DD/MM/YYYY"
+                      format="DD/MM/BBBB"
                       style={{ width: "100%" }}
                       value={
                         headerDraft.paymentDueDate
@@ -2770,10 +2770,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             <h2 className={styles.sideTitle}>{data.soNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {tSoStatus(
-              SALES_ORDER_STATUS_LABEL[data.status as SalesOrderStatus] ??
-                data.status,
-            )}
+            {salesOrderStatusLabel(data.status)}
           </div>
           <div className={styles.progressSide}>
             <div className={styles.progressSideTop}>
@@ -2937,7 +2934,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <DatePicker
           id="production-required-date"
           aria-label={t("วันที่ต้องการผลผลิต")}
-          format="DD/MM/YYYY"
+          format="DD/MM/BBBB"
           style={{ width: "100%", marginTop: 8 }}
           value={productionRequiredDate}
           onChange={(value) => setProductionRequiredDate(value)}

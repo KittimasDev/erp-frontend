@@ -41,9 +41,9 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import {
   DELIVERY_SCHEDULE_RETURN_LABEL,
-  DELIVERY_SCHEDULE_STATUS_LABEL,
+  deliveryScheduleStatusColor,
+  deliveryScheduleStatusLabel,
   type DeliveryScheduleReturnResult,
-  type DeliveryScheduleStatus,
 } from "@/types/delivery-schedules";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
@@ -59,12 +59,15 @@ import { getAccessToken } from "@/lib/auth/token";
 import { canNavigateSalesFulfillmentHref } from "@/lib/sales/sales-fulfillment-nav";
 import {
   resolveSalesTimelineStepTone,
+  salesTimelineStatusLabel,
+  salesTimelineStatusTagColor,
   salesTrackingStepLabel,
   type SalesTimelineStepTone,
 } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
-  type SalesOrderStatus,
+  salesOrderStatusColor,
+  salesOrderStatusLabel,
 } from "@/types/sales-orders";
 import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import type {
@@ -77,7 +80,6 @@ import type {
 import styles from "./SalesTrackingPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { tNow, useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 const PAGE_SIZE = 20;
 const HEADER_TIMELINE_STEPS = new Set([
@@ -88,26 +90,7 @@ const HEADER_TIMELINE_STEPS = new Set([
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
-}
-
-function soStatusColor(status: string) {
-  switch (status) {
-    case "COMPLETED":
-    case "DELIVERED":
-      return "success";
-    case "CONFIRMED":
-    case "STOCK_CHECKED":
-    case "PICKING":
-    case "PACKED":
-    case "PARTIALLY_ISSUED":
-    case "AWAITING_CONFIRM":
-      return "processing";
-    case "CANCELLED":
-      return "error";
-    default:
-      return "default";
-  }
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function stepIcon(stepName: string) {
@@ -134,35 +117,6 @@ function toneIcon(tone: SalesTimelineStepTone) {
   if (tone === "cancelled") return <CloseCircleFilled />;
   if (tone === "active") return <ClockCircleFilled />;
   return null;
-}
-
-function statusLabel(status?: string) {
-  if (!status) return tNow("รอเริ่ม");
-  const map: Record<string, string> = {
-    DONE: "เสร็จแล้ว",
-    PENDING: "รอดำเนินการ",
-    DRAFT: "แบบร่างเอกสาร",
-    CONFIRMED: "ยืนยันแล้ว",
-    DELIVERED: "ส่งแล้ว",
-    ACCEPTED: "ลูกค้าตอบรับ",
-    SENT: "ส่งให้ลูกค้าแล้ว",
-    CANCELLED: "ยกเลิก",
-    REJECTED: "ปฏิเสธ",
-    STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
-    PICKING: "จ่ายสินค้าแล้ว",
-    PACKED: "บรรจุแล้ว",
-    COMPLETED: "เสร็จสิ้น",
-    PARTIALLY_ISSUED: "จ่ายบางส่วน",
-    AWAITING_CONFIRM: "รอยืนยัน",
-  };
-  return statusT(tNow, map[status.toUpperCase()] ?? status);
-}
-
-function toneTagColor(tone: SalesTimelineStepTone): string {
-  if (tone === "done") return "success";
-  if (tone === "active") return "processing";
-  if (tone === "cancelled") return "error";
-  return "default";
 }
 
 function canOpenTimelineHref(
@@ -208,8 +162,11 @@ function TimelineStepCard({
             <div className={styles.timelineStepName}>
               {salesTrackingStepLabel(step.step)}
             </div>
-            <Tag color={toneTagColor(tone)} className={styles.timelineTag}>
-              {statusLabel(step.status)}
+            <Tag
+              color={salesTimelineStatusTagColor(step.status, tone)}
+              className={styles.timelineTag}
+            >
+              {salesTimelineStatusLabel(step.status)}
             </Tag>
           </div>
         </div>
@@ -636,8 +593,8 @@ export default function SalesTrackingPage() {
         dataIndex: "salesOrderStatus",
         width: 140,
         render: (value: string) => (
-          <Tag color={soStatusColor(value)}>
-            {statusT(t, SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value)}
+          <Tag color={salesOrderStatusColor(value)}>
+            {salesOrderStatusLabel(value)}
           </Tag>
         ),
       },
@@ -726,7 +683,7 @@ export default function SalesTrackingPage() {
       );
       await generateDeliveryOrderPdf({
         deliveryOrderNo: data.deliveryOrderNo,
-        deliveryDate: dayjs(data.deliveryDate).format("DD/MM/YYYY"),
+        deliveryDate: dayjs(data.deliveryDate).format("DD/MM/BBBB"),
         salesOrderNo: data.salesOrderNo ?? "—",
         packingNo: data.packings?.length
           ? data.packings.map((ref) => ref.packingNo ?? ref.packingId).join(", ")
@@ -856,10 +813,10 @@ export default function SalesTrackingPage() {
               style={{ width: "100%" }}
               value={status}
               onChange={setStatus}
-              options={Object.entries(SALES_ORDER_STATUS_LABEL).map(
-                ([value, label]) => ({
+              options={Object.keys(SALES_ORDER_STATUS_LABEL).map(
+                (value) => ({
                   value,
-                  label: statusT(t, label),
+                  label: salesOrderStatusLabel(value),
                 }),
               )}
             />
@@ -869,7 +826,7 @@ export default function SalesTrackingPage() {
             <DatePicker.RangePicker
               value={dateRange}
               onChange={(value) => setDateRange(value)}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
             />
           </div>
@@ -938,17 +895,15 @@ export default function SalesTrackingPage() {
                     title: t("วันที่ต้องส่ง"),
                     dataIndex: "deliveryDate",
                     width: 120,
-                    render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+                    render: (v: string) => dayjs(v).format("DD/MM/BBBB"),
                   },
                   {
                     title: t("สถานะรอบ"),
                     dataIndex: "roundStatus",
                     width: 120,
                     render: (v: string) => (
-                      <Tag>
-                        {statusT(t, DELIVERY_SCHEDULE_STATUS_LABEL[
-                          v as DeliveryScheduleStatus
-                        ] ?? v)}
+                      <Tag color={deliveryScheduleStatusColor(v)}>
+                        {deliveryScheduleStatusLabel(v)}
                       </Tag>
                     ),
                   },
@@ -1058,11 +1013,8 @@ export default function SalesTrackingPage() {
                 const roundSteps = round.timeline.filter(
                   (step) => step.step !== "Invoice",
                 );
-                const roundStatusLabel = statusT(
-                  t,
-                  DELIVERY_SCHEDULE_STATUS_LABEL[
-                    round.roundStatus as DeliveryScheduleStatus
-                  ] ?? round.roundStatus,
+                const roundStatusLabel = deliveryScheduleStatusLabel(
+                  round.roundStatus,
                 );
                 return (
                   <div
@@ -1078,7 +1030,7 @@ export default function SalesTrackingPage() {
                         color={
                           isReturnResult(round.deliveryResult)
                             ? "red"
-                            : undefined
+                            : deliveryScheduleStatusColor(round.roundStatus)
                         }
                       >
                         {roundStatusLabel}

@@ -1,10 +1,11 @@
 import {
-  SALES_ORDER_STATUS_LABEL,
+  salesOrderStatusLabel,
   isPreConfirmSalesOrderStatus,
   tSoStatus,
-  type SalesOrderStatus,
 } from "@/types/sales-orders";
 import { tNow } from "@/lib/i18n/useT";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { standardStatusLabel } from "@/lib/status/standard-status";
 
 /**
  * 5 ขั้นของใบสั่งขาย: ร่าง → ยืนยัน → จ่ายสินค้า → บรรจุ → ส่งสินค้า
@@ -49,13 +50,13 @@ export function salesOrderDeliveryStatusLabel(
   deliveryStatus?: string,
 ): string {
   if (status === "CANCELLED" || deliveryStatus === "CANCELLED") {
-    return tSoStatus("ยกเลิก");
+    return standardStatusLabel("CANCELLED", getStoredLanguage());
   }
   if (isPreConfirmSalesOrderStatus(status)) {
     return "—";
   }
   if (deliveryStatus === "DELIVERED") {
-    return tSoStatus("ส่งแล้ว");
+    return standardStatusLabel("DELIVERED", getStoredLanguage());
   }
   if (deliveryStatus === "PARTIALLY_DELIVERED") {
     return tNow("กำลังจัดส่ง");
@@ -120,8 +121,8 @@ export function resolveSalesOrderProgress(
       current: 0,
       inProgress: 0,
       total,
-      label: tSoStatus("ยกเลิก"),
-      currentStepLabel: tSoStatus("ยกเลิก"),
+      label: standardStatusLabel("CANCELLED", getStoredLanguage()),
+      currentStepLabel: standardStatusLabel("CANCELLED", getStoredLanguage()),
       tone: "stopped",
     };
   }
@@ -260,9 +261,8 @@ export function resolveSalesOrderProgress(
     current: 1,
     inProgress: 1,
     total,
-    label: tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status),
-    currentStepLabel:
-      tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status),
+    label: salesOrderStatusLabel(status),
+    currentStepLabel: salesOrderStatusLabel(status),
     tone: "active",
   };
 }

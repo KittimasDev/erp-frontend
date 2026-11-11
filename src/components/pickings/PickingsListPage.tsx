@@ -23,16 +23,16 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import type { Picking } from "@/types/pickings";
 import {
   PICKING_STATUS_LABEL,
-  type PickingStatus,
+  pickingStatusColor,
+  pickingStatusLabel,
 } from "@/types/pickings";
 import styles from "./PickingsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 export default function PickingsListPage() {
@@ -97,13 +97,7 @@ export default function PickingsListPage() {
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
-          <Tag
-            color={
-              v === "CONFIRMED" ? "success" : v === "CANCELLED" ? "default" : "processing"
-            }
-          >
-            {statusT(t, PICKING_STATUS_LABEL[v as PickingStatus] ?? v)}
-          </Tag>
+          <Tag color={pickingStatusColor(v)}>{pickingStatusLabel(v)}</Tag>
         ),
       },
       {
@@ -116,7 +110,7 @@ export default function PickingsListPage() {
         dataIndex: "confirmedAt",
         width: 140,
         render: (v?: string) =>
-          v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
+          v ? dayjs(v).format("DD/MM/BBBB HH:mm") : "—",
       },
       {
         title: "",
@@ -187,9 +181,9 @@ export default function PickingsListPage() {
               style={{ width: "100%" }}
               value={status}
               onChange={setStatus}
-              options={Object.entries(PICKING_STATUS_LABEL).map(([value, label]) => ({
+              options={Object.entries(PICKING_STATUS_LABEL).map(([value]) => ({
                 value,
-                label: statusT(t, label),
+                label: pickingStatusLabel(value),
               }))}
             />
           </div>
@@ -213,7 +207,7 @@ export default function PickingsListPage() {
             <DatePicker
               value={date}
               onChange={setDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
             />
           </div>

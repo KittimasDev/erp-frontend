@@ -173,7 +173,7 @@ export default function ProductionFormulasPage() {
             ) : null}
           </div>
           <div className={styles.muted}>
-            {t("สร้าง {date}", { date: dayjs(row.createdAt).format("DD/MM/YYYY HH:mm") })}
+            {t("สร้าง {date}", { date: dayjs(row.createdAt).format("DD/MM/BBBB HH:mm") })}
           </div>
         </div>
       ),

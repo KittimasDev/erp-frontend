@@ -128,7 +128,7 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
             {selected.payType === "MONTHLY" ? t("เงินเดือน") : t("ค่าจ้างรายวัน")}{" "}
             <b>{formatMoney(selected.basePay, language)}</b> {t("บาท")}
             {selected.position ? ` · ${selected.position}` : ""}
-            {selected.hireDate ? ` · ${t("เริ่มงาน")} ${dayjs(selected.hireDate).format("DD/MM/YYYY")}` : ` · ${t("ยังไม่ระบุวันเริ่มงาน")}`}
+            {selected.hireDate ? ` · ${t("เริ่มงาน")} ${dayjs(selected.hireDate).format("DD/MM/BBBB")}` : ` · ${t("ยังไม่ระบุวันเริ่มงาน")}`}
             {selected.nationalId ? "" : ` · ${t("ยังไม่มีเลขประจำตัวประชาชน")}`}
           </div>
         ) : null}
@@ -146,10 +146,10 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
           <Input maxLength={200} placeholder={t("เช่น ยื่นขอสินเชื่อ / ขอวีซ่า")} />
         </Form.Item>
         <Form.Item name="issuedAt" label={t("วันที่ออกหนังสือ")} rules={[{ required: true, message: t("เลือกวันที่") }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" allowClear={false} />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" allowClear={false} />
         </Form.Item>
         <Form.Item name="endDate" label={t("วันที่สิ้นสุดการทำงาน")} extra={t("เว้นว่าง = ยังปฏิบัติงานอยู่ (แสดงเป็น “ปัจจุบัน”)")}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
         <Form.Item name="signerName" label={t("ชื่อผู้ลงนาม")}>
           <Input maxLength={200} />

@@ -54,7 +54,7 @@ export function RecordDowntimeModal({ equipmentId, onClose }: { equipmentId: str
           />
         </Form.Item>
         <Form.Item name="startAt" label={t("เวลาเริ่มหยุด")} rules={[{ required: true }]}>
-          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
+          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/BBBB HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
         </Form.Item>
         <Form.Item name="reason" label={t("เหตุผล")} rules={[{ required: true, whitespace: true, message: t("ใส่เหตุผล") }]}>
           <Input.TextArea rows={2} maxLength={2000} />
@@ -113,7 +113,7 @@ export function EndDowntimeModal({
         )
       }
     >
-      <p style={{ marginTop: 0 }}>{t("เริ่มหยุด")} {dayjs(downtime.startAt).format("DD/MM/YYYY HH:mm")} — {downtime.reason}</p>
+      <p style={{ marginTop: 0 }}>{t("เริ่มหยุด")} {dayjs(downtime.startAt).format("DD/MM/BBBB HH:mm")} — {downtime.reason}</p>
       <Form
         form={form}
         layout="vertical"
@@ -125,10 +125,10 @@ export function EndDowntimeModal({
         }}
       >
         <Form.Item name="repairStartedAt" label={t("เวลาเริ่มซ่อมจริง")} extra={t("ไม่ระบุ = นับทั้งช่วงเป็น “รอซ่อม”")}>
-          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" />
+          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/BBBB HH:mm" />
         </Form.Item>
         <Form.Item name="endAt" label={t("เวลาเครื่องกลับมาใช้งาน")} rules={[{ required: true }]}>
-          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" />
+          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/BBBB HH:mm" />
         </Form.Item>
         <Form.Item name="rootCauseCategory" label={t("กลุ่มสาเหตุ (Root Cause)")}>
           <Select allowClear options={ROOT_CAUSE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />

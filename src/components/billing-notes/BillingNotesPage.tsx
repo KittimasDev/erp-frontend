@@ -19,6 +19,7 @@ import { getAccessToken } from "@/lib/auth/token";
 import {
   BILLING_NOTE_STATUS_COLOR,
   BILLING_NOTE_STATUS_LABEL,
+  billingNoteStatusLabel,
   BILLING_PV_STATUS_COLOR,
   BILLING_PV_STATUS_LABEL,
   type BillingNoteListItem,
@@ -37,7 +38,7 @@ const BASE_PATH = "/finance/payables/billing-notes";
 
 type DateRange = [Dayjs | null, Dayjs | null] | null;
 
-const STATUS_OPTIONS_BASE = Object.entries(BILLING_NOTE_STATUS_LABEL).map(([value, label]) => ({ value, label }));
+const STATUS_OPTIONS_BASE = Object.keys(BILLING_NOTE_STATUS_LABEL).map((value) => ({ value, label: value }));
 const PV_STATUS_OPTIONS_BASE = Object.entries(BILLING_PV_STATUS_LABEL).map(([value, label]) => ({ value, label }));
 
 const ymd = (d?: Dayjs | null) => d?.format("YYYY-MM-DD");
@@ -50,7 +51,7 @@ export default function BillingNotesPage() {
   const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
-  const STATUS_OPTIONS = STATUS_OPTIONS_BASE.map((o) => ({ ...o, label: tFin(o.label) }));
+  const STATUS_OPTIONS = STATUS_OPTIONS_BASE.map((o) => ({ ...o, label: billingNoteStatusLabel(o.value) }));
   const PV_STATUS_OPTIONS = PV_STATUS_OPTIONS_BASE.map((o) => ({ ...o, label: t(o.label) }));
   const perms = useScreenActionPermissions(SCREEN_CODE);
 
@@ -96,12 +97,12 @@ export default function BillingNotesPage() {
     try {
       const rows = (await getBillingNotesExport(getAccessToken(), filters)).data;
       const meta = [
-        `${t("ออกรายงาน")} ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        `${t("ออกรายงาน")} ${dayjs().format("DD/MM/BBBB HH:mm")}`,
         filters.search ? `${t("ค้นหา")}: ${filters.search}` : null,
         filters.dateFrom || filters.dateTo
           ? `${t("วันที่ใบวางบิล")}: ${formatThaiDate(filters.dateFrom)} - ${formatThaiDate(filters.dateTo)}`
           : null,
-        filters.status ? `${t("สถานะเอกสาร")}: ${BILLING_NOTE_STATUS_LABEL[filters.status] ? tFin(BILLING_NOTE_STATUS_LABEL[filters.status]) : filters.status}` : null,
+        filters.status ? `${t("สถานะเอกสาร")}: ${billingNoteStatusLabel(filters.status)}` : null,
         filters.pvStatus ? `${t("สถานะออก PV")}: ${BILLING_PV_STATUS_LABEL[filters.pvStatus] ? tFin(BILLING_PV_STATUS_LABEL[filters.pvStatus]) : filters.pvStatus}` : null,
         t("ทั้งหมด {n} รายการ · ยอดวางบิลรวม {amount} บาท", { n: rows.length, amount: money.format(rows.reduce((s, r) => s + r.totalAmount, 0)) }),
       ].filter((v): v is string => Boolean(v));
@@ -128,7 +129,7 @@ export default function BillingNotesPage() {
           money.format(r.totalAmount),
           money.format(r.issuedPvAmount),
           money.format(r.remainingAmount),
-          BILLING_NOTE_STATUS_LABEL[r.status] ? tFin(BILLING_NOTE_STATUS_LABEL[r.status]) : r.status,
+          billingNoteStatusLabel(r.status),
           BILLING_PV_STATUS_LABEL[r.pvStatus] ? tFin(BILLING_PV_STATUS_LABEL[r.pvStatus]) : r.pvStatus,
         ]),
         pdfColumns: [
@@ -249,7 +250,7 @@ export default function BillingNotesPage() {
       title: t("สถานะเอกสาร"),
       dataIndex: "status",
       width: 120,
-      render: (v: string) => <Tag color={BILLING_NOTE_STATUS_COLOR[v] ?? "default"}>{BILLING_NOTE_STATUS_LABEL[v] ? tFin(BILLING_NOTE_STATUS_LABEL[v]) : v}</Tag>,
+      render: (v: string) => <Tag color={BILLING_NOTE_STATUS_COLOR[v] ?? "default"}>{billingNoteStatusLabel(v)}</Tag>,
     },
     {
       title: t("สถานะออก PV"),
@@ -361,11 +362,11 @@ export default function BillingNotesPage() {
             </div>
             <div className={styles.filterItem}>
               <label>{t("วันที่ AP")}</label>
-              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={pApRange} onChange={setPApRange} />
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/BBBB" value={pApRange} onChange={setPApRange} />
             </div>
             <div className={styles.filterItem}>
               <label>{t("วันครบกำหนด")}</label>
-              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={pDueRange} onChange={setPDueRange} />
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/BBBB" value={pDueRange} onChange={setPDueRange} />
             </div>
             <div className={styles.filterActions}>
               <Button onClick={clearPending}>{t("เคลียร์")}</Button>
@@ -433,7 +434,7 @@ export default function BillingNotesPage() {
             </div>
             <div className={styles.filterItem}>
               <label>{t("วันที่ใบวางบิล")}</label>
-              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={cRange} onChange={setCRange} />
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/BBBB" value={cRange} onChange={setCRange} />
             </div>
             <div className={styles.filterItem}>
               <label>{t("สถานะเอกสาร")}</label>

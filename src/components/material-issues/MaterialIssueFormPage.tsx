@@ -217,7 +217,7 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                     name="issueDate"
                     rules={[{ required: true, message: t("กรุณาเลือกวันที่เบิก") }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
 
                   <Form.Item

@@ -56,7 +56,7 @@ export default function LabCoaHistoryTab() {
       title: t("ออกเมื่อ"),
       dataIndex: "issuedAt",
       width: 150,
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+      render: (v: string) => dayjs(v).format("DD/MM/BBBB HH:mm"),
     },
     {
       title: t("ผู้ออก"),
@@ -116,7 +116,7 @@ export default function LabCoaHistoryTab() {
             <label>{t("วันที่ออก")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={range}
               onChange={(v) => setRange(v?.[0] && v[1] ? [v[0], v[1]] : null)}
             />

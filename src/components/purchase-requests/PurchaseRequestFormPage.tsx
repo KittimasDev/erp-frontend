@@ -255,7 +255,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                   >
                     <DatePicker
                       style={{ width: "100%" }}
-                      format="DD/MM/YYYY"
+                      format="DD/MM/BBBB"
                     />
                   </Form.Item>
 
@@ -429,7 +429,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                             >
                               <DatePicker
                                 style={{ width: "100%" }}
-                                format="DD/MM/YYYY"
+                                format="DD/MM/BBBB"
                                 placeholder={t("ไม่ระบุ")}
                               />
                             </Form.Item>
@@ -526,7 +526,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                 <span>{t("วันที่")}</span>
                 <strong>
                   {watchedPrDate
-                    ? dayjs(watchedPrDate).format("DD/MM/YYYY")
+                    ? dayjs(watchedPrDate).format("DD/MM/BBBB")
                     : "—"}
                 </strong>
               </div>

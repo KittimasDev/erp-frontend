@@ -33,7 +33,9 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import { userHasRole } from "@/lib/auth/session";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import {
+  PURCHASE_REQUEST_STATUS_COLOR,
   PURCHASE_REQUEST_STATUS_LABEL,
+  type PurchaseRequestStatus,
   purchaseRequestStatusLabel,
   type PurchaseRequest,
 } from "@/types/purchase-requests";
@@ -49,27 +51,9 @@ import PageHeader from "@/components/common/PageHeader";
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข แก้ไข/ส่งอนุมัติ ได้เหมือนกัน — ตรงกับ guard ฝั่ง backend */
 const PR_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
 
-function statusColor(status: string) {
-  switch (status) {
-    case "APPROVED":
-      return "success";
-    case "PENDING_APPROVAL":
-      return "warning";
-    // ส่งกลับแก้ไข = ผู้ขอมีงานค้างต้องทำ ต้องต่างจากร่าง
-    case "REVISING":
-      return "orange";
-    case "REJECTED":
-      return "error";
-    case "CANCELLED":
-      return "default";
-    default:
-      return "processing";
-  }
-}
-
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 export default function PurchaseRequestsListPage() {
@@ -250,7 +234,7 @@ export default function PurchaseRequestsListPage() {
         key: "status",
         width: 130,
         render: (value: string) => (
-          <Tag color={statusColor(value)}>
+          <Tag color={PURCHASE_REQUEST_STATUS_COLOR[value as PurchaseRequestStatus] ?? "default"}>
             {purchaseRequestStatusLabel(value, lang)}
           </Tag>
         ),
@@ -342,7 +326,7 @@ export default function PurchaseRequestsListPage() {
             style={{ width: "100%" }}
             value={prDate}
             onChange={(value) => setPrDate(value)}
-            format="DD/MM/YYYY"
+            format="DD/MM/BBBB"
             placeholder={t("เลือกวันที่")}
           />
         </FilterField>

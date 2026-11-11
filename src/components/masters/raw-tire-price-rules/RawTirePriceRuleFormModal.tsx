@@ -220,7 +220,7 @@ export default function RawTirePriceRuleFormModal({
               <DatePicker
                 size="large"
                 style={{ width: "100%" }}
-                format="YYYY-MM-DD"
+                format="DD/MM/BBBB"
               />
             </Form.Item>
           </Col>
@@ -230,7 +230,7 @@ export default function RawTirePriceRuleFormModal({
               <DatePicker
                 size="large"
                 style={{ width: "100%" }}
-                format="YYYY-MM-DD"
+                format="DD/MM/BBBB"
                 allowClear
                 placeholder={t("ไม่ระบุ = ใช้ต่อ")}
               />

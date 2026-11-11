@@ -1,3 +1,5 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
+
 type Envelope<T> = { statusCode?: number; message: string; data: T };
 
 export const EQUIPMENT_STATUS_LABEL: Record<string, string> = {
@@ -24,11 +26,20 @@ export const PRIORITY_OPTIONS = [
 ] as const;
 
 export const WORK_ORDER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: standardStatusLabel("DRAFT"),
   OPEN: "เปิด",
-  IN_PROGRESS: "กำลังทำ",
-  COMPLETED: "เสร็จ",
-  CANCELLED: "ยกเลิก",
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS"),
+  COMPLETED: standardStatusLabel("COMPLETED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สี Tag ของสถานะใบสั่งงาน — ใช้ร่วม list / detail / drawer / shutdown (OPEN = เปิดงานแล้วยังไม่เริ่ม ไม่ใช่สถานะมาตรฐาน) */
+export const WORK_ORDER_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  OPEN: "cyan",
+  IN_PROGRESS: standardStatusColor("IN_PROGRESS"),
+  COMPLETED: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export type PlannedPart = { itemId?: string; partName: string; quantity: number };

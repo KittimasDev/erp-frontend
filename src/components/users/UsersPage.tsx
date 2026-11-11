@@ -365,7 +365,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
       width: 170,
       render: (value?: string) => (
         <span className={masterStyles.updatedText}>
-          {value ? dayjs(value).format("DD/MM/YYYY HH:mm") : t("ยังไม่เคยเข้า")}
+          {value ? dayjs(value).format("DD/MM/BBBB HH:mm") : t("ยังไม่เคยเข้า")}
         </span>
       ),
     },

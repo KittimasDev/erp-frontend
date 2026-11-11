@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import { useState } from "react";
 import { App, Button, Space, Table, Tag, Typography } from "antd";
 import { FilePdfOutlined } from "@ant-design/icons";
@@ -43,7 +44,7 @@ function formatDateTime(value?: string) {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toLocaleString(appLocale());
+  return formatErpDateTime(parsed, "-");
 }
 
 export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
@@ -147,7 +148,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
           return <Tag color="blue">{t("รอคัดแยก")}</Tag>;
         }
         if (record.recordStatus === "CANCELLED") {
-          return <Tag color="error">{label}</Tag>;
+          return <Tag color="default">{label}</Tag>;
         }
         if (!record.canImport) {
           return <Tag>{t("รอชั่งออก")}</Tag>;

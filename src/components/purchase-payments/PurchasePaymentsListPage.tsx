@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -18,28 +19,16 @@ import { usePurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchaseP
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
+  SUPPLIER_PAYMENT_STATUS_COLOR,
   SUPPLIER_PAYMENT_STATUS_LABEL,
 } from "@/types/purchase-payments";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchasePaymentsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
-function statusClass(status: string) {
-  switch (status) {
-    case "PAID":
-      return styles.statusPaid;
-    case "DRAFT":
-      return styles.statusDraft;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusCancelled;
-  }
-}
-
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string | number) {
@@ -199,10 +188,9 @@ export default function PurchasePaymentsListPage({
         dataIndex: "status",
         width: 120,
         render: (value: string) => (
-          <span className={`${styles.statusPill} ${statusClass(value)}`}>
-            <span className={styles.statusDot} aria-hidden />
+          <Tag color={SUPPLIER_PAYMENT_STATUS_COLOR[value] ?? "default"}>
             {tStatus(SUPPLIER_PAYMENT_STATUS_LABEL[value] ?? value)}
-          </span>
+          </Tag>
         ),
       },
       {
@@ -303,7 +291,7 @@ export default function PurchasePaymentsListPage({
             <DatePicker
               value={voucherDate}
               onChange={setVoucherDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={t("เลือกวันที่")}
               style={{ width: "100%" }}
             />

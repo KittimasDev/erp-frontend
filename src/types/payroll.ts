@@ -1,3 +1,5 @@
+import { STANDARD_STATUS, standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
+
 /** เงินเดือน (HRM_PAYROLL) — ตรงกับ backend hrm/dto/payroll.dto.ts */
 /** DRAFT → PENDING_APPROVAL → PENDING_PAYMENT → PAID → FINALIZED (+ CANCELLED) */
 export type PayrollRunStatus =
@@ -306,22 +308,22 @@ export type PayrollSettingsApiResponse = {
 };
 
 export const PAYROLL_STATUS_LABEL: Record<PayrollRunStatus, string> = {
-  DRAFT: "ฉบับร่าง",
-  PENDING_APPROVAL: "รออนุมัติ",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
+  PENDING_APPROVAL: STANDARD_STATUS.PENDING_APPROVAL.th,
   PENDING_PAYMENT: "รอจ่ายเงิน",
   PAID: "จ่ายเงินแล้ว",
   FINALIZED: "ปิดงวดแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 
 /** สี Tag ของสถานะงวด (ใช้ร่วมทั้งหน้ารายการและหน้ารายละเอียด) */
 export const PAYROLL_STATUS_COLOR: Record<PayrollRunStatus, string> = {
-  DRAFT: "gold",
-  PENDING_APPROVAL: "orange",
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
   PENDING_PAYMENT: "blue",
   PAID: "cyan",
   FINALIZED: "green",
-  CANCELLED: "default",
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** รายการงวดที่ล็อกแล้ว แก้ยอด/รายการปรับ/คำนวณใหม่ไม่ได้ (ทุกสถานะที่ไม่ใช่ร่าง) */
@@ -395,12 +397,12 @@ export type WithholdingCertificatesApiResponse = {
 export function payrollStatusLabel(status: PayrollRunStatus, lang: "th" | "en"): string {
   if (lang === "en") {
     return {
-      DRAFT: "Draft",
-      PENDING_APPROVAL: "Pending approval",
+      DRAFT: standardStatusLabel("DRAFT", "en"),
+      PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL", "en"),
       PENDING_PAYMENT: "Awaiting payment",
       PAID: "Paid",
       FINALIZED: "Finalized",
-      CANCELLED: "Cancelled",
+      CANCELLED: standardStatusLabel("CANCELLED", "en"),
     }[status];
   }
   return PAYROLL_STATUS_LABEL[status];

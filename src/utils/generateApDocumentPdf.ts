@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { vatAmountLabel } from "@/lib/money/vat-totals";
 import { AP_SETTLEMENT_METHOD_LABEL, type ApDocument } from "@/types/ap-documents";
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
@@ -11,7 +12,8 @@ import {
 function thaiDate(value?: string | null) {
   if (!value) return "—";
   const [y, m, d] = value.slice(0, 10).split("-").map(Number);
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y + 543}`;
+  // วันที่ล้วน (YYYY-MM-DD) → dayjs ในโซนท้องถิ่น ไม่เลื่อนวัน · ปี พ.ศ. ผ่าน token BBBB
+  return dayjs(new Date(y, m - 1, d)).format("DD/MM/BBBB");
 }
 
 const VAT_MODE_TEXT: Record<string, string> = {

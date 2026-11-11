@@ -21,6 +21,7 @@ import { getAccessToken } from "@/lib/auth/token";
 import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
 import type { StockPostingRequest } from "@/types/stock-posting-request";
 import {
+  STOCK_POSTING_REQUEST_STATUS_COLOR,
   stockPostingStatusLabel,
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
@@ -56,20 +57,6 @@ const STATUS_FILTERS: {
 
 const PAGE_SIZE = 10;
 
-function statusTagColor(status: string) {
-  switch (status) {
-    case StockPostingRequestStatus.PENDING_APPROVAL:
-      return "processing";
-    case StockPostingRequestStatus.APPROVED:
-      return "success";
-    case StockPostingRequestStatus.REJECTED:
-      return "warning";
-    case StockPostingRequestStatus.CANCELLED:
-      return "default";
-    default:
-      return "default";
-  }
-}
 
 export default function StockPostingApprovalsPage() {
   const router = useRouter();
@@ -197,7 +184,7 @@ export default function StockPostingApprovalsPage() {
         key: "status",
         width: 130,
         render: (value: string) => (
-          <Tag color={statusTagColor(value)} className={styles.flowTag}>
+          <Tag color={STOCK_POSTING_REQUEST_STATUS_COLOR[value] ?? "default"} className={styles.flowTag}>
             {stockPostingStatusLabel(value, lang)}
           </Tag>
         ),

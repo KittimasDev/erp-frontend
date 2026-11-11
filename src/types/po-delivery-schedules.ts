@@ -21,7 +21,7 @@ export const PO_DELIVERY_RECEIVE_STATUS_COLOR: Record<string, string> = {
   PARTIALLY_RECEIVED: "processing",
   FULLY_RECEIVED: "success",
   CLOSED_PARTIAL: "warning",
-  CANCELLED: "error",
+  CANCELLED: "default",
 };
 
 export type PoDeliveryScheduleItem = {

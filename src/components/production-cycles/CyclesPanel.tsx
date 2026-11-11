@@ -17,7 +17,7 @@ import { useT } from "@/lib/i18n/useT";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { CYCLE_PHASE_COLOR, cyclePhaseLabel, type ProductionCycle } from "@/types/production-cycle";
 
-const fmtDate = (v: string) => dayjs(v).format("DD/MM/YYYY");
+const fmtDate = (v: string) => dayjs(v).format("DD/MM/BBBB");
 
 type FormValues = { startDate: dayjs.Dayjs; runDays: number; shutdownDays: number; remark?: string };
 
@@ -68,7 +68,7 @@ function CycleEditModal({ cycle, onClose }: { cycle: ProductionCycle; onClose: (
         }}
       >
         <Form.Item name="startDate" label={t("วันแรกของช่วงผลิต")} rules={[{ required: true, message: t("เลือกวันเริ่ม") }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
           <Form.Item name="runDays" label={t("จำนวนวันผลิต")} rules={[{ required: true }]} style={{ flex: 1 }}>

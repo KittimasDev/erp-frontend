@@ -18,6 +18,7 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import StatusTag from "@/components/common/StatusTag";
 import {
   CalendarOutlined,
   EyeOutlined,
@@ -598,7 +599,7 @@ function DynamicRecordModal({
       className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
-          ? t(readOnly ? "ดูบันทึกรายกะ — {shift} {date}" : "แก้บันทึกรายกะ — {shift} {date}", { shift: record.shiftName, date: dayjs(record.recordDate).format("DD/MM/YYYY") })
+          ? t(readOnly ? "ดูบันทึกรายกะ — {shift} {date}" : "แก้บันทึกรายกะ — {shift} {date}", { shift: record.shiftName, date: dayjs(record.recordDate).format("DD/MM/BBBB") })
           : t("บันทึกการผลิตรายกะ")
       }
       okText={t("บันทึก")}
@@ -646,7 +647,7 @@ function DynamicRecordModal({
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY"
+                  format="DD/MM/BBBB"
                   disabled={Boolean(record)}
                   disabledDate={(d) => d.isAfter(dayjs(), "day")}
                 />
@@ -852,7 +853,7 @@ function LegacyRecordModal({
       className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
-          ? t(readOnly ? "ดูบันทึกรายกะ — {shift} {date}" : "แก้บันทึกรายกะ — {shift} {date}", { shift: record.shiftName, date: dayjs(record.recordDate).format("DD/MM/YYYY") })
+          ? t(readOnly ? "ดูบันทึกรายกะ — {shift} {date}" : "แก้บันทึกรายกะ — {shift} {date}", { shift: record.shiftName, date: dayjs(record.recordDate).format("DD/MM/BBBB") })
           : t("บันทึกการผลิตรายกะ")
       }
       okText={t("บันทึก")}
@@ -917,7 +918,7 @@ function LegacyRecordModal({
               >
                 <DatePicker
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY"
+                  format="DD/MM/BBBB"
                   disabled={Boolean(record)}
                   disabledDate={(d) => d.isAfter(dayjs(), "day")}
                 />
@@ -1157,7 +1158,7 @@ export default function ShiftRecordsPanel({
         title: t("วันที่"),
         dataIndex: "recordDate",
         width: 110,
-        render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+        render: (v: string) => dayjs(v).format("DD/MM/BBBB"),
       },
       { title: t("กะ"), dataIndex: "shiftName", width: 110 },
       {
@@ -1168,7 +1169,7 @@ export default function ShiftRecordsPanel({
           v === "CONFIRMED" ? (
             <Tag color="success">{t("ยืนยันแล้ว")}</Tag>
           ) : (
-            <Tag>{t("ร่าง")}</Tag>
+            <StatusTag status="DRAFT" />
           ),
       },
     ];

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import { AutoComplete, Descriptions, Form, Modal, Select, Typography } from "antd";
 
 import { useIssueWhtMutation } from "@/hooks/payment-vouchers/usePaymentVouchers";
@@ -105,7 +106,7 @@ export default function WhtCertificateModal({
         <Descriptions.Item label={t("ผู้จ่าย / ผู้หักภาษี")} span="filled">
           {t("ข้อมูลบริษัทในระบบ (บันทึกเป็นข้อมูลถาวรในเอกสาร ณ วันที่ออก)")}
         </Descriptions.Item>
-        <Descriptions.Item label={t("วันที่จ่ายเงิน")}>{detail.paymentDate}</Descriptions.Item>
+        <Descriptions.Item label={t("วันที่จ่ายเงิน")}>{formatErpDate(detail.paymentDate)}</Descriptions.Item>
         <Descriptions.Item label={t("ฐานภาษี")}>{fmtMoney(base)}</Descriptions.Item>
         <Descriptions.Item label={t("อัตราภาษี")}>
           {new Set((detail.voucherDetail.whtLines ?? []).map((l) => Number(l.rate))).size > 1

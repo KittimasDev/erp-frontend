@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -24,7 +25,7 @@ import {
 } from "@/hooks/stock-transfers/useStockTransferMutations";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockTransferQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
-import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
+import { STOCK_TRANSFER_STATUS_LABEL, STOCK_TRANSFER_STATUS_COLOR } from "@/types/stock-transfers";
 import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockTransferDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -33,19 +34,9 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "POSTED":
-      return styles.statusApproved;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 export default function StockTransferDetailPage({ id }: Props) {
   const t = useT();
@@ -137,7 +128,7 @@ export default function StockTransferDetailPage({ id }: Props) {
                 <span className={styles.metaLabel}>{t("ตัด/เพิ่มสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
-                    ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                    ? dayjs(data.postedAt).format("DD/MM/BBBB HH:mm")
                     : t("ยังไม่โอนย้าย")}
                 </div>
               </div>
@@ -198,10 +189,12 @@ export default function StockTransferDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.transferNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+          <div>
+            <Tag color={STOCK_TRANSFER_STATUS_COLOR[data.status] ?? "default"}>
             {STOCK_TRANSFER_STATUS_LABEL[data.status]
               ? tStockLabel(STOCK_TRANSFER_STATUS_LABEL[data.status])
               : data.status}
+          </Tag>
           </div>
 
           <div className={styles.sideRows}>

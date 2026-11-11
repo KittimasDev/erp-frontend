@@ -260,7 +260,7 @@ export default function DailySummaryReportModal({
                     <RangePicker
                       value={dailyRange}
                       allowClear={false}
-                      format="DD/MM/YYYY"
+                      format="DD/MM/BBBB"
                       onChange={(values) => {
                         if (values?.[0] && values[1]) {
                           setDailyRange([values[0], values[1]]);
@@ -342,7 +342,7 @@ export default function DailySummaryReportModal({
                     <RangePicker
                       value={qualityRange}
                       allowClear={false}
-                      format="DD/MM/YYYY"
+                      format="DD/MM/BBBB"
                       onChange={(values) => {
                         if (values?.[0] && values[1]) {
                           setQualityRange([values[0], values[1]]);

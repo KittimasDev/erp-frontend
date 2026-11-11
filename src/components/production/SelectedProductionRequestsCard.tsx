@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import { Button, Empty, Table, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
@@ -57,11 +58,7 @@ function fmtDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString(numLocale(), {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+    : dayjs(date).format("DD/MM/BBBB");
 }
 
 export default function SelectedProductionRequestsCard({

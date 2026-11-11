@@ -319,9 +319,9 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
       content: tNow(
         "วันครบกำหนดปัจจุบัน ({current}) เป็นค่าที่กำหนดเอง · คำนวณใหม่จากวันที่ใบแจ้งหนี้{basis} ได้ {next}",
         {
-          current: dayjs(currentKey).format("DD/MM/YYYY"),
+          current: dayjs(currentKey).format("DD/MM/BBBB"),
           basis: isCashTerm ? ` ${tNow("(เงินสด)")}` : ` + ${tNow("เครดิต {n} วัน", { n: dueOffsetDays })}`,
-          next: next.format("DD/MM/YYYY"),
+          next: next.format("DD/MM/BBBB"),
         },
       ),
       okText: tNow("ใช้ค่าที่คำนวณใหม่"),
@@ -486,7 +486,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
               <Input disabled value={existing?.docNo ?? t("สร้างอัตโนมัติเมื่อบันทึก")} />
             </Form.Item>
             <Form.Item name="docDate" label={t("วันที่ตั้งหนี้")} rules={[{ required: true, message: t("ระบุวันที่ตั้งหนี้") }]}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item label={t("สถานะเอกสาร")}>
               <Input disabled value={tStatus(AP_DOCUMENT_STATUS_LABEL[status] ?? status)} />
@@ -516,13 +516,13 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
               label={t("วันที่ใบแจ้งหนี้")}
               extra={dueOffsetDays !== null ? t("ใช้เป็นฐานคำนวณวันครบกำหนดชำระ (เงินสด = วันเดียวกัน · เครดิต = บวกวันเครดิต)") : undefined}
             >
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="taxInvoiceNo" label={t("เลขที่ใบกำกับภาษี (ถ้ามี)")}>
               <Input maxLength={100} />
             </Form.Item>
             <Form.Item name="taxInvoiceDate" label={t("วันที่ใบกำกับภาษี (ถ้ามี)")}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
           </div>
         </Card>
@@ -774,7 +774,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
                   : undefined
               }
             >
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
           </div>
           <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>

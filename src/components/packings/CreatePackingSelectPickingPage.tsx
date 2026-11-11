@@ -55,7 +55,7 @@ export default function CreatePackingSelectPickingPage() {
     {
       title: t("วันที่"),
       dataIndex: "pickingDate",
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+      render: (v: string) => dayjs(v).format("DD/MM/BBBB"),
     },
     { title: t("รายการ"), dataIndex: "itemCount", width: 90, align: "center" },
     {

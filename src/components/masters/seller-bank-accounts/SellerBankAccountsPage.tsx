@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 import { usePartyLabels } from "@/lib/i18n/partyLabels";
@@ -354,7 +355,7 @@ export default function SellerBankAccountsPage() {
       width: 170,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
+          {value ? formatDateTime(value, lang) : "-"}
         </span>
       ),
     },

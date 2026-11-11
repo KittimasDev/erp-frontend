@@ -49,13 +49,13 @@ import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PackingItem } from "@/types/packings";
 import {
   PACKAGE_TYPE_OPTIONS,
-  PACKING_STATUS_LABEL,
   packageTypeLabel,
+  packingStatusColor,
+  packingStatusLabel,
 } from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string; mode: "view" | "edit" };
 
@@ -205,11 +205,7 @@ export default function PackingFormPage({ id, mode }: Props) {
     return <AccessDenied screenCodes={["PACKINGS"]} />;
   }
 
-  const statusLabel = statusT(
-    t,
-    PACKING_STATUS_LABEL[data.status as keyof typeof PACKING_STATUS_LABEL] ??
-      data.status,
-  );
+  const statusLabel = packingStatusLabel(data.status);
 
   const columns: ColumnsType<PackingItem> = [
     {
@@ -348,15 +344,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                 {data.customerName ?? "—"}
               </span>
             </span>
-            <Tag
-              color={
-                data.status === "CONFIRMED"
-                  ? "success"
-                  : data.status === "CANCELLED"
-                    ? "default"
-                    : "processing"
-              }
-            >
+            <Tag color={packingStatusColor(data.status)}>
               {statusLabel}
             </Tag>
           </div>
@@ -386,7 +374,7 @@ export default function PackingFormPage({ id, mode }: Props) {
               );
               void generatePackingPdf({
                 packingNo: data.packingNo,
-                packingDate: dayjs(data.packingDate).format("DD/MM/YYYY"),
+                packingDate: dayjs(data.packingDate).format("DD/MM/BBBB"),
                 pickingNo: data.pickingNo ?? "—",
                 salesOrderNo: data.salesOrderNo ?? "—",
                 customerName: data.customerName ?? "—",
@@ -574,12 +562,12 @@ export default function PackingFormPage({ id, mode }: Props) {
               <DatePicker
                 value={packingDate}
                 onChange={setPackingDate}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 style={{ width: "100%" }}
               />
             ) : (
               <div className={styles.fieldValue}>
-                {dayjs(data.packingDate).format("DD/MM/YYYY")}
+                {dayjs(data.packingDate).format("DD/MM/BBBB")}
               </div>
             )}
           </label>

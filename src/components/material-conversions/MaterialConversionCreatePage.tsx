@@ -241,7 +241,7 @@ export default function MaterialConversionCreatePage() {
                   label={t("วันที่ทำงาน")}
                   rules={[{ required: true, message: t("เลือกวันที่") }]}
                 >
-                  <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                  <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                 </Form.Item>
                 <Form.Item name="batchNo" label="Batch">
                   <Input placeholder={t("เช่น B-2609-01")} maxLength={50} allowClear />

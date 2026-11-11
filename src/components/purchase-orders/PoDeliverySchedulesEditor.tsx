@@ -155,7 +155,7 @@ export default function PoDeliverySchedulesEditor({
                   label={t("วันที่กำหนดส่ง")}
                   rules={[{ required: true, message: t("ระบุวันที่กำหนดส่ง") }]}
                 >
-                  <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                  <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                 </Form.Item>
                 <div>
                   {sourceLines.map((source, itemIndex) => {

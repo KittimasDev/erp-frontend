@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 /**
  * ใบตั้งหนี้ / ใบเพิ่มหนี้ ฝั่งเจ้าหนี้ — ตรงกับ backend `procurement/ap-documents/dto`
  * backend ใช้ตารางเดียวแยกด้วย docType แต่ endpoint แยกกัน (`/api/ap-invoices`, `/api/ap-debit-notes`)
@@ -70,19 +71,19 @@ export type ApSupplierCreditCandidate = {
 export type ApDocumentStatus = "DRAFT" | "PENDING_APPROVAL" | "REJECTED" | "APPROVED" | "CANCELLED";
 
 export const AP_DOCUMENT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
-  PENDING_APPROVAL: "รออนุมัติ",
-  REJECTED: "ไม่อนุมัติ",
-  APPROVED: "อนุมัติแล้ว",
-  CANCELLED: "ยกเลิก",
+  DRAFT: standardStatusLabel("DRAFT"),
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
+  REJECTED: standardStatusLabel("REJECTED"),
+  APPROVED: standardStatusLabel("APPROVED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const AP_DOCUMENT_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
-  PENDING_APPROVAL: "gold",
-  REJECTED: "red",
-  APPROVED: "success",
-  CANCELLED: "error",
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  REJECTED: standardStatusColor("REJECTED"),
+  APPROVED: standardStatusColor("APPROVED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export const AP_VAT_MODE_LABEL: Record<string, string> = {

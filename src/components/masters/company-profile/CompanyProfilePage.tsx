@@ -1,6 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n/useT";
+import dayjs from "dayjs";
 import { useEffect, useMemo, useState } from "react";
 import {
   App,
@@ -92,7 +93,11 @@ const DATE_FORMAT_OPTIONS = [
   "DD-MM-YYYY",
   "YYYY-MM-DD",
   "D MMM YYYY",
-].map((value) => ({ label: value, value }));
+].map((value) => ({
+  // ค่าที่เก็บ/ส่ง API คงเดิม (YYYY) — แค่ป้ายที่ผู้ใช้เห็นเป็น พ.ศ. (BBBB)
+  label: `${value.replace("YYYY", "BBBB")} (${dayjs("2026-11-11").format(value.replace("YYYY", "BBBB"))})`,
+  value,
+}));
 
 type ProfileFormValues = UpdateCompanyProfileRequest;
 

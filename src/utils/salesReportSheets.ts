@@ -33,7 +33,7 @@ function formatBeDate(isoDate?: string | null) {
   if (!isoDate) return "";
   const d = dayjs(isoDate);
   if (!d.isValid()) return isoDate;
-  return `${d.format("DD/MM/")}${d.year() + 543}`;
+  return d.format("DD/MM/BBBB");
 }
 
 function formatMoney(value: string | number | null | undefined) {

@@ -229,7 +229,7 @@ export default function OvertimeRequestsPage() {
         dataIndex: "otDate",
         key: "otDate",
         width: 115,
-        render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+        render: (value: string) => dayjs(value).format("DD/MM/BBBB"),
       },
       {
         title: t("ชั่วโมง"),
@@ -308,7 +308,7 @@ export default function OvertimeRequestsPage() {
         width: 130,
         render: (value: string, row) => (
           <div className={styles.stackedCell}>
-            <span>{dayjs(value).format("DD/MM/YYYY HH:mm")}</span>
+            <span>{dayjs(value).format("DD/MM/BBBB HH:mm")}</span>
             <small>
               {row.source ? t(OVERTIME_SOURCE_LABEL[row.source] ?? "") : ""}
             </small>
@@ -345,7 +345,7 @@ export default function OvertimeRequestsPage() {
               <span>{value}</span>
               <small>
                 {row.approvedAt
-                  ? dayjs(row.approvedAt).format("DD/MM/YYYY HH:mm")
+                  ? dayjs(row.approvedAt).format("DD/MM/BBBB HH:mm")
                   : ""}
               </small>
             </div>
@@ -450,7 +450,7 @@ export default function OvertimeRequestsPage() {
                 disabled={isPendingTab}
                 style={{ width: "100%" }}
                 value={draft.range}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(values) => {
                   if (!values?.[0] || !values[1]) return;
                   const next: [Dayjs, Dayjs] = [values[0], values[1]];

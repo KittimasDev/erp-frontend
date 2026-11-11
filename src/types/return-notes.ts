@@ -1,12 +1,38 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+  type StandardStatus,
+} from "@/lib/status/standard-status";
 import type { DeliveryResult } from "./delivery-orders";
 
 export type ReturnNoteStatus = "PENDING_APPROVAL" | "APPROVED" | "REJECTED";
 
 export const RETURN_NOTE_STATUS_LABEL: Record<ReturnNoteStatus, string> = {
-  PENDING_APPROVAL: "รอคลังอนุมัติ",
-  APPROVED: "อนุมัติแล้ว",
-  REJECTED: "ไม่อนุมัติ",
+  PENDING_APPROVAL: STANDARD_STATUS.PENDING_APPROVAL.th,
+  APPROVED: STANDARD_STATUS.APPROVED.th,
+  REJECTED: STANDARD_STATUS.REJECTED.th,
 };
+
+/** ทั้ง 3 สถานะของใบรับคืนคือผลการขออนุมัติจากคลัง — ตรงกับสถานะมาตรฐานทั้งหมด */
+const RETURN_NOTE_STANDARD: Record<ReturnNoteStatus, StandardStatus> = {
+  PENDING_APPROVAL: "PENDING_APPROVAL",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+};
+
+export function returnNoteStatusLabel(status: string, lang?: Language): string {
+  const l = lang ?? getStoredLanguage();
+  const std = RETURN_NOTE_STANDARD[status as ReturnNoteStatus];
+  return std ? standardStatusLabel(std, l) : translate(l, status);
+}
+
+export function returnNoteStatusColor(status: string): string {
+  const std = RETURN_NOTE_STANDARD[status as ReturnNoteStatus];
+  return std ? standardStatusColor(std) : "default";
+}
 
 export type ReturnNoteItem = {
   id: string;

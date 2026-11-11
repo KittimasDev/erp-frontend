@@ -19,10 +19,11 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   BILLING_NOTE_STATUS_COLOR,
-  BILLING_NOTE_STATUS_LABEL,
+  billingNoteStatusLabel,
   BILLING_PV_STATUS_COLOR,
   BILLING_PV_STATUS_LABEL,
-  BILLING_QUEUE_STATUS_LABEL,
+  billingQueueStatusColor,
+  billingQueueStatusLabel,
   type BillingNoteDetail,
   type BillingNoteDetailItem,
   type BillingNotePv,
@@ -36,7 +37,7 @@ const BASE_PATH = "/finance/payables/billing-notes";
 const PV_PATH = "/finance/payables/payment-vouchers";
 
 const errText = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
-const dateTime = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
+const dateTime = (v?: string) => (v ? dayjs(v).format("DD/MM/BBBB HH:mm") : "—");
 
 /** Modal ออกใบสำคัญจ่าย — ส่งยอดเข้าคิวรอสร้าง PV (หน้า PV เดิม) */
 function IssuePvModal({ note, onClose }: { note: BillingNoteDetail; onClose: () => void }) {
@@ -86,7 +87,7 @@ function IssuePvModal({ note, onClose }: { note: BillingNoteDetail; onClose: () 
         </Space>
         <Space>
           <Typography.Text>{t("วันที่ต้องการจ่าย")}</Typography.Text>
-          <DatePicker format="DD/MM/YYYY" value={payDate} onChange={(v) => setDateInput(v)} />
+          <DatePicker format="DD/MM/BBBB" value={payDate} onChange={(v) => setDateInput(v)} />
         </Space>
         <Typography.Text type="secondary">
           {t("ระบบจัดสรรยอดให้ใบตั้งหนี้แต่ละใบอัตโนมัติ · หัก ณ ที่จ่ายกรอกต่อในฟอร์มใบสำคัญจ่าย")}
@@ -219,8 +220,8 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
       title: t("สถานะ"),
       dataIndex: "queueStatus",
       render: (v: string) => (
-        <Tag color={v === "CANCELLED" ? "red" : v === "PV_CREATED" ? "green" : "gold"}>
-          {BILLING_QUEUE_STATUS_LABEL[v] ? tFin(BILLING_QUEUE_STATUS_LABEL[v]) : v}
+        <Tag color={billingQueueStatusColor(v)}>
+          {billingQueueStatusLabel(v)}
         </Tag>
       ),
     },
@@ -254,7 +255,7 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
         }
         meta={
           <>
-<Tag color={BILLING_NOTE_STATUS_COLOR[n.status] ?? "default"}>{BILLING_NOTE_STATUS_LABEL[n.status] ? tFin(BILLING_NOTE_STATUS_LABEL[n.status]) : n.status}</Tag>
+<Tag color={BILLING_NOTE_STATUS_COLOR[n.status] ?? "default"}>{billingNoteStatusLabel(n.status)}</Tag>
 {isConfirmed ? (
             <Tag color={BILLING_PV_STATUS_COLOR[n.pvStatus] ?? "default"}>{BILLING_PV_STATUS_LABEL[n.pvStatus] ? tFin(BILLING_PV_STATUS_LABEL[n.pvStatus]) : n.pvStatus}</Tag>
           ) : null}
@@ -316,7 +317,7 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
         <Descriptions column={{ xs: 1, md: 2 }} bordered size="small">
           <Descriptions.Item label={t("เลขที่ใบวางบิล")}>{n.billingNo}</Descriptions.Item>
           <Descriptions.Item label={t("วันที่")}>{formatThaiDate(n.billingDate)}</Descriptions.Item>
-          <Descriptions.Item label={t("สถานะ")}>{BILLING_NOTE_STATUS_LABEL[n.status] ? tFin(BILLING_NOTE_STATUS_LABEL[n.status]) : n.status}</Descriptions.Item>
+          <Descriptions.Item label={t("สถานะ")}>{billingNoteStatusLabel(n.status)}</Descriptions.Item>
           <Descriptions.Item label={t("ผู้ขาย")}>
             {n.creditorCode} {n.creditorName}
           </Descriptions.Item>

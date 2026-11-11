@@ -39,7 +39,7 @@ export default function TankReadingsDrawer({ tank, onClose }: { tank: OilTank | 
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: t("เวลาที่วัด"), key: "t", width: 150, render: (_v, r) => dayjs(r.measuredAt).format("DD/MM/YYYY HH:mm") },
+    { title: t("เวลาที่วัด"), key: "t", width: 150, render: (_v, r) => dayjs(r.measuredAt).format("DD/MM/BBBB HH:mm") },
     { title: t("วัดจริง"), key: "m", width: 110, align: "right", render: (_v, r) => n(r.measuredLiters) },
     { title: t("ในระบบ"), key: "b", width: 110, align: "right", render: (_v, r) => n(r.bookLiters) },
     {
@@ -111,7 +111,7 @@ export default function TankReadingsDrawer({ tank, onClose }: { tank: OilTank | 
             }
           >
             <Form.Item name="measuredAt" rules={[{ required: true }]}>
-              <DatePicker showTime format="DD/MM/YYYY HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
+              <DatePicker showTime format="DD/MM/BBBB HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
             </Form.Item>
             <Form.Item name="measuredLiters" rules={[{ required: true, message: t("ใส่ปริมาณที่วัด") }]}>
               <InputNumber min={0} precision={3} placeholder={t("วัดได้ (ลิตร)")} style={{ width: 170 }} />

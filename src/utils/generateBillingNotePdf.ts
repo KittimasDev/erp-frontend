@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import {
   BILLING_NOTE_STATUS_LABEL,
   BILLING_PV_STATUS_LABEL,
@@ -14,7 +15,7 @@ function thaiDate(value?: string | null) {
   if (!value) return "—";
   const [y, m, d] = value.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return "—";
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y + 543}`;
+  return dayjs(new Date(y, m - 1, d)).format("DD/MM/BBBB");
 }
 
 /** ใบวางบิล (เจ้าหนี้) — ใช้ template เอกสารกลุ่มเดียวกับใบตั้งหนี้ */

@@ -46,15 +46,15 @@ import type {
   DeliveryResult,
 } from "@/types/delivery-orders";
 import {
-  DELIVERY_ORDER_STATUS_LABEL,
   DELIVERY_RESULT_COLOR,
   DELIVERY_RESULT_LABEL,
+  deliveryOrderStatusColor,
+  deliveryOrderStatusLabel,
 } from "@/types/delivery-orders";
 import DeliveryResultModal from "./DeliveryResultModal";
 import styles from "./DeliveryOrderFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatWeightKg(value?: string) {
   if (value == null || value === "") return "—";
@@ -156,12 +156,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     );
   }
 
-  const statusLabel = statusT(
-    t,
-    DELIVERY_ORDER_STATUS_LABEL[
-      data.status as keyof typeof DELIVERY_ORDER_STATUS_LABEL
-    ] ?? data.status,
-  );
+  const statusLabel = deliveryOrderStatusLabel(data.status);
 
   const packingRefs: DeliveryOrderPackingRef[] = data.packings?.length
     ? data.packings
@@ -387,17 +382,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 {data.customerName ?? "—"}
               </span>
             </span>
-            <Tag
-              color={
-                data.status === "DELIVERED"
-                  ? "success"
-                  : data.status === "CONFIRMED"
-                    ? "processing"
-                    : data.status === "CANCELLED"
-                      ? "default"
-                      : "warning"
-              }
-            >
+            <Tag color={deliveryOrderStatusColor(data.status)}>
               {statusLabel}
             </Tag>
           </div>
@@ -414,7 +399,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               );
               void generateDeliveryOrderPdf({
                 deliveryOrderNo: data.deliveryOrderNo,
-                deliveryDate: dayjs(data.deliveryDate).format("DD/MM/YYYY"),
+                deliveryDate: dayjs(data.deliveryDate).format("DD/MM/BBBB"),
                 salesOrderNo: data.salesOrderNo ?? "—",
                 packingNo: packingNosText,
                 customerName: data.customerName ?? "—",
@@ -604,7 +589,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                   <>
                     {t("ส่งใหม่")}
                     {data.redeliverDate
-                      ? ` · ${dayjs(data.redeliverDate).format("DD/MM/YYYY")}`
+                      ? ` · ${dayjs(data.redeliverDate).format("DD/MM/BBBB")}`
                       : ""}
                     {data.redeliveryScheduleId ? (
                       <>
@@ -641,7 +626,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               <div className={styles.fieldValue}>
                 {data.deliveredByName ?? "—"}
                 {data.deliveredAt
-                  ? ` · ${dayjs(data.deliveredAt).format("DD/MM/YYYY HH:mm")}`
+                  ? ` · ${dayjs(data.deliveredAt).format("DD/MM/BBBB HH:mm")}`
                   : ""}
               </div>
             </div>
@@ -725,12 +710,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 onChange={(v) =>
                   setForm((f) => ({ ...f, deliveryDate: v ?? dayjs() }))
                 }
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 style={{ width: "100%" }}
               />
             ) : (
               <div className={styles.fieldValue}>
-                {form.deliveryDate.format("DD/MM/YYYY")}
+                {form.deliveryDate.format("DD/MM/BBBB")}
               </div>
             )}
           </label>

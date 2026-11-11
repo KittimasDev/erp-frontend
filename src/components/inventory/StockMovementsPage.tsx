@@ -459,7 +459,7 @@ export default function StockMovementsPage() {
                   range: range as [Dayjs, Dayjs] | null,
                 }))
               }
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
             />
           </div>
           <div className={styles.filterItem}>

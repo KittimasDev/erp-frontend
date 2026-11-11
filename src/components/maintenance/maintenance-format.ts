@@ -3,19 +3,20 @@ import dayjs from "dayjs";
 import { formatMoney } from "@/lib/i18n/format";
 import { getStoredLanguage, type Language } from "@/lib/i18n/language";
 import { tNow } from "@/lib/i18n/useT";
+import { standardStatusLabel } from "@/lib/status/standard-status";
 import { EQUIPMENT_STATUS_LABEL, WORK_ORDER_STATUS_LABEL } from "@/types/maintenance";
 
-export const fmtDateTime = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/YYYY HH:mm") : "—");
-export const fmtDate = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/YYYY") : "—");
+export const fmtDateTime = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/BBBB HH:mm") : "—");
+export const fmtDate = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/BBBB") : "—");
 
 export const fmtMoney = (v: number) => formatMoney(v, getStoredLanguage());
 
 const WORK_ORDER_STATUS_EN: Record<string, string> = {
-  DRAFT: "Draft",
+  DRAFT: standardStatusLabel("DRAFT", "en"),
   OPEN: "Open",
-  IN_PROGRESS: "In progress",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS", "en"),
+  COMPLETED: standardStatusLabel("COMPLETED", "en"),
+  CANCELLED: standardStatusLabel("CANCELLED", "en"),
 };
 
 const EQUIPMENT_STATUS_EN: Record<string, string> = {

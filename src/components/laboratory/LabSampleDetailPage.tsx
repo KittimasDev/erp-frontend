@@ -26,6 +26,7 @@ import type { LabCoa } from "@/types/laboratory";
 import {
   labCoaStatusLabel,
   labSampleStatusLabel,
+  LAB_SAMPLE_STATUS_COLOR,
   LAB_SAMPLE_TYPE_LABEL,
   LOT_QC_COLOR,
   LOT_QC_LABEL,
@@ -39,12 +40,12 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY HH:mm");
+  return dayjs(value).format("DD/MM/BBBB HH:mm");
 }
 
 export default function LabSampleDetailPage({ id }: Props) {
@@ -221,13 +222,7 @@ export default function LabSampleDetailPage({ id }: Props) {
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("ข้อมูลตัวอย่าง")}</h2>
               <Tag
-                color={
-                  data.status === "APPROVED"
-                    ? "success"
-                    : data.status === "REJECTED"
-                      ? "error"
-                      : "processing"
-                }
+                color={LAB_SAMPLE_STATUS_COLOR[data.status] ?? "default"}
               >
                 {labSampleStatusLabel(data.status, lang)}
               </Tag>

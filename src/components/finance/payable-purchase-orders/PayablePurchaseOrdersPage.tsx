@@ -386,7 +386,7 @@ export default function PayablePurchaseOrdersPage() {
             <label>{t("ช่วงวันที่ PO")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={dPoRange}
               onChange={(values) =>
                 setDPoRange(values && values[0] && values[1] ? [values[0], values[1]] : null)

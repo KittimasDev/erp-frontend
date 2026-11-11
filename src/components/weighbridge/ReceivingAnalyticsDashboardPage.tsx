@@ -255,8 +255,8 @@ export default function ReceivingAnalyticsDashboardPage() {
           title={t("ภาพรวมรับซื้อยาง")}
           subtitle={
             <>
-              {dayjs(from).format("D MMM YYYY")} –{" "}
-              {dayjs(to).format("D MMM YYYY")}
+              {dayjs(from).format("D MMM BBBB")} –{" "}
+              {dayjs(to).format("D MMM BBBB")}
               {selectedClassificationLabel
                 ? ` · ${selectedClassificationLabel}`
                 : ""}
@@ -272,7 +272,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               <DatePicker.RangePicker
                 allowClear={false}
                 value={range}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 disabledDate={(current) =>
                   Boolean(current && current.isAfter(today, "day"))
                 }
@@ -300,7 +300,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               <DatePicker
                 allowClear={false}
                 value={hourlyDate}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 disabledDate={(current) => {
                   if (!current) {
                     return false;
@@ -783,7 +783,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               <h3>{t("รายชั่วโมง")}</h3>
               <p>
                 {t("จำนวนรถตามชั่วโมง")} ·{" "}
-                {dayjs(data?.hourlyDate ?? date).format("DD/MM/YYYY")}
+                {dayjs(data?.hourlyDate ?? date).format("DD/MM/BBBB")}
               </p>
             </div>
             <div className={styles.chartBody}>

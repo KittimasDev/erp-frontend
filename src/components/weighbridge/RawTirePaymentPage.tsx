@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import { useEffect, useState } from "react";
 import {
   Button,
@@ -85,7 +86,7 @@ function formatDate(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleDateString(appLocale());
+  return formatErpDate(value, "-");
 }
 
 function formatFileSize(value?: string) {
@@ -568,7 +569,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                         >
                           <DatePicker
                             style={{ width: "100%" }}
-                            format="DD/MM/YYYY"
+                            format="DD/MM/BBBB"
                           />
                         </Form.Item>
 

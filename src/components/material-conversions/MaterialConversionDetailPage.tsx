@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Table, Tag, Tooltip } from "antd";
@@ -293,7 +294,7 @@ export default function MaterialConversionDetailPage({
             </div>
             <h2 className={masterStyles.pageTitle}>{run.runNo}</h2>
             <span className={masterStyles.pageSubtitle}>
-              {t("วันที่")} {run.runDate} · Batch {run.batchNo ?? t("ไม่ระบุ")}{" "}
+              {t("วันที่")} {dayjs(run.runDate).format("DD/MM/BBBB")} · Batch {run.batchNo ?? t("ไม่ระบุ")}{" "}
               <Tag
                 color={
                   MATERIAL_CONVERSION_STATUS_COLOR[run.status] ?? "default"

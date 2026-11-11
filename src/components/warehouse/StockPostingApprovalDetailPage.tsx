@@ -39,6 +39,7 @@ import {
 } from "@/lib/auth/stock-posting-access";
 import type { StockPostingReceiptItem } from "@/types/stock-posting-request";
 import {
+  STOCK_POSTING_REQUEST_STATUS_COLOR,
   stockPostingStatusLabel,
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
@@ -77,18 +78,6 @@ function formatWeight(value?: string | number) {
   });
 }
 
-function statusTagColor(status: string) {
-  switch (status) {
-    case StockPostingRequestStatus.PENDING_APPROVAL:
-      return "processing";
-    case StockPostingRequestStatus.APPROVED:
-      return "success";
-    case StockPostingRequestStatus.REJECTED:
-      return "warning";
-    default:
-      return "default";
-  }
-}
 
 /** คลังเริ่มต้นสำหรับรับยางดิบ — ลดขั้นตอนเลือกคลัง */
 const DEFAULT_RAW_TIRE_WAREHOUSE_CODE = "RAW_WH";
@@ -429,7 +418,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                   </div>
                   <div className={styles.detailTitleTags}>
                     <Tag
-                      color={statusTagColor(request.status)}
+                      color={STOCK_POSTING_REQUEST_STATUS_COLOR[request.status] ?? "default"}
                       className={styles.flowTag}
                     >
                       {stockPostingStatusLabel(request.status, lang)}

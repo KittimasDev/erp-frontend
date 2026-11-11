@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -240,7 +241,7 @@ function PurchaseOrderSection({ po }: { po: PayablePurchaseOrderDetail }) {
           {t(PO_DELIVERY_RECEIVE_STATUS_LABEL[po.receiveStatus] ?? po.receiveStatus)}
         </Descriptions.Item>
         <Descriptions.Item label={t("วันที่อนุมัติ")}>
-          {po.approvedAt ? formatThaiDate(po.approvedAt.slice(0, 10)) : "—"}
+          {po.approvedAt ? formatErpDate(po.approvedAt) : "—"}
         </Descriptions.Item>
         {po.paymentMethod ? (
           <Descriptions.Item label={t("วิธีชำระเงิน")}>

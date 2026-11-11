@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { App, Button, Card, Input, Select, Space, Table, Typography } from "antd";
+import { App, Button, Card, Input, Select, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import {
@@ -12,6 +13,7 @@ import {
 import { useCreateSalesCreditNoteMutation } from "@/hooks/sales-credit-notes/useSalesCreditNoteMutations";
 import {
   SALES_CREDIT_NOTE_STATUS_LABEL,
+  salesCreditNoteStatusColor,
   salesCreditNoteStatusLabel,
   type SalesCreditNote,
   type SalesCreditNotePendingRow,
@@ -108,13 +110,21 @@ export default function SalesCreditNotesPage() {
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     { title: t("เลขที่"), dataIndex: "creditNoteNo", width: 180 },
-    { title: t("วันที่"), dataIndex: "creditNoteDate", width: 120 },
+    {
+      title: t("วันที่"),
+      dataIndex: "creditNoteDate",
+      width: 120,
+      render: (v?: string) => (v ? dayjs(v).format("DD/MM/BBBB") : "—"),
+    },
     {
       title: t("สถานะ"),
       dataIndex: "status",
       width: 120,
-      render: (value: string) =>
-        salesCreditNoteStatusLabel(value, lang),
+      render: (value: string) => (
+        <Tag color={salesCreditNoteStatusColor(value)}>
+          {salesCreditNoteStatusLabel(value, lang)}
+        </Tag>
+      ),
     },
     { title: t("ลูกค้า"), dataIndex: "customerName" },
     { title: t("ใบสั่งขาย"), dataIndex: "salesOrderNo", width: 150 },

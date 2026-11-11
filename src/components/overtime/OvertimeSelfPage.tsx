@@ -108,7 +108,7 @@ export default function OvertimeSelfPage() {
   const confirmCancel = (id: string, otDate: string) => {
     modal.confirm({
       title: t("ยกเลิกคำขอ OT"),
-      content: t("ยกเลิกคำขอของวันที่ {date}?", { date: dayjs(otDate).format("DD/MM/YYYY") }),
+      content: t("ยกเลิกคำขอของวันที่ {date}?", { date: dayjs(otDate).format("DD/MM/BBBB") }),
       okText: t("ยกเลิกคำขอ"),
       okButtonProps: { danger: true },
       cancelText: t("ไม่ใช่"),
@@ -181,7 +181,7 @@ export default function OvertimeSelfPage() {
             >
               <DatePicker
                 allowClear={false}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 inputReadOnly
                 size="large"
                 className={styles.fullWidth}
@@ -267,7 +267,7 @@ export default function OvertimeSelfPage() {
               {rows.map((row) => (
                 <li key={row.id} className={styles.historyItem}>
                   <div className={styles.historyTop}>
-                    <strong>{dayjs(row.otDate).format("DD/MM/YYYY")}</strong>
+                    <strong>{dayjs(row.otDate).format("DD/MM/BBBB")}</strong>
                     <span className={styles.historyHours}>
                       {formatHours(row.hours, lang)}
                     </span>

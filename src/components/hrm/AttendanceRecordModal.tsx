@@ -153,7 +153,7 @@ export default function AttendanceRecordModal({
           showIcon
           style={{ marginBottom: 16 }}
           title={`${record?.displayName ?? "-"}${record?.employeeCode ? ` (${record.employeeCode})` : ""}`}
-          description={t("วันที่ {date} — การแก้ไขจะถูกบันทึกว่าใครแก้และแก้เมื่อไหร่", { date: record ? dayjs(record.attendanceDate).format("DD/MM/YYYY") : "-" })}
+          description={t("วันที่ {date} — การแก้ไขจะถูกบันทึกว่าใครแก้และแก้เมื่อไหร่", { date: record ? dayjs(record.attendanceDate).format("DD/MM/BBBB") : "-" })}
         />
       ) : null}
 
@@ -185,7 +185,7 @@ export default function AttendanceRecordModal({
           rules={[{ required: true, message: t("เลือกวันที่") }]}
         >
           <DatePicker
-            format="DD/MM/YYYY"
+            format="DD/MM/BBBB"
             style={{ width: "100%" }}
             disabled={isEdit}
           />

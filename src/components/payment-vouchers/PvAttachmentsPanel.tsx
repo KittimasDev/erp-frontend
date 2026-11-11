@@ -108,7 +108,7 @@ export default function PvAttachmentsPanel(props: Props) {
     },
     { title: t("ชื่อไฟล์"), dataIndex: "originalFileName", render: (v?: string) => v || t("ไฟล์") },
     { title: t("ประเภทไฟล์"), dataIndex: "mimeType", width: 100, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
-    { title: t("วันที่แนบ"), dataIndex: "createdAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },
+    { title: t("วันที่แนบ"), dataIndex: "createdAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/BBBB HH:mm") },
     { title: t("ผู้แนบ"), dataIndex: "uploadedByName", width: 150, render: (v?: string) => v ?? "—" },
     {
       title: "",

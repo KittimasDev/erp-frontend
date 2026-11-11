@@ -76,7 +76,7 @@ function finish(
   return {
     title,
     filename: `${filename}-${dayjs().format("YYYYMMDD-HHmm")}`,
-    meta: [`ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`, ...meta],
+    meta: [`ออกรายงาน ${dayjs().format("DD/MM/BBBB HH:mm")}`, ...meta],
     headers: HEADERS,
     rows: t.rows,
     groupRows: t.groupRows,
@@ -405,5 +405,5 @@ export function buildControlRoomReport(d: ControlRoomOverview): TabularReport {
   if (d.equipment.length === 0) t.empty("ยังไม่มีทะเบียนเครื่องจักร");
   for (const e of d.equipment) t.row(`${e.code} ${e.name}`, LIGHT_TEXT[e.light], e.reasons.join(" · "));
 
-  return finish("Control Room — ห้องควบคุมการผลิต", "control-room", [`ข้อมูล ณ ${dayjs(d.asOf).format("DD/MM/YYYY HH:mm:ss")}`], t);
+  return finish("Control Room — ห้องควบคุมการผลิต", "control-room", [`ข้อมูล ณ ${dayjs(d.asOf).format("DD/MM/BBBB HH:mm:ss")}`], t);
 }

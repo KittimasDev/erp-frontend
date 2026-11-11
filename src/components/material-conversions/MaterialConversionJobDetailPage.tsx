@@ -79,7 +79,7 @@ type ActionKind = "start" | "complete" | "cancelRun";
 function fmtDate(value?: string | null) {
   if (!value) return "-";
   const day = dayjs(value);
-  return day.isValid() ? day.format("DD/MM/YYYY") : value;
+  return day.isValid() ? day.format("DD/MM/BBBB") : value;
 }
 
 function fmtQty(value?: string | null) {
@@ -842,7 +842,7 @@ function FillStepDrawerBody({
           rules={[{ required: true, message: t("เลือกวันที่") }]}
           extra={t("ขั้นตอนคนละวันกันได้ ใส่วันที่ทำจริงของขั้นนี้")}
         >
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
       </div>
 

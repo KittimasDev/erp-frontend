@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type PaymentVoucherSourceType = "ADVANCE_REQUEST" | "BILLING_NOTE" | "AP_INVOICE";
 
 export const PV_SOURCE_LABEL: Record<string, string> = {
@@ -18,7 +19,7 @@ export const PV_KIND_LABEL: Record<string, string> = {
 export const PV_QUEUE_STATUS_LABEL: Record<string, string> = {
   PENDING: "รอสร้างใบสำคัญจ่าย",
   PV_CREATED: "สร้างใบสำคัญจ่ายแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export type PaymentVoucherQueueAllocation = {
@@ -82,21 +83,21 @@ export type CreateVoucherFromQueueBody = {
 // ─── ฟอร์ม PV กลาง ──────────────────────────────────────────────────────────
 
 export const VOUCHER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
-  PENDING_APPROVAL: "รออนุมัติ",
-  REJECTED: "ไม่อนุมัติ",
+  DRAFT: standardStatusLabel("DRAFT"),
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
+  REJECTED: standardStatusLabel("REJECTED"),
   APPROVED: "อนุมัติแล้ว (รอจ่ายเงิน)",
   PAID: "จ่ายแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const VOUCHER_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
-  PENDING_APPROVAL: "gold",
-  REJECTED: "red",
-  APPROVED: "blue",
-  PAID: "green",
-  CANCELLED: "default",
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  REJECTED: standardStatusColor("REJECTED"),
+  APPROVED: standardStatusColor("APPROVED"),
+  PAID: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** สถานะ Express — แสดงข้อมูลอย่างเดียว แยกจากสถานะ PV */
@@ -237,9 +238,9 @@ export type PayableVoucherQuery = { search?: string; paymentKind?: string; page?
 // ─── หน้าบันทึกจ่ายเงิน: รายการที่บันทึกจ่ายแล้ว ─────────────────────────────
 
 /** สถานะรายการจ่าย */
-export const PAYMENT_RECORD_STATUS_LABEL: Record<string, string> = { PAID: "จ่ายแล้ว", CANCELLED: "ยกเลิก" };
+export const PAYMENT_RECORD_STATUS_LABEL: Record<string, string> = { PAID: "จ่ายแล้ว", CANCELLED: standardStatusLabel("CANCELLED") };
 
-export const PAYMENT_RECORD_STATUS_COLOR: Record<string, string> = { PAID: "green", CANCELLED: "default" };
+export const PAYMENT_RECORD_STATUS_COLOR: Record<string, string> = { PAID: standardStatusColor("COMPLETED"), CANCELLED: standardStatusColor("CANCELLED") };
 
 export type PaymentRecord = {
   id: string;

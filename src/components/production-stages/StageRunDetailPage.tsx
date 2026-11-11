@@ -50,7 +50,7 @@ function fmtQty(value?: string) {
 }
 
 function fmtDateTime(value?: string) {
-  return value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-";
+  return value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "-";
 }
 
 export default function StageRunDetailPage({
@@ -143,7 +143,7 @@ export default function StageRunDetailPage({
                 {tConvStatusLabel(STAGE_RUN_STATUS_LABEL[run.status] ?? run.status)}
               </Tag></>}
           subtitle={<>{stageTypeLabel(config, run.stageType)} ·{" "}
-              {dayjs(run.runDate).format("DD/MM/YYYY")}</>}
+              {dayjs(run.runDate).format("DD/MM/BBBB")}</>}
           actions={
             <>
 <Button

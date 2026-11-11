@@ -111,7 +111,7 @@ export default function LabSampleCreateModal({
           label={t("วันที่เก็บตัวอย่าง")}
           rules={[{ required: true }]}
         >
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
         <Form.Item
           name="lotId"

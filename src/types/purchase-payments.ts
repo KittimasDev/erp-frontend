@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type SupplierPaymentVoucherStatus =
   | "DRAFT"
   | "PAID"
@@ -5,12 +6,22 @@ export type SupplierPaymentVoucherStatus =
   | string;
 
 export const SUPPLIER_PAYMENT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
-  PENDING_APPROVAL: "รออนุมัติ",
-  REJECTED: "ไม่อนุมัติ",
+  DRAFT: standardStatusLabel("DRAFT"),
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
+  REJECTED: standardStatusLabel("REJECTED"),
   APPROVED: "อนุมัติแล้ว (รอจ่ายเงิน)",
   PAID: "จ่ายแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะ — ตามมาตรฐานกลาง (อนุมัติแล้ว/จ่ายแล้ว = เขียว) */
+export const SUPPLIER_PAYMENT_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  REJECTED: standardStatusColor("REJECTED"),
+  APPROVED: standardStatusColor("APPROVED"),
+  PAID: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export const SUPPLIER_PAYMENT_METHOD_LABEL: Record<string, string> = {

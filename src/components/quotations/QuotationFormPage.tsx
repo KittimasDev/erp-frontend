@@ -306,7 +306,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
           ? detailQuery.data.data.quotationNo
           : "แบบร่างเอกสาร",
       quotationDate: values.quotationDate
-        ? values.quotationDate.format("DD/MM/YYYY")
+        ? values.quotationDate.format("DD/MM/BBBB")
         : "—",
       customerName: selectedCustomer?.nameTh ?? "—",
       customerCode: selectedCustomer?.customerCode ?? "—",
@@ -326,7 +326,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       vatMode: resolveVatMode(values.vatMode),
       withholdingTaxType: values.withholdingTaxType,
       validUntil: values.validUntil
-        ? values.validUntil.format("DD/MM/YYYY")
+        ? values.validUntil.format("DD/MM/BBBB")
         : "—",
       remark: sanitizeDocumentHtml(values.remark) || "",
       preparedBy: { id: stored?.id, name: preparedByName },
@@ -590,10 +590,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
                     label={t("วันที่เอกสาร")}
                     rules={[{ required: true, message: t("เลือกวันที่เอกสาร") }]}
                   >
-                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                    <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
                   </Form.Item>
                   <Form.Item name="validUntil" label={t("วันหมดอายุ")}>
-                    <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                    <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
                   </Form.Item>
                   <Form.Item name="paymentTermId" label={t("เงื่อนไขการชำระเงิน")}>
                     <Select

@@ -1,17 +1,18 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type AdvanceRequestStatus = "DRAFT" | "PENDING_PV" | "PV_CREATED" | "CANCELLED";
 
 export const ADVANCE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: standardStatusLabel("DRAFT"),
   PENDING_PV: "รอสร้างใบสำคัญจ่าย",
   PV_CREATED: "สร้างใบสำคัญจ่ายแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const ADVANCE_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
+  DRAFT: standardStatusColor("DRAFT"),
   PENDING_PV: "gold",
   PV_CREATED: "green",
-  CANCELLED: "red",
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export const WHT_TYPE_LABEL: Record<string, string> = {

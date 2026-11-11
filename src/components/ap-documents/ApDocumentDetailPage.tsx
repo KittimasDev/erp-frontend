@@ -76,8 +76,7 @@ type Props = { kind: ApDocumentKind; id: string };
 const formatDateTime = (value?: string | null) => {
   if (!value) return "—";
   const d = dayjs(value);
-  const year = getStoredLanguage() === "en" ? d.year() : d.year() + 543;
-  return `${d.format("DD/MM/")}${year} ${d.format("HH:mm")}`;
+  return d.format("DD/MM/BBBB HH:mm");
 };
 
 const errorText = (error: unknown, fallback: string) =>
@@ -330,7 +329,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
       width: 110,
       render: (value: string, row) =>
         value === "CANCELLED" ? (
-          <Tag color="error" title={row.cancelReason ?? undefined}>
+          <Tag color="default" title={row.cancelReason ?? undefined}>
             {tStatus("ยกเลิก")}
           </Tag>
         ) : (
@@ -772,7 +771,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           onFinish={(values) => void handleRefund(values)}
         >
           <Form.Item name="refundDate" label={t("วันที่รับเงิน")} rules={[{ required: true, message: t("ระบุวันที่") }]}>
-            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item
             name="amount"

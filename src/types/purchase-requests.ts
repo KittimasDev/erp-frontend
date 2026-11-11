@@ -1,3 +1,9 @@
+import {
+  standardStatusColor,
+  standardStatusLabel,
+  type StandardStatus,
+} from "@/lib/status/standard-status";
+
 export type PurchaseRequestStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
@@ -10,13 +16,23 @@ export const PURCHASE_REQUEST_STATUS_LABEL: Record<
   PurchaseRequestStatus,
   string
 > = {
-  DRAFT: "แบบร่างเอกสาร",
-  PENDING_APPROVAL: "รออนุมัติ",
+  DRAFT: standardStatusLabel("DRAFT"),
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
   // ถูกผู้อนุมัติส่งกลับมาแก้ — ต้องแยกจาก "ร่าง"
   REVISING: "แก้ไข",
-  APPROVED: "อนุมัติแล้ว",
-  REJECTED: "ปฏิเสธ",
-  CANCELLED: "ยกเลิก",
+  APPROVED: standardStatusLabel("APPROVED"),
+  REJECTED: standardStatusLabel("REJECTED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะ — ตามมาตรฐานกลาง (REVISING ไม่ใช่สถานะมาตรฐาน ใช้ gold ให้ต่างจากรออนุมัติ) */
+export const PURCHASE_REQUEST_STATUS_COLOR: Record<PurchaseRequestStatus, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  REVISING: "gold",
+  APPROVED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** ป้ายสถานะตามภาษา — ไม่ผ่าน dictionary เพราะ "ยกเลิก"/"แก้ไข" ชนกับปุ่ม Cancel/Edit */
@@ -25,15 +41,10 @@ export function purchaseRequestStatusLabel(
   lang: "th" | "en",
 ): string {
   if (lang === "en") {
-    const en: Record<PurchaseRequestStatus, string> = {
-      DRAFT: "Draft",
-      PENDING_APPROVAL: "Pending approval",
-      REVISING: "Revising",
-      APPROVED: "Approved",
-      REJECTED: "Rejected",
-      CANCELLED: "Cancelled",
-    };
-    return en[status as PurchaseRequestStatus] ?? status;
+    if (status === "REVISING") return "Revising";
+    return status in PURCHASE_REQUEST_STATUS_LABEL
+      ? standardStatusLabel(status as StandardStatus, "en")
+      : status;
   }
   return PURCHASE_REQUEST_STATUS_LABEL[status as PurchaseRequestStatus] ?? status;
 }

@@ -236,7 +236,7 @@ export default function ShiftAssignmentsPage() {
         width: 140,
         render: (value: string, row) => (
           <div className={styles.dateCell}>
-            <strong>{dayjs(value).format("DD/MM/YYYY")}</strong>
+            <strong>{dayjs(value).format("DD/MM/BBBB")}</strong>
             <span>
               {weekdayText(row.weekday, lang)}
               {value === todayKey ? (
@@ -551,7 +551,7 @@ export default function ShiftAssignmentsPage() {
         width: 140,
         render: (value: string, row) => (
           <div className={styles.dateCell}>
-            <strong>{dayjs(value).format("DD/MM/YYYY")}</strong>
+            <strong>{dayjs(value).format("DD/MM/BBBB")}</strong>
             <span>
               {weekdayText(row.weekday, lang)}
               {value === todayKey ? (
@@ -877,7 +877,7 @@ export default function ShiftAssignmentsPage() {
     await generateShiftAssignmentsPdf({
       title: config.title,
       titleEn: config.titleEn,
-      periodLabel: `${dayjs(range.dateFrom).format("DD/MM/YYYY")} - ${dayjs(range.dateTo).format("DD/MM/YYYY")}`,
+      periodLabel: `${dayjs(range.dateFrom).format("DD/MM/BBBB")} - ${dayjs(range.dateTo).format("DD/MM/BBBB")}`,
       filters,
       stats,
       shiftBreakdown: byShift.map((shift) => ({
@@ -888,7 +888,7 @@ export default function ShiftAssignmentsPage() {
       columns: [...config.columns],
       rows: config.rows.map((row) => [...row]),
       footnote: config.footnote,
-      printedAt: dayjs().format("DD/MM/YYYY HH:mm"),
+      printedAt: dayjs().format("DD/MM/BBBB HH:mm"),
     });
   }, [
     appliedKeyword,
@@ -933,7 +933,7 @@ export default function ShiftAssignmentsPage() {
                 allowClear={false}
                 style={{ width: "100%" }}
                 value={draft.day}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(value) => value && setDraft((d) => ({ ...d, day: value }))}
               />
             </FilterField>
@@ -946,7 +946,7 @@ export default function ShiftAssignmentsPage() {
                 allowClear={false}
                 style={{ width: "100%" }}
                 value={draft.month}
-                format="MM/YYYY"
+                format="MM/BBBB"
                 onChange={(value) => value && setDraft((d) => ({ ...d, month: value }))}
               />
             </FilterField>
@@ -958,7 +958,7 @@ export default function ShiftAssignmentsPage() {
                 allowClear={false}
                 style={{ width: "100%" }}
                 value={draft.customRange}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(values) => {
                   if (!values?.[0] || !values[1]) return;
                   const next: [Dayjs, Dayjs] = [values[0], values[1]];

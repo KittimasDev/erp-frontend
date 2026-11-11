@@ -1,9 +1,17 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type StockTransferStatus = "DRAFT" | "POSTED" | "CANCELLED" | string;
 
 export const STOCK_TRANSFER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
-  POSTED: "อนุมัติแล้ว",
-  CANCELLED: "ยกเลิก",
+  DRAFT: standardStatusLabel("DRAFT"),
+  POSTED: standardStatusLabel("APPROVED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะ — ตามมาตรฐานกลาง (POSTED = อนุมัติแล้ว) */
+export const STOCK_TRANSFER_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  POSTED: standardStatusColor("APPROVED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export type StockTransferUserSummary = {

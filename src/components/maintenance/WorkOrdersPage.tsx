@@ -10,7 +10,7 @@ import { useWorkOrdersQuery } from "@/hooks/maintenance/useMaintenance";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { PRIORITY_OPTIONS, type WorkOrder } from "@/types/maintenance";
+import { PRIORITY_OPTIONS, WORK_ORDER_STATUS_COLOR, type WorkOrder } from "@/types/maintenance";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import BreakdownModal from "./BreakdownModal";
@@ -23,7 +23,6 @@ import FilterCard, { FilterField } from "@/components/common/FilterCard";
 type WorkOrderFilters = { status: string; type?: string; priority?: string; keyword: string };
 const DEFAULT_FILTERS: WorkOrderFilters = { status: "ACTIVE", keyword: "" };
 
-const STATUS_COLOR: Record<string, string> = { DRAFT: "default", OPEN: "blue", IN_PROGRESS: "orange", COMPLETED: "green", CANCELLED: "default" };
 const PRIORITY_COLOR: Record<string, string> = { LOW: "default", NORMAL: "blue", HIGH: "orange", CRITICAL: "red" };
 
 /** หน้า /maintenance/work-orders — ใบสั่งงานซ่อมบำรุง (PM/CM) · แจ้งเสีย · มอบหมายช่าง · เริ่ม/ปิดงาน · อะไหล่ */
@@ -95,7 +94,7 @@ export default function WorkOrdersPage() {
     { title: t("ช่าง"), key: "tech", width: 170, render: (_v, w) => w.technicians.map((tech) => tech.displayName).filter(Boolean).join(", ") || "—" },
     { title: t("วางแผน"), key: "plan", width: 110, render: (_v, w) => fmtDate(w.plannedDate) },
     { title: t("ต้นทุนอะไหล่"), key: "cost", width: 110, align: "right", render: (_v, w) => (w.partsCost ? fmtMoney(w.partsCost) : "—") },
-    { title: t("สถานะ"), key: "st", width: 110, render: (_v, w) => <Tag color={STATUS_COLOR[w.status]}>{woStatusLabel(w.status, lang)}</Tag> },
+    { title: t("สถานะ"), key: "st", width: 110, render: (_v, w) => <Tag color={WORK_ORDER_STATUS_COLOR[w.status]}>{woStatusLabel(w.status, lang)}</Tag> },
   ];
 
   return (

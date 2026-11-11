@@ -18,12 +18,11 @@ import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { oilDocStatusLabel, type OilTransfer } from "@/types/oil-tank-farm";
+import { OIL_DOC_STATUS_COLOR, oilDocStatusLabel, type OilTransfer } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
 const n = (v: string | number) => Number(v).toLocaleString("th-TH", { maximumFractionDigits: 3 });
-const STATUS_COLOR: Record<string, string> = { DRAFT: "gold", POSTED: "green", CANCELLED: "default" };
 
 type Values = {
   transferDate: dayjs.Dayjs;
@@ -79,7 +78,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     >
       <Form form={form} layout="vertical" initialValues={{ transferDate: dayjs(), lossLiters: 0 }}>
         <Form.Item name="transferDate" label={t("วันที่โอน")} rules={[{ required: true }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
           <Form.Item name="fromTankId" label={t("ถังต้นทาง")} rules={[{ required: true, message: t("เลือกถัง") }]} style={{ flex: 1 }}>
@@ -147,13 +146,13 @@ export default function TransfersPage() {
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: t("ใบโอน"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.transferNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.transferDate).format("DD/MM/YYYY")}</div></div> },
+    { title: t("ใบโอน"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.transferNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.transferDate).format("DD/MM/BBBB")}</div></div> },
     { title: t("จาก → ไป"), key: "ft", width: 180, render: (_v, r) => `${r.fromTankNo} → ${r.toTankNo}` },
     { title: t("โอนออก"), key: "q", width: 120, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },
     { title: t("สูญเสีย"), key: "l", width: 150, align: "right", render: (_v, r) => (Number(r.lossLiters) ? <span style={{ color: "#cf1322" }}>{n(r.lossLiters)} ({((Number(r.lossLiters) / Number(r.quantityLiters)) * 100).toFixed(2)}%)</span> : "—") },
     { title: t("ปลายทางได้รับ"), key: "r", width: 130, align: "right", render: (_v, r) => n(r.receivedLiters) },
     { title: t("หมายเหตุ"), key: "m", render: (_v, r) => r.lossReason ?? r.remark ?? "" },
-    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
+    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={OIL_DOC_STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
     {
       title: "",
       key: "act",

@@ -94,7 +94,7 @@ export function CreateWorkOrderModal({ onClose }: { onClose: () => void }) {
             <Select options={PRIORITY_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
           </Form.Item>
           <Form.Item name="plannedDate" label={t("วันที่วางแผน")} style={{ flex: 1 }}>
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
           </Form.Item>
           <Form.Item name="plannedManpower" label={t("ช่างที่ต้องเตรียม")} style={{ flex: 1 }}>
             <InputNumber min={1} max={100} style={{ width: "100%" }} />

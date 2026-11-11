@@ -280,7 +280,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                     name="transferDate"
                     rules={[{ required: true, message: t("กรุณาเลือกวันที่โอนย้าย") }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
 
                   <Form.Item

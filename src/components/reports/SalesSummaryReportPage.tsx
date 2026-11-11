@@ -303,12 +303,11 @@ function formatMoney(value: string) {
 const qtyText = (value: string | null | undefined) =>
   value === null || value === undefined ? "" : formatQty(value);
 
-/** 01/10/2569 — วัน/เดือน/ปี พ.ศ. (lang = "en" → ค.ศ.; ไฟล์ส่งออกไม่ส่ง lang = พ.ศ. เสมอ) */
-function formatBeDate(isoDate: string, lang: Language = "th") {
+/** 01/10/2569 — วัน/เดือน/ปี พ.ศ. (พ.ศ. ทุกภาษา) */
+function formatBeDate(isoDate: string, _lang: Language = "th") {
   const d = dayjs(isoDate);
   if (!d.isValid()) return isoDate;
-  if (lang === "en") return d.format("DD/MM/YYYY");
-  return `${d.format("DD/MM/")}${d.year() + 543}`;
+  return d.format("DD/MM/BBBB");
 }
 
 /** สถานะการส่งมอบ (ตัวกรอง) ตามภาษา */
@@ -769,7 +768,7 @@ export default function SalesSummaryReportPage() {
               allowClear={false}
               style={{ width: "100%" }}
               value={dateRange}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               onChange={(value) => {
                 if (value?.[0] && value[1]) {
                   setDateRange([value[0], value[1]]);

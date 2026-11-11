@@ -35,7 +35,7 @@ const qty = { format: (v: number) => new Intl.NumberFormat(numLocale(), { maximu
 /** วันที่ตามภาษา — ไทย = พ.ศ. · อังกฤษ = ค.ศ. */
 function formatThaiDate(value?: string | null) {
   if (getStoredLanguage() !== "en") return formatThaiDateBE(value);
-  return value ? dayjs(value.slice(0, 10)).format("DD/MM/YYYY") : "—";
+  return value ? dayjs(value.slice(0, 10)).format("DD/MM/BBBB") : "—";
 }
 
 /** รอบรีเฟรช (นาที) ที่ผู้ใช้เลือก — จำไว้ในเครื่องนี้ (localStorage อาจใช้ไม่ได้ จึงครอบ try/catch) */

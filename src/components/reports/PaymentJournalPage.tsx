@@ -58,7 +58,7 @@ const KIND_COLOR: Record<PaymentJournalKind, string> = {
 };
 
 const money = new Intl.NumberFormat("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const formatDate = (value?: string) => (value ? dayjs(value).format("DD/MM/YYYY") : "—");
+const formatDate = (value?: string) => (value ? dayjs(value).format("DD/MM/BBBB") : "—");
 const moneyOrBlank = (value: number) => (value > 0 ? money.format(value) : "");
 
 /** วิธีจ่ายพร้อมรายละเอียด เช่น "โอนเงิน · กสิกรไทย 123-4-56789-0" */
@@ -156,7 +156,7 @@ export default function PaymentJournalPage() {
     try {
       const { items: all, summary } = (await getPaymentJournalExport(getAccessToken(), filters)).data;
       const meta = [
-        `ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        `ออกรายงาน ${dayjs().format("DD/MM/BBBB HH:mm")}`,
         filters.dateFrom || filters.dateTo
           ? `วันที่จ่ายเงิน: ${formatDate(filters.dateFrom)} - ${formatDate(filters.dateTo)}`
           : null,
@@ -485,7 +485,7 @@ export default function PaymentJournalPage() {
             <label>{t("ช่วงวันที่จ่าย")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={dRange}
               onChange={(values) =>
                 setDRange(values && values[0] && values[1] ? [values[0], values[1]] : null)

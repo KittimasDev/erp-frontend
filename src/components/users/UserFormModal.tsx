@@ -404,7 +404,7 @@ export default function UserFormModal({
         </Form.Item>
 
         <Form.Item label={t("วันที่เริ่มงาน")} name="hireDate">
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
 
         <Form.Item

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -130,7 +131,7 @@ function formatDate(value?: string) {
     return "-";
   }
 
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 export default function RawTirePriceRulesPage() {
@@ -369,7 +370,7 @@ export default function RawTirePriceRulesPage() {
       width: 170,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
+          {value ? formatDateTime(value, lang) : "-"}
         </span>
       ),
     },
@@ -509,7 +510,7 @@ export default function RawTirePriceRulesPage() {
                 <DatePicker
                   allowClear
                   style={{ width: "100%" }}
-                  format="YYYY-MM-DD"
+                  format="DD/MM/BBBB"
                   placeholder={t("เลือกวัน")}
                 />
               </Form.Item>

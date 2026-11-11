@@ -1,3 +1,4 @@
+import { formatBuddhistIntl } from "./intl-be";
 import { ERP_TIMEZONE } from "./erp-timezone";
 import type { Language } from "@/lib/i18n/translate";
 
@@ -14,17 +15,17 @@ function toDate(value?: string | Date | null): Date | null {
 export function formatThaiBuddhistDate(
   value?: string | Date | null,
   fallback = "",
-  /** ไม่ส่ง = ไทย (พ.ศ.) · "en" = ค.ศ. แบบ 24 August 2026 */
+  /** ไม่ส่ง = ไทย (พ.ศ.) · "en" = ชื่อเดือนอังกฤษ แต่ปียังเป็น พ.ศ. เช่น 24 August 2569 */
   lang: Language = "th",
 ): string {
   const d = toDate(value);
   if (!d) return fallback;
-  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "th-TH", {
+  return formatBuddhistIntl(d, lang, {
     timeZone: ERP_TIMEZONE,
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(d);
+  });
 }
 
 /**

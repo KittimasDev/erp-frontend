@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 /**
  * ใบแปรสภาพวัตถุดิบ — วัตถุดิบเข้าหลายตัว ผลผลิตออกหลายตัว
  *
@@ -9,6 +10,8 @@ import { getStoredLanguage } from "@/lib/i18n/language";
 import { translate, type Language } from "@/lib/i18n/translate";
 
 const CONVERSION_STATUS_EN: Record<string, string> = {
+  "กำลังดำเนินการ": "In progress",
+  "เสร็จสิ้น": "Completed",
   "แบบร่างเอกสาร": "Draft",
   "กำลังทำงาน": "In progress",
   "เสร็จแล้ว": "Completed",
@@ -39,17 +42,17 @@ export type MaterialConversionStatus =
   (typeof MATERIAL_CONVERSION_STATUS)[number];
 
 export const MATERIAL_CONVERSION_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
-  IN_PROGRESS: "กำลังทำงาน",
-  COMPLETED: "เสร็จแล้ว",
-  CANCELLED: "ยกเลิก",
+  DRAFT: standardStatusLabel("DRAFT"),
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS"),
+  COMPLETED: standardStatusLabel("COMPLETED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const MATERIAL_CONVERSION_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
-  IN_PROGRESS: "processing",
-  COMPLETED: "success",
-  CANCELLED: "error",
+  DRAFT: standardStatusColor("DRAFT"),
+  IN_PROGRESS: standardStatusColor("IN_PROGRESS"),
+  COMPLETED: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** ต้องตรงกับ `output-type.constants.ts` ฝั่ง backend */
@@ -530,34 +533,34 @@ export type MaterialConversionRouteStepApiResponse =
 export const MATERIAL_CONVERSION_JOB_STATUS_LABEL: Record<string, string> = {
   OPEN: "เปิดอยู่",
   CLOSED: "ปิดแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const MATERIAL_CONVERSION_JOB_STATUS_COLOR: Record<string, string> = {
   OPEN: "processing",
   CLOSED: "default",
-  CANCELLED: "error",
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export const MATERIAL_CONVERSION_JOB_PROGRESS_LABEL: Record<string, string> = {
   NOT_STARTED: "ยังไม่เริ่ม",
-  IN_PROGRESS: "กำลังทำงาน",
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS"),
   COMPLETED: "ทำครบทุกขั้นแล้ว",
 };
 
 /** สภาพของขั้นบนไทม์ไลน์ — `NOT_STARTED` คือยังไม่เคยเปิดเอกสารของขั้นนั้น */
 export const JOB_STEP_STATE_LABEL: Record<string, string> = {
   NOT_STARTED: "ยังไม่เริ่ม",
-  DRAFT: "แบบร่างเอกสาร",
-  IN_PROGRESS: "กำลังทำงาน",
-  COMPLETED: "เสร็จแล้ว",
+  DRAFT: standardStatusLabel("DRAFT"),
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS"),
+  COMPLETED: standardStatusLabel("COMPLETED"),
 };
 
 export const JOB_STEP_STATE_COLOR: Record<string, string> = {
   NOT_STARTED: "default",
-  DRAFT: "default",
-  IN_PROGRESS: "processing",
-  COMPLETED: "success",
+  DRAFT: standardStatusColor("DRAFT"),
+  IN_PROGRESS: standardStatusColor("IN_PROGRESS"),
+  COMPLETED: standardStatusColor("COMPLETED"),
 };
 
 export type MaterialConversionJobStepRun = {

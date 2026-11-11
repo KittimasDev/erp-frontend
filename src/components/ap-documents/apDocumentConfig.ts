@@ -3,6 +3,8 @@ import {
   calcLineAmount,
   resolveVatMode,
 } from "@/lib/money/vat-totals";
+import dayjs from "dayjs";
+import { BE_DATE_FORMAT } from "@/lib/datetime/buddhist-era";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { tNow } from "@/lib/i18n/useT";
 import { AP_EVENT_LABEL, type ApDocumentKind } from "@/types/ap-documents";
@@ -99,8 +101,7 @@ export function formatThaiDate(value?: string | null) {
   if (!value) return "—";
   const [y, m, d] = value.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return value;
-  const year = getStoredLanguage() === "en" ? y : y + 543;
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${year}`;
+  return dayjs(new Date(y, m - 1, d)).format(BE_DATE_FORMAT);
 }
 
 /**

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Empty, Popover, Typography } from "antd";
@@ -438,7 +439,7 @@ const LANGUAGE_OPTIONS: Array<{ value: Language; label: string }> = [
 ];
 
 function formatThaiDate(date: Date, language: Language = "th") {
-  return date.toLocaleDateString(language === "en" ? "en-GB" : "th-TH", {
+  return formatBuddhistIntl(date, language === "en" ? "en" : "th", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -598,7 +599,7 @@ export default function AppTopHeader() {
                 <span className={styles.notifItemTitle}>{row.title}</span>
                 <span className={styles.notifItemMessage}>{row.message}</span>
                 <span className={styles.notifItemMeta}>
-                  {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
+                  {dayjs(row.createdAt).format("DD/MM/BBBB HH:mm")}
                 </span>
               </button>
             </li>

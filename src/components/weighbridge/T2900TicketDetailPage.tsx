@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -111,7 +112,7 @@ function formatDateTime(value?: string) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime())
     ? value
-    : parsed.toLocaleString(appLocale());
+    : formatErpDateTime(parsed, "-");
 }
 
 function inOutText(date?: string, time?: string) {
@@ -269,7 +270,7 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
                   </div>
                   <Tag
                     className={styles.flowTag}
-                    color={detail.cancelled ? "error" : undefined}
+                    color={detail.cancelled ? "default" : undefined}
                   >
                     {tLabel(RECORD_STATUS_LABEL[String(ticket.recordStatus)] ??
                       String(ticket.recordStatus))}

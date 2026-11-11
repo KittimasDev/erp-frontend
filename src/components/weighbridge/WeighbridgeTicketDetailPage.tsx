@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDate, formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import { useMemo, useState } from "react";
 import {
   App,
@@ -27,6 +28,7 @@ import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useS
 import { useT2900TicketDetailQuery } from "@/hooks/weighbridge-tickets/useT2900TicketDetailQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
+import { standardStatusLabel } from "@/lib/status/standard-status";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
 import { appLocale, tLabel } from "./receiving-i18n";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
@@ -50,9 +52,9 @@ const DISPLAY_LABELS: Record<string, string> = {
 };
 
 const RECEIPT_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: standardStatusLabel("DRAFT"),
   CONFIRMED: "ยืนยันแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
@@ -103,7 +105,7 @@ function formatDateTime(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleString(appLocale());
+  return formatErpDateTime(value, "-");
 }
 
 function formatMoney(value?: string) {
@@ -122,7 +124,7 @@ function formatDateOnly(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleDateString(appLocale());
+  return formatErpDate(value, "-");
 }
 
 function isPaymentPaid(view: PaymentView) {

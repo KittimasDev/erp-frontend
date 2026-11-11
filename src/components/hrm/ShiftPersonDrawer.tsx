@@ -72,7 +72,7 @@ export default function ShiftPersonDrawer({
           {user.departmentName ? <span>{user.departmentName}</span> : null}
         </div>
         <p className={styles.personRange}>
-          {dayjs(dateFrom).format("D/M/YYYY")} - {dayjs(dateTo).format("D/M/YYYY")}
+          {dayjs(dateFrom).format("D/M/BBBB")} - {dayjs(dateTo).format("D/M/BBBB")}
         </p>
         <div className={styles.personStats}>
           <div className={styles.personStat}>

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
 import { useEffect } from "react";
 import {
   Alert,
@@ -58,7 +59,7 @@ function formatDateTime(value: string | null | undefined, lang: string): string 
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "—"
-    : date.toLocaleString(lang === "en" ? "en-GB" : "th-TH", { dateStyle: "medium", timeStyle: "short" });
+    : formatBuddhistIntl(date, lang === "en" ? "en" : "th", { dateStyle: "medium", timeStyle: "short" });
 }
 
 export default function AiOcrSettingsPage() {

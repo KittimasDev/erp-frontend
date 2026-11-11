@@ -115,7 +115,7 @@ export function DashboardShell({
                 <DatePicker.RangePicker
                   value={range}
                   allowClear={false}
-                  format="DD/MM/YYYY"
+                  format="DD/MM/BBBB"
                   onChange={(v) => {
                     if (v?.[0] && v[1]) onRangeChange([v[0], v[1]]);
                   }}

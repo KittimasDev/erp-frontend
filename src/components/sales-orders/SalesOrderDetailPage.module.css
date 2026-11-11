@@ -958,6 +958,12 @@
   color: #6b7280;
 }
 
+/* แบบร่างเอกสาร / ยกเลิก = เทา (มาตรฐานสถานะ) */
+.statusNeutral {
+  background: #f1f3f5;
+  color: #6b7280;
+}
+
 .sideRows {
   display: grid;
   gap: 10px;

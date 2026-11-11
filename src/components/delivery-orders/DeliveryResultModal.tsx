@@ -297,7 +297,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
               <DatePicker
                 value={redeliverDate}
                 onChange={setRedeliverDate}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 disabledDate={(d) => d.isBefore(dayjs(), "day")}
                 style={{ width: 220 }}
               />

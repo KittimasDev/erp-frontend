@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Input, Modal, Spin } from "antd";
+import { App, Button, Input, Modal, Spin, Tag } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -36,7 +36,11 @@ import {
 } from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { purchaseRequestStatusLabel } from "@/types/purchase-requests";
+import {
+  PURCHASE_REQUEST_STATUS_COLOR,
+  purchaseRequestStatusLabel,
+  type PurchaseRequestStatus,
+} from "@/types/purchase-requests";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 import { formatNumber } from "@/lib/i18n/format";
@@ -51,7 +55,7 @@ type Props = {
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatQty(value: string, lang: "th" | "en") {
@@ -60,23 +64,6 @@ function formatQty(value: string, lang: "th" | "en") {
 
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข ทำอย่างเดียวกันได้ — ตรงกับ guard ฝั่ง backend */
 const PR_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
-
-function statusClass(status: string) {
-  switch (status) {
-    case "APPROVED":
-      return styles.statusApproved;
-    case "PENDING_APPROVAL":
-      return styles.statusPending;
-    case "REJECTED":
-      return styles.statusRejected;
-    case "REVISING":
-      return styles.statusRevision;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 export default function PurchaseRequestDetailPage({ id }: Props) {
   const router = useRouter();
@@ -242,7 +229,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("อัปเดตล่าสุด")}</span>
                 <div className={styles.metaValue}>
-                  {dayjs(data.updatedAt).format("DD/MM/YYYY HH:mm")}
+                  {dayjs(data.updatedAt).format("DD/MM/BBBB HH:mm")}
                 </div>
               </div>
             </div>
@@ -325,8 +312,10 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
             <h2 className={styles.sideTitle}>{data.prNo}</h2>
           </div>
 
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {statusLabel}
+          <div>
+            <Tag color={PURCHASE_REQUEST_STATUS_COLOR[data.status as PurchaseRequestStatus] ?? "default"}>
+              {statusLabel}
+            </Tag>
           </div>
 
           <div className={styles.sideRows}>

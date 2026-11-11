@@ -766,7 +766,7 @@ export default function PurchaseOrderCreateFromPrPage({
                     name="poDate"
                     rules={[{ required: true, message: t("เลือกวันที่") }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
@@ -850,7 +850,7 @@ export default function PurchaseOrderCreateFromPrPage({
                     label={t("วันที่ส่งมอบ")}
                     name="expectedDeliveryDate"
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}

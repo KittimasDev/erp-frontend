@@ -121,7 +121,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>{t("วันที่ส่ง")}</span>
             <div className={styles.metaValue}>
-              {dayjs(delivery.deliveryDate).format("DD/MM/YYYY")}
+              {dayjs(delivery.deliveryDate).format("DD/MM/BBBB")}
             </div>
           </div>
           <div className={styles.metaItem}>
@@ -144,10 +144,10 @@ export default function SalesInvoiceCreateFromDeliveryPage({
             label={t("วันที่ใบแจ้งหนี้")}
             rules={[{ required: true, message: t("ระบุวันที่") }]}
           >
-            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item name="dueDate" label={t("วันครบกำหนดชำระ")}>
-            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item name="remark" label={t("หมายเหตุ")}>
             <Input.TextArea rows={3} placeholder={t("หมายเหตุ (ถ้ามี)")} />

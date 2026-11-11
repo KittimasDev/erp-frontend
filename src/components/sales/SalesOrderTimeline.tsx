@@ -20,7 +20,7 @@ import {
   resolveSalesTimelineStepTone,
   resolveTimelineStepHref,
   salesTimelineStatusLabel,
-  salesTimelineToneTagColor,
+  salesTimelineStatusTagColor,
   salesTrackingStepLabel,
   timelineStepActionLabel,
   type SalesTimelineStepTone,
@@ -160,7 +160,7 @@ function FlowStepCard({
       <div className={styles.flowStepTop}>
         <span className={styles.flowStepIcon}>{stepIcon(step.step)}</span>
         <Tag
-          color={salesTimelineToneTagColor(tone)}
+          color={salesTimelineStatusTagColor(step.status, tone)}
           className={styles.flowStepTag}
         >
           {isFocus

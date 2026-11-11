@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import { useState } from "react";
 import {
   Alert,
@@ -105,11 +106,7 @@ function fmtDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : date.toLocaleDateString(numLocale(), {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+    : dayjs(date).format("DD/MM/BBBB");
 }
 
 function buildRows(

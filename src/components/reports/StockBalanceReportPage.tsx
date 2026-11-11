@@ -227,8 +227,8 @@ function toSheet(
     title: TITLE,
     filename: `stock-balance-${asOfDate}`,
     meta: [
-      `วันที่รายงาน: ${dayjs(asOfDate).format("DD/MM/YYYY")}`,
-      `วันที่ออกรายงาน: ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+      `วันที่รายงาน: ${dayjs(asOfDate).format("DD/MM/BBBB")}`,
+      `วันที่ออกรายงาน: ${dayjs().format("DD/MM/BBBB HH:mm")}`,
     ],
     headers: EXPORT_HEADERS,
     rows,
@@ -409,7 +409,7 @@ export default function StockBalanceReportPage() {
         </div>
         <div className={styles.statChip}>
           <span className={styles.statLabel}>{t("ข้อมูล ณ วันที่")}</span>
-          <span className={styles.statValue}>{asOfDate ? dayjs(asOfDate).format("DD/MM/YYYY") : "—"}</span>
+          <span className={styles.statValue}>{asOfDate ? dayjs(asOfDate).format("DD/MM/BBBB") : "—"}</span>
           <span className={styles.statHint}>{t("ยอดสิ้นวัน")}</span>
         </div>
         <div className={styles.statChip}>
@@ -429,7 +429,7 @@ export default function StockBalanceReportPage() {
               allowClear={false}
               style={{ width: "100%" }}
               value={asOf}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               onChange={(value) => {
                 if (value) setAsOf(value);
               }}

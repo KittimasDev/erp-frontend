@@ -1,6 +1,7 @@
 // ─── รอบผลิต 45+3 วัน (M5.1) + รายงานสรุปรอบ (M5.9) ─────────────────────────────
 
 import { getStoredLanguage } from "@/lib/i18n/language";
+import { standardStatusLabel } from "@/lib/status/standard-status";
 import type { ProductionRecordingConfig } from "./production-formula";
 import type {
   RecordingFieldValue,
@@ -21,7 +22,7 @@ export const CYCLE_PHASE_LABEL: Record<string, string> = {
   SHUTDOWN: "ช่วง Shutdown",
   OVERDUE: "เลยกำหนด — รอปิดรอบ",
   CLOSED: "ปิดรอบแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 const CYCLE_PHASE_LABEL_EN: Record<string, string> = {
@@ -30,7 +31,7 @@ const CYCLE_PHASE_LABEL_EN: Record<string, string> = {
   SHUTDOWN: "Shutdown period",
   OVERDUE: "Overdue - awaiting close",
   CLOSED: "Closed",
-  CANCELLED: "Cancelled",
+  CANCELLED: standardStatusLabel("CANCELLED", "en"),
 };
 
 /** ป้ายสถานะรอบตามภาษาปัจจุบัน (ใช้ตอนเรนเดอร์ในคอมโพเนนต์ที่เรียก useT/useLanguage) */

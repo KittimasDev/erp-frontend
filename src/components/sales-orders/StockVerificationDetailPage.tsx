@@ -28,9 +28,8 @@ import {
 } from "@/lib/sales/stock-verification-line-tag";
 import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
-  SALES_ORDER_STATUS_LABEL,
+  salesOrderStatusLabel,
   tSoStatus,
-  type SalesOrderStatus,
   type SalesOrderStockVerificationLine,
 } from "@/types/sales-orders";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
@@ -42,7 +41,7 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatQty(value?: string | number) {
@@ -57,15 +56,14 @@ function formatQty(value?: string | number) {
 function statusClass(status: string) {
   switch (status) {
     case "COMPLETED":
+    case "DELIVERED":
     case "STOCK_CHECKED":
       return styles.statusApproved;
     case "CONFIRMED":
     case "PICKING":
     case "PACKED":
-    case "DELIVERED":
       return styles.statusPending;
-    case "CANCELLED":
-      return styles.statusCancelled;
+    case "CANCELLED": // ยกเลิก = เทา (มาตรฐานสถานะ)
     default:
       return styles.statusDraft;
   }
@@ -425,8 +423,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
               ? `${order.customer.customerCode} — ${order.customer.nameTh}`
               : "—"}{" "}
             · {t("วันที่ SO")} {formatDate(order?.soDate)} ·{" "}
-            {tSoStatus(SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
-              soStatus)}</>}
+            {salesOrderStatusLabel(soStatus)}</>}
         actions={
           <>
 <Button
@@ -486,8 +483,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
               <span
                 className={`${styles.statusPill} ${statusClass(soStatus)}`}
               >
-                {SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
-              soStatus}
+                {salesOrderStatusLabel(soStatus)}
               </span>
             </div>
             <div className={styles.metaGrid}>

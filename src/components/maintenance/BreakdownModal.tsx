@@ -69,7 +69,7 @@ export default function BreakdownModal({ equipmentId, onClose }: Props) {
           <Input.TextArea rows={3} maxLength={4000} placeholder={t("เช่น ปั๊มไม่จ่ายน้ำมัน มีเสียงดังผิดปกติ")} />
         </Form.Item>
         <Form.Item name="reportedAt" label={t("เวลาที่เสีย/พบอาการ")} rules={[{ required: true }]}>
-          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/YYYY HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
+          <DatePicker showTime style={{ width: "100%" }} format="DD/MM/BBBB HH:mm" disabledDate={(d) => d.isAfter(dayjs())} />
         </Form.Item>
         <Form.Item name="priority" label={t("ความเร่งด่วน")}>
           <Select options={PRIORITY_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />

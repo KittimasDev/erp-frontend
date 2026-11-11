@@ -1,3 +1,5 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
+
 export type LabSampleStatus =
   | "REGISTERED"
   | "TESTING"
@@ -8,8 +10,16 @@ export type LabSampleStatus =
 export const LAB_SAMPLE_STATUS_LABEL: Record<string, string> = {
   REGISTERED: "ลงทะเบียน",
   TESTING: "กำลังตรวจ",
-  APPROVED: "อนุมัติแล้ว",
-  REJECTED: "ปฏิเสธ",
+  APPROVED: standardStatusLabel("APPROVED"),
+  REJECTED: standardStatusLabel("REJECTED"),
+};
+
+/** สี Tag สถานะตัวอย่าง — ผลอนุมัติ/ไม่อนุมัติใช้สีมาตรฐาน (ใช้ร่วม list / detail) */
+export const LAB_SAMPLE_STATUS_COLOR: Record<string, string> = {
+  REGISTERED: "default",
+  TESTING: "blue",
+  APPROVED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
 };
 
 /** ประเภทตัวอย่าง (M8.1) — ต้องตรงกับ `lab-sample-types.ts` ฝั่ง backend */
@@ -271,8 +281,8 @@ export function labSampleStatusLabel(status: string, lang: "th" | "en"): string 
     const en: Record<string, string> = {
       REGISTERED: "Registered",
       TESTING: "Testing",
-      APPROVED: "Approved",
-      REJECTED: "Rejected",
+      APPROVED: standardStatusLabel("APPROVED", "en"),
+      REJECTED: standardStatusLabel("REJECTED", "en"),
     };
     return en[status] ?? status;
   }

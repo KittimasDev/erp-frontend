@@ -463,7 +463,7 @@ export default function RawMaterialCostReportPage() {
               onChange={(values) =>
                 setDateRange(values as [dayjs.Dayjs | null, dayjs.Dayjs | null] | null)
               }
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
             />
           </div>
           <div className={styles.filterItem}>

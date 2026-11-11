@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { App, Button, DatePicker, Input, Select, Switch, Table, Tag, Typography } from "antd";
@@ -219,7 +220,7 @@ export default function CreditorBalancesPage() {
         title: "รายการเจ้าหนี้",
         filename: `creditor-balances-${now.toISOString().slice(0, 10)}`,
         meta: [
-          `วันที่ออกรายงาน: ${formatThaiDate(now.toISOString().slice(0, 10))}`,
+          `วันที่ออกรายงาน: ${formatThaiDate(dayjs(now).format("YYYY-MM-DD"))}`,
           ...filters,
           all.truncated
             ? `ทั้งหมด ${all.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ ${all.rows.length.toLocaleString("th-TH")} รายการแรก`
@@ -409,7 +410,7 @@ export default function CreditorBalancesPage() {
             <label>{t("ช่วงวันที่")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={dDateRange}
               onChange={setDDateRange}
             />

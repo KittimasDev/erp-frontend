@@ -208,6 +208,15 @@ a.badgeLink:hover {
   background: #9ca3af;
 }
 
+.toneRejected {
+  background: rgba(245, 34, 45, 0.1);
+  color: #cf1322;
+}
+
+.toneRejected .badgeDot {
+  background: #f5222d;
+}
+
 .cellWithBadge {
   display: grid;
   gap: 4px;

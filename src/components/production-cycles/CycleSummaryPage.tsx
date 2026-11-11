@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useT } from "@/lib/i18n/useT";
 import { getStoredLanguage } from "@/lib/i18n/language";
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 import { useProductionCycleSummaryQuery } from "@/hooks/production-cycles/useProductionCycles";
 import {
   CYCLE_PHASE_COLOR,
@@ -24,9 +25,10 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
 const n = (v?: number, d = 1) => (v === undefined || v === null ? "—" : v.toLocaleString(cycleNumLocale(), { maximumFractionDigits: d }));
-const fmtDate = (v: string) => dayjs(v).format("DD/MM/YYYY");
-const ORDER_STATUS_LABEL: Record<string, string> = { IN_PROGRESS: "กำลังผลิต", PAUSED: "หยุดชั่วคราว", COMPLETED: "เสร็จสิ้น", DRAFT: "ร่าง" };
-const ORDER_STATUS_LABEL_EN: Record<string, string> = { IN_PROGRESS: "In production", PAUSED: "Paused", COMPLETED: "Completed", DRAFT: "Draft" };
+const fmtDate = (v: string) => dayjs(v).format("DD/MM/BBBB");
+const ORDER_STATUS_LABEL: Record<string, string> = { IN_PROGRESS: "กำลังผลิต", PAUSED: "หยุดชั่วคราว", COMPLETED: standardStatusLabel("COMPLETED"), DRAFT: standardStatusLabel("DRAFT") };
+const ORDER_STATUS_LABEL_EN: Record<string, string> = { IN_PROGRESS: "In production", PAUSED: "Paused", COMPLETED: standardStatusLabel("COMPLETED", "en"), DRAFT: standardStatusLabel("DRAFT", "en") };
+const ORDER_STATUS_COLOR: Record<string, string> = { IN_PROGRESS: standardStatusColor("IN_PROGRESS"), PAUSED: "orange", COMPLETED: standardStatusColor("COMPLETED"), DRAFT: standardStatusColor("DRAFT") };
 const orderStatusLabel = (v: string) =>
   (getStoredLanguage() === "en" ? ORDER_STATUS_LABEL_EN : ORDER_STATUS_LABEL)[v] ?? v;
 
@@ -46,7 +48,7 @@ export default function CycleSummaryPage({ id }: { id: string }) {
     },
     { title: t("ใบสั่งผลิต"), key: "no", render: (_v, o) => <Link href={`/production/production-orders/${o.id}`}>{o.orderNo}</Link> },
     { title: "Batch", dataIndex: "batchNo", render: (v?: string) => v ?? "—" },
-    { title: t("สถานะ"), dataIndex: "status", render: (v: string) => orderStatusLabel(v) },
+    { title: t("สถานะ"), dataIndex: "status", render: (v: string) => <Tag color={ORDER_STATUS_COLOR[v] ?? "default"}>{orderStatusLabel(v)}</Tag> },
     { title: t("ยางเข้า"), dataIndex: "inputQty", align: "right", render: (v: number) => n(v) },
     { title: t("ผลผลิต"), dataIndex: "outputQty", align: "right", render: (v: number) => n(v) },
     {

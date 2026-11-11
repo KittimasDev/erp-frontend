@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 /**
  * รอบการทำงานของขั้นตอนการผลิต — ใช้ร่วมกันทั้งเตรียมยางและ rCB
  *
@@ -17,17 +18,17 @@ export type StageRunStatusValue =
   (typeof StageRunStatus)[keyof typeof StageRunStatus];
 
 export const STAGE_RUN_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
-  IN_PROGRESS: "กำลังทำงาน",
-  COMPLETED: "เสร็จแล้ว",
-  CANCELLED: "ยกเลิก",
+  DRAFT: standardStatusLabel("DRAFT"),
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS"),
+  COMPLETED: standardStatusLabel("COMPLETED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const STAGE_RUN_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
-  IN_PROGRESS: "processing",
-  COMPLETED: "success",
-  CANCELLED: "error",
+  DRAFT: standardStatusColor("DRAFT"),
+  IN_PROGRESS: standardStatusColor("IN_PROGRESS"),
+  COMPLETED: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export type StageRunUserSummary = {

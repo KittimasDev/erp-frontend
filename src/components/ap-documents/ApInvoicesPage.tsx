@@ -106,7 +106,7 @@ export default function ApInvoicesPage() {
       const rows = (await getCreatedApsExport(getAccessToken(), filters)).data;
       const range = (a?: string, b?: string) => (a || b ? `${formatThaiDate(a)} - ${formatThaiDate(b)}` : null);
       const meta = [
-        `ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        `ออกรายงาน ${dayjs().format("DD/MM/BBBB HH:mm")}`,
         filters.search ? `ค้นหา: ${filters.search}` : null,
         range(filters.docDateFrom, filters.docDateTo) ? `วันที่ตั้งหนี้: ${range(filters.docDateFrom, filters.docDateTo)}` : null,
         filters.status ? `สถานะเอกสาร: ${AP_DOCUMENT_STATUS_LABEL[filters.status] ?? filters.status}` : null,
@@ -181,7 +181,7 @@ export default function ApInvoicesPage() {
           {formatThaiDate(r.grnDate)}
           <br />
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {t("ยืนยัน {time}", { time: r.confirmedAt ? dayjs(r.confirmedAt).format("DD/MM/YYYY HH:mm") : "—" })}
+            {t("ยืนยัน {time}", { time: r.confirmedAt ? dayjs(r.confirmedAt).format("DD/MM/BBBB HH:mm") : "—" })}
           </Typography.Text>
         </span>
       ),
@@ -443,7 +443,7 @@ export default function ApInvoicesPage() {
               <label>{t("วันที่รับสินค้า")}</label>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 value={pRange}
                 onChange={(v) => setPRange(v)}
               />
@@ -556,7 +556,7 @@ export default function ApInvoicesPage() {
               <label>{t("วันที่ตั้งหนี้")}</label>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 value={cDocRange}
                 onChange={(v) => setCDocRange(v)}
               />
@@ -565,7 +565,7 @@ export default function ApInvoicesPage() {
               <label>{t("วันครบกำหนด")}</label>
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 value={cDueRange}
                 onChange={(v) => setCDueRange(v)}
               />

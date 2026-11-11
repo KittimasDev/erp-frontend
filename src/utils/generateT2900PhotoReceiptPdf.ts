@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import {
   companyIdentityLinesHtml,
   companyLogoUrl,
@@ -60,7 +61,7 @@ export function formatThaiBuddhistDate(ymd?: string) {
   if (!match) {
     return "";
   }
-  return `${match[3]}/${match[2]}/${Number(match[1]) + 543}`;
+  return dayjs(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))).format("DD/MM/BBBB");
 }
 
 function formatInt(value: unknown) {

@@ -64,7 +64,7 @@ const ROUTE_BASE = "/production/material-conversions";
 function fmtDate(value?: string | null) {
   if (!value) return "-";
   const day = dayjs(value);
-  return day.isValid() ? day.format("DD/MM/YYYY") : value;
+  return day.isValid() ? day.format("DD/MM/BBBB") : value;
 }
 
 function fmtQty(value?: string | null) {
@@ -585,7 +585,7 @@ export default function MaterialConversionsListPage() {
               style={{ width: "100%" }}
               value={draft.range}
               onChange={(value) => patchDraft({ range: value as [Dayjs, Dayjs] | null })}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={[t("ตั้งแต่วันที่"), t("ถึงวันที่")]}
             />
           </FilterField>

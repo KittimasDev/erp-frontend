@@ -238,7 +238,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
                     name="countDate"
                     rules={[{ required: true, message: t("กรุณาเลือกวันที่นับ") }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
 
                   <Form.Item

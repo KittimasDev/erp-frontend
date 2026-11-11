@@ -48,7 +48,7 @@ import styles from "./RawTirePurchaseReportPage.module.css";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatNumber(value: string | number) {
@@ -125,7 +125,7 @@ export default function RawTirePurchaseReportPage() {
   const showMonth = (month: string) => {
     if (lang !== "en") return formatBeMonth(month);
     const d = dayjs(`${month}-01`);
-    return d.isValid() ? d.format("MMMM YYYY") : month;
+    return d.isValid() ? d.format("MMMM BBBB") : month;
   };
   const { message } = App.useApp();
   const [mode, setMode] = useState<RawTirePurchaseReportViewMode>("daily");
@@ -447,7 +447,7 @@ export default function RawTirePurchaseReportPage() {
               onChange={(values) =>
                 setDateRange(values as [dayjs.Dayjs | null, dayjs.Dayjs | null] | null)
               }
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
             />
           </div>
           <div className={styles.filterItem}>

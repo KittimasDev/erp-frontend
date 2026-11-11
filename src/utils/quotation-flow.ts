@@ -1,8 +1,9 @@
+import { STANDARD_STATUS, standardStatusColor } from "@/lib/status/standard-status";
 import type { Quotation } from "@/types/quotations";
 
 /** 4 ขั้นตอน QT → SO (ตรงกับหน้ารายละเอียด) */
 export const QUOTATION_FLOW_STEPS = [
-  { key: "DRAFT", label: "แบบร่างเอกสาร" },
+  { key: "DRAFT", label: STANDARD_STATUS.DRAFT.th },
   { key: "SENT", label: "รอลูกค้าตอบรับ" },
   { key: "ACCEPTED", label: "ลูกค้าตอบรับแล้ว" },
   { key: "SALES_ORDER", label: "เปิด SO" },
@@ -35,10 +36,10 @@ export function resolveQuotationFlow(
     return {
       step: 0,
       total,
-      label: "ยกเลิก",
-      shortLabel: "ยกเลิก",
+      label: STANDARD_STATUS.CANCELLED.th,
+      shortLabel: STANDARD_STATUS.CANCELLED.th,
       tone: "stopped",
-      tagColor: "default",
+      tagColor: standardStatusColor("CANCELLED") as QuotationFlowState["tagColor"],
     };
   }
 
@@ -91,18 +92,18 @@ export function resolveQuotationFlow(
   return {
     step: 1,
     total,
-    label: "แบบร่างเอกสาร",
-    shortLabel: "แบบร่างเอกสาร",
+    label: STANDARD_STATUS.DRAFT.th,
+    shortLabel: STANDARD_STATUS.DRAFT.th,
     tone: "active",
-    tagColor: "warning",
+    tagColor: standardStatusColor("DRAFT") as QuotationFlowState["tagColor"],
   };
 }
 
 /** ป้ายสถานะสำหรับ filter dropdown (ค่า API ยังเป็น enum เดิม) */
 export const QUOTATION_STATUS_FILTER_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   SENT: "รอลูกค้าตอบรับ",
   ACCEPTED: "ลูกค้าตอบรับแล้ว",
   REJECTED: "ลูกค้าปฏิเสธ",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };

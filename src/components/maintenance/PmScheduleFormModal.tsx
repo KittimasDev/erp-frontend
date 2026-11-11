@@ -139,7 +139,7 @@ export default function PmScheduleFormModal({ schedule, loading, onCancel, onSub
             </Col>
             <Col xs={24} md={12}>
               <Form.Item name="nextDueDate" label={t("ครบกำหนดครั้งถัดไป")} rules={[{ required: true, message: t("เลือกวัน") }]}>
-                <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
               </Form.Item>
             </Col>
           </Row>

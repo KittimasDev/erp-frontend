@@ -16,6 +16,14 @@ export type DeliveryScheduleStatus =
   | "PARTIALLY_DELIVERED"
   | "CANCELLED";
 
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+} from "@/lib/status/standard-status";
+import { tSoStatus } from "@/types/sales-orders";
+
 export const DELIVERY_SCHEDULE_STATUS_LABEL: Record<
   DeliveryScheduleStatus,
   string
@@ -23,9 +31,9 @@ export const DELIVERY_SCHEDULE_STATUS_LABEL: Record<
   PLANNED: "รอจ่ายของ",
   ISSUED: "จ่ายของแล้ว",
   PACKED: "บรรจุแล้ว",
-  DELIVERED: "ส่งแล้ว",
+  DELIVERED: STANDARD_STATUS.DELIVERED.th,
   PARTIALLY_DELIVERED: "ส่งบางส่วน",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 
 export const DELIVERY_SCHEDULE_STATUS_COLOR: Record<
@@ -35,10 +43,22 @@ export const DELIVERY_SCHEDULE_STATUS_COLOR: Record<
   PLANNED: "default",
   ISSUED: "processing",
   PACKED: "cyan",
-  DELIVERED: "success",
+  DELIVERED: standardStatusColor("DELIVERED"),
   PARTIALLY_DELIVERED: "warning",
-  CANCELLED: "error",
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
+
+/** ป้ายสถานะรอบตามภาษา — "ส่งแล้ว"/"ยกเลิก" ใช้ชื่อมาตรฐานกลาง */
+export function deliveryScheduleStatusLabel(status: string, lang?: Language): string {
+  const l = lang ?? getStoredLanguage();
+  if (status === "DELIVERED") return standardStatusLabel("DELIVERED", l);
+  if (status === "CANCELLED") return standardStatusLabel("CANCELLED", l);
+  return tSoStatus(DELIVERY_SCHEDULE_STATUS_LABEL[status as DeliveryScheduleStatus] ?? status, l);
+}
+
+export function deliveryScheduleStatusColor(status: string): string {
+  return DELIVERY_SCHEDULE_STATUS_COLOR[status as DeliveryScheduleStatus] ?? "default";
+}
 
 /** รอบที่ส่งถึงลูกค้าแล้ว (ครบหรือตีกลับบางส่วน) — ต้องตรงกับ isScheduleDeliveredStatus ฝั่ง backend */
 export function isDeliveryScheduleDone(status: string | undefined): boolean {

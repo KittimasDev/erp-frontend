@@ -32,7 +32,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
 
-const fmtTime = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm:ss") : "—");
+const fmtTime = (v?: string) => (v ? dayjs(v).format("DD/MM/BBBB HH:mm:ss") : "—");
 
 /** key แสดงครั้งเดียว — ปิดแล้วดูย้อนหลังไม่ได้ (ระบบเก็บเฉพาะ hash) */
 function ApiKeyModal({ device, onClose }: { device: MachineDeviceWithKey; onClose: () => void }) {

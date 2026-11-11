@@ -1,0 +1,11 @@
+require("./a.tmp.cjs");
+detail("goods-receipts/GoodsReceiptDetailPage.tsx","GOODS_RECEIPT_STATUS_COLOR","@/types/goods-receipts");
+detail("stock-adjustments/StockAdjustmentDetailPage.tsx","STOCK_ADJUSTMENT_STATUS_COLOR","@/types/stock-adjustments");
+detail("stock-counts/StockCountDetailPage.tsx","STOCK_COUNT_STATUS_COLOR","@/types/stock-counts");
+detail("stock-transfers/StockTransferDetailPage.tsx","STOCK_TRANSFER_STATUS_COLOR","@/types/stock-transfers");
+detail("material-issues/MaterialIssueDetailPage.tsx","STOCK_ISSUE_STATUS_COLOR","@/types/stock-issues");
+detail("purchase-payments/PurchasePaymentDetailPage.tsx","SUPPLIER_PAYMENT_STATUS_COLOR","@/types/purchase-payments");
+listPill("stock-adjustments/StockAdjustmentsListPage.tsx","STOCK_ADJUSTMENT_STATUS_COLOR","STOCK_ADJUSTMENT_STATUS_LABEL","@/types/stock-adjustments","tStockLabel");
+listPill("stock-counts/StockCountsListPage.tsx","STOCK_COUNT_STATUS_COLOR","STOCK_COUNT_STATUS_LABEL","@/types/stock-counts","tStockLabel");
+listPill("stock-transfers/StockTransfersListPage.tsx","STOCK_TRANSFER_STATUS_COLOR","STOCK_TRANSFER_STATUS_LABEL","@/types/stock-transfers","tStockLabel");
+listPill("material-issues/MaterialIssuesListPage.tsx","STOCK_ISSUE_STATUS_COLOR","STOCK_ISSUE_STATUS_LABEL","@/types/stock-issues","tStockLabel");

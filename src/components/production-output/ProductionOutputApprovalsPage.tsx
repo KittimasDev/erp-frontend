@@ -16,7 +16,7 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { userHasRole } from "@/lib/auth/session";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
-import { productionOutputStatusLabel } from "@/types/production-output-stock-request";
+import { PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR, productionOutputStatusLabel } from "@/types/production-output-stock-request";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
@@ -97,7 +97,7 @@ export default function ProductionOutputApprovalsPage() {
         key: "status",
         width: 120,
         render: (value: string) => (
-          <Tag>{productionOutputStatusLabel(value)}</Tag>
+          <Tag color={PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR[value] ?? "default"}>{productionOutputStatusLabel(value)}</Tag>
         ),
       },
       {

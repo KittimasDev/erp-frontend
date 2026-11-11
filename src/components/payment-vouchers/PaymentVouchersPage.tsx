@@ -100,7 +100,7 @@ export default function PaymentVouchersPage() {
       title: t("วันที่รายการ"),
       dataIndex: "queuedAt",
       width: 150,
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+      render: (v: string) => dayjs(v).format("DD/MM/BBBB HH:mm"),
     },
     {
       title: t("ประเภทเอกสาร"),

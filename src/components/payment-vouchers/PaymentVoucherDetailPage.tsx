@@ -245,7 +245,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
       <Card title={t("1. ข้อมูลเอกสารและสถานะ")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>
           <Descriptions.Item label={t("เลขที่ PV")}>{v.voucherNo}</Descriptions.Item>
-          <Descriptions.Item label={t("วันที่เอกสาร")}>{dayjs(v.voucherDate).format("DD/MM/YYYY")}</Descriptions.Item>
+          <Descriptions.Item label={t("วันที่เอกสาร")}>{dayjs(v.voucherDate).format("DD/MM/BBBB")}</Descriptions.Item>
           <Descriptions.Item label={t("ประเภทการจ่าย")}>{kindLabel(v.paymentKind)}</Descriptions.Item>
           <Descriptions.Item label={t("สถานะ PV")}>
             <Tag color={VOUCHER_STATUS_COLOR[status]}>{VOUCHER_STATUS_LABEL[status] ? tFin(VOUCHER_STATUS_LABEL[status]) : status}</Tag>
@@ -286,7 +286,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
           <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
             <Descriptions.Item label={t("วิธีชำระ")}>{paymentMethodLabel(v.paymentMethod)}</Descriptions.Item>
             <Descriptions.Item label={t("วันที่ต้องการจ่าย")}>
-              {d.desiredPayDate ? dayjs(d.desiredPayDate).format("DD/MM/YYYY") : "—"}
+              {d.desiredPayDate ? dayjs(d.desiredPayDate).format("DD/MM/BBBB") : "—"}
             </Descriptions.Item>
             <Descriptions.Item label={t("ธนาคาร / บัญชีที่ใช้จ่าย")} span="filled">
               {bankLabel(d.bankAccount)}
@@ -334,7 +334,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: t("วันที่จ่าย"), dataIndex: "paymentDate", render: (x: string) => dayjs(x).format("DD/MM/YYYY") },
+    { title: t("วันที่จ่าย"), dataIndex: "paymentDate", render: (x: string) => dayjs(x).format("DD/MM/BBBB") },
               { title: t("วิธีจ่าย"), dataIndex: "paymentMethod", render: (x: string) => SUPPLIER_PAYMENT_METHOD_LABEL[x] ? tFin(SUPPLIER_PAYMENT_METHOD_LABEL[x]) : x },
               { title: t("ยอดจ่ายจริง"), dataIndex: "amount", align: "right" as const, render: (x: string) => fmtMoney(x) },
               { title: t("เลขอ้างอิงการโอน"), dataIndex: "transactionRef", render: (x?: string) => x ?? "—" },

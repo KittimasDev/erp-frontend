@@ -176,7 +176,7 @@ export default function ShiftBulkModal({
           rules={[{ required: true, message: t("เลือกช่วงวันที่") }]}
         >
           <DatePicker.RangePicker
-            format="DD/MM/YYYY"
+            format="DD/MM/BBBB"
             allowClear={false}
             style={{ width: "100%" }}
           />

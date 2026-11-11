@@ -204,7 +204,7 @@ export default function StageRunCreatePage({
             <DatePicker
               value={runDate}
               onChange={(value) => value && setRunDate(value)}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               allowClear={false}
             />
             <Input

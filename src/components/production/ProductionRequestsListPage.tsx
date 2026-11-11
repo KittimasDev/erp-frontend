@@ -218,14 +218,14 @@ export default function ProductionRequestsListPage() {
       title: t("วันที่ขอ"),
       dataIndex: "requestDate",
       key: "requestDate",
-      render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+      render: (value: string) => dayjs(value).format("DD/MM/BBBB"),
     },
     {
       title: t("ต้องการภายใน"),
       dataIndex: "requiredDate",
       key: "requiredDate",
       render: (value?: string) =>
-        value ? dayjs(value).format("DD/MM/YYYY") : "-",
+        value ? dayjs(value).format("DD/MM/BBBB") : "-",
     },
     {
       title: t("รายการ"),
@@ -530,7 +530,7 @@ export default function ProductionRequestsListPage() {
               <span className={styles.modalLabel}>{t("วันที่ผลิต")}</span>
               <DatePicker
                 value={productionDate}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 style={{ width: "100%" }}
                 onChange={(value) => value && setProductionDate(value)}
               />
@@ -624,7 +624,7 @@ export default function ProductionRequestsListPage() {
                     </div>
                     <span className={styles.queueDate}>
                       {request.requiredDate
-                        ? dayjs(request.requiredDate).format("DD/MM/YYYY")
+                        ? dayjs(request.requiredDate).format("DD/MM/BBBB")
                         : "-"}
                     </span>
                   </div>

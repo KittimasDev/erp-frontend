@@ -61,7 +61,7 @@ const DOC_TYPE_COLOR: Record<JournalDocType, string> = {
 };
 
 const money = new Intl.NumberFormat("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const formatDate = (value?: string) => (value ? dayjs(value).format("DD/MM/YYYY") : "—");
+const formatDate = (value?: string) => (value ? dayjs(value).format("DD/MM/BBBB") : "—");
 const moneyOrBlank = (value: number) => (value > 0 ? money.format(value) : "");
 
 function taxGroupLabel(line: JournalLine): string {
@@ -165,7 +165,7 @@ export default function PurchaseJournalPage() {
     try {
       const { items: all, summary } = (await getPurchaseJournalExport(getAccessToken(), filters)).data;
       const meta = [
-        `ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        `ออกรายงาน ${dayjs().format("DD/MM/BBBB HH:mm")}`,
         filters.dateFrom || filters.dateTo
           ? `วันที่เอกสาร: ${formatDate(filters.dateFrom)} - ${formatDate(filters.dateTo)}`
           : null,
@@ -475,7 +475,7 @@ export default function PurchaseJournalPage() {
             <label>{t("ช่วงวันที่เอกสาร")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={dRange}
               onChange={(values) =>
                 setDRange(values && values[0] && values[1] ? [values[0], values[1]] : null)

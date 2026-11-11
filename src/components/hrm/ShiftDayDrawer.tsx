@@ -48,9 +48,9 @@ const THAI_WEEKDAYS = [
 function formatThaiDate(date: string, lang: "th" | "en" = "th") {
   const value = dayjs(date);
   if (lang === "en") {
-    return value.locale("en").format("dddd, D/M/YYYY");
+    return value.locale("en").format("dddd, D/M/BBBB");
   }
-  return `วัน${THAI_WEEKDAYS[value.day()]}ที่ ${value.format("D/M/YYYY")}`;
+  return `วัน${THAI_WEEKDAYS[value.day()]}ที่ ${value.format("D/M/BBBB")}`;
 }
 
 /** รายละเอียดของวันที่กดในปฏิทิน — รอบกะทั้งหมด คนในกะ และการกดหยุด */

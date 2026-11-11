@@ -511,7 +511,7 @@ export default function ProductionOutputStockRequestCreatePage({
         label: [
           order.orderNo,
           order.batchNo ? `Batch ${order.batchNo}` : null,
-          dayjs(order.productionDate).format("DD/MM/YYYY"),
+          dayjs(order.productionDate).format("DD/MM/BBBB"),
         ]
           .filter(Boolean)
           .join(" · "),
@@ -1251,7 +1251,7 @@ export default function ProductionOutputStockRequestCreatePage({
                     >
                       <DatePicker
                         size="large"
-                        format="DD/MM/YYYY"
+                        format="DD/MM/BBBB"
                         style={{ width: "100%" }}
                       />
                     </Form.Item>
@@ -1370,9 +1370,9 @@ export default function ProductionOutputStockRequestCreatePage({
                                   selectedProductionOrder.batchNo
                                     ? `Batch ${selectedProductionOrder.batchNo}`
                                     : null,
-                                  t("ผลิต {date}", { date: dayjs(selectedProductionOrder.productionDate).format("DD/MM/YYYY") }),
+                                  t("ผลิต {date}", { date: dayjs(selectedProductionOrder.productionDate).format("DD/MM/BBBB") }),
                                   selectedProductionOrder.completedAt
-                                    ? t("เสร็จ {date}", { date: dayjs(selectedProductionOrder.completedAt).format("DD/MM/YYYY HH:mm") })
+                                    ? t("เสร็จ {date}", { date: dayjs(selectedProductionOrder.completedAt).format("DD/MM/BBBB HH:mm") })
                                     : null,
                                   tLabel(
                                     PRODUCTION_ORDER_STATUS_LABEL[
@@ -1623,7 +1623,7 @@ export default function ProductionOutputStockRequestCreatePage({
                 <span>{t("วันที่")}</span>
                 <strong>
                   {postingDate
-                    ? dayjs(postingDate).format("DD/MM/YYYY")
+                    ? dayjs(postingDate).format("DD/MM/BBBB")
                     : "—"}
                 </strong>
               </div>

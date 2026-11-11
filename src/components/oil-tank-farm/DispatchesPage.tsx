@@ -21,12 +21,11 @@ import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { oilDocStatusLabel, type OilDispatch } from "@/types/oil-tank-farm";
+import { OIL_DOC_STATUS_COLOR, oilDocStatusLabel, type OilDispatch } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
 const n = (v: string | number) => Number(v).toLocaleString("th-TH", { maximumFractionDigits: 3 });
-const STATUS_COLOR: Record<string, string> = { DRAFT: "gold", POSTED: "green", CANCELLED: "default" };
 const SO_OK = ["CONFIRMED", "STOCK_CHECKED", "PICKING", "PACKED", "PARTIALLY_ISSUED"];
 
 type Values = {
@@ -91,7 +90,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
       <Form form={form} layout="vertical" initialValues={{ dispatchDate: dayjs() }}>
         <div style={{ display: "flex", gap: 12 }}>
           <Form.Item name="dispatchDate" label={t("วันที่")} rules={[{ required: true }]} style={{ flex: 1 }}>
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
           </Form.Item>
           <Form.Item name="tankId" label={t("ถังที่จ่าย")} rules={[{ required: true, message: t("เลือกถัง") }]} style={{ flex: 1 }}>
             <Select options={(tanksQuery.data?.data ?? []).filter((tk) => tk.status === "ACTIVE").map((tk) => ({ value: tk.id, label: `${tk.tankNo} (${t("พร้อมใช้")} ${n(tk.availableLiters ?? 0)})` }))} />
@@ -181,7 +180,7 @@ export default function DispatchesPage() {
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: t("ใบจ่าย"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.dispatchNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.dispatchDate).format("DD/MM/YYYY")}</div></div> },
+    { title: t("ใบจ่าย"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.dispatchNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.dispatchDate).format("DD/MM/BBBB")}</div></div> },
     { title: t("ลูกค้า / ใบสั่งขาย"), key: "c", render: (_v, r) => <div>{r.customerName ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.salesOrderNo ?? r.referenceDocNo ?? ""}</div></div> },
     { title: t("รถ / คนขับ"), key: "t", width: 170, render: (_v, r) => <div>{r.truckLicensePlate ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.driverName ?? ""}</div></div> },
     { title: t("ถัง"), dataIndex: "tankNo", width: 90 },
@@ -192,7 +191,7 @@ export default function DispatchesPage() {
       width: 170,
       render: (_v, r) => (r.weighbridgeTicketNo ? <div>{r.weighbridgeTicketNo}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.weighbridgeNetKg ? t("สุทธิ {w} กก.", { w: n(r.weighbridgeNetKg) }) : t("ยังไม่มีน้ำหนักสุทธิ")}</div></div> : "—"),
     },
-    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
+    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={OIL_DOC_STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
     {
       title: "",
       key: "act",

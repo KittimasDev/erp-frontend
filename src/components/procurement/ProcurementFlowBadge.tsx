@@ -19,6 +19,7 @@ const TONE_CLASS = {
   done: styles.toneDone,
   error: styles.toneError,
   wait: styles.toneWait,
+  rejected: styles.toneRejected,
 } as const;
 
 export default function ProcurementFlowBadge({ source }: Props) {

@@ -117,7 +117,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
           ? `${formatThaiDate(filters.dateFrom)} - ${formatThaiDate(filters.dateTo)}`
           : null;
       const meta = [
-        `ออกรายงาน ${dayjs().format("DD/MM/YYYY HH:mm")}`,
+        `ออกรายงาน ${dayjs().format("DD/MM/BBBB HH:mm")}`,
         filters.search ? `ค้นหา: ${filters.search}` : null,
         dateRange ? `วันที่เอกสาร: ${dateRange}` : null,
         filters.status ? `สถานะเอกสาร: ${AP_DOCUMENT_STATUS_LABEL[filters.status] ?? filters.status}` : null,
@@ -406,7 +406,7 @@ export default function ApDocumentsListPage({ kind }: Props) {
             <label>{t("ช่วงวันที่เอกสาร")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={dRange}
               onChange={(values) =>
                 setDRange(values && values[0] && values[1] ? [values[0], values[1]] : null)

@@ -13,6 +13,7 @@ import {
   Select,
   Space,
   Table,
+  Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -27,7 +28,7 @@ import dayjs from "dayjs";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useGoodsReceiptsQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import type { GoodsReceipt } from "@/types/goods-receipts";
-import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { GOODS_RECEIPT_STATUS_COLOR, GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import DuePurchaseOrdersSection from "./DuePurchaseOrdersSection";
 import styles from "./GoodsReceiptsListPage.module.css";
@@ -35,7 +36,7 @@ import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -49,18 +50,10 @@ function formatMoney(value?: string) {
 
 function StatusPill({ status }: { status: string }) {
   useT(); /* subscribe to language changes (tStatus reads the current language) */
-  const tone =
-    status === "CONFIRMED"
-      ? styles.statusConfirmed
-      : status === "CANCELLED"
-        ? styles.statusCancelled
-        : styles.statusDraft;
-
   return (
-    <span className={`${styles.statusPill} ${tone}`}>
-      <span className={styles.statusDot} aria-hidden />
+    <Tag color={GOODS_RECEIPT_STATUS_COLOR[status] ?? "default"}>
       {tStatus(GOODS_RECEIPT_STATUS_LABEL[status] ?? status)}
-    </span>
+    </Tag>
   );
 }
 
@@ -280,7 +273,7 @@ export default function GoodsReceiptsListPage() {
           className={`${styles.statChip} ${applied.status === "DRAFT" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("DRAFT")}
         >
-          <span className={styles.statLabel}>{t("ร่าง")}</span>
+          <span className={styles.statLabel}>{t("แบบร่างเอกสาร")}</span>
           <span className={styles.statValue}>{draftTotal}</span>
           <span className={styles.statHint}>{t("รอ Confirm")}</span>
         </button>
@@ -322,7 +315,7 @@ export default function GoodsReceiptsListPage() {
               style={{ width: "100%" }}
               value={grDate}
               onChange={setGrDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={t("เลือกวันที่")}
             />
           </div>

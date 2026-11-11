@@ -1,3 +1,5 @@
+import { STANDARD_STATUS, standardStatusLabel } from "@/lib/status/standard-status";
+
 export type SalesInvoiceStatus = "DRAFT" | "POSTED" | "CANCELLED" | string;
 export type SalesInvoicePaymentStatus =
   | "UNPAID"
@@ -6,9 +8,9 @@ export type SalesInvoicePaymentStatus =
   | string;
 
 export const SALES_INVOICE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   POSTED: "โพสต์แล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 
 export const SALES_INVOICE_PAYMENT_STATUS_LABEL: Record<string, string> = {
@@ -217,8 +219,10 @@ export type SalesInvoiceByDeliveryApiResponse = {
 
 /** ป้ายสถานะ/วิธีชำระตามภาษา — ไทยใช้ค่าคงที่เดิม ("ยกเลิก" ชนกับปุ่ม Cancel) */
 export function salesInvoiceStatusLabel(status: string, lang: "th" | "en"): string {
+  if (status === "DRAFT") return standardStatusLabel("DRAFT", lang);
+  if (status === "CANCELLED") return standardStatusLabel("CANCELLED", lang);
   if (lang === "en") {
-    const en: Record<string, string> = { DRAFT: "Draft", POSTED: "Posted", CANCELLED: "Cancelled" };
+    const en: Record<string, string> = { POSTED: "Posted" };
     return en[status] ?? status;
   }
   return SALES_INVOICE_STATUS_LABEL[status] ?? status;

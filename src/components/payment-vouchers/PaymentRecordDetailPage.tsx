@@ -31,7 +31,7 @@ import { WhtLinesTable } from "./VoucherSections";
 import { tFin, PV_BASE_PATH, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel, referenceLine, sourceLabel } from "./paymentVoucherUtils";
 import PageHeader from "@/components/common/PageHeader";
 
-const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
+const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/BBBB HH:mm") : "—");
 const HISTORY_ACTIONS = ["PAY", "WHT_ISSUE", "PAYMENT_CANCEL"];
 
 const fileTypeLabel = (mime?: string) =>

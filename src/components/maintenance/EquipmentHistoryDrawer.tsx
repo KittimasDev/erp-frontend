@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 import {
   ROOT_CAUSE_OPTIONS,
+  WORK_ORDER_STATUS_COLOR,
   type Equipment,
   type EquipmentDowntime,
   type WorkOrder,
@@ -42,7 +43,7 @@ export default function EquipmentHistoryDrawer({ equipment, onClose }: Props) {
     { title: t("เลขที่"), dataIndex: "workOrderNo", width: 150 },
     { title: t("ประเภท"), dataIndex: "type", width: 70, render: (ty: string) => <Tag color={ty === "PM" ? "blue" : "volcano"}>{ty}</Tag> },
     { title: t("รายละเอียด"), dataIndex: "description", ellipsis: true },
-    { title: t("สถานะ"), dataIndex: "status", width: 100, render: (s: string) => woStatusLabel(s, lang) },
+    { title: t("สถานะ"), dataIndex: "status", width: 100, render: (s: string) => <Tag color={WORK_ORDER_STATUS_COLOR[s] ?? "default"}>{woStatusLabel(s, lang)}</Tag> },
     { title: t("เสร็จเมื่อ"), key: "done", width: 140, render: (_v, w) => fmtDateTime(w.completedAt) },
     { title: t("ต้นทุนอะไหล่"), key: "cost", width: 120, align: "right", render: (_v, w) => fmtMoney(w.partsCost) },
   ];

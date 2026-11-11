@@ -313,7 +313,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                     name="poDate"
                     rules={[{ required: true }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
@@ -391,7 +391,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                     label={t("วันที่ส่งมอบ")}
                     name="expectedDeliveryDate"
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}

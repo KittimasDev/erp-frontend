@@ -31,13 +31,13 @@ import { useUpdateTempCaseMutation } from "@/hooks/temp-cases/useUpdateTempCaseM
 import { ApiError } from "@/lib/api/client";
 import { uploadTempCaseImage } from "@/lib/api/temp-cases";
 import { getAccessToken } from "@/lib/auth/token";
-import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 import type { TempCase, TempCaseStatus } from "@/types/temp-cases";
 import { TEMP_CASE_STATUS_LABEL } from "@/types/temp-cases";
 
 import CaseDashboardModal from "./CaseDashboardModal";
 import CaseFormModal, { type CaseFormSubmitPayload } from "./CaseFormModal";
+import dayjs from "dayjs";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -45,7 +45,6 @@ type StatusFilter = "ALL" | TempCaseStatus;
 
 export default function CasesPage() {
   const t = useT();
-  const lang = useLanguage();
   const [page, setPage] = useState(1);
   const { message } = App.useApp();
   const queryClient = useQueryClient();
@@ -257,7 +256,7 @@ export default function CasesPage() {
       width: 160,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
+          {value ? dayjs(value).format("DD/MM/BBBB HH:mm:ss") : "-"}
         </span>
       ),
     },

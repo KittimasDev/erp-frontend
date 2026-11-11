@@ -128,7 +128,7 @@ export default function CreateDeliverySelectPackingPage() {
       title: t("วันที่"),
       dataIndex: "packingDate",
       width: 110,
-      render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+      render: (v: string) => dayjs(v).format("DD/MM/BBBB"),
     },
   ];
 

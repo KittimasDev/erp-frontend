@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import {
   EXPRESS_STATUS_LABEL,
   PV_KIND_LABEL,
@@ -17,7 +18,8 @@ function thaiDate(value?: string | null) {
   if (!value) return "—";
   const [y, m, d] = value.slice(0, 10).split("-").map(Number);
   if (!y || !m || !d) return "—";
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y + 543}`;
+  // วันที่ล้วน (YYYY-MM-DD) → dayjs ในโซนท้องถิ่น ไม่เลื่อนวัน · ปี พ.ศ. ผ่าน token BBBB
+  return dayjs(new Date(y, m - 1, d)).format("DD/MM/BBBB");
 }
 
 /**

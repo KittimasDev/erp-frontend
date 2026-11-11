@@ -302,7 +302,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                     name="adjustmentDate"
                     rules={[{ required: true, message: t("กรุณาเลือกวันที่") }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
 
                   <Form.Item className={styles.field} label={t("ประเภท")} required>

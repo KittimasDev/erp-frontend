@@ -190,7 +190,7 @@ export default function ShiftCalendarPage() {
               picker="month"
               allowClear={false}
               value={month}
-              format="MM/YYYY"
+              format="MM/BBBB"
               onChange={(value) => value && setMonth(value)}
             />
           </label>

@@ -1,3 +1,5 @@
+import { formatBuddhistIntl } from "./intl-be";
+
 /** โซนเวลาแสดงผลของ ERP (ไทย) — กัน SSR/UTC ทำให้เวลาช้า 7 ชม. */
 export const ERP_TIMEZONE = "Asia/Bangkok";
 
@@ -16,10 +18,8 @@ function formatParts(
 ) {
   const d = toErpDate(value);
   if (!d) return null;
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: ERP_TIMEZONE,
-    ...options,
-  }).format(d);
+  // ปีแสดงเป็น พ.ศ. (ปฏิทินพุทธ) ทุกภาษา — ตัวเลขยังเป็นอารบิก · ค่าที่เก็บ/ส่ง API ไม่เปลี่ยน
+  return formatBuddhistIntl(d, "en", { timeZone: ERP_TIMEZONE, ...options });
 }
 
 export function formatErpDate(value?: string | Date | null, fallback = "—") {

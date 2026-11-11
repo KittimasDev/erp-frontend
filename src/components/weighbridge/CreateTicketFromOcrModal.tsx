@@ -518,7 +518,7 @@ export default function CreateTicketFromOcrModal({
                 <DatePicker
                   showTime
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY HH:mm"
+                  format="DD/MM/BBBB HH:mm"
                   value={isoToDayjsInErpTz(weighInAt)}
                   onChange={(value) => setWeighInAt(dayjsInErpTzToIso(value))}
                 />
@@ -540,7 +540,7 @@ export default function CreateTicketFromOcrModal({
                 <DatePicker
                   showTime
                   style={{ width: "100%" }}
-                  format="DD/MM/YYYY HH:mm"
+                  format="DD/MM/BBBB HH:mm"
                   value={isoToDayjsInErpTz(weighOutAt)}
                   onChange={(value) => setWeighOutAt(dayjsInErpTzToIso(value))}
                 />

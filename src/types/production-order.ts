@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 import type { ProductionRecordingConfig } from "./production-formula";
 import { getStoredLanguage, type Language } from "@/lib/i18n/language";
 import { translate } from "@/lib/i18n/translate";
@@ -10,6 +11,7 @@ export function tPoLabel(label: string, lang?: Language): string {
     if (label === "เสร็จสิ้น") return "Completed";
     if (label === "ยังไม่เริ่มผลิต") return "Not started";
     if (label === "กำลังผลิต") return "In production";
+    if (label === "กำลังดำเนินการ") return "In progress";
   }
   return translate(current, label);
 }
@@ -27,10 +29,22 @@ export type ProductionOrderStatusValue =
 
 export const PRODUCTION_ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ยังไม่เริ่มผลิต",
-  IN_PROGRESS: "กำลังผลิต",
+  IN_PROGRESS: standardStatusLabel("IN_PROGRESS"),
   PAUSED: "หยุดชั่วคราว",
-  COMPLETED: "เสร็จสิ้น",
-  CANCELLED: "ยกเลิก",
+  COMPLETED: standardStatusLabel("COMPLETED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/**
+ * สีป้ายสถานะใบสั่งผลิต — ตามมาตรฐานกลาง
+ * DRAFT ของใบสั่งผลิต = "ยังไม่เริ่มผลิต" (ไม่ใช่แบบร่างเอกสาร) จึงคงชื่อเดิม แต่ใช้สีเทา · PAUSED ไม่ใช่สถานะมาตรฐาน (warning)
+ */
+export const PRODUCTION_ORDER_STATUS_COLOR: Record<string, string> = {
+  DRAFT: "default",
+  IN_PROGRESS: standardStatusColor("IN_PROGRESS"),
+  PAUSED: "warning",
+  COMPLETED: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** ใบที่ยังเดินอยู่ — กำลังผลิตหรือหยุดชั่วคราว */

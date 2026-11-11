@@ -732,7 +732,7 @@ export default function GoodsReceiptCreateFromPoPage({
                         value: round.id,
                         label: t("รอบที่ {n} · กำหนดส่ง {date}", {
                           n: round.roundNo,
-                          date: dayjs(round.effectiveDeliveryDate).format("DD/MM/YYYY"),
+                          date: dayjs(round.effectiveDeliveryDate).format("DD/MM/BBBB"),
                         }),
                       }))}
                     />
@@ -743,7 +743,7 @@ export default function GoodsReceiptCreateFromPoPage({
                     name="grDate"
                     rules={[{ required: true, message: t("เลือกวันที่รับ") }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}

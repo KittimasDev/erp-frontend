@@ -1,8 +1,11 @@
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
+
 import type { Language } from "./translate";
 
 const localeOf = (lang: Language) => (lang === "en" ? "en-GB" : "th-TH");
+
 
 function toDate(value?: string | Date | null): Date | null {
   if (!value) return null;
@@ -10,7 +13,7 @@ function toDate(value?: string | Date | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** วันที่ตามภาษา — ไทย 24 สิงหาคม 2569 (พ.ศ.) · อังกฤษ 24 August 2026 */
+/** วันที่ตามภาษา — ไทย 24 สิงหาคม 2569 · อังกฤษ 24 August 2569 (ปี พ.ศ. ทั้งสองภาษา) */
 export function formatDate(
   value: string | Date | null | undefined,
   lang: Language,
@@ -18,12 +21,12 @@ export function formatDate(
 ): string {
   const d = toDate(value);
   if (!d) return fallback;
-  return new Intl.DateTimeFormat(localeOf(lang), {
+  return formatBuddhistIntl(d, lang, {
     timeZone: ERP_TIMEZONE,
     day: "numeric",
     month: "long",
     year: "numeric",
-  }).format(d);
+  });
 }
 
 /** วันที่+เวลาตามภาษา */
@@ -34,14 +37,14 @@ export function formatDateTime(
 ): string {
   const d = toDate(value);
   if (!d) return fallback;
-  return new Intl.DateTimeFormat(localeOf(lang), {
+  return formatBuddhistIntl(d, lang, {
     timeZone: ERP_TIMEZONE,
     day: "numeric",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(d);
+  });
 }
 
 export function formatNumber(value: number, lang: Language, maxFractionDigits = 3): string {

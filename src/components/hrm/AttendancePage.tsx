@@ -242,7 +242,7 @@ export default function AttendancePage() {
         dataIndex: "attendanceDate",
         key: "attendanceDate",
         width: 110,
-        render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+        render: (value: string) => dayjs(value).format("DD/MM/BBBB"),
       },
       {
         title: t("กะ"),
@@ -392,7 +392,7 @@ export default function AttendancePage() {
                 allowClear={false}
                 style={{ width: "100%" }}
                 value={draft.day}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(value) => value && setDraft((d) => ({ ...d, day: value }))}
               />
             </FilterField>
@@ -405,7 +405,7 @@ export default function AttendancePage() {
                 allowClear={false}
                 style={{ width: "100%" }}
                 value={draft.month}
-                format="MM/YYYY"
+                format="MM/BBBB"
                 onChange={(value) => value && setDraft((d) => ({ ...d, month: value }))}
               />
             </FilterField>
@@ -417,7 +417,7 @@ export default function AttendancePage() {
                 allowClear={false}
                 style={{ width: "100%" }}
                 value={draft.customRange}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(values) => {
                   if (!values?.[0] || !values[1]) return;
                   const next: [Dayjs, Dayjs] = [values[0], values[1]];

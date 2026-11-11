@@ -18,15 +18,14 @@ import { usePackingsQuery, useReadyPickingsForPackingQuery } from "@/hooks/packi
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { Packing } from "@/types/packings";
-import { PACKING_STATUS_LABEL, type PackingStatus } from "@/types/packings";
+import { PACKING_STATUS_LABEL, packingStatusColor, packingStatusLabel } from "@/types/packings";
 import styles from "./PackingsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 export default function PackingsListPage() {
@@ -96,13 +95,7 @@ export default function PackingsListPage() {
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
-          <Tag
-            color={
-              v === "CONFIRMED" ? "success" : v === "CANCELLED" ? "default" : "processing"
-            }
-          >
-            {statusT(t, PACKING_STATUS_LABEL[v as PackingStatus] ?? v)}
-          </Tag>
+          <Tag color={packingStatusColor(v)}>{packingStatusLabel(v)}</Tag>
         ),
       },
       {
@@ -115,7 +108,7 @@ export default function PackingsListPage() {
         dataIndex: "confirmedAt",
         width: 140,
         render: (v?: string) =>
-          v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
+          v ? dayjs(v).format("DD/MM/BBBB HH:mm") : "—",
       },
       {
         title: "",
@@ -186,9 +179,9 @@ export default function PackingsListPage() {
               style={{ width: "100%" }}
               value={status}
               onChange={setStatus}
-              options={Object.entries(PACKING_STATUS_LABEL).map(([value, label]) => ({
+              options={Object.entries(PACKING_STATUS_LABEL).map(([value]) => ({
                 value,
-                label: statusT(t, label),
+                label: packingStatusLabel(value),
               }))}
             />
           </div>
@@ -212,7 +205,7 @@ export default function PackingsListPage() {
             <DatePicker
               value={date}
               onChange={setDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
             />
           </div>

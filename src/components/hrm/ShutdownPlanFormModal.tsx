@@ -119,7 +119,7 @@ export default function ShutdownPlanFormModal({
           )}
           rules={[{ required: true, message: t("กรุณาเลือกช่วงวันที่") }]}
         >
-          <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
 
         <Form.Item label={t("กำลังคนที่ต้องการต่อวัน (ตำแหน่ง × กะ)")}>

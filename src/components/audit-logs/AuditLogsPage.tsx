@@ -115,7 +115,7 @@ export default function AuditLogsPage() {
       width: 170,
       render: (value: string) => (
         <span className={masterStyles.updatedText}>
-          {dayjs(value).format("DD/MM/YYYY HH:mm:ss")}
+          {dayjs(value).format("DD/MM/BBBB HH:mm:ss")}
         </span>
       ),
     },

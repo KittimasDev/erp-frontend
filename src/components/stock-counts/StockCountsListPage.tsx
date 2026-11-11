@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,31 +23,23 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockCountsQuery } from "@/hooks/stock-counts/useStockCountsQuery";
 import type { StockCount } from "@/types/stock-counts";
-import { STOCK_COUNT_STATUS_LABEL } from "@/types/stock-counts";
+import { STOCK_COUNT_STATUS_LABEL, STOCK_COUNT_STATUS_COLOR } from "@/types/stock-counts";
 import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockCountsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function StatusPill({ status }: { status: string }) {
-  const tone =
-    status === "POSTED"
-      ? styles.statusConfirmed
-      : status === "CANCELLED"
-        ? styles.statusCancelled
-        : styles.statusDraft;
-
   return (
-    <span className={`${styles.statusPill} ${tone}`}>
-      <span className={styles.statusDot} aria-hidden />
+    <Tag color={STOCK_COUNT_STATUS_COLOR[status] ?? "default"}>
       {STOCK_COUNT_STATUS_LABEL[status]
         ? tStockLabel(STOCK_COUNT_STATUS_LABEL[status])
         : status}
-    </span>
+    </Tag>
   );
 }
 
@@ -250,7 +243,7 @@ export default function StockCountsListPage() {
           className={`${styles.statChip} ${applied.status === "DRAFT" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("DRAFT")}
         >
-          <span className={styles.statLabel}>{t("ร่าง")}</span>
+          <span className={styles.statLabel}>{t("แบบร่างเอกสาร")}</span>
           <span className={styles.statValue}>{draftTotal}</span>
           <span className={styles.statHint}>{t("รออนุมัติ")}</span>
         </button>
@@ -292,7 +285,7 @@ export default function StockCountsListPage() {
               style={{ width: "100%" }}
               value={countDate}
               onChange={setCountDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={t("เลือกวันที่")}
             />
           </div>

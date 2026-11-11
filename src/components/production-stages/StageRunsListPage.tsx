@@ -131,7 +131,7 @@ export default function StageRunsListPage({
       title: t("วันที่"),
       dataIndex: "runDate",
       key: "runDate",
-      render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+      render: (value: string) => dayjs(value).format("DD/MM/BBBB"),
     },
     {
       title: t("วัตถุดิบเข้า"),
@@ -290,7 +290,7 @@ export default function StageRunsListPage({
                   setRange(value as [Dayjs, Dayjs] | null);
                   setPage(1);
                 }}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 placeholder={[t("ตั้งแต่วันที่"), t("ถึงวันที่")]}
               />
             </div>

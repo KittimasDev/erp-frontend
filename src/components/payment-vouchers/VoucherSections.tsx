@@ -9,7 +9,7 @@ import { VOUCHER_EVENT_LABEL, type VoucherApDocument, type VoucherPersonAction, 
 import { useT } from "@/lib/i18n/useT";
 import { tFin, fmtMoney, sourceHref, sourceLabel } from "./paymentVoucherUtils";
 
-const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
+const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/BBBB HH:mm") : "—");
 
 /** 2.2 เอกสารอ้างอิง — ใบวางบิลที่รวมหลาย AP/PO แสดงเลขที่ทั้งหมด */
 export function ReferenceCard({

@@ -19,6 +19,7 @@ import { useLanguage } from "@/lib/i18n/language";
 import type { LabSample } from "@/types/laboratory";
 import {
   labSampleStatusLabel,
+  LAB_SAMPLE_STATUS_COLOR,
   LAB_SAMPLE_STATUS_LABEL,
   LAB_SAMPLE_TYPE_LABEL,
   LAB_SAMPLE_TYPES,
@@ -30,7 +31,7 @@ import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 export default function LabSamplesListPage() {
@@ -105,15 +106,7 @@ export default function LabSamplesListPage() {
         width: 120,
         render: (v: string) => (
           <Tag
-            color={
-              v === "APPROVED"
-                ? "success"
-                : v === "REJECTED"
-                  ? "error"
-                  : v === "TESTING"
-                    ? "processing"
-                    : "default"
-            }
+            color={LAB_SAMPLE_STATUS_COLOR[v] ?? "default"}
           >
             {labSampleStatusLabel(v, lang)}
           </Tag>

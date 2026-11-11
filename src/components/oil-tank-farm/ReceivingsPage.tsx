@@ -20,12 +20,11 @@ import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { oilDocStatusLabel, type OilReceiving } from "@/types/oil-tank-farm";
+import { OIL_DOC_STATUS_COLOR, oilDocStatusLabel, type OilReceiving } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
 const n = (v: string) => Number(v).toLocaleString("th-TH", { maximumFractionDigits: 3 });
-const STATUS_COLOR: Record<string, string> = { DRAFT: "gold", POSTED: "green", CANCELLED: "default" };
 const QC_LABEL: Record<string, { label: string; color: string }> = {
   PENDING: { label: "รอ QC (Hold)", color: "gold" },
   HOLD: { label: "พักไว้", color: "orange" },
@@ -81,7 +80,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     >
       <Form form={form} layout="vertical" initialValues={{ receivingDate: dayjs() }}>
         <Form.Item name="receivingDate" label={t("วันที่รับ")} rules={[{ required: true }]}>
-          <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+          <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
         </Form.Item>
         <Form.Item name="tankId" label={t("ถังที่รับเข้า")} rules={[{ required: true, message: t("เลือกถัง") }]}>
           <Select
@@ -146,7 +145,7 @@ export default function ReceivingsPage() {
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: t("ใบรับ"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.receivingNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.receivingDate).format("DD/MM/YYYY")}</div></div> },
+    { title: t("ใบรับ"), key: "no", width: 150, render: (_v, r) => <div><strong>{r.receivingNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.receivingDate).format("DD/MM/BBBB")}</div></div> },
     { title: t("ถัง"), dataIndex: "tankNo", width: 100 },
     { title: t("ปริมาณ"), key: "q", width: 130, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },
     { title: t("Batch / ใบสั่งผลิต"), key: "b", render: (_v, r) => <span>{r.batchNo ?? "—"}{r.productionOrderNo ? ` · ${r.productionOrderNo}` : ""}</span> },
@@ -161,7 +160,7 @@ export default function ReceivingsPage() {
         </div>
       ),
     },
-    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
+    { title: t("สถานะ"), key: "s", width: 110, render: (_v, r) => <Tag color={OIL_DOC_STATUS_COLOR[r.status]}>{oilDocStatusLabel(r.status, lang)}</Tag> },
     {
       title: "",
       key: "act",

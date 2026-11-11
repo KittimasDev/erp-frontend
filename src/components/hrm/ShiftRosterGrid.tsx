@@ -67,7 +67,7 @@ function textOn(background?: string): string | undefined {
 type FilterMode = "all" | "off";
 
 function cellTooltip(row: ShiftRosterRow, cell: ShiftRosterCell): string {
-  const date = dayjs(cell.date).format("D/M/YYYY");
+  const date = dayjs(cell.date).format("D/M/BBBB");
   const who = row.displayName;
   switch (cell.status) {
     case "SHIFT":
@@ -192,10 +192,10 @@ export default function ShiftRosterGrid({
                     <Tooltip
                       title={
                         day.isHoliday
-                          ? `${date.format("D/M/YYYY")} — ${day.holidayName ?? t("วันหยุด")}`
+                          ? `${date.format("D/M/BBBB")} — ${day.holidayName ?? t("วันหยุด")}`
                           : day.hasRounds
-                            ? `${date.format("D/M/YYYY")} — ${t("เข้ากะ {w} · ลา {l} · หยุด {o}", { w: day.workingCount, l: day.leaveCount, o: day.offCount })}`
-                            : `${date.format("D/M/YYYY")} — ${t("ยังไม่จัดกะ")}`
+                            ? `${date.format("D/M/BBBB")} — ${t("เข้ากะ {w} · ลา {l} · หยุด {o}", { w: day.workingCount, l: day.leaveCount, o: day.offCount })}`
+                            : `${date.format("D/M/BBBB")} — ${t("ยังไม่จัดกะ")}`
                       }
                     >
                       <span className={styles.dayHeadInner}>

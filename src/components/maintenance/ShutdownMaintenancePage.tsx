@@ -17,7 +17,7 @@ import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 import type { PlannedPart, PmSchedule, ShutdownItemBody, ShutdownMaintenancePlan, WorkOrder } from "@/types/maintenance";
-import { PRIORITY_OPTIONS } from "@/types/maintenance";
+import { PRIORITY_OPTIONS, WORK_ORDER_STATUS_COLOR } from "@/types/maintenance";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import { fmtDate, woStatusLabel } from "./maintenance-format";
@@ -73,7 +73,7 @@ function AddManualModal({ plan, onClose, onSubmit, loading }: { plan: ShutdownMa
         </Form.Item>
         <div style={{ display: "flex", gap: 12 }}>
           <Form.Item name="plannedDate" label={t("วันที่ทำ")} rules={[{ required: true }]} style={{ flex: 1 }}>
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" disabledDate={(d) => d.isBefore(dayjs(plan.dateFrom), "day") || d.isAfter(dayjs(plan.dateTo), "day")} />
+            <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" disabledDate={(d) => d.isBefore(dayjs(plan.dateFrom), "day") || d.isAfter(dayjs(plan.dateTo), "day")} />
           </Form.Item>
           <Form.Item name="priority" label={t("ความเร่งด่วน")} style={{ flex: 1 }}>
             <Select options={PRIORITY_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
@@ -113,7 +113,7 @@ function PlanDetail({ plan, onBack }: { plan: ShutdownMaintenancePlan; onBack: (
     { title: t("ใบสั่งงาน"), dataIndex: "workOrderNo", width: 160 },
     { title: t("เครื่อง / งาน"), key: "eq", render: (_v, w) => <div><strong>{w.equipmentCode}</strong> {w.description.split("\n")[0]}</div> },
     { title: t("ช่าง"), key: "t", width: 170, render: (_v, w) => w.technicians.map((tech) => tech.displayName).filter(Boolean).join(", ") || (w.plannedManpower ? t("ต้องการ {n} คน", { n: w.plannedManpower }) : "—") },
-    { title: t("สถานะ"), key: "s", width: 100, render: (_v, w) => <Tag color={w.status === "COMPLETED" ? "green" : "blue"}>{woStatusLabel(w.status, lang)}</Tag> },
+    { title: t("สถานะ"), key: "s", width: 100, render: (_v, w) => <Tag color={WORK_ORDER_STATUS_COLOR[w.status] ?? "default"}>{woStatusLabel(w.status, lang)}</Tag> },
   ];
   const candColumns: ColumnsType<PmSchedule> = [
     {
@@ -162,7 +162,7 @@ function PlanDetail({ plan, onBack }: { plan: ShutdownMaintenancePlan; onBack: (
           {canAdd && data.candidates.length > 0 ? (
             <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
               <span>{t("วางในวันที่")}</span>
-              <DatePicker value={candidateDate} onChange={(d) => d && setCandidateDate(d)} format="DD/MM/YYYY" allowClear={false}
+              <DatePicker value={candidateDate} onChange={(d) => d && setCandidateDate(d)} format="DD/MM/BBBB" allowClear={false}
                 disabledDate={(d) => d.isBefore(dayjs(plan.dateFrom), "day") || d.isAfter(dayjs(plan.dateTo), "day")} />
               <Button
                 type="primary"

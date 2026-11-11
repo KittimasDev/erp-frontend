@@ -48,14 +48,14 @@ export function formatBeDate(isoDate?: string | null) {
   if (!isoDate) return "";
   const d = dayjs(isoDate);
   if (!d.isValid()) return isoDate;
-  return `${d.format("DD/MM/")}${d.year() + 543}`;
+  return d.format("DD/MM/BBBB");
 }
 
 /** "2026-09" → "กันยายน 2569" */
 export function formatBeMonth(month: string) {
   const [year, m] = month.split("-").map(Number);
   if (!year || !m || m < 1 || m > 12) return month;
-  return `${THAI_MONTHS[m - 1]} ${year + 543}`;
+  return `${THAI_MONTHS[m - 1]} ${dayjs(new Date(year, m - 1, 1)).format("BBBB")}`;
 }
 
 const money = (value: string | number | null | undefined) =>

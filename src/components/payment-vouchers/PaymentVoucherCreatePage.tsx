@@ -20,7 +20,8 @@ import {
   TaxCard,
 } from "./VoucherSections";
 import { useT } from "@/lib/i18n/useT";
-import { PV_BASE_PATH, fmtMoney, kindLabel, prorateAmount, referenceLine } from "./paymentVoucherUtils";
+import { PV_BASE_PATH, fmtMoney, kindLabel, prorateAmount, referenceLine, tFin } from "./paymentVoucherUtils";
+import { VOUCHER_STATUS_COLOR, VOUCHER_STATUS_LABEL } from "@/types/payment-vouchers";
 import PageHeader from "@/components/common/PageHeader";
 
 type FormValues = {
@@ -153,7 +154,7 @@ export default function PaymentVoucherCreatePage({ queueItemId }: { queueItemId:
         }
         meta={
           <>
-<Tag color="gold">{t("ร่าง (ยังไม่บันทึก)")}</Tag>
+<Tag color={VOUCHER_STATUS_COLOR.DRAFT}>{tFin(VOUCHER_STATUS_LABEL.DRAFT)} · {t("ยังไม่บันทึก")}</Tag>
           </>
         }
         actions={
@@ -169,7 +170,7 @@ export default function PaymentVoucherCreatePage({ queueItemId }: { queueItemId:
         <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>
           <Descriptions.Item label={t("เลขที่ PV")}>{t("สร้างอัตโนมัติเมื่อบันทึก")}</Descriptions.Item>
           <Descriptions.Item label={t("ประเภทการจ่าย")}>{kindLabel(item.paymentKind)}</Descriptions.Item>
-          <Descriptions.Item label={t("สถานะ PV")}>{t("ร่าง")}</Descriptions.Item>
+          <Descriptions.Item label={t("สถานะ PV")}>{tFin(VOUCHER_STATUS_LABEL.DRAFT)}</Descriptions.Item>
         </Descriptions>
       </Card>
 

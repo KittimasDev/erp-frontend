@@ -72,7 +72,7 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -88,8 +88,9 @@ function statusClass(status: string) {
   switch (status) {
     case "POSTED":
       return styles.statusApproved;
+    case "DRAFT":
     case "CANCELLED":
-      return styles.statusCancelled;
+      return styles.statusCancelled; // แบบร่าง/ยกเลิก = เทา (มาตรฐานสถานะ)
     default:
       return styles.statusDraft;
   }
@@ -782,7 +783,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             label={t("วันที่รับชำระ")}
             rules={[{ required: true, message: t("ระบุวันที่") }]}
           >
-            <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item name="transactionRef" label={t("เลขอ้างอิง")}>
             <Input placeholder={t("เช่น เลขโอน")} />

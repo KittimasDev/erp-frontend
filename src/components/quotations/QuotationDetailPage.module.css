@@ -328,6 +328,11 @@
   color: #6b7280;
 }
 
+.statusNeutral {
+  background: #f1f3f5;
+  color: #6b7280;
+}
+
 .flowMini {
   display: grid;
   gap: 6px;

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
 import { useState } from "react";
 import { Alert, App, Button, DatePicker, Form, Input, Modal, Segmented, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -91,7 +92,7 @@ export default function PayrollPage() {
     new Set(allRuns.flatMap((r) => [r.periodStart.slice(0, 4), r.periodEnd.slice(0, 4)])),
   )
     .sort((a, b) => b.localeCompare(a))
-    .map((y) => ({ value: y, label: language === "en" ? y : String(Number(y) + 543) }));
+    .map((y) => ({ value: y, label: dayjs(`${y}-01-01`).format("BBBB") }));
   const keyword = search.trim().toLowerCase();
   const runs = allRuns.filter((r) => {
     if (statusFilter && r.status !== statusFilter) return false;
@@ -120,7 +121,7 @@ export default function PayrollPage() {
   /** เลือกเดือน/ปี → วันที่เริ่ม–สิ้นสุดอัตโนมัติ (วันแรก–วันสุดท้ายของเดือน) + ตั้งชื่องวดให้ถ้ายังไม่ได้พิมพ์เอง */
   const onMonthChange = (month: Dayjs | null) => {
     if (!month) return;
-    const label = month.toDate().toLocaleDateString(language === "en" ? "en-GB" : "th-TH", { month: "long", year: "numeric" });
+    const label = formatBuddhistIntl(month.toDate(), language === "en" ? "en" : "th", { month: "long", year: "numeric" });
     form.setFieldsValue({
       range: [month.startOf("month"), month.endOf("month")],
       name: form.getFieldValue("name")?.trim() ? form.getFieldValue("name") : `${t("เงินเดือน")} ${label}`,
@@ -295,7 +296,7 @@ export default function PayrollPage() {
           <FilterField label={t("ช่วงวันที่")} wide>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={draft.dateRange}
               onChange={(v) => setDraft((d) => ({ ...d, dateRange: v }))}
             />
@@ -366,7 +367,7 @@ export default function PayrollPage() {
                 <DatePicker
                   picker="month"
                   style={{ width: "100%" }}
-                  format="MM/YYYY"
+                  format="MM/BBBB"
                   onChange={onMonthChange}
                   disabledDate={(d) => d.isAfter(dayjs().add(1, "year"))}
                 />
@@ -383,7 +384,7 @@ export default function PayrollPage() {
             >
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 disabled={rangeMode === "month"}
                 disabledDate={(d) => d.isAfter(dayjs().add(1, "year"))}
               />

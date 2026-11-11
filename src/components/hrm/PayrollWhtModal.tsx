@@ -1,5 +1,6 @@
 "use client";
 
+import dayjs from "dayjs";
 import { useState } from "react";
 import { Alert, App, Button, Modal, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -50,9 +51,12 @@ function toPdfData(
     issuedAt: new Date().toISOString().slice(0, 10),
     payer,
     payee: { name: c.displayName, taxId: c.nationalId ?? undefined, address: c.address ?? undefined },
-    referenceText: `รวม ${c.payments.length} งวดที่จ่ายในปี ${year + 543}`,
+    referenceText: `รวม ${c.payments.length} งวดที่จ่ายในปี ${beYear(year)}`,
   };
 }
+
+/** ป้ายปี พ.ศ. จากปี ค.ศ. (ค่าที่ส่ง API ยังเป็น ค.ศ.) */
+const beYear = (y: number) => dayjs(`${y}-01-01`).format("BBBB");
 
 /** 50 ทวิ เงินเดือนรายปี — รวมเฉพาะงวดที่ปิดแล้ว พิมพ์รายคนหรือทั้งบริษัท */
 export default function PayrollWhtModal({ open, onClose }: Props) {
@@ -130,7 +134,7 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
           style={{ width: 140 }}
           options={[0, 1, 2, 3].map((i) => ({
             value: thisYear - i,
-            label: language === "en" ? `${thisYear - i}` : `${thisYear - i + 543} (${thisYear - i})`,
+            label: `${beYear(thisYear - i)} (${thisYear - i})`,
           }))}
         />
         <Button

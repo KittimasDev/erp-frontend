@@ -1,6 +1,11 @@
 import { getStoredLanguage, type Language } from "@/lib/i18n/language";
 import { tNow } from "@/lib/i18n/useT";
 import { translate } from "@/lib/i18n/translate";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+} from "@/lib/status/standard-status";
 
 export type PurchaseOrderStatus =
   | "DRAFT"
@@ -15,7 +20,15 @@ export type PurchaseOrderStatus =
   | "CANCELLED"
   | string;
 
+/** ป้ายสถานะมาตรฐาน (ไทย → อังกฤษ) — ไม่รวม DELIVERED เพราะ "ส่งแล้ว" ในบริบทอื่นอาจแปลว่าส่งอนุมัติ */
+const STANDARD_STATUS_EN: Record<string, string> = Object.fromEntries(
+  ("DRAFT PENDING_APPROVAL APPROVED REJECTED IN_PROGRESS COMPLETED CANCELLED" as string)
+    .split(" ")
+    .map((k) => [STANDARD_STATUS[k as keyof typeof STANDARD_STATUS].th, STANDARD_STATUS[k as keyof typeof STANDARD_STATUS].en]),
+);
+
 const STATUS_LABEL_EN_OVERRIDE: Record<string, string> = {
+  ...STANDARD_STATUS_EN,
   /* ในบริบทสถานะ "ยกเลิก" = Cancelled (ไม่ใช่ปุ่ม Cancel) และ "แก้ไข" = Revising (ไม่ใช่ปุ่ม Edit) */
   ยกเลิก: "Cancelled",
   แก้ไข: "Revising",
@@ -31,19 +44,42 @@ export function tStatus(label: string, lang?: Language): string {
 }
 
 export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
-  PENDING_APPROVAL: "รออนุมัติ",
+  DRAFT: standardStatusLabel("DRAFT"),
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
   // ถูกหัวหน้าส่งกลับมาแก้ — ต้องแยกจาก "ร่าง" ให้เห็นว่ามีงานค้างอยู่
   REVISING: "แก้ไข",
   // อนุมัติแล้ว = ส่ง PO ให้ Supplier ได้ และรอของเข้า
   CONFIRMED: "อนุมัติแล้ว · รอส่งสินค้า",
-  REJECTED: "ไม่อนุมัติ",
+  REJECTED: standardStatusLabel("REJECTED"),
   PARTIALLY_RECEIVED: "รับของบางส่วน",
-  COMPLETED: "รับครบแล้ว",
+  COMPLETED: standardStatusLabel("COMPLETED"),
   CLOSED_PARTIAL: "ปิดรับบางส่วน",
   RECEIVE_CANCELLED: "ยกเลิกการรับ",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
+
+/**
+ * สีป้ายสถานะใบสั่งซื้อ — ตามมาตรฐานกลาง
+ * CONFIRMED = อนุมัติแล้ว (เขียว) · COMPLETED = เสร็จสิ้น · รับบางส่วน = กำลังดำเนินการ (ฟ้า)
+ * REVISING ไม่ใช่สถานะมาตรฐาน (gold) · ยกเลิกการรับ = เทา
+ */
+export const PURCHASE_ORDER_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  REVISING: "gold",
+  CONFIRMED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
+  PARTIALLY_RECEIVED: standardStatusColor("IN_PROGRESS"),
+  COMPLETED: standardStatusColor("COMPLETED"),
+  CLOSED_PARTIAL: standardStatusColor("COMPLETED"),
+  RECEIVE_CANCELLED: standardStatusColor("CANCELLED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
+};
+
+/** สีป้ายสถานะ PO — ใบที่ CONFIRMED แต่ยังไม่มีของเข้า ใช้สีเดียวกับ CONFIRMED */
+export function purchaseOrderStatusColor(status: string): string {
+  return PURCHASE_ORDER_STATUS_COLOR[status] ?? "default";
+}
 
 /** ใบที่อนุมัติแล้วแต่ยังไม่มีของเข้า (รวมกรณีมีรอบยกเลิกการรับปน) — ใบเก่าที่ไม่มี receiveStatus คงป้ายเดิม */
 export function purchaseOrderStatusLabel(

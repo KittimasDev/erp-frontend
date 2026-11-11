@@ -23,16 +23,16 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import type { DeliveryOrder } from "@/types/delivery-orders";
 import {
   DELIVERY_ORDER_STATUS_LABEL,
-  type DeliveryOrderStatus,
+  deliveryOrderStatusColor,
+  deliveryOrderStatusLabel,
 } from "@/types/delivery-orders";
 import styles from "./DeliveryOrdersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 export default function DeliveryOrdersListPage() {
@@ -88,9 +88,7 @@ export default function DeliveryOrdersListPage() {
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
-          <Tag color={v === "DELIVERED" ? "success" : v === "CANCELLED" ? "default" : "processing"}>
-            {statusT(t, DELIVERY_ORDER_STATUS_LABEL[v as DeliveryOrderStatus] ?? v)}
-          </Tag>
+          <Tag color={deliveryOrderStatusColor(v)}>{deliveryOrderStatusLabel(v)}</Tag>
         ),
       },
       {
@@ -149,9 +147,9 @@ export default function DeliveryOrdersListPage() {
               style={{ width: "100%" }}
               value={status}
               onChange={setStatus}
-              options={Object.entries(DELIVERY_ORDER_STATUS_LABEL).map(([value, label]) => ({
+              options={Object.entries(DELIVERY_ORDER_STATUS_LABEL).map(([value]) => ({
                 value,
-                label: statusT(t, label),
+                label: deliveryOrderStatusLabel(value),
               }))}
             />
           </div>

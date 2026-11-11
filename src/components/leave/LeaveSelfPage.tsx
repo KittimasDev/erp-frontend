@@ -55,9 +55,9 @@ function formatRange(startDate: string, endDate: string) {
   const start = dayjs(startDate);
   const end = dayjs(endDate);
   if (start.isSame(end, "day")) {
-    return start.format("DD/MM/YYYY");
+    return start.format("DD/MM/BBBB");
   }
-  return `${start.format("DD/MM")} - ${end.format("DD/MM/YYYY")}`;
+  return `${start.format("DD/MM")} - ${end.format("DD/MM/BBBB")}`;
 }
 
 export default function LeaveSelfPage() {
@@ -203,7 +203,7 @@ export default function LeaveSelfPage() {
             >
               <DatePicker.RangePicker
                 allowClear={false}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 inputReadOnly
                 size="large"
                 className={styles.fullWidth}

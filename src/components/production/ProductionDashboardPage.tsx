@@ -136,7 +136,7 @@ export default function ProductionDashboardPage() {
         const row: Record<string, string | number | null> = {
           label:
             bucket === "MONTH"
-              ? dayjs(point.bucket).format("MM/YYYY")
+              ? dayjs(point.bucket).format("MM/BBBB")
               : dayjs(point.bucket).format("DD/MM"),
           yieldPercent: point.yieldPercent,
           plannedYieldPercent: point.plannedYieldPercent,
@@ -285,7 +285,7 @@ export default function ProductionDashboardPage() {
               style={{ width: "100%" }}
               value={draftRange}
               allowClear={false}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               onChange={(value) => {
                 if (value?.[0] && value[1]) setDraftRange([value[0], value[1]]);
               }}
@@ -550,7 +550,7 @@ export default function ProductionDashboardPage() {
                       {batch.latestSequenceNo}. {batch.latestStageLabel}
                     </strong>
                     <span className={styles.cellMuted}>
-                      {dayjs(batch.latestRunDate).format("DD/MM/YYYY")}
+                      {dayjs(batch.latestRunDate).format("DD/MM/BBBB")}
                     </span>
                   </li>
                 ))

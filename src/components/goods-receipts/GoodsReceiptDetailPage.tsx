@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import { tStatus } from "@/types/purchase-orders";
 import Link from "next/link";
@@ -29,7 +30,7 @@ import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurcha
 import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
 import { useT } from "@/lib/i18n/useT";
 import { formatQtyWithBase, pickUnitLabel } from "@/lib/units/format";
-import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { GOODS_RECEIPT_STATUS_LABEL, GOODS_RECEIPT_STATUS_COLOR } from "@/types/goods-receipts";
 import { isPoPayableStatus } from "@/types/purchase-orders";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
@@ -39,7 +40,7 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -51,16 +52,6 @@ function formatMoney(value?: string) {
   });
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "CONFIRMED":
-      return styles.statusApproved;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 export default function GoodsReceiptDetailPage({ id }: Props) {
   const t = useT();
@@ -248,7 +239,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 <span className={styles.metaLabel}>{t("โพสต์สต๊อก")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
-                    ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                    ? dayjs(data.postedAt).format("DD/MM/BBBB HH:mm")
                     : t("ยังไม่โพสต์")}
                 </div>
               </div>
@@ -311,8 +302,10 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.grNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+          <div>
+            <Tag color={GOODS_RECEIPT_STATUS_COLOR[data.status] ?? "default"}>
             {tStatus(GOODS_RECEIPT_STATUS_LABEL[data.status] ?? data.status)}
+          </Tag>
           </div>
 
           <div className={styles.sideRows}>

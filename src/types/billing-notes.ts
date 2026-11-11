@@ -1,16 +1,46 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+} from "@/lib/status/standard-status";
+
 export type BillingNoteStatus = "DRAFT" | "CONFIRMED" | "CANCELLED";
 export type BillingPvStatus = "NONE" | "PARTIAL" | "ALL";
 
 export const BILLING_NOTE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   CONFIRMED: "ยืนยันแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 export const BILLING_NOTE_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "default",
+  DRAFT: standardStatusColor("DRAFT"),
   CONFIRMED: "green",
-  CANCELLED: "red",
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
+
+/** ป้ายสถานะใบวางบิลตามภาษา — แบบร่าง/ยกเลิก ใช้ชื่อมาตรฐานกลาง */
+export function billingNoteStatusLabel(status: string, lang?: Language): string {
+  const l = lang ?? getStoredLanguage();
+  if (status === "DRAFT") return standardStatusLabel("DRAFT", l);
+  if (status === "CANCELLED") return standardStatusLabel("CANCELLED", l);
+  const th = BILLING_NOTE_STATUS_LABEL[status];
+  return th ? translate(l, th) : status;
+}
+
+/** ป้ายสถานะคิวสร้าง PV จากใบวางบิล */
+export function billingQueueStatusLabel(status: string, lang?: Language): string {
+  const l = lang ?? getStoredLanguage();
+  if (status === "CANCELLED") return standardStatusLabel("CANCELLED", l);
+  const th = BILLING_QUEUE_STATUS_LABEL[status];
+  return th ? translate(l, th) : status;
+}
+
+export function billingQueueStatusColor(status: string): string {
+  if (status === "CANCELLED") return standardStatusColor("CANCELLED");
+  return status === "PV_CREATED" ? "green" : "gold";
+}
 export const BILLING_PV_STATUS_LABEL: Record<string, string> = {
   NONE: "ยังไม่ออก PV",
   PARTIAL: "ออก PV บางส่วน",
@@ -158,5 +188,5 @@ export type BillingNoteDetail = {
 export const BILLING_QUEUE_STATUS_LABEL: Record<string, string> = {
   PENDING: "รอสร้าง PV",
   PV_CREATED: "สร้าง PV แล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };

@@ -32,9 +32,8 @@ function statusClass(status: string) {
     case "POSTED":
       return styles.statusPaid;
     case "DRAFT":
-      return styles.statusDraft;
     case "CANCELLED":
-      return styles.statusCancelled;
+      return styles.statusCancelled; // แบบร่าง/ยกเลิก = เทา (มาตรฐานสถานะ)
     default:
       return styles.statusCancelled;
   }
@@ -42,7 +41,7 @@ function statusClass(status: string) {
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string | number) {
@@ -328,7 +327,7 @@ export default function SalesInvoicesListPage() {
             <DatePicker
               value={invoiceDate}
               onChange={setInvoiceDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={t("เลือกวันที่")}
               style={{ width: "100%" }}
             />

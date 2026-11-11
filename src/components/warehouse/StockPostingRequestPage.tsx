@@ -829,7 +829,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                             >
                               <DatePicker
                                 style={{ width: "100%" }}
-                                format="DD/MM/YYYY"
+                                format="DD/MM/BBBB"
                               />
                             </Form.Item>
                           </div>

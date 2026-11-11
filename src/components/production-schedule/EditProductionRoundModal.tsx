@@ -103,7 +103,7 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
         initialValues={{ startDate: dayjs(round.startDate) }}
       >
         <Form.Item name="startDate" label={t("วันแรกของช่วงผลิต")} rules={[{ required: true, message: t("เลือกวันเริ่ม") }]}>
-          <DatePicker aria-label={t("วันแรกของช่วงผลิต")} format="DD/MM/YYYY" style={{ width: "100%" }} allowClear={false} />
+          <DatePicker aria-label={t("วันแรกของช่วงผลิต")} format="DD/MM/BBBB" style={{ width: "100%" }} allowClear={false} />
         </Form.Item>
       </Form>
       {window ? (
@@ -117,7 +117,7 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
         <DatePicker
           aria-label={t("วันหยุดผลิตเพิ่มเติมของรอบนี้")}
           value={picker}
-          format="DD/MM/YYYY"
+          format="DD/MM/BBBB"
           onChange={addDate}
           style={{ width: "100%" }}
         />

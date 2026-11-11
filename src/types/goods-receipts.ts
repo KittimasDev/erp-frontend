@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type GoodsReceiptStatus =
   | "DRAFT"
   | "CONFIRMED"
@@ -5,9 +6,16 @@ export type GoodsReceiptStatus =
   | string;
 
 export const GOODS_RECEIPT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: standardStatusLabel("DRAFT"),
   CONFIRMED: "ยืนยันแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะ — ร่าง/ยกเลิก = เทา · ยืนยันแล้ว = เขียว (ตามมาตรฐานกลาง) */
+export const GOODS_RECEIPT_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  CONFIRMED: standardStatusColor("APPROVED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export type GoodsReceiptCreditorSummary = {

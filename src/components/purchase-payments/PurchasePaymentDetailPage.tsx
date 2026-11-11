@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -39,8 +40,7 @@ import type { DocumentAttachment } from "@/types/document-attachments";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
-  SUPPLIER_PAYMENT_STATUS_LABEL,
-} from "@/types/purchase-payments";
+  SUPPLIER_PAYMENT_STATUS_LABEL, SUPPLIER_PAYMENT_STATUS_COLOR } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentDetailPage.module.css";
@@ -54,7 +54,7 @@ type Props = {
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -66,16 +66,6 @@ function formatMoney(value?: string) {
   });
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "PAID":
-      return styles.statusApproved;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = new Set([
@@ -96,7 +86,7 @@ function attachmentDisplayName(file: DocumentAttachment) {
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY HH:mm");
+  return dayjs(value).format("DD/MM/BBBB HH:mm");
 }
 
 function formatFileSize(value?: string | number) {
@@ -519,8 +509,10 @@ function PurchasePaymentDetailView({
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.voucherNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+          <div>
+            <Tag color={SUPPLIER_PAYMENT_STATUS_COLOR[data.status] ?? "default"}>
             {tStatus(SUPPLIER_PAYMENT_STATUS_LABEL[data.status] ?? data.status)}
+          </Tag>
           </div>
 
           <div className={styles.sideRows}>
@@ -532,7 +524,7 @@ function PurchasePaymentDetailView({
               <span>{t("จ่ายเมื่อ")}</span>
               <strong>
                 {data.paidAt
-                  ? dayjs(data.paidAt).format("DD/MM/YYYY HH:mm")
+                  ? dayjs(data.paidAt).format("DD/MM/BBBB HH:mm")
                   : "—"}
               </strong>
             </div>
@@ -642,7 +634,7 @@ function PurchasePaymentDetailView({
             name="paymentDate"
             rules={[{ required: true }]}
           >
-            <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+            <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
           </Form.Item>
           <Form.Item
             label={t("เลขอ้างอิงการโอน")}

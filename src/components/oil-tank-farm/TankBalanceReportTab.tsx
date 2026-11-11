@@ -37,7 +37,7 @@ export default function TankBalanceReportTab() {
       title: granularity === "DAY" ? tr("วันที่") : tr("เดือน"),
       dataIndex: "period",
       width: 120,
-      render: (p: string) => dayjs(p).format(granularity === "DAY" ? "DD/MM/YYYY" : "MM/YYYY"),
+      render: (p: string) => dayjs(p).format(granularity === "DAY" ? "DD/MM/BBBB" : "MM/BBBB"),
     },
     { title: tr("ยกมา"), dataIndex: "opening", align: "right", render: n },
     { title: tr("เข้า"), dataIndex: "in", align: "right", render: (v: number) => (v ? <span style={{ color: "#389e0d" }}>+{n(v)}</span> : "—") },
@@ -49,7 +49,7 @@ export default function TankBalanceReportTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-        <DatePicker.RangePicker value={range} allowClear={false} format="DD/MM/YYYY" onChange={(v) => v?.[0] && v[1] && setRange([v[0], v[1]])} />
+        <DatePicker.RangePicker value={range} allowClear={false} format="DD/MM/BBBB" onChange={(v) => v?.[0] && v[1] && setRange([v[0], v[1]])} />
         <Radio.Group
           value={granularity}
           onChange={(e) => setGranularity(e.target.value)}

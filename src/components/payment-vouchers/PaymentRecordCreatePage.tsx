@@ -170,10 +170,10 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
         >
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "0 16px" }}>
             <Form.Item name="documentDate" label={t("วันที่เอกสาร")} rules={[{ required: true, message: t("ระบุวันที่เอกสาร") }]}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="paymentDate" label={t("วันที่จ่ายเงินจริง")} rules={[{ required: true, message: t("ระบุวันที่จ่ายจริง") }]}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item label={t("จำนวนเงินที่จ่ายจริง (บาท)")} extra={t("Phase นี้จ่ายเต็มยอดสุทธิของ PV เท่านั้น")}>
               <InputNumber value={net} precision={2} disabled style={{ width: "100%" }} />
@@ -206,7 +206,7 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
                 <Input maxLength={50} />
               </Form.Item>
               <Form.Item name="chequeDate" label={t("วันที่เช็ค")} rules={[{ required: true, message: t("ระบุวันที่เช็ค") }]}>
-                <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+                <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
               </Form.Item>
               <Form.Item name="companyBankAccountId" label={t("บัญชีที่สั่งจ่าย (ถ้ามี)")}>
                 <Select

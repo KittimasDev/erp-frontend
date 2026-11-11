@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,7 +20,7 @@ import {
   useCancelStockIssueMutation,
 } from "@/hooks/stock-issues/useStockIssueMutations";
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
-import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
+import { STOCK_ISSUE_STATUS_LABEL, STOCK_ISSUE_STATUS_COLOR } from "@/types/stock-issues";
 import { tStockLabel } from "@/types/stock-adjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./MaterialIssueDetailPage.module.css";
@@ -29,19 +30,9 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "POSTED":
-      return styles.statusApproved;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 export default function MaterialIssueDetailPage({ id }: Props) {
   const t = useT();
@@ -113,7 +104,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
                 requestedByName: data.requestedBy?.displayName ?? "—",
                 issuedByName: data.issuedBy?.displayName ?? "—",
                 postedAt: data.postedAt
-                  ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                  ? dayjs(data.postedAt).format("DD/MM/BBBB HH:mm")
                   : "—",
                 remark: data.remark?.trim() || "",
                 items: (data.items ?? []).map((item, index) => ({
@@ -167,7 +158,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
                 <span className={styles.metaLabel}>{t("ตัดสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
-                    ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                    ? dayjs(data.postedAt).format("DD/MM/BBBB HH:mm")
                     : t("ยังไม่ตัดสต๊อก")}
                 </div>
               </div>
@@ -218,10 +209,12 @@ export default function MaterialIssueDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.issueNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+          <div>
+            <Tag color={STOCK_ISSUE_STATUS_COLOR[data.status] ?? "default"}>
             {STOCK_ISSUE_STATUS_LABEL[data.status]
               ? tStockLabel(STOCK_ISSUE_STATUS_LABEL[data.status])
               : data.status}
+          </Tag>
           </div>
 
           <div className={styles.sideRows}>

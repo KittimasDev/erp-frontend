@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -281,7 +282,7 @@ export default function ItemCategoriesPage() {
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
+          {value ? formatDateTime(value, lang) : "-"}
         </span>
       ),
     },

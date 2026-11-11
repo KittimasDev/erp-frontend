@@ -5,7 +5,7 @@ import { Alert, Empty, Tag, Tooltip } from "antd";
 import { ScanOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
-import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
+import { ERP_TIMEZONE, formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { tNow, useT } from "@/lib/i18n/useT";
 
@@ -51,11 +51,7 @@ export function formatDateTime(iso: string | null | undefined) {
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  return new Intl.DateTimeFormat(numberLocale(), {
-    timeZone: ERP_TIMEZONE,
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+  return formatErpDateTime(date, iso);
 }
 
 /** แปลง ISO จาก OCR เป็นค่า DatePicker ตามนาฬิกาไทย ไม่พึ่ง timezone ของเบราว์เซอร์ */

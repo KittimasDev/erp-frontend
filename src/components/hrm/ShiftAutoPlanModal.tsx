@@ -177,7 +177,7 @@ export default function ShiftAutoPlanModal({
       month: targetMonth.format("YYYY-MM"),
       productionPhase,
     },
-    label: `${t(PHASE_LABEL[productionPhase])} ${targetMonth.format("MM/YYYY")}`,
+    label: `${t(PHASE_LABEL[productionPhase])} ${targetMonth.format("MM/BBBB")}`,
   };
   const shutdownPhase = productionPhase === "SHUTDOWN";
 
@@ -602,7 +602,7 @@ export default function ShiftAutoPlanModal({
             <DatePicker
               picker="month"
               allowClear={false}
-              format="MM/YYYY"
+              format="MM/BBBB"
               value={targetMonth}
               onChange={(value) => {
                 if (value) {
@@ -630,7 +630,7 @@ export default function ShiftAutoPlanModal({
             {calendarReady && matchingDays.length > 0 ? (
               <span className={styles.hint}>
                 {t("จะจัด")} <strong>{matchingDays.length}</strong> {t("วัน ในเดือน")}{" "}
-                {targetMonth.format("MM/YYYY")} {t("— ตามรอบการผลิตที่ยืนยันแล้ว")}
+                {targetMonth.format("MM/BBBB")} {t("— ตามรอบการผลิตที่ยืนยันแล้ว")}
               </span>
             ) : null}
           </div>

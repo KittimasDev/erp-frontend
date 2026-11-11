@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -37,8 +38,7 @@ import {
 import {
   STOCK_ADJUSTMENT_STATUS_LABEL,
   stockAdjustmentTypeDisplayName,
-  tStockLabel,
-} from "@/types/stock-adjustments";
+  tStockLabel, STOCK_ADJUSTMENT_STATUS_COLOR } from "@/types/stock-adjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./StockAdjustmentDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -47,22 +47,9 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "POSTED":
-      return styles.statusApproved;
-    case "CANCELLED":
-    case "REJECTED":
-      return styles.statusCancelled;
-    case "PENDING_APPROVAL":
-      return styles.statusDraft;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 function formatAdjustQty(value: string | number) {
   const n = Number(value);
@@ -188,7 +175,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
                 <span className={styles.metaLabel}>{t("ปรับปรุงสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
-                    ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                    ? dayjs(data.postedAt).format("DD/MM/BBBB HH:mm")
                     : t("ยังไม่อนุมัติ")}
                 </div>
               </div>
@@ -299,10 +286,12 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.adjustmentNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+          <div>
+            <Tag color={STOCK_ADJUSTMENT_STATUS_COLOR[data.status] ?? "default"}>
             {STOCK_ADJUSTMENT_STATUS_LABEL[data.status]
               ? tStockLabel(STOCK_ADJUSTMENT_STATUS_LABEL[data.status])
               : data.status}
+          </Tag>
           </div>
 
           <div className={styles.sideRows}>

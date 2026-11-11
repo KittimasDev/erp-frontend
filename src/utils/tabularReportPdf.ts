@@ -348,7 +348,7 @@ function buildParts(report: TabularReport): PageParts {
   const rowClass = (index: number) =>
     groupRows.has(index) ? "group" : subGroupRows.has(index) ? "sub" : "detail";
   const tableClass = subGroupRows.size ? "tr-table nested" : "tr-table";
-  const printedAt = dayjs().format("DD/MM/YYYY HH:mm");
+  const printedAt = dayjs().format("DD/MM/BBBB HH:mm");
 
   const colgroup = `<colgroup>${columns
     .map((col) => `<col style="width:${col.width}px">`)

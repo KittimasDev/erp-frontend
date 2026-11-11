@@ -40,7 +40,7 @@ import {
 import styles from "@/components/masters/shared/master-page.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
-const fmt = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/YYYY HH:mm:ss") : "—");
+const fmt = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/BBBB HH:mm:ss") : "—");
 
 const STATUS_COLOR: Record<DeviceScanStatus, string> = {
   PROCESSED: "green",

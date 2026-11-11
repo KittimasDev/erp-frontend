@@ -518,7 +518,7 @@ function ProductionRequestForm({
             style={{ marginBottom: 12 }}
             title={t("ผูกกับรอบจัดส่งที่ {no} (ส่งวันที่ {date})", {
               no: boundRound.roundNo,
-              date: dayjs(boundRound.deliveryDate).format("DD/MM/YYYY"),
+              date: dayjs(boundRound.deliveryDate).format("DD/MM/BBBB"),
             })}
             description={t("ของที่ผลิตเสร็จจะถูกกันไว้ให้รอบนี้โดยตรง ใบสั่งขายอื่นและรอบอื่นแย่งไม่ได้")}
           />
@@ -630,7 +630,7 @@ function ProductionRequestForm({
               <DatePicker
                 style={{ width: "100%" }}
                 value={requestDate}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(value) => value && setRequestDate(value)}
               />
             </div>
@@ -641,7 +641,7 @@ function ProductionRequestForm({
               <DatePicker
                 style={{ width: "100%" }}
                 value={requiredDate}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={setRequiredDate}
               />
             </div>
@@ -651,7 +651,7 @@ function ProductionRequestForm({
               <span className={styles.fieldLabel}>{t("ข้อมูล SO")}</span>
               <div>
                 {t("ลูกค้า:")} {selectedSo.customerName ?? "-"} · {t("วันที่ SO:")}{" "}
-                {dayjs(selectedSo.soDate).format("DD/MM/YYYY")} · {t("สถานะ:")}{" "}
+                {dayjs(selectedSo.soDate).format("DD/MM/BBBB")} · {t("สถานะ:")}{" "}
                 <Tag>{selectedSo.status}</Tag>
               </div>
             </div>

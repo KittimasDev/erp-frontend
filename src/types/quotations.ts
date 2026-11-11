@@ -1,4 +1,5 @@
 import { tNow } from "@/lib/i18n/useT";
+import { STANDARD_STATUS, standardStatusLabel } from "@/lib/status/standard-status";
 
 export type QuotationStatus =
   | "DRAFT"
@@ -8,11 +9,12 @@ export type QuotationStatus =
   | "CANCELLED";
 
 export const QUOTATION_STATUS_LABEL: Record<QuotationStatus, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   SENT: "รอลูกค้าตอบรับ",
   ACCEPTED: "ลูกค้าตอบรับแล้ว",
+  // ลูกค้าปฏิเสธใบเสนอราคา ไม่ใช่การไม่อนุมัติเอกสารภายใน — คงข้อความเดิม
   REJECTED: "ลูกค้าปฏิเสธ",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 
 export type QuotationCustomerSummary = {
@@ -159,13 +161,13 @@ export type QuotationItemAvailabilityListApiResponse = {
 
 /** ป้ายสถานะตามภาษา — ไทยใช้ QUOTATION_STATUS_LABEL เดิม ("ยกเลิก" ชนกับปุ่ม Cancel) */
 export function quotationStatusLabel(status: string, lang: "th" | "en"): string {
+  if (status === "DRAFT") return standardStatusLabel("DRAFT", lang);
+  if (status === "CANCELLED") return standardStatusLabel("CANCELLED", lang);
   if (lang === "en") {
     const en: Record<string, string> = {
-      DRAFT: "Draft",
       SENT: "Awaiting customer response",
       ACCEPTED: "Accepted by customer",
       REJECTED: "Rejected by customer",
-      CANCELLED: "Cancelled",
     };
     return en[status] ?? status;
   }
@@ -175,7 +177,8 @@ export function quotationStatusLabel(status: string, lang: "th" | "en"): string 
 /** ข้อความจาก utils/quotation-flow (ไทย) แปลตามภาษา — "ยกเลิก" ที่นี่คือสถานะ Cancelled ไม่ใช่ปุ่ม */
 export function quotationFlowText(thai: string, lang: "th" | "en"): string {
   if (lang !== "en") return thai;
-  if (thai === "ยกเลิก") return "Cancelled";
+  if (thai === "ยกเลิก") return standardStatusLabel("CANCELLED", "en");
+  if (thai === STANDARD_STATUS.DRAFT.th) return standardStatusLabel("DRAFT", "en");
   const m = thai.match(/^เปิด SO แล้ว \((.+)\)$/);
   if (m) return `SO opened (${m[1]})`;
   return tNow(thai);

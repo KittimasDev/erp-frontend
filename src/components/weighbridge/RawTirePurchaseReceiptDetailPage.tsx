@@ -1,5 +1,6 @@
 "use client";
 
+import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import { useState } from "react";
 import {
   Button,
@@ -33,6 +34,7 @@ import {
   formatDeductionDisplayName,
   PAYMENT_STATUS_LABELS,
   RAW_TIRE_FLOW_STEP_LABELS,
+  RECEIPT_STATUS_COLORS,
   RECEIPT_STATUS_LABELS,
   STOCK_POSTING_STATUS_LABELS,
 } from "@/types/raw-tire-purchase-receipt";
@@ -87,17 +89,7 @@ function formatDate(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleDateString(appLocale());
-}
-
-function statusColor(status: string) {
-  if (status === "CONFIRMED") {
-    return "success";
-  }
-  if (status === "CANCELLED") {
-    return "error";
-  }
-  return "processing";
+  return formatErpDate(value, "-");
 }
 
 type Props = {
@@ -313,7 +305,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                   </div>
                   <div className={styles.detailTitleTags}>
                     <Tag
-                      color={statusColor(receipt.status)}
+                      color={RECEIPT_STATUS_COLORS[receipt.status] ?? "default"}
                       className={styles.flowTag}
                     >
                       {tLabel(RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status)}

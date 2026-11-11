@@ -205,7 +205,7 @@ export default function CreateProductionPlanModal({
                 <DatePicker
                   aria-label={t("วันเริ่มผลิตรอบที่ {no}", { no: round.index })}
                   value={dayjs(round.startDate)}
-                  format="DD/MM/YYYY"
+                  format="DD/MM/BBBB"
                   allowClear={false}
                   onChange={(value) => onStartChange(index, value)}
                 />
@@ -222,7 +222,7 @@ export default function CreateProductionPlanModal({
                     aria-label={t("เพิ่มวันหยุดผลิตเพิ่มเติมรอบที่ {no}", { no: round.index })}
                     placeholder={t("เพิ่มวันหยุด")}
                     value={null}
-                    format="DD/MM/YYYY"
+                    format="DD/MM/BBBB"
                     defaultPickerValue={dayjs(round.startDate)}
                     disabledDate={(current) => {
                       const iso = current.format("YYYY-MM-DD");

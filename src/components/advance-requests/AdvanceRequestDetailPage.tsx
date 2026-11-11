@@ -73,18 +73,18 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
       />
 
       {r.status === "PENDING_PV" ? (
-        <Alert type="success" showIcon title={t("ยืนยันรายการแล้ว — พร้อมนำไปสร้างใบสำคัญจ่าย (PV) ขั้นตอนถัดไป")} description={r.confirmedAt ? t("ยืนยันเมื่อ {at}", { at: dayjs(r.confirmedAt).format("DD/MM/YYYY HH:mm") }) : undefined} />
+        <Alert type="success" showIcon title={t("ยืนยันรายการแล้ว — พร้อมนำไปสร้างใบสำคัญจ่าย (PV) ขั้นตอนถัดไป")} description={r.confirmedAt ? t("ยืนยันเมื่อ {at}", { at: dayjs(r.confirmedAt).format("DD/MM/BBBB HH:mm") }) : undefined} />
       ) : null}
       {r.status === "PV_CREATED" ? (
         <Alert
           type="success"
           showIcon
           title={`${t("สร้างใบสำคัญจ่ายแล้ว")}${r.paymentVoucherNo ? ` — ${r.paymentVoucherNo}` : ""}`}
-          description={r.pvCreatedAt ? t("สร้างเมื่อ {at} · รายการนี้แก้ไขหรือยกเลิกไม่ได้ (ถ้าต้องยกเลิกให้ทำที่ใบสำคัญจ่าย)", { at: dayjs(r.pvCreatedAt).format("DD/MM/YYYY HH:mm") }) : undefined}
+          description={r.pvCreatedAt ? t("สร้างเมื่อ {at} · รายการนี้แก้ไขหรือยกเลิกไม่ได้ (ถ้าต้องยกเลิกให้ทำที่ใบสำคัญจ่าย)", { at: dayjs(r.pvCreatedAt).format("DD/MM/BBBB HH:mm") }) : undefined}
         />
       ) : null}
       {r.status === "CANCELLED" ? (
-        <Alert type="error" showIcon title={t("ยกเลิกเมื่อ {at}", { at: r.cancelledAt ? dayjs(r.cancelledAt).format("DD/MM/YYYY HH:mm") : "-" })} description={r.cancelReason} />
+        <Alert type="error" showIcon title={t("ยกเลิกเมื่อ {at}", { at: r.cancelledAt ? dayjs(r.cancelledAt).format("DD/MM/BBBB HH:mm") : "-" })} description={r.cancelReason} />
       ) : null}
 
       <Card title={t("ข้อมูลรายการ")}>
@@ -114,7 +114,7 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
           <Descriptions.Item label={t("ยอดโอนจริง")}><Typography.Text strong>{money.format(r.netTransferAmount)}</Typography.Text></Descriptions.Item>
           <Descriptions.Item label={t("ตรวจสอบภาษี")} span={2}>
             {r.whtVerified ? (
-              <Tag color="green">{t("ตรวจแล้ว โดย {name} · {at}", { name: r.whtVerifiedByName ?? "-", at: r.whtVerifiedAt ? dayjs(r.whtVerifiedAt).format("DD/MM/YYYY HH:mm") : "-" })}</Tag>
+              <Tag color="green">{t("ตรวจแล้ว โดย {name} · {at}", { name: r.whtVerifiedByName ?? "-", at: r.whtVerifiedAt ? dayjs(r.whtVerifiedAt).format("DD/MM/BBBB HH:mm") : "-" })}</Tag>
             ) : (
               <Tag color="orange">{t("ยังไม่ได้ตรวจสอบ")}</Tag>
             )}

@@ -25,11 +25,11 @@ import { useT } from "@/lib/i18n/useT";
 import { appLocale } from "@/components/weighbridge/receiving-i18n";
 
 function formatDate(value?: string) {
-  return value ? dayjs(value).format("DD/MM/YYYY") : "—";
+  return value ? dayjs(value).format("DD/MM/BBBB") : "—";
 }
 
 function formatDateTime(value?: string) {
-  return value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "—";
+  return value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "—";
 }
 
 function formatQty(value?: string) {

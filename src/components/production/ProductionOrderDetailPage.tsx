@@ -60,6 +60,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import {
   PRODUCTION_DOWNTIME_CATEGORY_LABEL,
   PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL,
+  PRODUCTION_ORDER_STATUS_COLOR,
   PRODUCTION_ORDER_STATUS_LABEL,
   PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL,
   ProductionOrderPlanLineType,
@@ -68,6 +69,7 @@ import {
 } from "@/types/production-order";
 import {
   canRequestMoreProductionOutput,
+  PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR,
   productionOutputStatusLabel,
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
@@ -111,7 +113,7 @@ function fmt(value?: string) {
 }
 
 function fmtDate(value?: string) {
-  return value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-";
+  return value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "-";
 }
 
 function outputItemLabel(row: {
@@ -793,16 +795,11 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>{t("สถานะ")}</span>
                   <span className={styles.statusValue}>
-                    <span
-                      className={`${styles.statusDot} ${
-                        order.status === ProductionOrderStatus.IN_PROGRESS
-                          ? styles.statusDotActive
-                          : ""
-                      }`}
-                    />
-                    {PRODUCTION_ORDER_STATUS_LABEL[order.status]
-                      ? tPoLabel(PRODUCTION_ORDER_STATUS_LABEL[order.status], lang)
-                      : order.status}
+                    <Tag color={PRODUCTION_ORDER_STATUS_COLOR[order.status] ?? "default"}>
+                      {PRODUCTION_ORDER_STATUS_LABEL[order.status]
+                        ? tPoLabel(PRODUCTION_ORDER_STATUS_LABEL[order.status], lang)
+                        : order.status}
+                    </Tag>
                   </span>
                 </div>
                 <div className={styles.infoItem}>
@@ -1454,7 +1451,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     title: t("วันที่"),
                     dataIndex: "issueDate",
                     key: "issueDate",
-                    render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+                    render: (v: string) => dayjs(v).format("DD/MM/BBBB"),
                   },
                   {
                     title: t("สถานะ"),
@@ -1531,7 +1528,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     dataIndex: "movementDate",
                     key: "movementDate",
                     width: 150,
-                    render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+                    render: (v: string) => dayjs(v).format("DD/MM/BBBB HH:mm"),
                   },
                   {
                     title: t("สินค้า"),
@@ -1622,7 +1619,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     width: 115,
                     render: (_, row) =>
                       row.postingDate
-                        ? dayjs(row.postingDate).format("DD/MM/YYYY")
+                        ? dayjs(row.postingDate).format("DD/MM/BBBB")
                         : "—",
                   },
                   { title: t("เลขที่คำขอ"), dataIndex: "requestNo", key: "requestNo" },
@@ -1658,7 +1655,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     key: "status",
                     render: (v: string, row) => (
                       <>
-                        <Tag>
+                        <Tag color={PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR[v] ?? "default"}>
                           {productionOutputStatusLabel(v)}
                         </Tag>
                         {v === "REJECTED" && row.rejectReason ? (
@@ -1677,13 +1674,13 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         <div>
                           {t("ขอ:")} {row.requestedByName ?? "—"}
                           {row.requestedAt
-                            ? ` · ${dayjs(row.requestedAt).format("DD/MM/YYYY HH:mm")}`
+                            ? ` · ${dayjs(row.requestedAt).format("DD/MM/BBBB HH:mm")}`
                             : ""}
                         </div>
                         <div>
                           {t("อนุมัติ:")} {row.approvedByName ?? "—"}
                           {row.approvedAt
-                            ? ` · ${dayjs(row.approvedAt).format("DD/MM/YYYY HH:mm")}`
+                            ? ` · ${dayjs(row.approvedAt).format("DD/MM/BBBB HH:mm")}`
                             : ""}
                         </div>
                       </div>
@@ -2329,7 +2326,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               rules={[{ required: true, message: t("กรุณาระบุวันที่รับเข้า") }]}
               extra={t("วันที่ของออกจากเครื่องจริง — งานยาวหลายวันอาจไม่ใช่วันที่กรอก")}
             >
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item
               name="warehouseId"

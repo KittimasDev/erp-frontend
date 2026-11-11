@@ -17,6 +17,7 @@ import {
   Input,
   Select,
   Table,
+  Tag,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -30,6 +31,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { getAccessToken } from "@/lib/auth/token";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
 import {
+  PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR,
   productionOutputStatusLabel,
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
@@ -75,40 +77,26 @@ function formatDate(value?: string) {
   if (!value) {
     return "—";
   }
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatDateTime(value?: string) {
   if (!value) {
     return "—";
   }
-  return dayjs(value).format("DD/MM/YYYY HH:mm");
-}
-
-function statusPillClass(status: string) {
-  switch (status) {
-    case ProductionOutputRequestStatus.PENDING_APPROVAL:
-      return styles.statusPending;
-    case ProductionOutputRequestStatus.APPROVED:
-      return styles.statusApproved;
-    case ProductionOutputRequestStatus.REJECTED:
-      return styles.statusRejected;
-    case ProductionOutputRequestStatus.CANCELLED:
-      return styles.statusCancelled;
-    default:
-      return styles.statusDefault;
-  }
+  return dayjs(value).format("DD/MM/BBBB HH:mm");
 }
 
 function StatusPill({ status }: { status: string }) {
   useLanguage();
   const isPending = status === ProductionOutputRequestStatus.PENDING_APPROVAL;
   return (
-    <span className={`${styles.statusPill} ${statusPillClass(status)}`}>
-      <span className={styles.statusDot} aria-hidden />
-      {isPending ? <ClockCircleOutlined aria-hidden /> : null}
+    <Tag
+      color={PRODUCTION_OUTPUT_REQUEST_STATUS_COLOR[status] ?? "default"}
+      icon={isPending ? <ClockCircleOutlined aria-hidden /> : undefined}
+    >
       {productionOutputStatusLabel(status)}
-    </span>
+    </Tag>
   );
 }
 

@@ -1,7 +1,21 @@
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 
 import { tNow } from "@/lib/i18n/useT";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import {
+  standardStatusColor,
+  standardStatusLabel,
+  type StandardStatus,
+} from "@/lib/status/standard-status";
 import { tSoStatus } from "@/types/sales-orders";
+
+/** รหัสสถานะบน timeline ที่ความหมายตรงกับสถานะมาตรฐาน (ชื่อ+สีมาจาก standard-status.ts) */
+const TIMELINE_STANDARD: Record<string, StandardStatus> = {
+  DRAFT: "DRAFT",
+  DELIVERED: "DELIVERED",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+};
 
 export type SalesTimelineStepTone = "done" | "active" | "pending" | "cancelled";
 
@@ -61,6 +75,8 @@ export function resolveSalesTimelineStepTone(
 
 export function salesTimelineStatusLabel(status?: string) {
   if (!status) return tNow("รอเริ่ม");
+  const std = TIMELINE_STANDARD[status.toUpperCase()];
+  if (std) return standardStatusLabel(std, getStoredLanguage());
   const map: Record<string, string> = {
     DONE: tNow("เสร็จแล้ว"),
     PENDING: tSoStatus("รอดำเนินการ"),
@@ -86,6 +102,19 @@ export function salesTimelineStatusLabel(status?: string) {
     PAID: tNow("ชำระครบ"),
   };
   return map[status.toUpperCase()] ?? status;
+}
+
+/**
+ * สีป้ายสถานะบน timeline — รหัสที่ตรงสถานะมาตรฐาน (แบบร่าง/ส่งแล้ว/เสร็จสิ้น/ยกเลิก) ใช้สีมาตรฐาน
+ * เหมือนหน้ารายการ SO ("ส่งแล้ว" เขียว, "ยกเลิก" เทา) ที่เหลือใช้สีตาม tone
+ */
+export function salesTimelineStatusTagColor(
+  status: string | undefined,
+  tone: SalesTimelineStepTone,
+): string {
+  const std = TIMELINE_STANDARD[(status ?? "").toUpperCase()];
+  if (std) return standardStatusColor(std);
+  return salesTimelineToneTagColor(tone);
 }
 
 export function salesTimelineToneTagColor(tone: SalesTimelineStepTone): string {

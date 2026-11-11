@@ -25,7 +25,7 @@ export default function DowntimeSummaryTab() {
       <DatePicker.RangePicker
         value={range}
         allowClear={false}
-        format="DD/MM/YYYY"
+        format="DD/MM/BBBB"
         onChange={(v) => v?.[0] && v[1] && setRange([v[0], v[1]])}
         style={{ marginBottom: 12 }}
       />

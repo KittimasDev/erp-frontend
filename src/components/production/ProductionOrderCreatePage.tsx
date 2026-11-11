@@ -785,7 +785,7 @@ export default function ProductionOrderCreatePage() {
                 style={{ width: "100%" }}
                 allowEmpty={[false, false]}
                 value={productionDateRange}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(value) => {
                   if (value?.[0] && value[1]) {
                     setProductionDateRange([value[0], value[1]]);

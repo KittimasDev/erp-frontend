@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 import { getStoredLanguage } from "@/lib/i18n/language";
 
 /** ป้ายสถานะ (ใบขอผลิต/ใบสั่งผลิต) ตามภาษา — ไทยคืนข้อความเดิม · "ยกเลิก" ที่นี่คือสถานะ Cancelled ไม่ใช่ปุ่ม Cancel */
@@ -8,6 +9,7 @@ const PRODUCTION_STATUS_EN: Record<string, string> = {
   "มีใบสั่งผลิตที่ยังไม่เสร็จ": "Has unfinished production orders",
   "ยังไม่เริ่มผลิต": "Not started",
   "กำลังผลิต": "In progress",
+  "กำลังดำเนินการ": "In progress",
   "หยุดชั่วคราว": "Paused",
   "เสร็จสิ้น": "Completed",
   "ยกเลิก": "Cancelled",
@@ -30,9 +32,9 @@ export type ProductionRequestStatusValue =
 
 export const PRODUCTION_REQUEST_STATUS_LABEL: Record<string, string> = {
   PENDING: "รอเปิดใบสั่งผลิต",
-  IN_PRODUCTION: "อยู่ในระหว่างการผลิต",
+  IN_PRODUCTION: standardStatusLabel("IN_PROGRESS"),
   COMPLETED: "ผลิตครบแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
 };
 
 export const PRODUCTION_REQUEST_STATUS_FILTER_LABEL: Record<string, string> = {
@@ -44,9 +46,9 @@ export const PRODUCTION_REQUEST_STATUS_FILTER_LABEL: Record<string, string> = {
 
 const PRODUCTION_REQUEST_STATUS_TAG_COLOR: Record<string, string> = {
   PENDING: "default",
-  IN_PRODUCTION: "processing",
-  COMPLETED: "success",
-  CANCELLED: "error",
+  IN_PRODUCTION: standardStatusColor("IN_PROGRESS"),
+  COMPLETED: standardStatusColor("COMPLETED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export function getProductionRequestStatusDisplay(
@@ -58,7 +60,7 @@ export function getProductionRequestStatusDisplay(
     const hasInProgress = orders.some((order) => order.status === "IN_PROGRESS");
     const hasDraft = orders.some((order) => order.status === "DRAFT");
     if (hasInProgress) {
-      return { label: "อยู่ในระหว่างการผลิต", color: "processing" };
+      return { label: standardStatusLabel("IN_PROGRESS"), color: standardStatusColor("IN_PROGRESS") };
     }
     if (hasDraft || orders.length === 0) {
       return { label: "ยังไม่เริ่มผลิต", color: "default" };

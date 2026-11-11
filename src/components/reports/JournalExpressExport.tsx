@@ -17,7 +17,7 @@ import type {
   ExpressExportPreview,
 } from "@/types/journal-export";
 
-const formatDateTime = (value?: string) => (value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "—");
+const formatDateTime = (value?: string) => (value ? dayjs(value).format("DD/MM/BBBB HH:mm") : "—");
 
 /** "ส่งแล้ว" / "ยังไม่ส่ง" ของสถานะส่งออก Express (ไทยตามเดิม · อังกฤษ Exported / Not exported) */
 export function expressSentLabel(sent: boolean, lang: Language): string {

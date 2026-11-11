@@ -21,7 +21,7 @@ function formatDate(value?: string | null) {
     return EMPTY;
   }
   const parsed = dayjs(value);
-  return parsed.isValid() ? parsed.format("DD/MM/YYYY") : EMPTY;
+  return parsed.isValid() ? parsed.format("DD/MM/BBBB") : EMPTY;
 }
 
 function formatDateTime(value?: string | null) {
@@ -29,7 +29,7 @@ function formatDateTime(value?: string | null) {
     return EMPTY;
   }
   const parsed = dayjs(value);
-  return parsed.isValid() ? parsed.format("DD/MM/YYYY HH:mm") : EMPTY;
+  return parsed.isValid() ? parsed.format("DD/MM/BBBB HH:mm") : EMPTY;
 }
 
 function textOr(value?: string | null) {

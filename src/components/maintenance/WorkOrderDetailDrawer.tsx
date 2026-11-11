@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n/useT";
 import {
   PRIORITY_OPTIONS,
   ROOT_CAUSE_OPTIONS,
+  WORK_ORDER_STATUS_COLOR,
   type WorkOrderPartUsage,
 } from "@/types/maintenance";
 
@@ -94,7 +95,7 @@ export default function WorkOrderDetailDrawer({ workOrderId, onClose }: Props) {
         <>
           <Descriptions size="small" column={{ xs: 1, md: 2 }} bordered style={{ marginBottom: 12 }}>
             <Descriptions.Item label={t("ประเภท")}><Tag color={wo.type === "PM" ? "blue" : "volcano"}>{wo.type}</Tag></Descriptions.Item>
-            <Descriptions.Item label={t("สถานะ")}>{woStatusLabel(wo.status, lang)}</Descriptions.Item>
+            <Descriptions.Item label={t("สถานะ")}><Tag color={WORK_ORDER_STATUS_COLOR[wo.status] ?? "default"}>{woStatusLabel(wo.status, lang)}</Tag></Descriptions.Item>
             <Descriptions.Item label={t("ความเร่งด่วน")}><Tag color={PRIORITY_COLOR[wo.priority]}>{t(PRIORITY_OPTIONS.find((p) => p.value === wo.priority)?.label ?? wo.priority)}</Tag></Descriptions.Item>
             <Descriptions.Item label={t("วันที่วางแผน")}>{fmtDate(wo.plannedDate)}</Descriptions.Item>
             <Descriptions.Item label={t("ช่าง")} span={2}>

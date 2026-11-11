@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Tooltip } from "antd";
@@ -49,7 +50,7 @@ const TONE_CLASS: Record<PortalModuleTone, string> = {
 };
 
 function formatThaiDate(date: Date, lang: Language = "th") {
-  return date.toLocaleDateString(lang === "en" ? "en-GB" : "th-TH", {
+  return formatBuddhistIntl(date, lang === "en" ? "en" : "th", {
     weekday: "long",
     year: "numeric",
     month: "long",

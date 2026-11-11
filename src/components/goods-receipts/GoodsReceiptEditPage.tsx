@@ -190,7 +190,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                     name="grDate"
                     rules={[{ required: true }]}
                   >
-                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                   </Form.Item>
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}

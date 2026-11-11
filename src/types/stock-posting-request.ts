@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export const StockPostingRequestStatus = {
   PENDING_APPROVAL: "PENDING_APPROVAL",
   APPROVED: "APPROVED",
@@ -6,22 +7,26 @@ export const StockPostingRequestStatus = {
 } as const;
 
 export const STOCK_POSTING_REQUEST_STATUS_LABEL: Record<string, string> = {
-  PENDING_APPROVAL: "รออนุมัติ",
-  APPROVED: "อนุมัติแล้ว",
-  REJECTED: "ไม่อนุมัติ",
-  CANCELLED: "ยกเลิก",
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
+  APPROVED: standardStatusLabel("APPROVED"),
+  REJECTED: standardStatusLabel("REJECTED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะคำขอรับเข้าสต๊อก — ตามมาตรฐานกลาง */
+export const STOCK_POSTING_REQUEST_STATUS_COLOR: Record<string, string> = {
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  APPROVED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 /** ป้ายสถานะตามภาษา — ไทยใช้ STOCK_POSTING_REQUEST_STATUS_LABEL เดิม ("ยกเลิก" ชนกับปุ่ม Cancel จึงไม่ผ่าน dictionary) */
 export function stockPostingStatusLabel(status: string, lang: "th" | "en"): string {
   if (lang === "en") {
-    const en: Record<string, string> = {
-      PENDING_APPROVAL: "Pending approval",
-      APPROVED: "Approved",
-      REJECTED: "Rejected",
-      CANCELLED: "Cancelled",
-    };
-    return en[status] ?? status;
+    return status in STOCK_POSTING_REQUEST_STATUS_LABEL
+      ? standardStatusLabel(status as "PENDING_APPROVAL", "en")
+      : status;
   }
   return STOCK_POSTING_REQUEST_STATUS_LABEL[status] ?? status;
 }

@@ -136,7 +136,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
         render: (_v, row) => (
           <div className={styles.dueCell}>
             <span className={styles.dueDate}>
-              {dayjs(row.deliveryDate).format("DD/MM/YYYY")}
+              {dayjs(row.deliveryDate).format("DD/MM/BBBB")}
             </span>
             <DuePill days={row.daysUntilDue} />
           </div>

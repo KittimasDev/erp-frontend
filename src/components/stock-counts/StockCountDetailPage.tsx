@@ -1,4 +1,5 @@
 "use client";
+import { Tag } from "antd";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,7 +24,7 @@ import {
 } from "@/hooks/stock-counts/useStockCountMutations";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockCountQuery } from "@/hooks/stock-counts/useStockCountsQuery";
-import { STOCK_COUNT_STATUS_LABEL, STOCK_COUNT_TYPE_LABEL } from "@/types/stock-counts";
+import { STOCK_COUNT_STATUS_LABEL, STOCK_COUNT_TYPE_LABEL, STOCK_COUNT_STATUS_COLOR } from "@/types/stock-counts";
 import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockCountDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -32,19 +33,9 @@ type Props = { id: string };
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "POSTED":
-      return styles.statusApproved;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
-  }
-}
 
 function varianceClass(variance: number) {
   if (Math.abs(variance) < 1e-9) return styles.varianceZero;
@@ -155,7 +146,7 @@ export default function StockCountDetailPage({ id }: Props) {
                 <span className={styles.metaLabel}>{t("ปรับปรุงสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
-                    ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                    ? dayjs(data.postedAt).format("DD/MM/BBBB HH:mm")
                     : t("ยังไม่อนุมัติ")}
                 </div>
               </div>
@@ -220,8 +211,10 @@ export default function StockCountDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.countNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+          <div>
+            <Tag color={STOCK_COUNT_STATUS_COLOR[data.status] ?? "default"}>
             {STOCK_COUNT_STATUS_LABEL[data.status] ?? data.status}
+          </Tag>
           </div>
 
           <div className={styles.sideRows}>

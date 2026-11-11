@@ -34,13 +34,13 @@ export default function PaymentMethodFields({
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "0 16px" }}>
         <Form.Item name="voucherDate" label={t("วันที่เอกสาร")} rules={[{ required: true, message: t("ระบุวันที่เอกสาร") }]}>
-          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} disabled={disabled} />
+          <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} disabled={disabled} />
         </Form.Item>
         <Form.Item name="paymentMethod" label={t("วิธีชำระ")} rules={[{ required: true, message: t("เลือกวิธีชำระ") }]}>
           <Select options={PAYMENT_METHOD_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} disabled={disabled} />
         </Form.Item>
         <Form.Item name="desiredPayDate" label={t("วันที่ต้องการจ่าย")}>
-          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} disabled={disabled} />
+          <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} disabled={disabled} />
         </Form.Item>
         <Form.Item
           name="companyBankAccountId"

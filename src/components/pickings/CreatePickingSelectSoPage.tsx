@@ -178,7 +178,7 @@ export default function CreatePickingSelectSoPage() {
         return (
           <Tooltip title={overdue ? t("เลยกำหนดส่งแล้ว") : undefined}>
             <span style={overdue ? { color: "#cf1322", fontWeight: 600 } : undefined}>
-              {date.format("DD/MM/YYYY")}
+              {date.format("DD/MM/BBBB")}
             </span>
           </Tooltip>
         );

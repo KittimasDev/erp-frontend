@@ -298,6 +298,25 @@
   background: #9ca3af;
 }
 
+/* รออนุมัติ = ส้ม / ไม่อนุมัติ = แดง (มาตรฐานสถานะ) */
+.statusPending {
+  background: rgba(250, 140, 22, 0.14);
+  color: #ad4e00;
+}
+
+.statusPending .statusDot {
+  background: #fa8c16;
+}
+
+.statusRejected {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.statusRejected .statusDot {
+  background: #ef4444;
+}
+
 .statusInspection {
   background: #e6f4ff;
   border: 1px solid #91caff;

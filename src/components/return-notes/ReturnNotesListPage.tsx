@@ -17,7 +17,7 @@ import dayjs from "dayjs";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useReturnNotesQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import type { ReturnNote, ReturnNoteStatus } from "@/types/return-notes";
-import { RETURN_NOTE_STATUS_LABEL } from "@/types/return-notes";
+import { RETURN_NOTE_STATUS_LABEL, returnNoteStatusLabel } from "@/types/return-notes";
 import {
   ApproveReturnNoteModal,
   RejectReturnNoteModal,
@@ -25,20 +25,19 @@ import {
 import styles from "./ReturnNotesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 import { useT } from "@/lib/i18n/useT";
-import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function StatusPill({ status }: { status: string }) {
-  const t = useT();
+  useT();
   const tone =
     status === "APPROVED"
       ? styles.statusConfirmed
       : status === "REJECTED"
-        ? styles.statusCancelled
-        : styles.statusDraft;
+        ? styles.statusRejected
+        : styles.statusPending;
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {statusT(t, RETURN_NOTE_STATUS_LABEL[status as ReturnNoteStatus] ?? status)}
+      {returnNoteStatusLabel(status)}
     </span>
   );
 }
@@ -139,7 +138,7 @@ export default function ReturnNotesListPage() {
         dataIndex: "createdAt",
         key: "createdAt",
         width: 110,
-        render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+        render: (value: string) => dayjs(value).format("DD/MM/BBBB"),
       },
       {
         title: t("ลูกค้า"),
@@ -226,19 +225,19 @@ export default function ReturnNotesListPage() {
     { label: t("ทั้งหมด"), hint: t("เอกสารทั้งหมด"), value: allQuery.data?.data?.total ?? 0 },
     {
       key: "PENDING_APPROVAL",
-      label: t("รอคลังอนุมัติ"),
+      label: returnNoteStatusLabel("PENDING_APPROVAL"),
       hint: t("ยังไม่รับของเข้า"),
       value: pendingQuery.data?.data?.total ?? 0,
     },
     {
       key: "APPROVED",
-      label: t("อนุมัติแล้ว"),
+      label: returnNoteStatusLabel("APPROVED"),
       hint: t("อยู่ในคลังตรวจสอบ"),
       value: approvedQuery.data?.data?.total ?? 0,
     },
     {
       key: "REJECTED",
-      label: statusT(t, "ไม่อนุมัติ"),
+      label: returnNoteStatusLabel("REJECTED"),
       hint: t("ไม่รับของเข้า"),
       value: rejectedQuery.data?.data?.total ?? 0,
     },
@@ -301,7 +300,7 @@ export default function ReturnNotesListPage() {
               style={{ width: "100%" }}
               value={range}
               onChange={(value) => setRange(value)}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
             />
           </div>
           <div className={styles.filterItem}>
@@ -316,7 +315,7 @@ export default function ReturnNotesListPage() {
                 Object.keys(RETURN_NOTE_STATUS_LABEL) as ReturnNoteStatus[]
               ).map((value) => ({
                 value,
-                label: statusT(t, RETURN_NOTE_STATUS_LABEL[value]),
+                label: returnNoteStatusLabel(value),
               }))}
             />
           </div>

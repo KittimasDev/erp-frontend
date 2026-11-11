@@ -80,9 +80,9 @@ function formatRange(startDate: string, endDate: string) {
   const start = dayjs(startDate);
   const end = dayjs(endDate);
   if (start.isSame(end, "day")) {
-    return start.format("DD/MM/YYYY");
+    return start.format("DD/MM/BBBB");
   }
-  return `${start.format("DD/MM/YYYY")} - ${end.format("DD/MM/YYYY")}`;
+  return `${start.format("DD/MM/BBBB")} - ${end.format("DD/MM/BBBB")}`;
 }
 
 export default function LeaveRequestsPage() {
@@ -324,7 +324,7 @@ export default function LeaveRequestsPage() {
         width: 130,
         render: (value: string, row) => (
           <div className={styles.stackedCell}>
-            <span>{dayjs(value).format("DD/MM/YYYY HH:mm")}</span>
+            <span>{dayjs(value).format("DD/MM/BBBB HH:mm")}</span>
             <small>
               {row.source ? t(LEAVE_SOURCE_LABEL[row.source] ?? "") : ""}
             </small>
@@ -373,7 +373,7 @@ export default function LeaveRequestsPage() {
               <span>{value}</span>
               <small>
                 {row.approvedAt
-                  ? dayjs(row.approvedAt).format("DD/MM/YYYY HH:mm")
+                  ? dayjs(row.approvedAt).format("DD/MM/BBBB HH:mm")
                   : ""}
               </small>
             </div>
@@ -482,7 +482,7 @@ export default function LeaveRequestsPage() {
                 disabled={isPendingTab}
                 style={{ width: "100%" }}
                 value={draft.range}
-                format="DD/MM/YYYY"
+                format="DD/MM/BBBB"
                 onChange={(values) => {
                   if (!values?.[0] || !values[1]) return;
                   const next: [Dayjs, Dayjs] = [values[0], values[1]];

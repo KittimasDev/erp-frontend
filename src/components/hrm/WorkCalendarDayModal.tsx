@@ -65,7 +65,7 @@ export default function WorkCalendarDayModal({
   return (
     <Modal
       open={open}
-      title={`${holiday ? t("แก้ไขวันหยุด") : t("กดหยุดวันนี้")} — ${dayjs(date).format("DD/MM/YYYY")}`}
+      title={`${holiday ? t("แก้ไขวันหยุด") : t("กดหยุดวันนี้")} — ${dayjs(date).format("DD/MM/BBBB")}`}
       okText={t("บันทึก")}
       cancelText={t("ยกเลิก")}
       confirmLoading={markMutation.isPending}

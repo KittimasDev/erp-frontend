@@ -35,7 +35,7 @@ import type {
   ProductionRequestItem,
   ProductionRequestProductionOrderRef,
 } from "@/types/production-request";
-import { PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
+import { PRODUCTION_ORDER_STATUS_COLOR, PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
@@ -179,14 +179,14 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
       title: t("วันที่ผลิต"),
       dataIndex: "productionDate",
       key: "productionDate",
-      render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+      render: (value: string) => dayjs(value).format("DD/MM/BBBB"),
     },
     {
       title: t("สถานะ"),
       dataIndex: "status",
       key: "status",
       render: (value: string) => (
-        <Tag>{tProductionStatus(PRODUCTION_ORDER_STATUS_LABEL[value] ?? value)}</Tag>
+        <Tag color={PRODUCTION_ORDER_STATUS_COLOR[value] ?? "default"}>{tProductionStatus(PRODUCTION_ORDER_STATUS_LABEL[value] ?? value)}</Tag>
       ),
     },
   ];
@@ -248,14 +248,14 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>{t("วันที่ขอ")}</span>
               <span className={styles.infoValue}>
-                {request ? dayjs(request.requestDate).format("DD/MM/YYYY") : "-"}
+                {request ? dayjs(request.requestDate).format("DD/MM/BBBB") : "-"}
               </span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>{t("ต้องการภายใน")}</span>
               <span className={styles.infoValue}>
                 {request?.requiredDate
-                  ? dayjs(request.requiredDate).format("DD/MM/YYYY")
+                  ? dayjs(request.requiredDate).format("DD/MM/BBBB")
                   : "-"}
               </span>
             </div>

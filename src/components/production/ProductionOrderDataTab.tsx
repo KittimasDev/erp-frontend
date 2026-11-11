@@ -151,8 +151,8 @@ export default function ProductionOrderDataTab({
       key: "bucket",
       render: (value: string) =>
         bucket === "WEEK"
-          ? t("สัปดาห์ {d}", { d: dayjs(value).format("DD/MM/YYYY") })
-          : dayjs(value).format("DD/MM/YYYY"),
+          ? t("สัปดาห์ {d}", { d: dayjs(value).format("DD/MM/BBBB") })
+          : dayjs(value).format("DD/MM/BBBB"),
     },
     {
       title: t("ผลผลิตในช่วง"),

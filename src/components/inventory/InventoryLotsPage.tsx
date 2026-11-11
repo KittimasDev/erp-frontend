@@ -51,7 +51,7 @@ function formatDate(value?: string) {
   if (!value) {
     return "-";
   }
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function lotStatusClass(status?: string) {
@@ -629,7 +629,7 @@ export default function InventoryLotsPage() {
             <DatePicker.RangePicker
               allowEmpty={[true, true]}
               style={{ width: "100%" }}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               placeholder={[t("ตั้งแต่"), t("ถึง")]}
               value={draft.receivedRange ?? null}
               onChange={(range) =>

@@ -292,13 +292,13 @@ export default function AdvanceRequestFormPage({ id }: Props) {
         <Form form={form} layout="vertical" initialValues={{ requestDate: dayjs(), calcMode: "PERCENT" }}>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <Form.Item name="requestDate" label={t("วันที่เอกสาร")} rules={[{ required: true }]} style={{ minWidth: 200 }}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item label={t("ผู้ขอจ่าย")} style={{ minWidth: 200 }}>
               <Input disabled value={request?.requestedByName ?? t("ผู้ใช้ที่เข้าสู่ระบบ")} />
             </Form.Item>
             <Form.Item name="desiredPayDate" label={t("วันที่ต้องการจ่าย")} style={{ minWidth: 200 }} extra={t("บังคับก่อนยืนยันรายการ")}>
-              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+              <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
             </Form.Item>
           </div>
           <Form.Item name="calcMode" label={t("รูปแบบการคำนวณ")}>
@@ -396,7 +396,7 @@ export default function AdvanceRequestFormPage({ id }: Props) {
                 type="success"
                 showIcon
                 style={{ marginBottom: 12 }}
-                title={t("ตรวจสอบแล้วโดย {name} เมื่อ {at}", { name: request.whtVerifiedByName ?? "-", at: request.whtVerifiedAt ? dayjs(request.whtVerifiedAt).format("DD/MM/YYYY HH:mm") : "-" })}
+                title={t("ตรวจสอบแล้วโดย {name} เมื่อ {at}", { name: request.whtVerifiedByName ?? "-", at: request.whtVerifiedAt ? dayjs(request.whtVerifiedAt).format("DD/MM/BBBB HH:mm") : "-" })}
               />
             )}
             <Form.Item name="whtApplicable" label={t("มีภาษีหัก ณ ที่จ่ายหรือไม่")}>

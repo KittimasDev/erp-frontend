@@ -1,3 +1,5 @@
+import { STANDARD_STATUS, standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
+
 type ApiEnvelope<T> = {
   statusCode: number;
   message: string;
@@ -12,17 +14,17 @@ export type OvertimeStatus =
   | "CANCELLED";
 
 export const OVERTIME_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "รออนุมัติ",
-  APPROVED: "อนุมัติแล้ว",
-  REJECTED: "ปฏิเสธ",
-  CANCELLED: "ยกเลิก",
+  DRAFT: STANDARD_STATUS.PENDING_APPROVAL.th,
+  APPROVED: STANDARD_STATUS.APPROVED.th,
+  REJECTED: STANDARD_STATUS.REJECTED.th,
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 
 export const OVERTIME_STATUS_COLOR: Record<string, string> = {
-  DRAFT: "processing",
-  APPROVED: "success",
-  REJECTED: "error",
-  CANCELLED: "default",
+  DRAFT: standardStatusColor("PENDING_APPROVAL"),
+  APPROVED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export const OVERTIME_SOURCE_LABEL: Record<string, string> = {
@@ -155,10 +157,10 @@ export type OvertimeSummaryApiResponse = ApiEnvelope<OvertimeSummary>;
 export function overtimeStatusLabel(status: string, lang: "th" | "en"): string {
   if (lang === "en") {
     const en: Record<string, string> = {
-      DRAFT: "Pending approval",
-      APPROVED: "Approved",
-      REJECTED: "Rejected",
-      CANCELLED: "Cancelled",
+      DRAFT: standardStatusLabel("PENDING_APPROVAL", "en"),
+      APPROVED: standardStatusLabel("APPROVED", "en"),
+      REJECTED: standardStatusLabel("REJECTED", "en"),
+      CANCELLED: standardStatusLabel("CANCELLED", "en"),
     };
     return en[status] ?? status;
   }

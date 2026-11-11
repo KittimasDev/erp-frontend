@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type ClassificationSummary = {
   netWeightKg: string;
   classifiedWeightKg: string;
@@ -121,7 +122,14 @@ export const DEDUCTION_TYPE_OPTIONS = [
 ] as const;
 
 export const RECEIPT_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: standardStatusLabel("DRAFT"),
   CONFIRMED: "ยืนยันแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: standardStatusLabel("CANCELLED"),
+};
+
+/** สีป้ายสถานะใบรับซื้อ — ร่าง/ยกเลิก = เทา · ยืนยันแล้ว = เขียว (ตามมาตรฐานกลาง) */
+export const RECEIPT_STATUS_COLORS: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  CONFIRMED: standardStatusColor("APPROVED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };

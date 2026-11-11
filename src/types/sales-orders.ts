@@ -1,5 +1,11 @@
 import { getStoredLanguage, type Language } from "@/lib/i18n/language";
 import { translate } from "@/lib/i18n/translate";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+  type StandardStatus,
+} from "@/lib/status/standard-status";
 
 const STATUS_EN_OVERRIDE: Record<string, string> = {
   /* คำที่ในบริบทใบสั่งขายความหมายต่างจากพจนานุกรมกลาง (เช่น "ยกเลิก" = Cancelled ไม่ใช่ปุ่ม Cancel, "ใบจ่ายสินค้า" เอกพจน์) */
@@ -53,17 +59,53 @@ export function isPreConfirmSalesOrderStatus(status?: string): boolean {
 }
 
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
   CONFIRMED: "ยืนยันแล้ว",
   STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
   PICKING: "จ่ายสินค้าแล้ว",
   PACKED: "บรรจุแล้ว",
-  DELIVERED: "ส่งแล้ว",
+  DELIVERED: STANDARD_STATUS.DELIVERED.th,
   PARTIALLY_ISSUED: "จ่ายสินค้าบางส่วน",
-  COMPLETED: "เสร็จสิ้น",
-  CANCELLED: "ยกเลิก",
+  COMPLETED: STANDARD_STATUS.COMPLETED.th,
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
+
+/** รหัสสถานะ SO ที่ความหมายตรงกับสถานะมาตรฐาน (ชื่อ+สีมาจาก lib/status/standard-status.ts) */
+const SALES_ORDER_STANDARD: Partial<Record<string, StandardStatus>> = {
+  DRAFT: "DRAFT",
+  DELIVERED: "DELIVERED",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+};
+
+/**
+ * สีป้ายสถานะ SO — ใช้ร่วมกันทุกหน้า (/sales-orders, /sales-tracking, รายละเอียดลูกค้า)
+ * "ส่งแล้ว" = เขียวเหมือนกันทุกที่
+ */
+export function salesOrderStatusColor(status: string): string {
+  const std = SALES_ORDER_STANDARD[status];
+  if (std) return standardStatusColor(std);
+  switch (status) {
+    case "CONFIRMED":
+    case "STOCK_CHECKED":
+    case "PICKING":
+    case "PACKED":
+    case "PARTIALLY_ISSUED":
+      return "processing";
+    case "AWAITING_CONFIRM":
+      return "warning";
+    default:
+      return "default";
+  }
+}
+
+/** ป้ายสถานะ SO ตามภาษา — รหัสมาตรฐานใช้ชื่อกลาง ที่เหลือแปลผ่าน tSoStatus */
+export function salesOrderStatusLabel(status: string, lang?: Language): string {
+  const std = SALES_ORDER_STANDARD[status];
+  if (std) return standardStatusLabel(std, lang ?? getStoredLanguage());
+  return tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status, lang);
+}
 
 export type SalesOrderCustomerSummary = {
   id: string;

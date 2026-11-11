@@ -1,5 +1,7 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
+import { formatDateTime } from "@/lib/i18n/format";
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 
@@ -194,10 +196,7 @@ export default function CustomersPage() {
     return `${Math.round((value / customers.length) * 100)}%`;
   };
 
-  const thisMonthLabel = new Date().toLocaleDateString(lang === "en" ? "en-GB" : "th-TH", {
-    month: "long",
-    year: "numeric",
-  });
+  const thisMonthLabel = formatBuddhistIntl(new Date(), lang === "en" ? "en" : "th", { month: "long", year: "numeric" });
 
   const summaryCardClass = `${styles.summaryCard} ${pageStyles.summaryCard}`;
 
@@ -330,7 +329,7 @@ export default function CustomersPage() {
       width: 180,
       render: (value: string) => (
         <span className={`${styles.updatedText} ${pageStyles.updatedText}`}>
-          {value ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH") : "-"}
+          {value ? formatDateTime(value, lang) : "-"}
         </span>
       ),
     },

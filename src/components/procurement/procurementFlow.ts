@@ -1,4 +1,5 @@
 import { tNow } from "@/lib/i18n/useT";
+import { standardStatusLabel } from "@/lib/status/standard-status";
 import { tStatus } from "@/types/purchase-orders";
 
 export const PROCUREMENT_FLOW_STEPS = [
@@ -174,7 +175,7 @@ export function resolveProcurementFlow(
         ? tNow("ใบขอซื้อถูกปฏิเสธ — แก้ไขหรือสร้างใบใหม่")
         : tNow("ใบขอซื้อถูกยกเลิกแล้ว");
     summaryLabel = pr?.status === "REJECTED" ? tNow("ปฏิเสธแล้ว") : tNow("ยกเลิกแล้ว");
-    badgeLabel = pr?.status === "REJECTED" ? tNow("ปฏิเสธ") : tStatus("ยกเลิก");
+    badgeLabel = pr?.status === "REJECTED" ? tStatus(standardStatusLabel("REJECTED")) : tStatus("ยกเลิก");
     badgeTone = "error";
     stepsStatus = "error";
   } else if (isTerminalFail(po?.status)) {
@@ -183,7 +184,7 @@ export function resolveProcurementFlow(
         ? tNow("ใบสั่งซื้อไม่ผ่านอนุมัติ — แก้ไขแล้วสร้างใบใหม่")
         : tNow("ใบสั่งซื้อถูกยกเลิกแล้ว");
     summaryLabel = po?.status === "REJECTED" ? tNow("ไม่อนุมัติ") : tNow("ยกเลิกแล้ว");
-    badgeLabel = po?.status === "REJECTED" ? tNow("ไม่อนุมัติ") : tStatus("ยกเลิก");
+    badgeLabel = po?.status === "REJECTED" ? tStatus(standardStatusLabel("REJECTED")) : tStatus("ยกเลิก");
     badgeTone = "error";
     stepsStatus = "error";
   } else if (po?.status === "RECEIVE_CANCELLED") {
@@ -312,13 +313,14 @@ export type ListFlowSource =
 
 export function resolveListFlowBadge(source: ListFlowSource): {
   label: string;
-  tone: "active" | "done" | "error" | "wait";
+  /** error = เทา (ยกเลิก) · rejected = แดง (ไม่อนุมัติ ตามสีมาตรฐาน) */
+  tone: "active" | "done" | "error" | "wait" | "rejected";
   href?: string;
 } {
   switch (source.kind) {
     case "pr": {
       if (source.status === "REJECTED") {
-        return { label: tNow("ปฏิเสธ"), tone: "error" };
+        return { label: tStatus(standardStatusLabel("REJECTED")), tone: "rejected" };
       }
       if (source.status === "CANCELLED") {
         return { label: tStatus("ยกเลิก"), tone: "error" };
@@ -340,7 +342,7 @@ export function resolveListFlowBadge(source: ListFlowSource): {
         return { label: tStatus("ยกเลิก"), tone: "error" };
       }
       if (source.status === "REJECTED") {
-        return { label: tNow("ไม่อนุมัติ"), tone: "error" };
+        return { label: tStatus(standardStatusLabel("REJECTED")), tone: "rejected" };
       }
       if (source.status === "PENDING_APPROVAL") {
         return {

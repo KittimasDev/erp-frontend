@@ -27,8 +27,9 @@ import type { SalesOrder } from "@/types/sales-orders";
 import {
   isPreConfirmSalesOrderStatus,
   SALES_ORDER_STATUS_LABEL,
+  salesOrderStatusColor,
+  salesOrderStatusLabel,
   tSoStatus,
-  type SalesOrderStatus,
 } from "@/types/sales-orders";
 import styles from "./SalesOrdersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -82,27 +83,9 @@ type SummaryBucketKey = (typeof SUMMARY_BUCKETS)[number]["key"];
 
 const PAGE_SIZE = 10;
 
-function statusColor(status: string) {
-  switch (status) {
-    case "COMPLETED":
-      return "success";
-    case "CONFIRMED":
-    case "STOCK_CHECKED":
-    case "PICKING":
-    case "PACKED":
-    case "DELIVERED":
-    case "PARTIALLY_ISSUED":
-      return "processing";
-    case "CANCELLED":
-      return "default";
-    default:
-      return "warning";
-  }
-}
-
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMoney(value?: string) {
@@ -135,8 +118,8 @@ function SalesOrderProgressCell({
       className={`${styles.progressCell} ${styles[`progress_${progress.tone}`]}`}
     >
       <div className={styles.progressMeta}>
-        <Tag color={statusColor(status)} className={styles.progressStatusTag}>
-          {tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status)}
+        <Tag color={salesOrderStatusColor(status)} className={styles.progressStatusTag}>
+          {salesOrderStatusLabel(status)}
         </Tag>
         <span className={styles.progressCount}>
           {progress.tone === "stopped" && progress.current === 0
@@ -491,7 +474,7 @@ export default function SalesOrdersListPage() {
               onChange={setStatus}
               style={{ width: "100%" }}
               options={Object.entries(SALES_ORDER_STATUS_LABEL).map(
-                ([value, label]) => ({ value, label: tSoStatus(label) }),
+                ([value]) => ({ value, label: salesOrderStatusLabel(value) }),
               )}
             />
           </div>
@@ -500,7 +483,7 @@ export default function SalesOrdersListPage() {
             <DatePicker
               value={date}
               onChange={setDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
               placeholder={t("เลือกวันที่")}
             />

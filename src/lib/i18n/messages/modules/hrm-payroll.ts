@@ -141,4 +141,5 @@ export const EN_HRM_PAYROLL: Record<string, string> = {
   "คำนำหน้า": "Title",
   "ยังมีพนักงาน {n} คนที่ข้อมูลไม่ครบ (ไม่มีธนาคารหรือเลขบัญชี) — กรอกในข้อมูลพนักงานก่อน จึงจะส่งออกรายการจ่ายได้": "{n} employee(s) have incomplete data (no bank or account number) — fill it in on the employee record before exporting the payment list",
   "และอีก {n} คน": "and {n} more",
+  "ยังไม่บันทึก": "not saved yet",
 };

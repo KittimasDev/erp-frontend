@@ -1,3 +1,5 @@
+import { STANDARD_STATUS } from "@/lib/status/standard-status";
+
 export type DispatchOrderStatus =
   | "PICKING"
   | "PICKED"
@@ -10,7 +12,7 @@ export const DISPATCH_ORDER_STATUS_LABEL: Record<DispatchOrderStatus, string> = 
   PICKED: "หยิบสินค้าแล้ว (ตัดสต๊อกแล้ว)",
   PACKED: "แพ็คแล้ว",
   DISPATCHED: "จ่ายออกแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
 
 export type DispatchOrderUserSummary = {

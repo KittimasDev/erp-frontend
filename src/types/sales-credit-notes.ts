@@ -1,9 +1,29 @@
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+  type StandardStatus,
+} from "@/lib/status/standard-status";
+
 export const SALES_CREDIT_NOTE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
-  PENDING_APPROVAL: "รออนุมัติ",
-  COMPLETED: "เสร็จสิ้น",
-  CANCELLED: "ยกเลิก",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
+  PENDING_APPROVAL: STANDARD_STATUS.PENDING_APPROVAL.th,
+  COMPLETED: STANDARD_STATUS.COMPLETED.th,
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
+
+/** ทุกสถานะของใบลดหนี้ขายตรงกับสถานะมาตรฐาน (COMPLETED = อนุมัติแล้วและมีผล) */
+const CREDIT_NOTE_STANDARD: Record<string, StandardStatus> = {
+  DRAFT: "DRAFT",
+  PENDING_APPROVAL: "PENDING_APPROVAL",
+  COMPLETED: "COMPLETED",
+  CANCELLED: "CANCELLED",
+};
+
+export function salesCreditNoteStatusColor(status: string): string {
+  const std = CREDIT_NOTE_STANDARD[status];
+  return std ? standardStatusColor(std) : "default";
+}
 
 export type SalesCreditNotePendingRow = {
   id: string;
@@ -100,14 +120,7 @@ export type SalesCreditNoteResponse = ApiEnvelope<SalesCreditNote>;
 
 /** ป้ายสถานะตามภาษา — ไทยใช้ SALES_CREDIT_NOTE_STATUS_LABEL เดิม ("ยกเลิก" ชนกับปุ่ม Cancel) */
 export function salesCreditNoteStatusLabel(status: string, lang: "th" | "en"): string {
-  if (lang === "en") {
-    const en: Record<string, string> = {
-      DRAFT: "Draft",
-      PENDING_APPROVAL: "Pending approval",
-      COMPLETED: "Completed",
-      CANCELLED: "Cancelled",
-    };
-    return en[status] ?? status;
-  }
+  const std = CREDIT_NOTE_STANDARD[status];
+  if (std) return standardStatusLabel(std, lang);
   return SALES_CREDIT_NOTE_STATUS_LABEL[status] ?? status;
 }

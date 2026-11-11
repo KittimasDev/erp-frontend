@@ -33,7 +33,7 @@ import {
   useSaveBillingNoteMutation,
 } from "@/hooks/billing-notes/useBillingNotes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { BILLING_NOTE_STATUS_COLOR, BILLING_NOTE_STATUS_LABEL, type PendingBillingAp } from "@/types/billing-notes";
+import { BILLING_NOTE_STATUS_COLOR, billingNoteStatusLabel, type PendingBillingAp } from "@/types/billing-notes";
 import { tFin } from "@/components/payment-vouchers/paymentVoucherUtils";
 import { useT } from "@/lib/i18n/useT";
 import PageHeader from "@/components/common/PageHeader";
@@ -363,14 +363,14 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           <Descriptions.Item label={t("วันที่")}>
             <DatePicker
               allowClear={false}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={billingDate}
               disabled={!allowed}
               onChange={(v) => setBillingDateInput(v)}
             />
           </Descriptions.Item>
           <Descriptions.Item label={t("สถานะ")}>
-            <Tag color={BILLING_NOTE_STATUS_COLOR.DRAFT}>{tFin(BILLING_NOTE_STATUS_LABEL.DRAFT)}</Tag>
+            <Tag color={BILLING_NOTE_STATUS_COLOR.DRAFT}>{billingNoteStatusLabel("DRAFT")}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label={t("ผู้ขาย")}>
             {creditor.creditorCode} {creditor.creditorName}
@@ -415,7 +415,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           <Space>
             <Typography.Text>{t("วันที่นัดชำระ")}</Typography.Text>
             <DatePicker
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               value={appointment}
               disabled={!allowed}
               onChange={(v) => setAppointmentInput(v)}
@@ -442,7 +442,7 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
           <Descriptions.Item label={t("ผู้สร้าง")}>{detail?.createdByName ?? t("ผู้ใช้ปัจจุบัน (เมื่อบันทึก)")}</Descriptions.Item>
           <Descriptions.Item label={t("ผู้ยืนยัน")}>—</Descriptions.Item>
           <Descriptions.Item label={t("วันที่ดำเนินการ")}>
-            {detail ? dayjs(detail.createdAt).format("DD/MM/YYYY HH:mm") : "—"}
+            {detail ? dayjs(detail.createdAt).format("DD/MM/BBBB HH:mm") : "—"}
           </Descriptions.Item>
         </Descriptions>
       </Card>

@@ -150,7 +150,7 @@ export default function MaterialConversionJobCreatePage() {
                   rules={[{ required: true, message: t("เลือกวันที่") }]}
                   extra={t("แต่ละขั้นยังบันทึกวันที่ทำงานของตัวเอง")}
                 >
-                  <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                  <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
                 </Form.Item>
               </div>
 

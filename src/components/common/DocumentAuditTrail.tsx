@@ -122,7 +122,7 @@ export default function DocumentAuditTrail({
                   {log.performedBy?.displayName ?? t("ระบบ")}
                 </span>
                 <div style={{ fontSize: 12, color: "#8a9199" }}>
-                  {dayjs(log.performedAt).format("DD/MM/YYYY HH:mm:ss")}
+                  {dayjs(log.performedAt).format("DD/MM/BBBB HH:mm:ss")}
                 </div>
               </div>
             ),

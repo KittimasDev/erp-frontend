@@ -41,13 +41,12 @@ import {
 import { ApiError } from "@/lib/api/client";
 import {
   DELIVERY_SCHEDULE_RETURN_LABEL,
-  DELIVERY_SCHEDULE_STATUS_COLOR,
-  DELIVERY_SCHEDULE_STATUS_LABEL,
+  deliveryScheduleStatusColor,
+  deliveryScheduleStatusLabel,
   isDeliveryScheduleEditable,
   isDeliveryScheduleReschedulable,
   type DeliverySchedule,
   type DeliveryScheduleReturnResult,
-  type DeliveryScheduleStatus,
   type UpsertDeliveryScheduleItemBody,
 } from "@/types/delivery-schedules";
 import {
@@ -65,10 +64,9 @@ function toNum(value: string | number | null | undefined): number {
 }
 
 function statusTag(status: string) {
-  const key = status as DeliveryScheduleStatus;
   return (
-    <Tag color={DELIVERY_SCHEDULE_STATUS_COLOR[key] ?? "default"}>
-      {tSoStatus(DELIVERY_SCHEDULE_STATUS_LABEL[key] ?? status)}
+    <Tag color={deliveryScheduleStatusColor(status)}>
+      {deliveryScheduleStatusLabel(status)}
     </Tag>
   );
 }
@@ -412,7 +410,7 @@ export default function DeliverySchedulesSection({
         expectedVersion: openedVersion,
       });
       message.success(
-        `เลื่อนกำหนดส่งรอบ ${rescheduleTarget.roundNo} เป็น ${newDeliveryDate.format("DD/MM/YYYY")} แล้ว`,
+        `เลื่อนกำหนดส่งรอบ ${rescheduleTarget.roundNo} เป็น ${newDeliveryDate.format("DD/MM/BBBB")} แล้ว`,
       );
       setRescheduleTarget(null);
     } catch (error) {
@@ -573,7 +571,7 @@ export default function DeliverySchedulesSection({
                   <strong>{t("รอบ {no}", { no: schedule.roundNo })}</strong>
                   <span>
                     {t("ส่งวันที่")}{" "}
-                    {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
+                    {dayjs(schedule.deliveryDate).format("DD/MM/BBBB")}
                   </span>
                   {statusTag(schedule.status)}
                   {schedule.sourceDeliveryOrderId ? (
@@ -629,11 +627,11 @@ export default function DeliverySchedulesSection({
                           {t("เดิม")}{" "}
                           {schedule.originalDeliveryDate
                             ? dayjs(schedule.originalDeliveryDate).format(
-                                "DD/MM/YYYY",
+                                "DD/MM/BBBB",
                               )
                             : "—"}{" "}
                           → {t("ปัจจุบัน")}{" "}
-                          {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
+                          {dayjs(schedule.deliveryDate).format("DD/MM/BBBB")}
                           {schedule.lastRescheduleReason
                             ? ` · ${t("เหตุผลล่าสุด:")} ${schedule.lastRescheduleReason}`
                             : ""}
@@ -807,7 +805,7 @@ export default function DeliverySchedulesSection({
             <DatePicker
               value={deliveryDate}
               onChange={setDeliveryDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
             />
           </Form.Item>
@@ -921,7 +919,7 @@ export default function DeliverySchedulesSection({
               disabled
               value={
                 rescheduleTarget
-                  ? dayjs(rescheduleTarget.deliveryDate).format("DD/MM/YYYY")
+                  ? dayjs(rescheduleTarget.deliveryDate).format("DD/MM/BBBB")
                   : ""
               }
             />
@@ -930,7 +928,7 @@ export default function DeliverySchedulesSection({
             <DatePicker
               value={newDeliveryDate}
               onChange={setNewDeliveryDate}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               style={{ width: "100%" }}
             />
           </Form.Item>

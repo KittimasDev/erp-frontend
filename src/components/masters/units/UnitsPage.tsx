@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/i18n/format";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -180,9 +181,7 @@ export default function UnitsPage() {
       render: (value: string) => (
         <span className={styles.updatedText}>
           {value
-            ? new Date(value).toLocaleString(
-                lang === "en" ? "en-GB" : "th-TH",
-              )
+            ? formatDateTime(value, lang)
             : "-"}
         </span>
       ),

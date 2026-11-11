@@ -67,8 +67,7 @@ const PV_PATH = "/finance/payables/payment-vouchers";
 const dt = (value?: string | null) => {
   if (!value) return "—";
   const d = dayjs(value);
-  const year = getStoredLanguage() === "en" ? d.year() : d.year() + 543;
-  return `${d.format("DD/MM/")}${year} ${d.format("HH:mm")}`;
+  return d.format("DD/MM/BBBB HH:mm");
 };
 
 /**

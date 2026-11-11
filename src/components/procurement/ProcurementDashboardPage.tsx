@@ -38,7 +38,7 @@ import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useProcurementSummaryQuery } from "@/hooks/procurement-dashboard/useProcurementSummaryQuery";
 import { useProcurementTrackingQuery } from "@/hooks/procurement-dashboard/useProcurementTrackingQuery";
-import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
+import { PURCHASE_ORDER_STATUS_LABEL, purchaseOrderStatusColor } from "@/types/purchase-orders";
 import type {
   ProcurementTrackingRow,
 } from "@/types/procurement-dashboard";
@@ -51,16 +51,17 @@ const GREEN_DARK = "#627F13";
 const MUTED = "#77777C";
 
 const STATUS_BAR_COLOR: Record<string, string> = {
-  DRAFT: "#8a9199",
-  PENDING_APPROVAL: "#3b82f6",
-  REVISING: "#f97316",
+  // โทนตามสีสถานะมาตรฐาน: ร่าง=เทา · รออนุมัติ=ส้ม · อนุมัติ=เขียว · ไม่อนุมัติ=แดง · กำลังดำเนินการ=ฟ้า · ยกเลิก=เทา
+  DRAFT: "#8c8c8c",
+  PENDING_APPROVAL: "#fa8c16",
+  REVISING: "#faad14",
   CONFIRMED: GREEN,
-  PARTIALLY_RECEIVED: "#F9BB0C",
+  PARTIALLY_RECEIVED: "#1677ff",
   COMPLETED: GREEN_DARK,
-  CLOSED_PARTIAL: "#0ea5e9",
-  RECEIVE_CANCELLED: "#9ca3af",
-  REJECTED: "#9ca3af",
-  CANCELLED: "#6b7280",
+  CLOSED_PARTIAL: GREEN_DARK,
+  RECEIVE_CANCELLED: "#bfbfbf",
+  REJECTED: "#f5222d",
+  CANCELLED: "#bfbfbf",
 };
 
 const MONTH_BAR_COLORS = [
@@ -96,33 +97,11 @@ function formatMoney(value: string | number) {
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatMonthLabel(month: string) {
-  return dayjs(`${month}-01`).format("MM/YYYY");
-}
-
-function statusColor(status: string) {
-  switch (status) {
-    case "CONFIRMED":
-    case "COMPLETED":
-    case "CLOSED_PARTIAL":
-      return "success";
-    case "REVISING":
-      return "orange";
-    case "DRAFT":
-    case "PENDING_APPROVAL":
-      return "processing";
-    case "PARTIALLY_RECEIVED":
-      return "warning";
-    case "RECEIVE_CANCELLED":
-    case "CANCELLED":
-    case "REJECTED":
-      return "default";
-    default:
-      return "default";
-  }
+  return dayjs(`${month}-01`).format("MM/BBBB");
 }
 
 function paymentStatusColor(status: string) {
@@ -274,7 +253,7 @@ export default function ProcurementDashboardPage() {
         key: "status",
         width: 130,
         render: (value: string) => (
-          <Tag color={statusColor(value)}>
+          <Tag color={purchaseOrderStatusColor(value)}>
             {tStatus(PURCHASE_ORDER_STATUS_LABEL[value] ?? value)}
           </Tag>
         ),
@@ -334,7 +313,7 @@ export default function ProcurementDashboardPage() {
               picker="year"
               allowClear={false}
               value={dayjs(`${year}-01-01`)}
-              format="YYYY"
+              format="BBBB"
               disabledDate={(current) =>
                 Boolean(current && current.year() > today.year())
               }
@@ -352,7 +331,7 @@ export default function ProcurementDashboardPage() {
             <DatePicker.RangePicker
               allowClear={false}
               value={dateRange}
-              format="DD/MM/YYYY"
+              format="DD/MM/BBBB"
               disabledDate={(current) =>
                 Boolean(
                   current &&

@@ -216,7 +216,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
                 <DatePicker
                   value={dispatchDate}
                   onChange={(value) => value && setDispatchDate(value)}
-                  format="DD/MM/YYYY"
+                  format="DD/MM/BBBB"
                   allowClear={false}
                 />
               </div>

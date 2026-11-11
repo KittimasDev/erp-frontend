@@ -1,4 +1,5 @@
 "use client";
+import { formatDateTime } from "@/lib/i18n/format";
 import { useT } from "@/lib/i18n/useT";
 import { tLoc } from "@/types/warehouse-locations";
 import { useLanguage } from "@/lib/i18n/language";
@@ -315,7 +316,7 @@ export default function WarehouseLocationsPage() {
       width: 180,
       render: (value: string) => (
         <span className={styles.updatedText}>
-          {value ? new Date(value).toLocaleString(language === "en" ? "en-GB" : "th-TH") : "-"}
+          {value ? formatDateTime(value, language) : "-"}
         </span>
       ),
     },

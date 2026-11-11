@@ -1,3 +1,4 @@
+import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 import { getStoredLanguage, type Language } from "@/lib/i18n/language";
 import { translate } from "@/lib/i18n/translate";
 
@@ -5,6 +6,9 @@ const STOCK_STATUS_EN_OVERRIDE: Record<string, string> = {
   /* ในบริบทสถานะ "ยกเลิก" = Cancelled (ไม่ใช่ปุ่ม Cancel), "ไม่อนุมัติ" = Rejected (ไม่ใช่ปุ่ม Reject) */
   ยกเลิก: "Cancelled",
   ไม่อนุมัติ: "Rejected",
+  แบบร่างเอกสาร: "Draft",
+  อนุมัติแล้ว: "Approved",
+  เสร็จสิ้น: "Completed",
 };
 
 /** แปลป้ายสถานะ/ประเภทเอกสารคลัง ตามภาษา — เรียกตอนเรนเดอร์ในคอมโพเนนต์ที่ใช้ useT()/useLanguage() อยู่แล้ว */
@@ -25,11 +29,20 @@ export type StockAdjustmentStatus =
   | string;
 
 export const STOCK_ADJUSTMENT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "แบบร่างเอกสาร",
-  PENDING_APPROVAL: "รออนุมัติ",
-  POSTED: "อนุมัติแล้ว",
-  CANCELLED: "ยกเลิก",
-  REJECTED: "ไม่อนุมัติ",
+  DRAFT: standardStatusLabel("DRAFT"),
+  PENDING_APPROVAL: standardStatusLabel("PENDING_APPROVAL"),
+  POSTED: standardStatusLabel("APPROVED"),
+  CANCELLED: standardStatusLabel("CANCELLED"),
+  REJECTED: standardStatusLabel("REJECTED"),
+};
+
+/** สีป้ายสถานะ — ตามมาตรฐานกลาง (POSTED = อนุมัติแล้ว) */
+export const STOCK_ADJUSTMENT_STATUS_COLOR: Record<string, string> = {
+  DRAFT: standardStatusColor("DRAFT"),
+  PENDING_APPROVAL: standardStatusColor("PENDING_APPROVAL"),
+  POSTED: standardStatusColor("APPROVED"),
+  REJECTED: standardStatusColor("REJECTED"),
+  CANCELLED: standardStatusColor("CANCELLED"),
 };
 
 export type StockAdjustmentType = "INCREASE" | "DECREASE" | "CORRECTION";

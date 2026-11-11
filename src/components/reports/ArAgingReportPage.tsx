@@ -49,7 +49,7 @@ function formatMoney(value: string | undefined, lang: Language) {
 }
 
 function formatDate(value?: string) {
-  return value ? dayjs(value).format("DD/MM/YYYY") : "—";
+  return value ? dayjs(value).format("DD/MM/BBBB") : "—";
 }
 
 export default function ArAgingReportPage() {
@@ -237,7 +237,7 @@ export default function ArAgingReportPage() {
         <FilterField label={t("วันที่ออก")} wide>
           <DatePicker.RangePicker
             style={{ width: "100%" }}
-            format="DD/MM/YYYY"
+            format="DD/MM/BBBB"
             value={draftRange}
             onChange={(values) =>
               setDraftRange(values && values[0] && values[1] ? [values[0], values[1]] : null)

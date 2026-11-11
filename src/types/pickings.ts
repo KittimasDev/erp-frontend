@@ -1,10 +1,33 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+import {
+  STANDARD_STATUS,
+  standardStatusColor,
+  standardStatusLabel,
+} from "@/lib/status/standard-status";
+
 export type PickingStatus = "DRAFT" | "CONFIRMED" | "CANCELLED";
 
 export const PICKING_STATUS_LABEL: Record<PickingStatus, string> = {
-  DRAFT: "แบบร่างเอกสาร",
+  DRAFT: STANDARD_STATUS.DRAFT.th,
   CONFIRMED: "ยืนยันแล้ว",
-  CANCELLED: "ยกเลิก",
+  CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
+
+/** ป้ายสถานะตามภาษา — แบบร่าง/ยกเลิก ใช้ชื่อมาตรฐานกลาง */
+export function pickingStatusLabel(status: string, lang?: Language): string {
+  const l = lang ?? getStoredLanguage();
+  if (status === "DRAFT") return standardStatusLabel("DRAFT", l);
+  if (status === "CANCELLED") return standardStatusLabel("CANCELLED", l);
+  return translate(l, PICKING_STATUS_LABEL[status as PickingStatus] ?? status);
+}
+
+/** สีป้ายสถานะ — แบบร่าง/ยกเลิก = เทา (มาตรฐาน), ยืนยันแล้ว = เขียว (เดิม) */
+export function pickingStatusColor(status: string): string {
+  if (status === "DRAFT") return standardStatusColor("DRAFT");
+  if (status === "CANCELLED") return standardStatusColor("CANCELLED");
+  return status === "CONFIRMED" ? "success" : "default";
+}
 
 export type PickingItem = {
   id: string;

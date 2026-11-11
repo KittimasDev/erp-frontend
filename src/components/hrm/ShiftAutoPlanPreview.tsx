@@ -134,8 +134,8 @@ export default function ShiftAutoPlanPreview({
       <Tooltip
         title={
           day.skipped
-            ? `${dayjs(day.date).format("D/M/YYYY")} — ${day.holidayName ?? t("วันหยุด")} ${t("(ไม่จัดกะ)")}`
-            : dayjs(day.date).format("D/M/YYYY")
+            ? `${dayjs(day.date).format("D/M/BBBB")} — ${day.holidayName ?? t("วันหยุด")} ${t("(ไม่จัดกะ)")}`
+            : dayjs(day.date).format("D/M/BBBB")
         }
       >
         <span className={styles.dayHeadInner}>

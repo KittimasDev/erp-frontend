@@ -62,14 +62,14 @@ function formatDate(value?: string) {
   if (!value) {
     return "-";
   }
-  return dayjs(value).format("DD/MM/YYYY");
+  return dayjs(value).format("DD/MM/BBBB");
 }
 
 function formatDateTime(value?: string) {
   if (!value) {
     return "-";
   }
-  return dayjs(value).format("DD/MM/YYYY HH:mm");
+  return dayjs(value).format("DD/MM/BBBB HH:mm");
 }
 
 export default function ProductionOutputApprovalDetailPage({

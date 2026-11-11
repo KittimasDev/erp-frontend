@@ -16,9 +16,8 @@ import {
   type LinkedSalesOrderLine,
 } from "@/types/production-request";
 import {
-  SALES_ORDER_STATUS_LABEL,
+  salesOrderStatusLabel,
   tSoStatus,
-  type SalesOrderStatus,
 } from "@/types/sales-orders";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./SalesOrdersInProductionPage.module.css";
@@ -341,12 +340,9 @@ export default function SalesOrdersInProductionPage() {
                   </button>
                   <p className={styles.meta}>
                     {row.customerName || t("ไม่ระบุลูกค้า")} ·{" "}
-                    {tSoStatus(
-                      SALES_ORDER_STATUS_LABEL[row.soStatus as SalesOrderStatus] ??
-                        row.soStatus,
-                    )}
+                    {salesOrderStatusLabel(row.soStatus)}
                     {row.requestedDeliveryDate
-                      ? ` · ${t("ต้องการภายใน {date}", { date: dayjs(row.requestedDeliveryDate).format("DD/MM/YYYY") })}`
+                      ? ` · ${t("ต้องการภายใน {date}", { date: dayjs(row.requestedDeliveryDate).format("DD/MM/BBBB") })}`
                       : ""}
                   </p>
                   <div className={styles.prRow}>

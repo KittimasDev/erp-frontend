@@ -152,8 +152,8 @@ export default function ShiftScheduleModal({
       open={open}
       title={
         isEdit
-          ? `${t("แก้ไขรอบ {name}", { name: schedule?.shiftName ?? "" })} — ${dayjs(date).format("DD/MM/YYYY")}`
-          : `${t("เพิ่มรอบกะ")} — ${dayjs(date).format("DD/MM/YYYY")}`
+          ? `${t("แก้ไขรอบ {name}", { name: schedule?.shiftName ?? "" })} — ${dayjs(date).format("DD/MM/BBBB")}`
+          : `${t("เพิ่มรอบกะ")} — ${dayjs(date).format("DD/MM/BBBB")}`
       }
       okText={isEdit ? t("บันทึกการแก้ไข") : t("จัดรอบกะ")}
       cancelText={t("ยกเลิก")}
@@ -201,7 +201,7 @@ export default function ShiftScheduleModal({
           extra={isEdit ? t("เปลี่ยนวันที่ = ย้ายรอบกะไปวันนั้น") : undefined}
           rules={[{ required: true, message: t("เลือกวันที่") }]}
         >
-          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+          <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item

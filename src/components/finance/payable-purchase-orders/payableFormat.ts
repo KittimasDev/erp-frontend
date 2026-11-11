@@ -1,4 +1,5 @@
 import { formatThaiDate as formatThaiDateBe, money } from "@/components/ap-documents/apDocumentConfig";
+import dayjs from "dayjs";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { translate, type Language } from "@/lib/i18n/translate";
 import {
@@ -40,11 +41,7 @@ export function describeTerm(term: PayablePaymentTerm | null, lang?: Language) {
 
 /** วันที่ dd/mm/yyyy — ไทย = พ.ศ., อังกฤษ = ค.ศ. */
 export function formatThaiDate(value?: string | null) {
-  if (getStoredLanguage() !== "en") return formatThaiDateBe(value);
-  if (!value) return "—";
-  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
-  if (!y || !m || !d) return value;
-  return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  return formatThaiDateBe(value);
 }
 
 export { money };
@@ -55,7 +52,7 @@ export function toPayableSheet(
 ): TabularReport {
   const now = new Date();
   const meta = [
-    `วันที่ออกรายงาน: ${formatThaiDateBe(now.toISOString().slice(0, 10))}`,
+    `วันที่ออกรายงาน: ${formatThaiDateBe(dayjs(now).format("YYYY-MM-DD"))}`,
     ...options.filters,
     options.truncated
       ? `ทั้งหมด ${options.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ ${rows.length.toLocaleString("th-TH")} รายการแรก`

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatBuddhistIntl } from "@/lib/datetime/intl-be";
 import React from "react";
 import ItemImage from "@/components/masters/items/ItemImage";
 import type { ZoneLot } from "@/types/warehouse-3d";
@@ -16,7 +17,7 @@ interface ZoneLotListProps {
 const fmtDate = (iso: string | undefined, lang: "th" | "en") => {
   if (!iso) return "";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(lang === "en" ? "en-GB" : "th-TH", { day: "2-digit", month: "short", year: "2-digit" });
+  return Number.isNaN(d.getTime()) ? "" : formatBuddhistIntl(d, lang, { day: "2-digit", month: "short", year: "2-digit" });
 };
 
 /** รายการสินค้า/Lot ใน Location พร้อมรูปสินค้าจาก master — ใช้ทั้งการ์ด hover และแผงรายละเอียด */
