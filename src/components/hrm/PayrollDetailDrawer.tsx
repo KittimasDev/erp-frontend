@@ -46,6 +46,7 @@ import { toPayrollSheet } from "@/utils/payrollSheet";
 import PayrollAdjustmentsModal from "./PayrollAdjustmentsModal";
 import PayrollHistoryTab from "./PayrollHistoryTab";
 import PayrollPayBaseIssuesModal from "./PayrollPayBaseIssuesModal";
+import PayrollIncompleteAlert from "./PayrollIncompleteAlert";
 import PayrollPaymentsTab from "./PayrollPaymentsTab";
 import { PayrollChecksModal, ReasonModal } from "./PayrollWorkflowModals";
 import {
@@ -494,6 +495,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 label: t("สลิปเงินเดือน"),
                 children: (
                   <>
+              <PayrollIncompleteAlert employees={run.incompleteEmployees ?? []} />
               <Space wrap size={[12, 8]} style={{ marginBottom: 12 }}>
                 <Input
                   allowClear

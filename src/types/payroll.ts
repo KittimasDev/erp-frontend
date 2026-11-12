@@ -171,6 +171,14 @@ export type PayrollExportBatch = {
   totalAmount: number;
 };
 
+/** พนักงานที่มียอดต้องจ่ายแต่ข้อมูลบัญชีธนาคารไม่ครบ (จากข้อมูลพนักงานปัจจุบัน) */
+export type PayrollIncompleteEmployee = {
+  userId: string;
+  employeeCode?: string | null;
+  displayName: string;
+  missing: Array<"BANK_NAME" | "BANK_ACCOUNT_NO">;
+};
+
 export type PayrollRunDetail = PayrollRun & {
   slips: PayrollSlip[];
   exclusions: PayrollExclusion[];
@@ -178,6 +186,8 @@ export type PayrollRunDetail = PayrollRun & {
   payments: PayrollPayment[];
   paymentSummary: PayrollPaymentSummary;
   exportBatches: PayrollExportBatch[];
+  /** เฉพาะงวดที่ยังไม่จ่าย (ร่าง/รออนุมัติ/รอจ่ายเงิน) — งวดอื่นเป็น [] */
+  incompleteEmployees: PayrollIncompleteEmployee[];
 };
 
 /** งวดที่ช่วงวันทับกับงวดที่กำลังสร้าง (409 PAYROLL_PERIOD_OVERLAP / _FINALIZED) */
