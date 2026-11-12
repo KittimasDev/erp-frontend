@@ -7,8 +7,8 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
  *
  * - แสดง: ใช้ token `BBBB` ของ dayjs (ปลั๊กอิน buddhistEra) เช่น `DD/MM/BBBB` → 11/11/2569
  * - อ่านที่ผู้ใช้พิมพ์: ปลั๊กอินด้านล่างทำให้ `dayjs("11/11/2569", "DD/MM/BBBB")` ได้ 11 พ.ย. 2026
- *   · ปี >= 2400 ถือเป็น พ.ศ. แล้วลบ 543 · ปีที่น้อยกว่านั้น (เช่นพิมพ์ 2026) ถือเป็น ค.ศ. อยู่แล้ว
- *     จึงไม่เกิดการบวก/ลบ 543 ซ้ำ (ไม่ได้ปี 3112 หรือ 1483)
+ *   · ปี พ.ศ. ต้องครบ 4 หลักและ >= 2400 มิฉะนั้นถือว่าไม่ใช่วันที่ (ไม่เดาเป็น ค.ศ.) จึงไม่เกิดปีเพี้ยน
+ *     เช่น พิมพ์ค้างที่ "256" หรือพิมพ์ ค.ศ. 2026 ลงช่อง พ.ศ. · ไม่มีการบวก/ลบ 543 ซ้ำ
  *
  * import ไฟล์นี้ครั้งเดียวที่ราก (AntdProvider) — ไม่แตะ `dayjs().format("YYYY-MM-DD")` ที่ใช้คุยกับ API
  */
@@ -20,6 +20,7 @@ export const BE_MONTH_FORMAT = "MM/BBBB";
 
 const BE_OFFSET = 543;
 const BE_THRESHOLD = 2400;
+const BE_MAX = 2800;
 const ESCAPE_RE = /[.*+?^${}()|[\]\\]/g;
 const TOKEN = /\[[^\]]*\]|BBBB|YYYY|DD|D|MM|M|HH|H|hh|h|mm|m|ss|s|SSS|A|a|Z{1,2}/g;
 
@@ -37,7 +38,11 @@ function normalizeBuddhist(text: string, format: string): [string, string] | nul
     } else if (tok === "A" || tok === "a") {
       pattern += "([AaPp][Mm])";
       tokens.push(tok);
-    } else if (tok === "BBBB" || tok === "YYYY") {
+    } else if (tok === "BBBB") {
+      // ปี พ.ศ. ต้องครบ 4 หลัก — ปีที่ยังพิมพ์ไม่เสร็จ (เช่น "256") ต้องไม่ถูกอ่านเป็นวันที่ ค.ศ. 0256
+      pattern += String.raw`(\d{4})`;
+      tokens.push(tok);
+    } else if (tok === "YYYY") {
       pattern += String.raw`(\d{1,4})`;
       tokens.push(tok);
     } else {
@@ -52,7 +57,10 @@ function normalizeBuddhist(text: string, format: string): [string, string] | nul
   const idx = tokens.indexOf("BBBB");
   if (idx < 0) return null;
   const year = Number(match[idx + 1]);
-  const ce = year >= BE_THRESHOLD ? year - BE_OFFSET : year;
+  // ต่ำกว่า พ.ศ. 2400 (ค.ศ. 1857) ไม่ใช่ปี พ.ศ. ที่เป็นไปได้ → ไม่ถือว่าเป็นวันที่ (กันบันทึกปีเพี้ยน เช่น 0256)
+  // เพดาน พ.ศ. 2800 (ค.ศ. 2257) กันพิมพ์เลขเกินจริง เช่น 9999
+  if (year < BE_THRESHOLD || year > BE_MAX) return null;
+  const ce = year - BE_OFFSET;
   // ประกอบ text ใหม่โดยแทนเฉพาะปี
   let rebuilt = "";
   let cursor = 0;
