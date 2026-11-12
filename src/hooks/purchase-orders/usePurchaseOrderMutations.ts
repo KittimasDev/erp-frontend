@@ -201,7 +201,8 @@ export function useCancelPurchaseOrderMutation() {
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "cancel"],
-    mutationFn: (id: string) => cancelPurchaseOrder(getAccessToken(), id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      cancelPurchaseOrder(getAccessToken(), id, { reason }),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || t("ยกเลิกใบสั่งซื้อแล้ว"));

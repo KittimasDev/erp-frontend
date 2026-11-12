@@ -4,7 +4,7 @@ import { Tag } from "antd";
 import { tStatus } from "@/types/purchase-orders";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Spin } from "antd";
+import { Alert, App, Button, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -109,6 +109,8 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   }
 
   const busy = confirmMutation.isPending || cancelMutation.isPending;
+  // PO ต้นทางยกเลิกแล้ว → ปิดปุ่มยืนยัน/แก้ไข (backend ปฏิเสธซ้ำ) แต่คงปุ่มยกเลิกใบรับของไว้
+  const poCancelled = data.purchaseOrder?.status === "CANCELLED";
 
   const formatPdfMoney = (value?: string) => {
     const n = Number(value ?? 0);
@@ -193,6 +195,18 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
           </>
         }
       />
+
+      {poCancelled && data.purchaseOrder ? (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t("PO {poNo} ยกเลิกแล้ว กรุณายกเลิกเอกสารนี้", {
+            poNo: data.purchaseOrder.poNo,
+          })}
+          description={t("ยืนยันรับของและแก้ไขใบรับของนี้ไม่ได้ ยังยกเลิกใบรับของฉบับร่างได้")}
+        />
+      ) : null}
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
@@ -327,6 +341,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   type="primary"
                   icon={<CheckOutlined />}
                   loading={busy}
+                  disabled={poCancelled}
                   onClick={() =>
                     modal.confirm({
                       title: t("ยืนยันรับสินค้าเข้าสต๊อก"),
@@ -341,6 +356,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 <Button
                   className={styles.secondaryBtn}
                   icon={<EditOutlined />}
+                  disabled={poCancelled}
                   onClick={() =>
                     router.push(`/goods-receipts/${data.id}/edit`)
                   }

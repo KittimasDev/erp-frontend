@@ -7,6 +7,7 @@ import {
   getPendingPurchaseOrderApprovals,
   getPurchaseOrder,
   getPurchaseOrderByPr,
+  getPurchaseOrderRelatedDocuments,
   getPurchaseOrders,
 } from "@/lib/api/purchase-orders";
 import {
@@ -93,6 +94,20 @@ export function usePurchaseOrderQuery(id?: string) {
     queryKey: [...purchaseOrdersQueryKey, "detail", id],
     queryFn: () => getPurchaseOrder(getAccessToken(), id as string),
     enabled: Boolean(id),
+  });
+}
+
+/** เอกสารที่ผูกกับ PO — ใช้ใน Dialog ยกเลิกและส่วน "เอกสารที่เกี่ยวข้อง" */
+export function usePurchaseOrderRelatedDocumentsQuery(
+  id?: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [...purchaseOrdersQueryKey, "related-documents", id],
+    queryFn: () => getPurchaseOrderRelatedDocuments(getAccessToken(), id as string),
+    enabled: Boolean(id) && enabled,
+    // เปิด Dialog ทีไรต้องได้ข้อมูลล่าสุด (เอกสารอาจเพิ่งถูกยกเลิก/ยืนยันจากอีกหน้า)
+    staleTime: 0,
   });
 }
 

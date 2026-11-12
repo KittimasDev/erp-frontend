@@ -295,6 +295,8 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
   ];
 
   const billingDisabledReason = d.billingBlockReason;
+  // PO ต้นทางยกเลิกแล้ว → ปิดส่งอนุมัติ/อนุมัติ (backend ปฏิเสธซ้ำ) คงปุ่มยกเลิกเอกสารไว้
+  const poCancelled = d.purchaseOrderStatus === "CANCELLED";
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
@@ -319,14 +321,14 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
             {editable ? (
               <>
                 <Button onClick={() => router.push(`${config.basePath}/${id}/edit`)}>{t("แก้ไข")}</Button>
-                <Button type="primary" loading={action.isPending} onClick={() => void run("submit", status === "REJECTED" ? t("ส่งอนุมัติใหม่แล้ว") : t("ส่งอนุมัติแล้ว"))}>
+                <Button type="primary" loading={action.isPending} disabled={poCancelled} onClick={() => void run("submit", status === "REJECTED" ? t("ส่งอนุมัติใหม่แล้ว") : t("ส่งอนุมัติแล้ว"))}>
                   {status === "REJECTED" ? t("ส่งอนุมัติใหม่") : t("ส่งอนุมัติ")}
                 </Button>
               </>
             ) : null}
             {status === "PENDING_APPROVAL" && perms.canApprove ? (
               <>
-                <Button type="primary" loading={action.isPending} onClick={confirmApprove}>
+                <Button type="primary" loading={action.isPending} disabled={poCancelled} onClick={confirmApprove}>
                   {t("อนุมัติ")}
                 </Button>
                 <Button danger onClick={() => setReasonFor("reject")}>
@@ -357,6 +359,15 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
       />
 
       <Card>
+        {poCancelled ? (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginBottom: 8 }}
+            title={t("PO {poNo} ยกเลิกแล้ว กรุณายกเลิกเอกสารนี้", { poNo: d.purchaseOrderNo ?? "" })}
+            description={t("ส่งอนุมัติและอนุมัติไม่ได้ ยังยกเลิกใบตั้งหนี้ได้จากเมนูเพิ่มเติม")}
+          />
+        ) : null}
         {status === "REJECTED" && d.rejectReason ? (
           <Alert type="error" showIcon title={t("ไม่อนุมัติ — แก้ไขแล้วส่งอนุมัติใหม่ได้")} description={d.rejectReason} />
         ) : null}

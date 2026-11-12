@@ -378,6 +378,37 @@ export type RejectPurchaseOrderBody = {
   reason?: string;
 };
 
+/** ยกเลิก PO — เหตุผลบังคับ (backend ตรวจซ้ำ) */
+export type CancelPurchaseOrderBody = {
+  reason: string;
+};
+
+export type PurchaseOrderRelatedDocumentRef = {
+  id: string;
+  docNo: string;
+  status: string;
+};
+
+/** เอกสารที่ผูกกับ PO + เหตุผลที่ยกเลิกไม่ได้ + ข้อมูลการยกเลิก (ถ้ายกเลิกแล้ว) */
+export type PurchaseOrderRelatedDocuments = {
+  status: string;
+  goodsReceipts: PurchaseOrderRelatedDocumentRef[];
+  draftGoodsReceipts: PurchaseOrderRelatedDocumentRef[];
+  apInvoices: PurchaseOrderRelatedDocumentRef[];
+  paymentVouchers: PurchaseOrderRelatedDocumentRef[];
+  blockers: string[];
+  canCancel: boolean;
+  reason?: string;
+  cancelledByName?: string;
+  cancelledAt?: string;
+};
+
+export type PurchaseOrderRelatedDocumentsApiResponse = {
+  statusCode: number;
+  message: string;
+  data: PurchaseOrderRelatedDocuments;
+};
+
 export type PurchaseOrderApiResponse = {
   statusCode: number;
   message: string;

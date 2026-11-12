@@ -706,6 +706,7 @@ export default function GoodsReceiptCreateFromPoPage({
         purchaseOrderId={purchaseOrderId}
         canManage={goodsReceiptActions.canEdit}
         showCloseOnReceiving
+        purchaseOrderCancelled={po?.status === "CANCELLED"}
       />
 
       <Form

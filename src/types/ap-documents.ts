@@ -130,6 +130,8 @@ export type ApDocument = {
   dueDate: string | null;
   purchaseOrderId: string | null;
   purchaseOrderNo: string | null;
+  /** สถานะ PO ต้นทาง — CANCELLED = ห้ามส่งอนุมัติ/อนุมัติ ต้องยกเลิกเอกสารนี้ */
+  purchaseOrderStatus?: string | null;
   referenceDocumentId: string | null;
   referenceDocumentNo: string | null;
   reason: string | null;

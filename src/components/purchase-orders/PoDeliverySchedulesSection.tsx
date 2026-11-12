@@ -51,12 +51,15 @@ type Props = {
   purchaseOrderId: string;
   canManage: boolean;
   showCloseOnReceiving?: boolean;
+  /** PO ถูกยกเลิกแล้ว — รอบที่ยังไม่รับไม่ใช่ "ยังไม่รับสินค้า" อีกต่อไป และไม่มีการจัดการรอบใดๆ */
+  purchaseOrderCancelled?: boolean;
 };
 
 export default function PoDeliverySchedulesSection({
   purchaseOrderId,
   canManage,
   showCloseOnReceiving = false,
+  purchaseOrderCancelled = false,
 }: Props) {
   const t = useT();
   const schedulesQuery = usePoDeliverySchedulesQuery(purchaseOrderId);
@@ -86,9 +89,12 @@ export default function PoDeliverySchedulesSection({
         <p>{t("ยังไม่มีรอบจัดส่ง")}</p>
       ) : (
         schedules.map((schedule) => {
-          const statusLabel = t(
-            PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status,
-          );
+          // PO ยกเลิกแล้ว: รอบที่ยังเปิดอยู่ไม่แสดง "ยังไม่รับสินค้า" (ไม่มีการรับอีกแล้ว)
+          const poDead =
+            purchaseOrderCancelled && isPoScheduleOpen(schedule.status);
+          const statusLabel = poDead
+            ? t("PO ยกเลิกแล้ว")
+            : t(PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status);
           const timing = receiveTiming(
             schedule.latestActualReceiveDate,
             schedule.effectiveDeliveryDate,
@@ -145,12 +151,14 @@ export default function PoDeliverySchedulesSection({
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <Tag
                     color={
-                      PO_DELIVERY_RECEIVE_STATUS_COLOR[schedule.status] ?? "default"
+                      poDead
+                        ? "default"
+                        : (PO_DELIVERY_RECEIVE_STATUS_COLOR[schedule.status] ?? "default")
                     }
                   >
                     {statusLabel}
                   </Tag>
-                  {schedule.isLate ? <Tag color="red">{t("ล่าช้า")}</Tag> : null}
+                  {schedule.isLate && !poDead ? <Tag color="red">{t("ล่าช้า")}</Tag> : null}
                 </div>
               </div>
               <Table
@@ -184,7 +192,7 @@ export default function PoDeliverySchedulesSection({
                     {t("ประวัติเลื่อนวัน")}
                   </Button>
                 ) : null}
-                {canManage && isPoScheduleOpen(schedule.status) ? (
+                {canManage && !poDead && isPoScheduleOpen(schedule.status) ? (
                   <Button
                     icon={<CalendarOutlined />}
                     onClick={() => {
@@ -195,7 +203,7 @@ export default function PoDeliverySchedulesSection({
                     {t("เลื่อนวันส่ง")}
                   </Button>
                 ) : null}
-                {canManage && canCancelPoRoundReceiving(schedule) ? (
+                {canManage && !poDead && canCancelPoRoundReceiving(schedule) ? (
                   <Button
                     danger
                     icon={<StopOutlined />}
@@ -208,6 +216,7 @@ export default function PoDeliverySchedulesSection({
                   </Button>
                 ) : null}
                 {(canManage || showCloseOnReceiving) &&
+                !poDead &&
                 canClosePoRoundRemaining(schedule) ? (
                   <Button
                     danger

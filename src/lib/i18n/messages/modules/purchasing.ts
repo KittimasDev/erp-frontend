@@ -415,4 +415,22 @@ export const EN_PURCHASING: Record<string, string> = {
   "สั่ง": "Ordered",
   "ดูใบขอซื้อ": "View purchase request",
   "ใบขอซื้อ {no}": "Purchase request {no}",
+
+  /* ---------- ยกเลิก PO / PO ต้นทางยกเลิกแล้ว ---------- */
+  "ยืนยันยกเลิกใบสั่งซื้อ": "Confirm cancelling purchase order",
+  "ยืนยันยกเลิก PO": "Confirm cancel PO",
+  "โหลดเอกสารที่เกี่ยวข้องไม่สำเร็จ ไม่สามารถยืนยันยกเลิกได้": "Could not load related documents, so the cancellation cannot be confirmed",
+  "มีใบรับของฉบับร่างที่ผูกกับ PO นี้ หลังยกเลิก PO จะยืนยันใบรับของเหล่านี้ไม่ได้ ระบบไม่ยกเลิกให้อัตโนมัติ กรุณายกเลิกใบรับของเอง":
+    "Draft goods receipts are linked to this PO. After the PO is cancelled they can no longer be confirmed. They are not cancelled automatically — please cancel them yourself.",
+  "เอกสารที่ผูกอยู่กับ PO นี้": "Documents linked to this PO",
+  "ระบุเหตุผลการยกเลิก PO (บังคับ)": "Enter the reason for cancelling this PO (required)",
+  "ระบบบันทึกเหตุผล ผู้ยกเลิก และวันเวลาไว้ในประวัติการใช้งาน": "The reason, who cancelled it and when are recorded in the audit log",
+  "PO ยกเลิกแล้ว": "PO cancelled",
+  "PO {poNo} ยกเลิกแล้ว กรุณายกเลิกเอกสารนี้": "PO {poNo} is cancelled. Please cancel this document.",
+  "ส่งอนุมัติและอนุมัติไม่ได้ ยังยกเลิกใบตั้งหนี้ได้จากเมนูเพิ่มเติม": "Submitting and approving are blocked. You can still cancel this AP invoice from the More menu.",
+  "ยืนยันรับของและแก้ไขใบรับของนี้ไม่ได้ ยังยกเลิกใบรับของฉบับร่างได้": "Confirming and editing this goods receipt is blocked. You can still cancel the draft goods receipt.",
+  "ใบสั่งซื้อนี้ถูกยกเลิกแล้ว — เอกสารที่ค้างอยู่ต้องยกเลิกเอง และยืนยัน/อนุมัติต่อไม่ได้": "This purchase order is cancelled — pending documents must be cancelled manually and cannot be confirmed or approved.",
+  "ไม่มีเอกสารที่เกี่ยวข้อง": "No related documents",
+  "ใบรับของ (GRN)": "Goods receipts (GRN)",
+  "ใบสำคัญจ่าย (PV)": "Payment vouchers (PV)",
 };

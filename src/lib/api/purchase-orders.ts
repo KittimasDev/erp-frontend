@@ -1,5 +1,7 @@
 import { apiFetch } from "./client";
 import type {
+  CancelPurchaseOrderBody,
+  PurchaseOrderRelatedDocumentsApiResponse,
   CreatePurchaseOrderFromPrBody,
   CreatePurchaseOrderFromPrsBody,
   PurchaseOrderApiResponse,
@@ -137,9 +139,22 @@ export function returnPurchaseOrderToDraft(
   );
 }
 
-export function cancelPurchaseOrder(token: string, id: string) {
+/** ยกเลิก PO — ต้องส่งเหตุผล (ไม่ยกเลิก GRN/AP/PV ให้อัตโนมัติ) */
+export function cancelPurchaseOrder(
+  token: string,
+  id: string,
+  body: CancelPurchaseOrderBody,
+) {
   return apiFetch<PurchaseOrderApiResponse>(
     `/api/purchase-orders/${id}/cancel`,
-    { method: "POST", token },
+    { method: "POST", token, body },
+  );
+}
+
+/** เอกสารที่เกี่ยวข้องกับ PO (GRN / ใบตั้งหนี้ / PV) + เหตุผลที่ยกเลิกไม่ได้ */
+export function getPurchaseOrderRelatedDocuments(token: string, id: string) {
+  return apiFetch<PurchaseOrderRelatedDocumentsApiResponse>(
+    `/api/purchase-orders/${id}/related-documents`,
+    { method: "GET", token },
   );
 }
