@@ -97,7 +97,13 @@ export const useCancelOilReceivingMutation = () =>
   useOilMutation((id: string) => api.cancelOilReceiving(getAccessToken(), id), "ยกเลิกใบรับไม่สำเร็จ");
 export const useSendLabSampleMutation = () =>
   useOilMutation(
-    (v: { collectedDate: string; referenceDocId: string; referenceDocNo: string }) =>
+    (v: {
+      collectedDate: string;
+      referenceDocId: string;
+      referenceDocNo: string;
+      itemId?: string;
+      lotId?: string;
+    }) =>
       api.createLabSampleForReceiving(getAccessToken(), v),
     "ส่งตัวอย่าง Lab ไม่สำเร็จ",
   );

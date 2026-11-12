@@ -48,6 +48,8 @@ export const LAB_SAMPLE_TYPE_ITEM_CATEGORY: Record<string, string> = {
 
 export type CreateLabSampleBody = {
   sampleType: string;
+  itemId: string;
+  specId: string;
   collectedDate: string;
   lotId?: string;
   remark?: string;
@@ -148,21 +150,16 @@ export type UpdateLabSpecBody = {
   parameters?: LabSpecParameterInput[];
 };
 
+/** บันทึกผลตาม Spec — ชื่อ/หน่วย/Min/Max backend ดึงจาก Spec เสมอ (ส่งมาไม่ได้) */
 export type AddLabResultLine = {
-  specParameterId?: string;
-  parameterName: string;
+  specParameterId: string;
   resultValue: string;
-  unit?: string;
-  specMin?: string;
-  specMax?: string;
   remark?: string;
 };
 
+/** แก้ได้เฉพาะค่าผลตรวจและหมายเหตุ */
 export type UpdateLabResultBody = {
   resultValue?: string;
-  unit?: string;
-  specMin?: string;
-  specMax?: string;
   remark?: string;
 };
 
@@ -211,6 +208,8 @@ export type LabSample = {
   /** คำเตือนตอนสร้าง เช่น ประเภทไม่ตรงหมวดสินค้าของ Lot */
   warning?: string;
   specId?: string;
+  /** Spec ที่เลือกไว้พร้อมพารามิเตอร์ทั้งหมด (ตอนดูรายละเอียด) */
+  spec?: LabSpec;
   failApproveReason?: string;
   /** สถานะ QC ของ Lot ต้นทาง */
   lotQcStatus?: string;
@@ -300,3 +299,97 @@ export function labSpecActiveLabel(isActive: boolean, lang: "th" | "en"): string
   if (lang === "en") return isActive ? "Active" : "Inactive";
   return isActive ? "ใช้งาน" : "ปิด";
 }
+
+/** นำเข้า Spec จาก Excel/CSV — ตรงกับ `SpecImportAnalysis` / `SpecImportResult` ฝั่ง backend */
+/** นำเข้าตัวอย่าง + ผลตรวจ — ตรงกับ `SampleImportAnalysis` / `SampleImportResult` ฝั่ง backend */
+export type LabSampleImportResultLine = {
+  row: number;
+  parameterName: string;
+  unit?: string;
+  specMin?: string;
+  specMax?: string;
+  resultValue: string;
+  judgement: string;
+  analysisDate: string;
+  analystName?: string;
+};
+
+export type LabSampleImportSample = {
+  seq: number;
+  firstRow: number;
+  status: "OK" | "ERROR" | "DUPLICATE";
+  messages: string[];
+  sampleType?: string;
+  collectedDate?: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  specName?: string;
+  lotNo?: string;
+  moNo?: string;
+  results: LabSampleImportResultLine[];
+};
+
+export type LabSampleImportAnalysis = {
+  totalRows: number;
+  samples: LabSampleImportSample[];
+  errors: { row: number; message: string }[];
+  sampleCount: number;
+  resultCount: number;
+  importableSampleCount: number;
+  importableResultCount: number;
+  duplicateSampleCount: number;
+  errorSampleCount: number;
+  errorRowCount: number;
+};
+
+export type LabSampleImportResult = {
+  importId: string;
+  createdSamples: number;
+  createdResults: number;
+  skippedDuplicates: number;
+  samples: { seq: number; sampleNo: string; results: number }[];
+};
+
+export type LabSpecImportStatus = "OK" | "ERROR" | "DUPLICATE";
+
+export type LabSpecImportParameter = {
+  row: number;
+  parameterName: string;
+  unit?: string;
+  specMin?: string;
+  specMax?: string;
+  isRequired: boolean;
+};
+
+export type LabSpecImportSpec = {
+  sampleType: string;
+  itemId?: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  nameTh: string;
+  status: LabSpecImportStatus;
+  firstRow: number;
+  parameters: LabSpecImportParameter[];
+  messages: string[];
+};
+
+export type LabSpecImportAnalysis = {
+  totalRows: number;
+  specs: LabSpecImportSpec[];
+  errors: { row: number; message: string }[];
+  specCount: number;
+  parameterCount: number;
+  importableSpecCount: number;
+  importableParameterCount: number;
+  duplicateSpecCount: number;
+  errorSpecCount: number;
+  errorRowCount: number;
+};
+
+export type LabSpecImportResult = {
+  totalSpecs: number;
+  createdSpecs: number;
+  createdParameters: number;
+  failedSpecs: number;
+  failures: { nameTh: string; row: number; reason: string }[];
+};

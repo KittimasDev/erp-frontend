@@ -1,31 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Alert,
-  Button,
-  Form,
-  Input,
-  Modal,
-  Popconfirm,
-  Table,
-  Tag,
-} from "antd";
+import { Alert, App, Button, Input, Popconfirm, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, SaveOutlined } from "@ant-design/icons";
 
 import {
-  useAddLabResultsMutation,
   useDeleteLabResultMutation,
-  useUpdateLabResultMutation,
+  useSaveLabResultsMutation,
+  useSetLabSampleSpecMutation,
 } from "@/hooks/laboratory/useLaboratoryQuery";
-import { useResolveLabSpecQuery } from "@/hooks/laboratory/useLabSpecs";
+import { useLabSpecsQuery } from "@/hooks/laboratory/useLabSpecs";
 import { useT } from "@/lib/i18n/useT";
 import {
   LAB_JUDGEMENT_COLOR,
   LAB_JUDGEMENT_LABEL,
+  LAB_SAMPLE_TYPE_LABEL,
   type AddLabResultLine,
   type LabSample,
+  type LabSpecParameter,
   type LabTestResult,
 } from "@/types/laboratory";
 
@@ -35,322 +28,35 @@ type Props = {
   editable: boolean;
 };
 
-// ─── เพิ่มผลตรวจ: พารามิเตอร์จาก Spec + แถวอิสระ ─────────────────────────────
+type RowDraft = { value: string; remark: string };
 
-type EntryValues = {
-  spec: Record<string, string | undefined>;
-  extra?: Array<{
-    parameterName?: string;
-    resultValue?: string;
-    unit?: string;
-    specMin?: string;
-    specMax?: string;
-  }>;
-};
+const dash = (v?: string) => (v && v.length > 0 ? v : "—");
 
-function ResultEntryModal({
-  sample,
-  onClose,
-}: {
-  sample: LabSample;
-  onClose: () => void;
-}) {
-  const t = useT();
-  const [form] = Form.useForm<EntryValues>();
-  const specQuery = useResolveLabSpecQuery({
-    sampleType: sample.sampleType,
-    itemId: sample.itemId,
-  });
-  const add = useAddLabResultsMutation(sample.id);
-  const spec = specQuery.data?.data;
+const isNumeric = (text: string) =>
+  text.trim() !== "" && Number.isFinite(Number(text.trim().replace(/,/g, "")));
 
-  // พารามิเตอร์ที่ยังไม่มีผล — ไม่เสนอซ้ำ
-  const entered = new Set(
-    (sample.results ?? []).map((r) => r.specParameterId).filter(Boolean),
-  );
-  const pending = (spec?.parameters ?? []).filter((p) => !entered.has(p.id));
+const hasCriteria = (p: LabSpecParameter) => Boolean(p.specMin || p.specMax);
 
-  const submit = () => {
-    const v = form.getFieldsValue();
-    const lines: AddLabResultLine[] = [];
-    for (const p of pending) {
-      const value = v.spec?.[p.id]?.trim();
-      if (value) {
-        lines.push({
-          specParameterId: p.id,
-          parameterName: p.parameterName,
-          resultValue: value,
-        });
-      }
-    }
-    for (const e of v.extra ?? []) {
-      if (e?.parameterName?.trim() && e.resultValue?.trim()) {
-        lines.push({
-          parameterName: e.parameterName.trim(),
-          resultValue: e.resultValue.trim(),
-          unit: e.unit?.trim() || undefined,
-          specMin: e.specMin?.trim() || undefined,
-          specMax: e.specMax?.trim() || undefined,
-        });
-      }
-    }
-    if (lines.length === 0) return;
-    add.mutate(lines, { onSuccess: onClose });
-  };
+// ─── ผลตรวจเก่าที่ไม่ผูกพารามิเตอร์ใน Spec (กรอกเองเดิม) — อ่านอย่างเดียว ──────────
 
-  return (
-    <Modal
-      open
-      width={720}
-      title={t("บันทึกผลตรวจ")}
-      okText={t("บันทึกผล")}
-      cancelText={t("ยกเลิก")}
-      confirmLoading={add.isPending}
-      onCancel={onClose}
-      onOk={submit}
-    >
-      <Form form={form} layout="vertical">
-        {spec ? (
-          <>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              {t("ตาม Spec: {name}", { name: spec.nameTh })}
-            </div>
-            {pending.length === 0 ? (
-              <p style={{ color: "#8a94a6" }}>
-                {t("บันทึกครบทุกพารามิเตอร์ของ Spec แล้ว")}
-              </p>
-            ) : (
-              pending.map((p) => (
-                <div
-                  key={p.id}
-                  style={{
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                    marginBottom: 6,
-                  }}
-                >
-                  <div style={{ flex: 3 }}>
-                    {p.parameterName}
-                    {p.isRequired ? (
-                      <Tag color="red" style={{ marginLeft: 6 }}>
-                        {t("จำเป็น")}
-                      </Tag>
-                    ) : null}
-                    <div style={{ fontSize: 12, color: "#8a94a6" }}>
-                      {p.specMin || p.specMax
-                        ? t("เกณฑ์ {min} – {max}", {
-                            min: p.specMin ?? "…",
-                            max: p.specMax ?? "…",
-                          })
-                        : t("ยังไม่ตั้งเกณฑ์")}
-                      {p.unit ? ` ${p.unit}` : ""}
-                    </div>
-                  </div>
-                  <Form.Item
-                    name={["spec", p.id]}
-                    style={{ flex: 2, marginBottom: 0 }}
-                  >
-                    <Input placeholder={t("ผลที่วัดได้")} maxLength={100} />
-                  </Form.Item>
-                </div>
-              ))
-            )}
-          </>
-        ) : (
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 12 }}
-            title={t("ยังไม่มี Spec ของประเภท/สินค้านี้")}
-            description={t(
-              "กรอกพารามิเตอร์และเกณฑ์เองด้านล่างได้ หรือให้ผู้ดูแลตั้ง Spec ที่หน้า Spec การตรวจ",
-            )}
-          />
-        )}
-
-        <div style={{ fontWeight: 600, margin: "12px 0 6px" }}>
-          {t("พารามิเตอร์อื่น (กรอกเอง)")}
-        </div>
-        <Form.List name="extra">
-          {(fields, { add: addRow, remove }) => (
-            <>
-              {fields.map((field) => (
-                <div
-                  key={field.key}
-                  style={{ display: "flex", gap: 6, alignItems: "flex-start" }}
-                >
-                  <Form.Item
-                    name={[field.name, "parameterName"]}
-                    style={{ flex: 3 }}
-                  >
-                    <Input placeholder={t("พารามิเตอร์")} maxLength={255} />
-                  </Form.Item>
-                  <Form.Item
-                    name={[field.name, "resultValue"]}
-                    style={{ flex: 2 }}
-                  >
-                    <Input placeholder={t("ผล")} maxLength={100} />
-                  </Form.Item>
-                  <Form.Item name={[field.name, "unit"]} style={{ flex: 1 }}>
-                    <Input placeholder={t("หน่วย")} maxLength={50} />
-                  </Form.Item>
-                  <Form.Item name={[field.name, "specMin"]} style={{ flex: 1 }}>
-                    <Input placeholder="Min" maxLength={100} />
-                  </Form.Item>
-                  <Form.Item name={[field.name, "specMax"]} style={{ flex: 1 }}>
-                    <Input placeholder="Max" maxLength={100} />
-                  </Form.Item>
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    aria-label={t("ลบแถว")}
-                    onClick={() => remove(field.name)}
-                  />
-                </div>
-              ))}
-              <Button icon={<PlusOutlined />} onClick={() => addRow({})}>
-                {t("เพิ่มแถว")}
-              </Button>
-            </>
-          )}
-        </Form.List>
-      </Form>
-    </Modal>
-  );
-}
-
-// ─── แก้ผลบรรทัดเดียว ────────────────────────────────────────────────────────
-
-function ResultEditModal({
+function LegacyResults({
   sampleId,
-  result,
-  onClose,
+  results,
+  editable,
 }: {
   sampleId: string;
-  result: LabTestResult;
-  onClose: () => void;
+  results: LabTestResult[];
+  editable: boolean;
 }) {
-  const [form] = Form.useForm<{
-    resultValue: string;
-    unit?: string;
-    specMin?: string;
-    specMax?: string;
-    remark?: string;
-  }>();
   const t = useT();
-  const update = useUpdateLabResultMutation(sampleId);
-  return (
-    <Modal
-      open
-      title={t("แก้ผล — {name}", { name: result.parameterName })}
-      okText={t("บันทึก")}
-      cancelText={t("ยกเลิก")}
-      confirmLoading={update.isPending}
-      onCancel={onClose}
-      onOk={() =>
-        void form.validateFields().then((v) =>
-          update.mutate(
-            {
-              resultId: result.id,
-              body: {
-                resultValue: v.resultValue.trim(),
-                unit: v.unit?.trim() ?? "",
-                specMin: v.specMin?.trim() ?? "",
-                specMax: v.specMax?.trim() ?? "",
-                remark: v.remark?.trim() ?? "",
-              },
-            },
-            { onSuccess: onClose },
-          ),
-        )
-      }
-    >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          resultValue: result.resultValue,
-          unit: result.unit,
-          specMin: result.specMin,
-          specMax: result.specMax,
-          remark: result.remark,
-        }}
-      >
-        <Form.Item
-          name="resultValue"
-          label={t("ผลที่วัดได้")}
-          rules={[{ required: true, message: t("ใส่ผล") }]}
-        >
-          <Input maxLength={100} />
-        </Form.Item>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Form.Item name="unit" label={t("หน่วย")} style={{ flex: 1 }}>
-            <Input maxLength={50} />
-          </Form.Item>
-          <Form.Item name="specMin" label="Min" style={{ flex: 1 }}>
-            <Input maxLength={100} />
-          </Form.Item>
-          <Form.Item name="specMax" label="Max" style={{ flex: 1 }}>
-            <Input maxLength={100} />
-          </Form.Item>
-        </div>
-        <Form.Item name="remark" label={t("หมายเหตุ")}>
-          <Input.TextArea rows={2} maxLength={2000} />
-        </Form.Item>
-      </Form>
-    </Modal>
-  );
-}
-
-// ─── ตารางผลตรวจ ─────────────────────────────────────────────────────────────
-
-export default function LabResultsSection({ sample, editable }: Props) {
-  const t = useT();
-  const remove = useDeleteLabResultMutation(sample.id);
-  const [adding, setAdding] = useState(false);
-  const [editing, setEditing] = useState<LabTestResult | null>(null);
-  const specQuery = useResolveLabSpecQuery(
-    { sampleType: sample.sampleType, itemId: sample.itemId },
-    editable,
-  );
-  const results = useMemo(() => sample.results ?? [], [sample.results]);
-
-  const fails = results.filter((r) => r.judgement === "FAIL");
-  const missingRequired = useMemo(() => {
-    const have = new Set(results.map((r) => r.specParameterId).filter(Boolean));
-    return (specQuery.data?.data?.parameters ?? []).filter(
-      (p) => p.isRequired && !have.has(p.id),
-    );
-  }, [results, specQuery.data]);
-
+  const remove = useDeleteLabResultMutation(sampleId);
+  if (results.length === 0) return null;
   const columns: ColumnsType<LabTestResult> = [
-    { title: t("ลำดับ"), width: 56, render: (_v, _r, i) => i + 1 },
     { title: t("พารามิเตอร์"), dataIndex: "parameterName" },
-    {
-      title: t("ผลตรวจ"),
-      dataIndex: "resultValue",
-      render: (v: string, r) =>
-        r.judgement === "FAIL" ? (
-          <strong style={{ color: "#cf1322" }}>{v}</strong>
-        ) : (
-          v
-        ),
-    },
-    { title: t("หน่วย"), dataIndex: "unit", render: (v?: string) => v ?? "—" },
-    {
-      title: "Min",
-      dataIndex: "specMin",
-      width: 80,
-      render: (v?: string) => v ?? "—",
-    },
-    {
-      title: "Max",
-      dataIndex: "specMax",
-      width: 80,
-      render: (v?: string) => v ?? "—",
-    },
+    { title: t("ผลตรวจ"), dataIndex: "resultValue" },
+    { title: t("หน่วย"), dataIndex: "unit", render: dash },
+    { title: "Min", dataIndex: "specMin", width: 80, render: dash },
+    { title: "Max", dataIndex: "specMax", width: 80, render: dash },
     {
       title: t("ผลตัดสิน"),
       dataIndex: "judgement",
@@ -364,15 +70,260 @@ export default function LabResultsSection({ sample, editable }: Props) {
     columns.push({
       title: "",
       key: "act",
-      width: 90,
+      width: 60,
       render: (_v, r) => (
-        <div style={{ display: "flex", gap: 4 }}>
+        <Popconfirm
+          title={t("ลบผลบรรทัดนี้?")}
+          okText={t("ลบ")}
+          cancelText={t("ยกเลิก")}
+          onConfirm={() => remove.mutate(r.id)}
+        >
           <Button
             size="small"
-            icon={<EditOutlined />}
-            aria-label={t("แก้ผล")}
-            onClick={() => setEditing(r)}
+            danger
+            icon={<DeleteOutlined />}
+            aria-label={t("ลบผล")}
           />
+        </Popconfirm>
+      ),
+    });
+  }
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>
+        {t("ผลตรวจเดิม (บันทึกก่อนใช้ Spec)")}
+      </div>
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={results}
+        pagination={false}
+        size="small"
+      />
+    </div>
+  );
+}
+
+// ─── ตัวอย่างเก่าที่ยังไม่มี Spec: เลือก Spec ก่อนบันทึกผลใหม่ ─────────────────────
+
+function SpecPicker({ sample }: { sample: LabSample }) {
+  const t = useT();
+  const specs = useLabSpecsQuery({ isActive: true });
+  const setSpec = useSetLabSampleSpecMutation(sample.id);
+  const [specId, setSpecId] = useState<string | undefined>();
+  const options = useMemo(
+    () =>
+      (specs.data?.data ?? []).map((s) => ({
+        value: s.id,
+        label: `${s.nameTh} · ${t(LAB_SAMPLE_TYPE_LABEL[s.sampleType] ?? s.sampleType)}${
+          s.itemCode ? ` · ${s.itemCode}` : ""
+        }`,
+      })),
+    [specs.data, t],
+  );
+  return (
+    <Alert
+      type="warning"
+      showIcon
+      style={{ marginBottom: 8 }}
+      title={t("ตัวอย่างนี้ยังไม่ได้เลือก Spec")}
+      description={
+        <div>
+          <p style={{ margin: "0 0 8px" }}>
+            {t("เลือก Spec ก่อนบันทึกผลตรวจใหม่ — ผลตรวจเดิมที่บันทึกไว้จะไม่ถูกแก้ไข")}
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              style={{ minWidth: 320 }}
+              placeholder={t("เลือก Spec การตรวจ")}
+              loading={specs.isLoading}
+              options={options}
+              value={specId}
+              onChange={setSpecId}
+            />
+            <Button
+              type="primary"
+              disabled={!specId}
+              loading={setSpec.isPending}
+              onClick={() => specId && setSpec.mutate(specId)}
+            >
+              {t("ใช้ Spec นี้")}
+            </Button>
+          </div>
+        </div>
+      }
+    />
+  );
+}
+
+// ─── ตารางกรอกผลตามพารามิเตอร์ของ Spec ───────────────────────────────────────
+
+function SpecResultsTable({
+  sample,
+  editable,
+  byParam,
+}: {
+  sample: LabSample;
+  editable: boolean;
+  byParam: Map<string, LabTestResult>;
+}) {
+  const t = useT();
+  const { message } = App.useApp();
+  const save = useSaveLabResultsMutation(sample.id);
+  const remove = useDeleteLabResultMutation(sample.id);
+  const spec = sample.spec!;
+
+  const [draft, setDraft] = useState<Record<string, RowDraft>>(() => {
+    const init: Record<string, RowDraft> = {};
+    for (const p of spec.parameters) {
+      const r = byParam.get(p.id);
+      init[p.id] = { value: r?.resultValue ?? "", remark: r?.remark ?? "" };
+    }
+    return init;
+  });
+  const patch = (id: string, change: Partial<RowDraft>) =>
+    setDraft((d) => ({ ...d, [id]: { ...d[id], ...change } }));
+
+  const missingRequired = spec.parameters.filter(
+    (p) => p.isRequired && !byParam.has(p.id),
+  );
+
+  const submit = () => {
+    const adds: AddLabResultLine[] = [];
+    const updates: Array<{
+      resultId: string;
+      body: { resultValue?: string; remark?: string };
+    }> = [];
+    for (const p of spec.parameters) {
+      const d = draft[p.id];
+      const value = d.value.trim();
+      const remark = d.remark.trim();
+      const existing = byParam.get(p.id);
+      if (existing) {
+        if (!value) {
+          message.error(
+            t("{name}: ผลตรวจห้ามว่าง (ลบผลด้วยปุ่มถังขยะ)", {
+              name: p.parameterName,
+            }),
+          );
+          return;
+        }
+        if (hasCriteria(p) && !isNumeric(value)) {
+          message.error(
+            t("{name}: ต้องกรอกเป็นตัวเลข", { name: p.parameterName }),
+          );
+          return;
+        }
+        const body: { resultValue?: string; remark?: string } = {};
+        if (value !== existing.resultValue) body.resultValue = value;
+        if (remark !== (existing.remark ?? "")) body.remark = remark;
+        if (Object.keys(body).length > 0) {
+          updates.push({ resultId: existing.id, body });
+        }
+      } else if (value) {
+        if (hasCriteria(p) && !isNumeric(value)) {
+          message.error(
+            t("{name}: ต้องกรอกเป็นตัวเลข", { name: p.parameterName }),
+          );
+          return;
+        }
+        adds.push({
+          specParameterId: p.id,
+          resultValue: value,
+          remark: remark || undefined,
+        });
+      }
+    }
+    if (adds.length === 0 && updates.length === 0) {
+      message.info(t("ยังไม่มีผลตรวจที่เปลี่ยนแปลง"));
+      return;
+    }
+    save.mutate({ adds, updates });
+  };
+
+  const columns: ColumnsType<LabSpecParameter> = [
+    { title: t("ลำดับ"), width: 56, render: (_v, _p, i) => i + 1 },
+    {
+      title: t("พารามิเตอร์"),
+      key: "name",
+      render: (_v, p) => (
+        <span>
+          {p.parameterName}
+          {p.isRequired ? (
+            <Tag color="red" style={{ marginLeft: 6 }}>
+              {t("จำเป็น")}
+            </Tag>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      title: t("ผลตรวจ"),
+      key: "value",
+      width: 180,
+      render: (_v, p) => {
+        const r = byParam.get(p.id);
+        if (!editable) {
+          return r?.judgement === "FAIL" ? (
+            <strong style={{ color: "#cf1322" }}>{r.resultValue}</strong>
+          ) : (
+            dash(r?.resultValue)
+          );
+        }
+        return (
+          <Input
+            value={draft[p.id]?.value}
+            maxLength={100}
+            placeholder={t("ผลที่วัดได้")}
+            status={r?.judgement === "FAIL" ? "error" : undefined}
+            onChange={(e) => patch(p.id, { value: e.target.value })}
+          />
+        );
+      },
+    },
+    { title: t("หน่วย"), dataIndex: "unit", width: 90, render: dash },
+    { title: "Min", dataIndex: "specMin", width: 80, render: dash },
+    { title: "Max", dataIndex: "specMax", width: 80, render: dash },
+    {
+      title: t("ผลตัดสิน"),
+      key: "judgement",
+      width: 110,
+      render: (_v, p) => {
+        const r = byParam.get(p.id);
+        if (!r) return "—";
+        return (
+          <Tag color={LAB_JUDGEMENT_COLOR[r.judgement]}>
+            {t(LAB_JUDGEMENT_LABEL[r.judgement] ?? r.judgement)}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: t("หมายเหตุ"),
+      key: "remark",
+      width: 180,
+      render: (_v, p) =>
+        editable ? (
+          <Input
+            value={draft[p.id]?.remark}
+            maxLength={2000}
+            onChange={(e) => patch(p.id, { remark: e.target.value })}
+          />
+        ) : (
+          dash(byParam.get(p.id)?.remark)
+        ),
+    },
+  ];
+  if (editable) {
+    columns.push({
+      title: "",
+      key: "act",
+      width: 56,
+      render: (_v, p) => {
+        const r = byParam.get(p.id);
+        return r ? (
           <Popconfirm
             title={t("ลบผลบรรทัดนี้?")}
             okText={t("ลบ")}
@@ -386,25 +337,13 @@ export default function LabResultsSection({ sample, editable }: Props) {
               aria-label={t("ลบผล")}
             />
           </Popconfirm>
-        </div>
-      ),
+        ) : null;
+      },
     });
   }
 
   return (
-    <div>
-      {fails.length > 0 ? (
-        <Alert
-          type="error"
-          showIcon
-          style={{ marginBottom: 8 }}
-          title={t("มี {n} พารามิเตอร์ไม่ผ่านเกณฑ์: {names}", {
-            n: fails.length,
-            names: fails.map((r) => r.parameterName).join(", "),
-          })}
-          description={t("อนุมัติได้ แต่ต้องระบุเหตุผล · หรือตีกลับเพื่อปฏิเสธ Lot")}
-        />
-      ) : null}
+    <>
       {editable && missingRequired.length > 0 ? (
         <Alert
           type="warning"
@@ -419,32 +358,107 @@ export default function LabResultsSection({ sample, editable }: Props) {
       <Table
         rowKey="id"
         columns={columns}
-        dataSource={results}
+        dataSource={spec.parameters}
         pagination={false}
         size="small"
-        locale={{ emptyText: t("ยังไม่มีผลตรวจ") }}
+        scroll={{ x: 900 }}
+        locale={{ emptyText: t("Spec นี้ยังไม่มีพารามิเตอร์") }}
       />
-      {editable ? (
+      {editable && spec.parameters.length > 0 ? (
         <Button
           style={{ marginTop: 8 }}
           type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setAdding(true)}
+          icon={<SaveOutlined />}
+          loading={save.isPending}
+          onClick={submit}
         >
           {t("บันทึกผลตรวจ")}
         </Button>
       ) : null}
-      {adding ? (
-        <ResultEntryModal sample={sample} onClose={() => setAdding(false)} />
-      ) : null}
-      {editing ? (
-        <ResultEditModal
-          key={editing.id}
-          sampleId={sample.id}
-          result={editing}
-          onClose={() => setEditing(null)}
+    </>
+  );
+}
+
+// ─── ส่วนผลตรวจ ───────────────────────────────────────────────────────────────
+
+export default function LabResultsSection({ sample, editable }: Props) {
+  const t = useT();
+  const results = useMemo(() => sample.results ?? [], [sample.results]);
+  const spec = sample.spec;
+
+  const paramIds = useMemo(
+    () => new Set((spec?.parameters ?? []).map((p) => p.id)),
+    [spec],
+  );
+  const byParam = useMemo(() => {
+    const m = new Map<string, LabTestResult>();
+    for (const r of results) {
+      if (r.specParameterId && paramIds.has(r.specParameterId)) {
+        m.set(r.specParameterId, r);
+      }
+    }
+    return m;
+  }, [results, paramIds]);
+  const legacy = useMemo(
+    () => results.filter((r) => !isLinked(r, byParam)),
+    [results, byParam],
+  );
+
+  const fails = results.filter((r) => r.judgement === "FAIL");
+
+  return (
+    <div>
+      {spec ? (
+        <div style={{ marginBottom: 8 }}>
+          <span style={{ color: "#8a94a6" }}>{t("Spec ที่เลือก")}: </span>
+          <strong>{spec.nameTh}</strong>
+          {!spec.isActive ? (
+            <Tag style={{ marginLeft: 8 }}>{t("ปิดใช้งาน")}</Tag>
+          ) : null}
+        </div>
+      ) : editable ? (
+        <SpecPicker sample={sample} />
+      ) : (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 8 }}
+          title={t("ตัวอย่างนี้ไม่มี Spec (ข้อมูลเดิม)")}
         />
+      )}
+      {fails.length > 0 ? (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 8 }}
+          title={t("มี {n} พารามิเตอร์ไม่ผ่านเกณฑ์: {names}", {
+            n: fails.length,
+            names: fails.map((r) => r.parameterName).join(", "),
+          })}
+          description={t("อนุมัติได้ แต่ต้องระบุเหตุผล · หรือตีกลับเพื่อปฏิเสธ Lot")}
+        />
+      ) : null}
+      {spec ? (
+        <SpecResultsTable
+          key={`${sample.id}-${sample.updatedAt}-${results.length}`}
+          sample={sample}
+          editable={editable}
+          byParam={byParam}
+        />
+      ) : null}
+      <LegacyResults
+        sampleId={sample.id}
+        results={legacy}
+        editable={editable}
+      />
+      {!spec && results.length === 0 && !editable ? (
+        <p style={{ color: "#8a94a6" }}>{t("ยังไม่มีผลตรวจ")}</p>
       ) : null}
     </div>
   );
+}
+
+/** ผลที่ผูกพารามิเตอร์ของ Spec ปัจจุบันแล้ว (อยู่ใน byParam) */
+function isLinked(r: LabTestResult, byParam: Map<string, LabTestResult>) {
+  return Boolean(r.specParameterId && byParam.get(r.specParameterId)?.id === r.id);
 }

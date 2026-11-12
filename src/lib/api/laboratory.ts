@@ -1,8 +1,10 @@
-import { apiFetch } from "./client";
+import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
 import type {
   AddLabResultLine,
   CreateLabSampleBody,
   LabCoa,
+  LabSampleImportAnalysis,
+  LabSampleImportResult,
   LabCoaQueryParams,
   ReviewLabSampleBody,
   UpdateLabResultBody,
@@ -64,6 +66,44 @@ export function updateLabResult(
     `/api/laboratory/samples/${id}/results/${resultId}`,
     { method: "PATCH", token, body },
   );
+}
+
+/** Template นำเข้าตัวอย่าง+ผลตรวจ (Excel มี Dropdown/ชีตอ้างอิง · CSV) */
+export const downloadLabSampleImportTemplate = (
+  token: string,
+  format: "xlsx" | "csv",
+) =>
+  apiDownloadBlob(`/api/laboratory/samples/import-template?format=${format}`, {
+    token,
+  });
+
+const toForm = (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return formData;
+};
+
+export const previewLabSampleImport = (token: string, file: File) =>
+  apiUpload<{ message: string; data: LabSampleImportAnalysis }>(
+    "/api/laboratory/samples/import/preview",
+    toForm(file),
+    { token },
+  );
+
+export const importLabSamples = (token: string, file: File) =>
+  apiUpload<{ message: string; data: LabSampleImportResult }>(
+    "/api/laboratory/samples/import",
+    toForm(file),
+    { token },
+  );
+
+/** เลือก Spec ให้ตัวอย่างเก่าที่ยังไม่มี Spec */
+export function setLabSampleSpec(token: string, id: string, specId: string) {
+  return apiFetch<LabSampleApiResponse>(`/api/laboratory/samples/${id}/spec`, {
+    method: "PATCH",
+    token,
+    body: { specId },
+  });
 }
 
 export function deleteLabResult(token: string, id: string, resultId: string) {

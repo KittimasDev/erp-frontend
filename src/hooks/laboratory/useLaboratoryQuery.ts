@@ -12,8 +12,11 @@ import {
   getLabCoaHistory,
   reissueLabCoa,
   reviewLabSample,
+  setLabSampleSpec,
   updateLabResult,
   getLabSample,
+  importLabSamples,
+  previewLabSampleImport,
   getLabSampleCoa,
   getLabSampleQrCode,
   getLabSamples,
@@ -85,6 +88,67 @@ export function useAddLabResultsMutation(sampleId: string) {
       message.success(t("บันทึกผลตรวจแล้ว"));
     },
     onError: (e) => fail(e, t("บันทึกผลตรวจไม่สำเร็จ")),
+  });
+}
+
+/**
+ * บันทึกผลตรวจตาม Spec ครั้งเดียว: แถวใหม่ส่งเป็นชุดเดียว (1 transaction ที่ backend)
+ * แถวที่แก้ค่าเดิมส่ง PATCH ต่อท้าย · สำเร็จ/ล้มเหลวรีเฟรชข้อมูลเสมอ
+ */
+export function useSaveLabResultsMutation(sampleId: string) {
+  const t = useT();
+  const { message, refresh, fail } = useLabMutationHelpers();
+  return useMutation({
+    mutationFn: async (vars: {
+      adds: AddLabResultLine[];
+      updates: Array<{ resultId: string; body: UpdateLabResultBody }>;
+    }) => {
+      const token = getAccessToken();
+      if (vars.adds.length > 0) {
+        await addLabResults(token, sampleId, vars.adds);
+      }
+      for (const u of vars.updates) {
+        await updateLabResult(token, sampleId, u.resultId, u.body);
+      }
+    },
+    onSuccess: () => {
+      refresh();
+      message.success(t("บันทึกผลตรวจแล้ว"));
+    },
+    onError: (e) => {
+      refresh();
+      fail(e, t("บันทึกผลตรวจไม่สำเร็จ"));
+    },
+  });
+}
+
+export function usePreviewLabSampleImportMutation() {
+  return useMutation({
+    mutationFn: (file: File) => previewLabSampleImport(getAccessToken(), file),
+  });
+}
+
+export function useImportLabSamplesMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => importLabSamples(getAccessToken(), file),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: laboratoryQueryKey });
+    },
+  });
+}
+
+export function useSetLabSampleSpecMutation(sampleId: string) {
+  const t = useT();
+  const { message, refresh, fail } = useLabMutationHelpers();
+  return useMutation({
+    mutationFn: (specId: string) =>
+      setLabSampleSpec(getAccessToken(), sampleId, specId),
+    onSuccess: () => {
+      refresh();
+      message.success(t("เลือก Spec ให้ตัวอย่างแล้ว"));
+    },
+    onError: (e) => fail(e, t("เลือก Spec ไม่สำเร็จ")),
   });
 }
 

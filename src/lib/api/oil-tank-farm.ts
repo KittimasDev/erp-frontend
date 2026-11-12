@@ -1,4 +1,5 @@
-import { apiFetch } from "./client";
+import { ApiError, apiFetch } from "./client";
+import { resolveLabSpec } from "./lab-specs";
 import type {
   CreateOilDispatchBody,
   CreateOilReceivingBody,
@@ -59,21 +60,39 @@ export const cancelOilReceiving = (token: string, id: string) =>
   apiFetch<OilReceivingApiResponse>(`${BASE}/receivings/${id}/cancel`, { method: "POST", token });
 
 /** ส่งตัวอย่างน้ำมันของใบรับนี้ให้ Lab — ผล Lab อนุมัติ/ตีกลับจะปล่อย/ปฏิเสธ Lot อัตโนมัติ */
-export const createLabSampleForReceiving = (
+export const createLabSampleForReceiving = async (
   token: string,
-  body: { collectedDate: string; referenceDocId: string; referenceDocNo: string },
-) =>
-  apiFetch<{ message: string; data: { id: string; sampleNo: string } }>("/api/laboratory/samples", {
+  body: {
+    collectedDate: string;
+    referenceDocId: string;
+    referenceDocNo: string;
+    itemId?: string;
+    lotId?: string;
+  },
+) => {
+  if (!body.itemId) {
+    throw new ApiError("ใบรับนี้ยังไม่มี Lot/สินค้า — ส่งตัวอย่าง Lab ไม่ได้", 400);
+  }
+  // ตัวอย่างต้องผูก Spec — ใช้ Spec เริ่มต้น (สินค้าเฉพาะ → ของประเภทน้ำมัน) ผู้ใช้เปลี่ยนได้ที่หน้าตัวอย่าง
+  const spec = await resolveLabSpec(token, { sampleType: "OIL", itemId: body.itemId });
+  if (!spec.data) {
+    throw new ApiError("ยังไม่มี Spec การตรวจของน้ำมัน — สร้างที่หน้า Spec การตรวจก่อน", 400);
+  }
+  return apiFetch<{ message: string; data: { id: string; sampleNo: string } }>("/api/laboratory/samples", {
     method: "POST",
     token,
     body: {
       sampleType: "OIL",
       collectedDate: body.collectedDate,
+      itemId: body.itemId,
+      specId: spec.data.id,
+      lotId: body.lotId,
       referenceDocType: "OIL_RECEIVING",
       referenceDocId: body.referenceDocId,
       referenceDocNo: body.referenceDocNo,
     },
   });
+};
 
 // ── Transfers ──
 export const getOilTransfers = (token: string) =>

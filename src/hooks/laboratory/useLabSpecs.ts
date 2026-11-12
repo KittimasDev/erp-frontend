@@ -8,6 +8,8 @@ import {
   createLabSpec,
   deleteLabSpec,
   getLabSpecs,
+  importLabSpecs,
+  previewLabSpecImport,
   resolveLabSpec,
   updateLabSpec,
 } from "@/lib/api/lab-specs";
@@ -67,6 +69,25 @@ export function useUpdateLabSpecMutation() {
       updateLabSpec(getAccessToken(), vars.id, vars.body),
     onSuccess: () => done(t("บันทึก Spec การตรวจแล้ว")),
     onError: (e) => fail(e, t("บันทึก Spec ไม่สำเร็จ")),
+  });
+}
+
+/** ตรวจไฟล์นำเข้า + Preview (ยังไม่บันทึก) */
+export function usePreviewLabSpecImportMutation() {
+  return useMutation({
+    mutationFn: (file: File) => previewLabSpecImport(getAccessToken(), file),
+  });
+}
+
+export function useImportLabSpecsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => importLabSpecs(getAccessToken(), file),
+    onSuccess: (res) => {
+      if (res.data.createdSpecs > 0) {
+        void queryClient.invalidateQueries({ queryKey: labSpecsKey });
+      }
+    },
   });
 }
 

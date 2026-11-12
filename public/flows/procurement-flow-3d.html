@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procurement & Delivery Schedules Flow 3D — ระบบจำลองกระบวนการจัดซื้อและรอบจัดส่งสินค้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #080c14;
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            color: #f1f5f9;
+        }
+        #canvas-container {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* Glassmorphism panels */
+        .glass-panel {
+            background: rgba(11, 17, 30, 0.86);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+        }
+        .glass-card {
+            background: rgba(16, 24, 42, 0.78);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .btn-action {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .btn-action:hover {
+            background: rgba(59, 130, 246, 0.28);
+            border-color: rgba(96, 165, 250, 0.6);
+            transform: translateY(-1px);
+        }
+        .btn-action.active {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            border-color: #60a5fa;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+        }
+        /* Pulse Animation */
+        @keyframes pulse-cyan {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.65), 0 0 16px rgba(6, 182, 212, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(6, 182, 212, 0), 0 0 24px rgba(6, 182, 212, 0.65); }
+        }
+        .active-pulse {
+            animation: pulse-cyan 2s infinite;
+        }
+        /* Timeline */
+        .timeline-line {
+            position: absolute;
+            top: 24px;
+            bottom: 24px;
+            left: 17px;
+            width: 2px;
+            background: linear-gradient(to bottom, #3b82f6 0%, #06b6d4 45%, #10b981 75%, #64748b 100%);
+            z-index: 1;
+        }
+        .timeline-item {
+            position: relative;
+            z-index: 2;
+            transition: all 0.22s ease;
+        }
+        .timeline-item:hover {
+            transform: translateX(3px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.45);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.65);
+        }
+        /* Role Pills */
+        .tag-pill {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1.2;
+        }
+        .tag-role-requester { background: rgba(59, 130, 246, 0.18); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.35); }
+        .tag-role-approver { background: rgba(245, 158, 11, 0.18); color: #fcd34d; border: 1px solid rgba(245, 158, 11, 0.35); }
+        .tag-role-buyer { background: rgba(168, 85, 247, 0.18); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.35); }
+        .tag-role-vendor { background: rgba(14, 165, 233, 0.18); color: #7dd3fc; border: 1px solid rgba(14, 165, 233, 0.35); }
+        .tag-role-qc { background: rgba(16, 185, 129, 0.18); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); }
+        .tag-role-warehouse { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.35); }
+        .tag-role-finance { background: rgba(244, 63, 94, 0.18); color: #fda4af; border: 1px solid rgba(244, 63, 94, 0.35); }
+        .tag-role-system { background: rgba(100, 116, 139, 0.22); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.35); }
+
+        /* Delivery Status Badges */
+        .status-badge-not-received { background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+        .status-badge-partially { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+        .status-badge-fully { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+        .status-badge-closed { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+        .status-badge-cancelled { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.4); }
+
+        /* Interactive Fork Buttons */
+        .btn-fork-option {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #cbd5e1;
+            transition: all 0.18s ease;
+            cursor: pointer;
+        }
+        .btn-fork-option:hover {
+            border-color: #38bdf8;
+            background: rgba(14, 165, 233, 0.25);
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+        .btn-fork-option.selected {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.4) 0%, rgba(37, 99, 235, 0.4) 100%);
+            border-color: #38bdf8;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Top Floating Header -->
+    <header class="fixed top-3 left-3 right-3 z-30 flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 pointer-events-none">
+        <!-- Logo & Title -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto flex items-center gap-3 shadow-2xl">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-900/40 shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-sm md:text-base font-extrabold tracking-tight text-white flex items-center gap-2">
+                        Procurement & Delivery Schedules Flow 3D
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">ERP ACTUAL FLOW</span>
+                    </h1>
+                </div>
+                <p class="text-[11px] text-slate-300 font-normal">
+                    ระบบจำลองกระบวนการจัดซื้อจริง: ใบขอซื้อ ➔ เปิด PO ➔ แบ่งรอบจัดส่ง (Schedules) ➔ ชั่งเข้า ➔ ตรวจรับ GR ➔ 3-Way ➔ จ่ายเงิน
+                </p>
+            </div>
+        </div>
+
+        <!-- Top Scenario Switcher & Global Controls -->
+        <div class="glass-panel rounded-2xl p-1.5 pointer-events-auto flex items-center gap-1.5 flex-wrap">
+            <a href="/flows/procurement-flow-diagram.html" class="btn-action bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border-blue-400/60 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer" style="text-decoration: none;">
+                <span>📊 ดูผัง ER Diagram & Flow ละเอียด</span>
+            </a>
+            <button id="scenario-all" onclick="setScenario('all')" class="btn-action active px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                <span>ภาพรวมกระบวนการหลัก (Normal Flow)</span>
+            </button>
+            <button id="scenario-schedules" onclick="setScenario('schedules')" class="btn-action text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                <span>📅 จัดการรอบจัดส่ง (Delivery Schedules)</span>
+            </button>
+            <button id="scenario-revising" onclick="setScenario('revising')" class="btn-action text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                <span>🔄 ส่งกลับแก้ไข (Revising Flow)</span>
+            </button>
+            <button id="scenario-reject" onclick="setScenario('reject')" class="btn-action text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                <span>❌ ปฏิเสธ & คืนยอด PR</span>
+            </button>
+            <button id="scenario-close-partial" onclick="setScenario('close-partial')" class="btn-action text-slate-300 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                <span>📦 รับไม่ครบ & ปิดยอด (Closed Partial)</span>
+            </button>
+            <button id="btn-toggle-cam" onclick="toggleCameraPreset()" class="btn-action text-slate-300 px-2.5 py-1.5 rounded-xl text-xs font-semibold cursor-pointer" title="สลับมุมกล้อง">
+                🎥 กล้องตามสเต็ป
+            </button>
+            <button id="btn-toggle-ui" onclick="toggleUI()" class="btn-action text-slate-300 px-2.5 py-1.5 rounded-xl text-xs font-semibold cursor-pointer" title="ซ่อน/แสดงแผงควบคุม">
+                ซ่อนเมนู
+            </button>
+        </div>
+    </header>
+
+    <!-- Left Sidebar: Modules & Interactive Delivery Schedules Section -->
+    <aside id="left-panel" class="fixed top-20 bottom-24 left-3 z-20 w-72 sm:w-80 glass-panel rounded-2xl p-3 flex flex-col justify-between pointer-events-auto transition-all duration-300 overflow-hidden shadow-2xl">
+        <div class="overflow-y-auto pr-1">
+            <!-- Delivery Schedules Inspector Card (จุดสำคัญที่ผู้ใช้ต้องการเห็น!) -->
+            <div class="mb-3 p-3 rounded-xl bg-slate-900/90 border border-cyan-500/30 shadow-lg">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        รอบจัดส่งสินค้า (PO Delivery Schedules)
+                    </span>
+                    <span class="text-[10px] font-mono text-slate-400">2 รอบ</span>
+                </div>
+                <p class="text-[10.5px] text-slate-300 mb-2 leading-relaxed">
+                    PO-202611-042 ยอดสั่งซื้อ 50.00 ตัน แบ่งส่งเป็นงวดเพื่อไม่ให้ล้นคลังและเกลี่ยภาระตาชั่ง:
+                </p>
+
+                <!-- Round 1 Card -->
+                <div id="round-card-1" class="p-2.5 rounded-lg bg-slate-800/80 border border-cyan-400/40 mb-2 transition-all">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-[10px] font-bold">R1</span>
+                            รอบที่ 1
+                        </span>
+                        <span id="round-1-status-badge" class="tag-pill status-badge-not-received">ยังไม่รับสินค้า</span>
+                    </div>
+                    <div class="mt-1.5 space-y-0.5 text-[10.5px] font-mono">
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">วันกำหนดส่ง:</span>
+                            <span id="round-1-date" class="text-slate-200 font-semibold">14 พ.ย. 2569</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">สั่งในรอบนี้:</span>
+                            <span class="text-amber-300 font-bold">25.00 ตัน</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">รับแล้วจริง:</span>
+                            <span id="round-1-received" class="text-emerald-400 font-bold">0.00 ตัน</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">คงเหลือค้างรับ:</span>
+                            <span id="round-1-remaining" class="text-sky-300 font-bold">25.00 ตัน</span>
+                        </div>
+                    </div>
+                    <!-- Actions for Round 1 -->
+                    <div class="mt-2 pt-1.5 border-t border-white/10 flex items-center gap-1">
+                        <button onclick="openRescheduleModal(1)" class="btn-action text-[10px] px-2 py-0.5 rounded text-cyan-300 hover:text-white cursor-pointer" title="ขอเลื่อนวันส่งมอบ">
+                            📅 เลื่อนรอบส่ง
+                        </button>
+                        <button onclick="openCloseRemainingModal(1)" class="btn-action text-[10px] px-2 py-0.5 rounded text-amber-300 hover:text-white cursor-pointer" title="รับไม่ครบแล้วขอปิดยอดคงเหลือ">
+                            📦 ปิดยอดที่เหลือ
+                        </button>
+                        <button onclick="openCancelScheduleModal(1)" class="btn-action text-[10px] px-2 py-0.5 rounded text-red-300 hover:text-white cursor-pointer" title="ยกเลิกรอบนี้">
+                            ⛔ ยกเลิกรอบ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Round 2 Card -->
+                <div id="round-card-2" class="p-2.5 rounded-lg bg-slate-800/50 border border-white/5 transition-all">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-bold">R2</span>
+                            รอบที่ 2
+                        </span>
+                        <span id="round-2-status-badge" class="tag-pill status-badge-not-received">ยังไม่รับสินค้า</span>
+                    </div>
+                    <div class="mt-1.5 space-y-0.5 text-[10.5px] font-mono">
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">วันกำหนดส่ง:</span>
+                            <span id="round-2-date" class="text-slate-200 font-semibold">21 พ.ย. 2569</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">สั่งในรอบนี้:</span>
+                            <span class="text-amber-300 font-bold">25.00 ตัน</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">รับแล้วจริง:</span>
+                            <span id="round-2-received" class="text-slate-400 font-bold">0.00 ตัน</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span class="text-slate-500">คงเหลือค้างรับ:</span>
+                            <span id="round-2-remaining" class="text-sky-300 font-bold">25.00 ตัน</span>
+                        </div>
+                    </div>
+                    <div class="mt-2 pt-1.5 border-t border-white/10 flex items-center gap-1">
+                        <button onclick="openRescheduleModal(2)" class="btn-action text-[10px] px-2 py-0.5 rounded text-cyan-300 hover:text-white cursor-pointer">
+                            📅 เลื่อนรอบส่ง
+                        </button>
+                        <button onclick="openCloseRemainingModal(2)" class="btn-action text-[10px] px-2 py-0.5 rounded text-amber-300 hover:text-white cursor-pointer">
+                            📦 ปิดยอดที่เหลือ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stage Navigator -->
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                ขั้นตอนลัด (Quick Jump)
+            </div>
+            <div class="space-y-1">
+                <button onclick="jumpToStep(1)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-blue-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">1. สร้างใบขอซื้อ (PR)</span>
+                    <span class="text-[10px] text-blue-400">ผู้ขอซื้อ</span>
+                </button>
+                <button onclick="jumpToStep(3)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-purple-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">3. เปิดใบสั่งซื้อ (PO)</span>
+                    <span class="text-[10px] text-purple-400">จัดซื้อ</span>
+                </button>
+                <button onclick="jumpToStep(4)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-cyan-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">4. กำหนดรอบส่งมอบ (Schedules)</span>
+                    <span class="text-[10px] text-cyan-400">จัดซื้อ</span>
+                </button>
+                <button onclick="jumpToStep(5)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-amber-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">5. อนุมัติใบสั่งซื้อ (PO Approval)</span>
+                    <span class="text-[10px] text-amber-400">ผู้อนุมัติ</span>
+                </button>
+                <button onclick="jumpToStep(7)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-emerald-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">7. ตาชั่ง & ตรวจรับ QC (Weigh / GR)</span>
+                    <span class="text-[10px] text-emerald-400">QC / ตาชั่ง</span>
+                </button>
+                <button onclick="jumpToStep(9)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-indigo-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">9. รับเข้าคลัง (สต๊อกขยับ)</span>
+                    <span class="text-[10px] text-indigo-400">คลัง</span>
+                </button>
+                <button onclick="jumpToStep(10)" class="w-full text-left p-2 rounded-lg glass-card hover:bg-rose-600/20 text-xs flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200 font-semibold">10. 3-Way Match & จ่ายเงิน (AP)</span>
+                    <span class="text-[10px] text-rose-400">การเงิน</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3D Scene Mini Status -->
+        <div class="pt-2 border-t border-white/10 shrink-0 text-[10px] text-slate-400">
+            <div class="flex items-center justify-between">
+                <span>สถานะรถขนส่ง 3D:</span>
+                <span id="truck-status-label" class="text-cyan-300 font-semibold">จอดที่สำนักงานจัดซื้อ</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Right Sidebar: Complete Timeline with Decision Branches (Forks) -->
+    <aside id="right-panel" class="fixed top-20 bottom-3 right-3 z-20 w-80 sm:w-96 glass-panel rounded-2xl flex flex-col pointer-events-auto transition-all duration-300 overflow-hidden shadow-2xl">
+        <!-- Panel Header -->
+        <div class="p-3.5 border-b border-white/10 shrink-0 bg-slate-900/60">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 active-pulse"></span>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-cyan-300">ไทม์ไลน์กระบวนการจัดซื้อ</span>
+                </div>
+                <span id="step-counter" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                    Step 1 / 12
+                </span>
+            </div>
+            <h2 id="timeline-headline" class="text-sm font-bold text-white mt-1">
+                ภาพรวมกระบวนการ (End-to-End Workflow)
+            </h2>
+            <p id="timeline-subtext" class="text-[11px] text-slate-400">
+                คลิกเลือกขั้นตอนหรือคลิกทางแยก (Forks) เพื่อดูเส้นทางที่สัมพันธ์กับระบบจริง
+            </p>
+        </div>
+
+        <!-- Scrollable Timeline Items -->
+        <div id="timeline-scroll-container" class="flex-1 overflow-y-auto p-3 relative space-y-2.5">
+            <div class="timeline-line"></div>
+            <div id="timeline-items-wrapper" class="space-y-3 relative z-10"></div>
+        </div>
+
+        <!-- Real-time Live ERP State Card -->
+        <div class="p-3 border-t border-white/10 bg-slate-950/85 shrink-0">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <svg class="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7M4 7c0-2 1.5-3 3.5-3h9c2 0 3.5 1 3.5 3M4 7h16"/></svg>
+                    ข้อมูลในระบบ (ERP Live State)
+                </span>
+                <span id="erp-sync-badge" class="text-[9px] font-mono text-emerald-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> REAL-TIME SYNC
+                </span>
+            </div>
+            <div class="space-y-1 font-mono text-[11px]">
+                <div class="flex justify-between items-center text-slate-300">
+                    <span class="text-slate-500">เลขที่เอกสาร:</span>
+                    <span id="erp-doc-no" class="font-bold text-cyan-300">PR-202611-001</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span class="text-slate-500">ผู้ขาย (Vendor):</span>
+                    <span id="erp-vendor-name" class="font-medium text-slate-200 truncate max-w-[170px]">บจก. ยางไทยรับเบอร์</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span class="text-slate-500">สินค้า / ยอดสั่ง:</span>
+                    <span id="erp-items" class="font-medium text-amber-300">ยางรถยนต์ใช้แล้ว 50.00 ตัน</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span class="text-slate-500">รอบที่กำลังดำเนินการ:</span>
+                    <span id="erp-round" class="font-bold text-sky-300">รอบที่ 1 (25.00 ตัน)</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span class="text-slate-500">สถานะเอกสาร PO:</span>
+                    <span id="erp-doc-status" class="font-bold text-emerald-400">DRAFT ➔ PENDING_APPROVAL</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-300 pt-0.5 border-t border-white/5">
+                    <span class="text-slate-500">สต๊อกคลังสินค้า:</span>
+                    <span id="erp-stock-delta" class="font-bold text-slate-400">ยังไม่ขยับ (รอตรวจรับของ)</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Bottom Control Dock (Player & Step Summary) -->
+    <footer id="bottom-dock" class="fixed bottom-3 left-3 right-3 sm:right-[390px] z-30 pointer-events-none flex flex-col sm:flex-row items-center justify-between gap-2 transition-all duration-300">
+        <!-- Active Step Main Banner -->
+        <div class="glass-panel rounded-2xl px-4 py-2.5 pointer-events-auto flex items-center gap-3 w-full sm:w-auto shadow-2xl flex-1 max-w-2xl">
+            <div id="step-badge-large" class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-extrabold text-sm shrink-0 shadow-lg shadow-cyan-900/40">
+                1
+            </div>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span id="step-role-badge" class="tag-pill tag-role-requester">ผู้ขอซื้อ</span>
+                    <h3 id="step-title-large" class="text-xs sm:text-sm font-bold text-white truncate">
+                        1. สร้างใบขอซื้อ (Purchase Request - PR)
+                    </h3>
+                </div>
+                <p id="step-desc-large" class="text-[11px] text-slate-300 truncate mt-0.5">
+                    แผนกต่างๆ ยื่นความประสงค์ขอซื้อวัตถุดิบ/สินค้าในระบบเพื่อรอการอนุมัติ
+                </p>
+            </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="glass-panel rounded-2xl p-1.5 pointer-events-auto flex items-center gap-1 shrink-0 shadow-2xl">
+            <button onclick="resetFlow()" class="btn-action text-slate-300 hover:text-white px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1" title="เริ่มใหม่">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span class="hidden md:inline">เริ่มใหม่</span>
+            </button>
+            <button onclick="prevStep()" class="btn-action text-slate-300 hover:text-white px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1" title="ย้อนกลับ">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <span class="hidden md:inline">ก่อนหน้า</span>
+            </button>
+            <button id="btn-play-pause" onclick="togglePlay()" class="btn-action active px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer" title="เล่นอัตโนมัติ / หยุด">
+                <svg id="play-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                <svg id="pause-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span id="play-text">หยุด</span>
+            </button>
+            <button onclick="nextStep()" class="btn-action text-slate-300 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-1" title="ไปขั้นตอนถัดไป">
+                <span>ถัดไป</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <button id="btn-speed" onclick="toggleSpeed()" class="btn-action text-slate-300 hover:text-white px-2 py-2 rounded-xl text-[11px] font-mono font-bold cursor-pointer" title="ความเร็วการเล่น">
+                1x
+            </button>
+        </div>
+    </footer>
+
+    <!-- Interactive ERP Modals for Realistic Forks -->
+    <!-- 1. Reschedule Modal -->
+    <div id="modal-reschedule" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-4 shadow-2xl border border-cyan-400/40">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    <span>📅</span> เลื่อนกำหนดส่งของรอบ (Reschedule Delivery Round)
+                </h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-white text-sm">✕</button>
+            </div>
+            <div class="py-3 space-y-2.5 text-xs">
+                <div class="p-2 rounded bg-cyan-950/40 border border-cyan-400/20 text-cyan-200">
+                    <span class="font-bold">รอบที่กำลังเลื่อน:</span> <span id="reschedule-round-title">รอบที่ 1 (25.00 ตัน)</span>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">วันกำหนดส่งเดิม (Original Date):</label>
+                    <input id="reschedule-old-date" type="text" readonly class="w-full bg-slate-900 border border-white/10 rounded-lg p-2 text-slate-300 font-mono" value="14 พ.ย. 2569">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">วันกำหนดส่งใหม่ (New Delivery Date):</label>
+                    <input id="reschedule-new-date" type="text" class="w-full bg-slate-800 border border-cyan-400/50 rounded-lg p-2 text-white font-mono" value="18 พ.ย. 2569">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">เหตุผลในการขอเลื่อนรอบ (Reason):</label>
+                    <textarea id="reschedule-reason" class="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-white text-xs h-16" placeholder="เช่น ผู้ขายแจ้งติดปัญหารถขนส่งขัดข้อง ขอเลื่อนส่งเป็น 18 พ.ย."></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <button onclick="closeModals()" class="btn-action text-xs px-3 py-1.5 rounded-xl text-slate-300">ยกเลิก</button>
+                <button onclick="confirmReschedule()" class="btn-action active text-xs px-3 py-1.5 rounded-xl text-white font-bold">บันทึกเลื่อนรอบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Close Remaining Modal -->
+    <div id="modal-close-remaining" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl p-4 shadow-2xl border border-amber-400/40">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+                <h3 class="text-sm font-bold text-amber-300 flex items-center gap-2">
+                    <span>📦</span> ปิดยอดค้างรับของรอบ (Close Remaining Quantity)
+                </h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-white text-sm">✕</button>
+            </div>
+            <div class="py-3 space-y-2.5 text-xs text-slate-300">
+                <p>
+                    รอบนี้ส่งของจริงแล้วบางส่วน และตกลงว่าจะ<span class="text-amber-300 font-bold">ไม่รับยอดที่เหลืออีก</span> ระบบจะตัดยอดค้างรับ และเปลี่ยนสถานะรอบเป็น <span class="tag-pill status-badge-closed">ปิดการรับบางส่วน (CLOSED_PARTIAL)</span>
+                </p>
+                <div class="p-2.5 rounded bg-amber-950/40 border border-amber-400/20 font-mono text-[11px] space-y-1">
+                    <div class="flex justify-between"><span>สั่งในรอบนี้:</span> <span class="font-bold text-white">25.00 ตัน</span></div>
+                    <div class="flex justify-between"><span>รับจริงแล้ว:</span> <span class="font-bold text-emerald-400">20.00 ตัน</span></div>
+                    <div class="flex justify-between"><span>ยอดที่จะปิดยกเลิก:</span> <span class="font-bold text-amber-400">5.00 ตัน</span></div>
+                </div>
+                <div class="text-[11px] text-emerald-300 bg-emerald-950/30 p-2 rounded border border-emerald-500/20">
+                    💡 <strong>ผลต่อระบบ:</strong> ระบบจะปลดล็อคให้ฝ่ายบัญชีตั้งหนี้และจ่ายเงินเฉพาะ 20.00 ตันที่รับจริงได้ทันที โดยไม่ต้องรอของที่เหลือ!
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+                <button onclick="closeModals()" class="btn-action text-xs px-3 py-1.5 rounded-xl text-slate-300">ยกเลิก</button>
+                <button onclick="confirmCloseRemaining()" class="btn-action text-xs px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold">ยืนยันปิดยอดที่เหลือ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script: Three.js World + Step Data + Fork Mechanics -->
+    <script>
+        // ============================================================================
+        // 1. DATA MODEL: COMPLETE PROCUREMENT WORKFLOW ACCORDING TO ACTUAL ERP
+        // ============================================================================
+        const procurementSteps = [
+            {
+                id: 1,
+                title: "สร้างใบขอซื้อ (Purchase Request - PR)",
+                shortTitle: "สร้างใบขอซื้อ",
+                role: "ผู้ขอซื้อ (Requester)",
+                roleClass: "tag-role-requester",
+                icon: "📝",
+                erpPath: "/procurement/purchase-requests/create",
+                docNo: "PR-202611-001",
+                docStatus: "DRAFT (ร่าง)",
+                stockDelta: "ยังไม่ขยับ (รอซื้อ)",
+                vendor: "ยังไม่ระบุ (เลือกตอนทำ PO)",
+                items: "ยางรถยนต์ใช้แล้ว (Scrap Tires) 50.00 ตัน",
+                round: "ยังไม่กำหนดรอบ",
+                desc: "แผนกผลิต/คลังสินค้า ตรวจพบสต๊อกยางใกล้ถึงจุด Reorder Point จึงเปิดใบขอซื้อ (PR) ในระบบ ระบุสเปก ปริมาณที่ต้องการ และวันที่ต้องการใช้",
+                actionBtnText: "กดปุ่ม [บันทึก & ส่งขออนุมัติ]",
+                systemResult: "สร้างรหัสเอกสาร PR-202611-001 สถานะ DRAFT ➔ ส่งอนุมัติเป็น PENDING_APPROVAL",
+                fork: {
+                    question: "เกณฑ์วงเงินการอนุมัติใบขอซื้อ?",
+                    options: [
+                        {
+                            label: "วงเงินไม่เกิน 50,000 บ.",
+                            detail: "อนุมัติชั้นเดียวโดย ผจก. แผนก",
+                            consequence: "ส่งคำขอไปยัง ผจก. แผนกโดยตรง อนุมัติรวดเร็ว",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "วงเงินเกิน 50,000 บ.",
+                            detail: "ต้องผ่าน ผจก. โรงงาน / MD",
+                            consequence: "ส่งคำขอเข้าระบบอนุมัติสองระดับ (Two-level Approval)",
+                            actionType: "continue"
+                        }
+                    ]
+                },
+                camTarget: { x: -35, y: 12, z: 25 },
+                truckPos: { x: -70, z: -25 },
+                activeStation: "office"
+            },
+            {
+                id: 2,
+                title: "หัวหน้าฝ่ายพิจารณาอนุมัติใบขอซื้อ (PR Approval)",
+                shortTitle: "พิจารณาอนุมัติ PR",
+                role: "ผู้อนุมัติ (Approver)",
+                roleClass: "tag-role-approver",
+                icon: "🛡️",
+                erpPath: "/procurement/purchase-requests",
+                docNo: "PR-202611-001",
+                docStatus: "PENDING_APPROVAL ➔ APPROVED",
+                stockDelta: "ยังไม่ขยับ (งบประมาณผ่าน)",
+                vendor: "รอฝ่ายจัดซื้อเลือกผู้ขาย",
+                items: "ยางรถยนต์ใช้แล้ว 50.00 ตัน",
+                round: "ยังไม่กำหนดรอบ",
+                desc: "ผู้อนุมัติตรวจสอบงบประมาณ (Budget) ความจำเป็นเร่งด่วน และความถูกต้องของสเปกสินค้าในใบขอซื้อ",
+                actionBtnText: "กดปุ่ม [อนุมัติคำขอ]",
+                systemResult: "สถานะ PR เปลี่ยนเป็น APPROVED เอกสารถูกส่งเข้าสู่คลังงานของฝ่ายจัดซื้อทันที",
+                fork: {
+                    question: "ผลการพิจารณาอนุมัติใบขอซื้อ?",
+                    options: [
+                        {
+                            label: "อนุมัติ (Approved)",
+                            detail: "ผ่านเข้าสู่การจัดซื้อ",
+                            consequence: "PR เปลี่ยนเป็น APPROVED ส่งให้จัดซื้อเปิด PO ได้",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "ส่งกลับแก้ไข (Revising)",
+                            detail: "ให้ผู้ขอปรับยอด/สเปก",
+                            consequence: "PR เปลี่ยนเป็น REVISING ผู้ขอเปิดใบเดิมแก้แล้วกดส่งอนุมัติใหม่ได้",
+                            actionType: "revising_pr"
+                        },
+                        {
+                            label: "ไม่อนุมัติ (Rejected)",
+                            detail: "ปฏิเสธคำขอซื้อ",
+                            consequence: "PR เปลี่ยนเป็น REJECTED ปิดจบคำขอ ไม่อนุญาตให้จัดซื้อ",
+                            actionType: "reject_pr"
+                        }
+                    ]
+                },
+                camTarget: { x: -35, y: 12, z: 25 },
+                truckPos: { x: -70, z: -25 },
+                activeStation: "office"
+            },
+            {
+                id: 3,
+                title: "ฝ่ายจัดซื้อเปิดใบสั่งซื้อ (Create Purchase Order - PO)",
+                shortTitle: "เปิดใบสั่งซื้อ (PO)",
+                role: "เจ้าหน้าที่จัดซื้อ (Buyer)",
+                roleClass: "tag-role-buyer",
+                icon: "📑",
+                erpPath: "/procurement/purchase-orders/create",
+                docNo: "PO-202611-042",
+                docStatus: "DRAFT (ผูกกับ PR-202611-001)",
+                stockDelta: "ยังไม่ขยับ (PO ผูกกับ PR)",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "ยางรถยนต์ใช้แล้ว 50.00 ตัน (฿ 450,000)",
+                round: "กำลังกำหนดรอบส่งมอบ",
+                desc: "เจ้าหน้าที่จัดซื้อดึงข้อมูลจาก PR ที่อนุมัติแล้ว เทียบราคาคู่ค้า เลือก 'บจก. ยางไทยรับเบอร์' กำหนดราคาตันละ 9,000 บาท เครดิต 30 วัน",
+                actionBtnText: "กดปุ่ม [+ สร้าง PO จาก PR]",
+                systemResult: "สร้างเอกสาร PO-202611-042 โดยผูกโยงข้อมูลเข้ากับ PR ต้นทางเพื่อการตรวจสอบย้อนกลับ (Traceability)",
+                fork: {
+                    question: "ที่มาของใบสั่งซื้อ (PO Origin)?",
+                    options: [
+                        {
+                            label: "ดึงจากใบขอซื้อ 1 ใบ (Create from 1 PR)",
+                            detail: "อ้างอิง PR ใบเดียว",
+                            consequence: "ดึงยอด 50.00 ตันมาเปิด PO ได้ตรงไปตรงมา",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "รวมหลาย PR เข้า 1 PO (Create from PRs)",
+                            detail: "รวมสินค้าจากหลายแผนก",
+                            consequence: "รวมยอดสั่งซื้อจากหลาย PR เป็น PO เดียวเพื่อต่อรองราคา",
+                            actionType: "continue"
+                        }
+                    ]
+                },
+                camTarget: { x: -35, y: 12, z: 25 },
+                truckPos: { x: -70, z: -25 },
+                activeStation: "office"
+            },
+            {
+                id: 4,
+                title: "กำหนดรอบการจัดส่ง (Delivery Schedule & Allocation) — *จุดสำคัญ*",
+                shortTitle: "กำหนดรอบส่งมอบ",
+                role: "เจ้าหน้าที่จัดซื้อ (Buyer)",
+                roleClass: "tag-role-buyer",
+                icon: "📅",
+                erpPath: "/procurement/purchase-orders/[id]/delivery-schedules",
+                docNo: "PO-202611-042",
+                docStatus: "DRAFT (ระบุ 2 รอบส่งมอบ)",
+                stockDelta: "รอบที่ 1: 25 ตัน / รอบที่ 2: 25 ตัน",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "50.00 ตัน แบ่งส่ง 2 งวด",
+                round: "รอบ 1: 14 พ.ย. / รอบ 2: 21 พ.ย.",
+                desc: "จัดซื้อวางแผนการรับของเข้าโรงงาน ไม่ให้รถติดสะสมที่ตาชั่ง และคลังสินค้ามีพื้นที่เพียงพอ จึงกำหนดแบ่งรับเป็น 2 รอบย่อย (รอบละ 25.00 ตัน)",
+                actionBtnText: "กดปุ่ม [บันทึกรอบจัดส่ง / Split Schedules]",
+                systemResult: "ระบบสร้างตาราง Delivery Schedule Item: รอบที่ 1 (25 ตัน) และ รอบที่ 2 (25 ตัน) ตรวจว่ายอดรวมครบ 50 ตันก่อนส่งอนุมัติ",
+                fork: {
+                    question: "การบริหารจัดการรอบส่งมอบ (Schedule Management)?",
+                    options: [
+                        {
+                            label: "ส่งรอบเดียวจบ (Single Delivery)",
+                            detail: "ส่งครบ 50 ตันใน 1 วัน",
+                            consequence: "เหมาะกับสินค้าจำนวนน้อย หรือมีพื้นที่คลังพร้อมรับทันที",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "แบ่งส่งหลายงวด (Multiple Schedules)",
+                            detail: "แบ่ง 2 งวด (งวดละ 25 ตัน)",
+                            consequence: "ระบบสร้าง 2 รอบย่อย ให้ตาชั่งและคลังตรวจรับทีละรอบ",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "ผู้ขายขอเลื่อนรอบ (Reschedule)",
+                            detail: "เลื่อนวันส่งมอบของรอบ",
+                            consequence: "จัดซื้อกด [เลื่อนรอบส่ง] กรอกวันที่ใหม่และเหตุผลในระบบ",
+                            actionType: "demo_reschedule"
+                        }
+                    ]
+                },
+                camTarget: { x: -25, y: 15, z: 20 },
+                truckPos: { x: -65, z: -10 },
+                activeStation: "office"
+            },
+            {
+                id: 5,
+                title: "ผู้มีอำนาจพิจารณาอนุมัติใบสั่งซื้อ (PO Approval)",
+                shortTitle: "อนุมัติใบสั่งซื้อ",
+                role: "ผู้มีอำนาจอนุมัติ (PO Approver)",
+                roleClass: "tag-role-approver",
+                icon: "✍️",
+                erpPath: "/procurement/purchase-orders",
+                docNo: "PO-202611-042",
+                docStatus: "PENDING_APPROVAL ➔ APPROVED",
+                stockDelta: "คำสั่งซื้อมีผลทางกฎหมายแล้ว",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "50.00 ตัน (฿ 450,000 รวม VAT 7%)",
+                round: "รอบ 1 & 2 ผ่านการอนุมัติ",
+                desc: "ผู้บริหารตรวจสอบราคารวม เงื่อนไขเครดิต และแผนรอบจัดส่ง เมื่อถูกต้องครบถ้วนจึงลงนามอนุมัติใบสั่งซื้อ",
+                actionBtnText: "กดปุ่ม [อนุมัติใบสั่งซื้อ]",
+                systemResult: "ระบบอนุมัติ PO-202611-042 ออกรหัส Digital Signature พร้อมส่งอีเมลแจ้งผู้ขายอัตโนมัติ",
+                fork: {
+                    question: "ผลการพิจารณาใบสั่งซื้อของหัวหน้า?",
+                    options: [
+                        {
+                            label: "อนุมัติ (Approved)",
+                            detail: "ผ่านคำสั่งซื้อ",
+                            consequence: "PO เปลี่ยนเป็น APPROVED ส่งให้ผู้ขายเตรียมจัดส่ง",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "ส่งกลับแก้ไข (Return to Revising)",
+                            detail: "ให้จัดซื้อปรับแก้ราคา/รอบ",
+                            consequence: "PO เปลี่ยนเป็น REVISING คนจัดซื้อเปิดใบเดิมแก้แล้วส่งใหม่ได้!",
+                            actionType: "demo_revising_po"
+                        },
+                        {
+                            label: "ปฏิเสธคำสั่งซื้อ (Reject PO)",
+                            detail: "ไม่อนุญาตให้ซื้อ",
+                            consequence: "PO เปลี่ยนเป็น REJECTED ปิดจบใบนี้ และปลดล็อคยอดใน PR คืน!",
+                            actionType: "demo_reject_po"
+                        }
+                    ]
+                },
+                camTarget: { x: -35, y: 12, z: 25 },
+                truckPos: { x: -65, z: -10 },
+                activeStation: "office"
+            },
+            {
+                id: 6,
+                title: "ผู้ขายตอบรับและยืนยันคำสั่งซื้อ (Vendor Confirmation)",
+                shortTitle: "ผู้ขายยืนยันออเดอร์",
+                role: "ผู้ขาย (Supplier)",
+                roleClass: "tag-role-vendor",
+                icon: "🤝",
+                erpPath: "/procurement/purchase-orders",
+                docNo: "PO-202611-042",
+                docStatus: "CONFIRMED (ผู้ขายยืนยันรอบส่ง)",
+                stockDelta: "สินค้าเตรียมขึ้นรถขนส่ง",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "งวดที่ 1 พร้อมส่ง (25.00 ตัน)",
+                round: "รอบที่ 1: รถกำลังเดินทาง",
+                desc: "ผู้ขายได้รับใบสั่งซื้อ ตอบรับเงื่อนไขราคา และจัดเตรียมยางรถยนต์บรรทุกขึ้นรถเพื่อส่งมอบตามรอบที่ 1",
+                actionBtnText: "อัปเดตสถานะ [ผู้ขายตอบรับแล้ว]",
+                systemResult: "ระบบเปลี่ยนสถานะ PO เป็น CONFIRMED พร้อมแจ้งฝ่ายคลังเตรียมช่องเทียบท่า (Dock)",
+                fork: {
+                    question: "ความพร้อมในการส่งมอบสินค้าของผู้ขาย?",
+                    options: [
+                        {
+                            label: "พร้อมส่งตรงเวลา (On Time)",
+                            detail: "รถขนส่งออกตามนัด",
+                            consequence: "รถขนส่งรอบที่ 1 ออกเดินทางเข้าโรงงาน",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "ขอเลื่อนวันส่งรอบที่ 1 (Reschedule)",
+                            detail: "แจ้งเลื่อนล่วงหน้า",
+                            consequence: "จัดซื้อกดเลื่อนวันที่ในรอบที่ 1 และระบุเหตุผล",
+                            actionType: "demo_reschedule"
+                        }
+                    ]
+                },
+                camTarget: { x: -65, y: 14, z: -10 },
+                truckPos: { x: -60, z: -20 },
+                activeStation: "vendor"
+            },
+            {
+                id: 7,
+                title: "รถบรรทุกมาถึงด่านชั่ง & ชั่งน้ำหนักเข้า (Truck In & Gross Weigh)",
+                shortTitle: "รถเข้า & ชั่งน้ำหนัก",
+                role: "เจ้าหน้าที่ชั่ง/รปภ.",
+                roleClass: "tag-role-system",
+                icon: "⚖️",
+                erpPath: "/weighbridge/tickets",
+                docNo: "WT-202611-0089",
+                docStatus: "GROSS_WEIGHED (ชั่งหนักเข้าแล้ว)",
+                stockDelta: "น้ำหนักรวมรถ (Gross): 38.50 ตัน",
+                vendor: "ทะเบียน 70-8899 สระบุรี",
+                items: "ผูกกับ PO-202611-042 รอบที่ 1",
+                round: "รอบที่ 1: กำลังเข้าตรวจรับ",
+                desc: "รถบรรทุกของผู้ขายเดินทางมาถึงหน้าโรงงาน ขับขึ้นแท่นชั่งน้ำหนักอิเล็กทรอนิกส์ บันทึกน้ำหนักรวม (Gross Weight) และออกตั๋วชั่ง",
+                actionBtnText: "กดปุ่ม [บันทึกชั่งหนักเข้า]",
+                systemResult: "ระบบออกตั๋วชั่ง WT-202611-0089 ผูกกับ PO-202611-042 รอบที่ 1 เปิดไม้กั้นให้รถเข้าสู่โซนตรวจรับ",
+                fork: {
+                    question: "การระบุเอกสารที่ด่านชั่ง?",
+                    options: [
+                        {
+                            label: "มีใบสั่งซื้อ PO และตรงตามรอบ",
+                            detail: "รอบที่ 1 วันที่ 14 พ.ย.",
+                            consequence: "ผูกตั๋วชั่งกับรอบจัดส่งที่ 1 ได้ทันที",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "มาผิดวัน / ไม่ตรงตามรอบที่นัด",
+                            detail: "มาก่อนกำหนดหลายวัน",
+                            consequence: "ระบบแจ้งเตือน พักรถที่ลานจอด รอจัดซื้ออนุมัติเปิดรับก่อนกำหนด",
+                            actionType: "continue"
+                        }
+                    ]
+                },
+                camTarget: { x: 0, y: 12, z: 5 },
+                truckPos: { x: 0, z: 0 },
+                activeStation: "weighbridge"
+            },
+            {
+                id: 8,
+                title: "ตรวจสอบคุณภาพสินค้า & ตัดสิ่งเจือปน (QC Inspection)",
+                shortTitle: "ตรวจรับ & QC",
+                role: "เจ้าหน้าที่ QC",
+                roleClass: "tag-role-qc",
+                icon: "🔬",
+                erpPath: "/receiving/classification",
+                docNo: "QC-202611-0052",
+                docStatus: "QC_PASSED (ผ่านเกณฑ์มาตรฐาน)",
+                stockDelta: "คุณภาพผ่านเกณฑ์ ตัดสิ่งเจือปน 0%",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "สุ่มตรวจยาง 5 จุด ไม่มีน้ำขัง",
+                round: "รอบที่ 1: ผ่านการตรวจคุณภาพ",
+                desc: "เจ้าหน้าที่ฝ่ายควบคุมคุณภาพ (QC) สุ่มตรวจสภาพยางรถยนต์ วัดความสะอาด ตรวจหาเศษเหล็ก/ขยะแปลกปลอมตามเกณฑ์มาตรฐาน",
+                actionBtnText: "กดปุ่ม [บันทึกผลการตรวจ QC]",
+                systemResult: "บันทึกผลการตรวจรับรองคุณภาพ ได้รับอนุญาตให้เทกองลงลานคลังสินค้า",
+                fork: {
+                    question: "ผลการตรวจสอบคุณภาพ (Quality Inspection)?",
+                    options: [
+                        {
+                            label: "ผ่านเกณฑ์มาตรฐาน 100% (Pass)",
+                            detail: "ยางสะอาด ไม่มีขยะ",
+                            consequence: "รับของเต็มจำนวนรอบที่ 1 ไม่มีการตัดเปอร์เซ็นต์",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "มีสิ่งเจือปน/ตัดเกรด (Quality Deduction)",
+                            detail: "มีน้ำขัง/เศษดิน",
+                            consequence: "หักน้ำหนักสิ่งเจือปน เช่น หัก 2% ออกจากน้ำหนักสุทธิ",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "ไม่ได้มาตรฐาน (Reject)",
+                            detail: "ยางผิดสเปก / ขยะเกินเกณฑ์",
+                            consequence: "ไม่ออกใบรับของ ตีรถกลับคืนผู้ขายทันที",
+                            actionType: "continue"
+                        }
+                    ]
+                },
+                camTarget: { x: 0, y: 12, z: 5 },
+                truckPos: { x: 0, z: 0 },
+                activeStation: "weighbridge"
+            },
+            {
+                id: 9,
+                title: "ชั่งรถเปล่า & ออกใบรับของเข้าคลัง (Tare Weigh & GR Posting) — *สต๊อกขยับตรงนี้!*",
+                shortTitle: "รับเข้าคลัง (สต๊อกขยับ)",
+                role: "เจ้าหน้าที่คลัง (Warehouse)",
+                roleClass: "tag-role-warehouse",
+                icon: "📦",
+                erpPath: "/receiving/goods-receipts/create",
+                docNo: "GR-202611-0018",
+                docStatus: "PARTIALLY_RECEIVED (รับรอบ 1 แล้ว)",
+                stockDelta: "📦 สต๊อกเพิ่มขึ้นจริง: +25.10 ตัน",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "รับเข้า: คลังวัตถุดิบ A (โซน R-01)",
+                round: "รอบที่ 1: รับของเรียบร้อย (เหลือรอบ 2)",
+                desc: "รถเทของเสร็จกลับมาชั่งเบา (Tare Weight 13.40 ตัน) ระบบคำนวณน้ำหนักสุทธิ 25.10 ตัน หัวหน้าคลังระบุ Location โกดัง A แล้วกดอนุมัติรับของ",
+                actionBtnText: "กดปุ่ม [อนุมัติรับของเข้าคลัง (GR)]",
+                systemResult: "💥 สต๊อกในระบบขยับเพิ่มขึ้นจริงทันที! อัปเดตยอดคงเหลือใน PO คงเหลือค้างส่งอีก 24.90 ตันสำหรับรอบที่ 2",
+                fork: {
+                    question: "สถานะยอดการรับของรอบที่ 1?",
+                    options: [
+                        {
+                            label: "รับครบตามรอบ (Round 1 Completed)",
+                            detail: "รับครบ 25.00 ตัน",
+                            consequence: "รอบที่ 1 กลายเป็น FULLY_RECEIVED รอรับรอบที่ 2 ต่อ",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "รับได้ไม่ครบ และผู้ขายส่งไม่ไหว",
+                            detail: "ได้ 20 ตัน ขาด 5 ตัน",
+                            consequence: "จัดซื้อกด [ปิดยอดที่เหลือ] ➔ เปลี่ยนเป็น CLOSED_PARTIAL ไปจ่ายเงินได้ทันที",
+                            actionType: "demo_close_remaining"
+                        }
+                    ]
+                },
+                camTarget: { x: 45, y: 15, z: 0 },
+                truckPos: { x: 42, z: 8 },
+                activeStation: "warehouse"
+            },
+            {
+                id: 10,
+                title: "ตรวจสอบเอกสาร 3 ด้าน (3-Way Matching: PO vs GR vs Invoice)",
+                shortTitle: "ตรวจ 3-Way Matching",
+                role: "ฝ่ายบัญชีเจ้าหนี้ (AP)",
+                roleClass: "tag-role-finance",
+                icon: "⚖️",
+                erpPath: "/procurement/purchase-orders/[id]",
+                docNo: "INV-SUP-9941 (ใบแจ้งหนี้ผู้ขาย)",
+                docStatus: "MATCHED (เอกสารตรงกัน 100%)",
+                stockDelta: "สต๊อกรับจริง: 25.10 ตัน",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "ยอดเงินเรียกเก็บ: ฿ 225,900.00",
+                round: "รอบที่ 1 ผ่านการกระทบยอด",
+                desc: "เจ้าหน้าที่บัญชีเจ้าหนี้ตรวจสอบความถูกต้องระหว่าง: 1. ใบสั่งซื้อ (PO) 2. ใบรับของ (GR) และ 3. ใบแจ้งหนี้/ใบกำกับภาษีของผู้ขาย (Invoice)",
+                actionBtnText: "กดปุ่ม [ยืนยัน 3-Way Match]",
+                systemResult: "ระบบคำนวณไม่มีผลต่าง (No Discrepancy) อนุมัติให้ตั้งหนี้การค้าได้",
+                fork: {
+                    question: "ผลการเปรียบเทียบเอกสาร 3 ด้าน?",
+                    options: [
+                        {
+                            label: "ยอดตรงกันสมบูรณ์ (Matched)",
+                            detail: "PO = GR = Invoice",
+                            consequence: "ผ่านเข้าสู่กระบวนการตั้งหนี้และออกใบสำคัญจ่าย (PV)",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "มียอดต่าง (Discrepancy / Variance)",
+                            detail: "จำนวนหรือราคาไม่ตรง",
+                            consequence: "พักการจ่าย ประสานงานขอใบลดหนี้ (Credit Note) หรือแก้ไขใบแจ้งหนี้",
+                            actionType: "continue"
+                        }
+                    ]
+                },
+                camTarget: { x: 35, y: 12, z: 35 },
+                truckPos: { x: 80, z: 0 },
+                activeStation: "finance"
+            },
+            {
+                id: 11,
+                title: "จัดทำใบสำคัญจ่าย & หักภาษี ณ ที่จ่าย (Payment Voucher & WHT)",
+                shortTitle: "ออกใบสำคัญจ่าย (PV)",
+                role: "ฝ่ายการเงิน (Finance)",
+                roleClass: "tag-role-finance",
+                icon: "💰",
+                erpPath: "/purchase-payments/create",
+                docNo: "PV-202611-0012",
+                docStatus: "PENDING_PAYMENT (รอสั่งจ่าย)",
+                stockDelta: "ไม่เกี่ยวกับสต๊อก (ขั้นตอนการเงิน)",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "ยอดตัดจ่ายรอบที่ 1: ฿ 223,641.00",
+                round: "หัก ณ ที่จ่าย 1% (ค่าขนส่ง)",
+                desc: "ฝ่ายการเงินจัดทำใบสำคัญจ่าย (PV) คำนวณภาษีหัก ณ ที่จ่าย และเตรียมเสนอผู้มีอำนาจลงนามสั่งจ่ายเงินตามวันครบกำหนดเครดิต",
+                actionBtnText: "กดปุ่ม [บันทึกใบสำคัญจ่าย]",
+                systemResult: "สร้างเอกสาร PV-202611-0012 พร้อมพิมพ์หนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ)",
+                fork: {
+                    question: "เงื่อนไขการตัดจ่ายเงิน?",
+                    options: [
+                        {
+                            label: "ตัดจ่ายเต็มจำนวนตามรอบที่ 1",
+                            detail: "จ่ายครบตาม GR รอบที่ 1",
+                            consequence: "จ่ายเงิน ฿ 223,641.00 ครบตามยอดส่งมอบจริงของรอบที่ 1",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "มีเงินมัดจำล่วงหน้า (Advance Deduct)",
+                            detail: "หักลบเงินมัดจำ",
+                            consequence: "นำเงินมัดจำที่เคยจ่ายไปหักลบยอดจ่ายคงเหลือของรอบนี้",
+                            actionType: "continue"
+                        }
+                    ]
+                },
+                camTarget: { x: 35, y: 12, z: 35 },
+                truckPos: { x: 80, z: 0 },
+                activeStation: "finance"
+            },
+            {
+                id: 12,
+                title: "ชำระเงินเสร็จสิ้น & บันทึกบัญชีปิดรอบ (Payment Complete & Post Journal)",
+                shortTitle: "จ่ายเงิน & ปิดรอบสำเร็จ",
+                role: "ระบบ ERP / สมุห์บัญชี",
+                roleClass: "tag-role-system",
+                icon: "🏁",
+                erpPath: "/reports/journals/purchases",
+                docNo: "COMPLETED / POSTED",
+                docStatus: "COMPLETED (ปิดงวดรอบที่ 1 สมบูรณ์)",
+                stockDelta: "ปิดรอบที่ 1 ➔ รอส่งรอบที่ 2 ต่อไป",
+                vendor: "บจก. ยางไทยรับเบอร์ อินดัสทรี",
+                items: "ชำระเงินเรียบร้อย แนบสลิปแล้ว",
+                round: "รอบที่ 2 นัดส่ง 21 พ.ย.",
+                desc: "เงินโอนเข้าบัญชีผู้ขายสำเร็จ ระบบบันทึกสมุดรายวันซื้อและจ่าย (Posting to General Ledger) อัปเดตสถานะรอบที่ 1 เสร็จสิ้น 100%",
+                actionBtnText: "กดปุ่ม [ลงบัญชี & ปิดรอบ]",
+                systemResult: "🎉 จบกระบวนการจัดซื้อรอบที่ 1 สมบูรณ์! ระบบพร้อมเริ่มวงรอบรับของสำหรับรอบที่ 2 ในสัปดาห์ถัดไป",
+                fork: {
+                    question: "การดำเนินการต่อในรอบถัดไป?",
+                    options: [
+                        {
+                            label: "เริ่มรับของรอบที่ 2 ตามแผน",
+                            detail: "รอบที่ 2 (25.00 ตัน)",
+                            consequence: "รอรถขนส่งรอบที่ 2 เข้าเทียบท่าตามวันนัดหมาย 21 พ.ย.",
+                            actionType: "continue"
+                        },
+                        {
+                            label: "ปิดยอดทั้งหมด ไม่รับรอบที่ 2",
+                            detail: "ปิดสัญญาคงค้าง",
+                            consequence: "กดปิดยอดที่เหลือ ปรับสถานะ PO เป็น CLOSED_PARTIAL สมบูรณ์",
+                            actionType: "demo_close_remaining"
+                        }
+                    ]
+                },
+                camTarget: { x: 0, y: 35, z: 45 },
+                truckPos: { x: 80, z: 0 },
+                activeStation: "all"
+            }
+        ];
+
+        // Delivery Schedule State
+        const scheduleState = {
+            round1: {
+                roundNo: 1,
+                date: "14 พ.ย. 2569",
+                originalDate: "14 พ.ย. 2569",
+                orderedQty: 25.0,
+                receivedQty: 0.0,
+                remainingQty: 25.0,
+                status: "NOT_RECEIVED",
+                reschedules: []
+            },
+            round2: {
+                roundNo: 2,
+                date: "21 พ.ย. 2569",
+                originalDate: "21 พ.ย. 2569",
+                orderedQty: 25.0,
+                receivedQty: 0.0,
+                remainingQty: 25.0,
+                status: "NOT_RECEIVED",
+                reschedules: []
+            }
+        };
+
+        // State Variables
+        let currentStepIndex = 0;
+        let isPlaying = false; // default paused so user can explore forks
+        let playInterval = null;
+        let playSpeed = 1.0;
+        let activeScenario = 'all';
+        let isFollowCam = true;
+        let hudHidden = false;
+        let activeModalRound = 1;
+
+        // ============================================================================
+        // 2. THREE.JS 3D WORLD BUILDER
+        // ============================================================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x080c14);
+        scene.fog = new THREE.FogExp2(0x080c14, 0.0035);
+
+        const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 1, 2000);
+        camera.position.set(-60, 55, 75);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minDistance = 20;
+        controls.maxDistance = 350;
+        controls.target.set(0, 5, 0);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xcfd8dc, 0.7);
+        scene.add(ambientLight);
+
+        const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x1e293b, 0.5);
+        scene.add(hemiLight);
+
+        const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.3);
+        sunLight.position.set(60, 100, 50);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 10;
+        sunLight.shadow.camera.far = 300;
+        const d = 90;
+        sunLight.shadow.camera.left = -d;
+        sunLight.shadow.camera.right = d;
+        sunLight.shadow.camera.top = d;
+        sunLight.shadow.camera.bottom = -d;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        // Ground Plane
+        const groundGeo = new THREE.PlaneGeometry(320, 320, 32, 32);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: 0x0b1120,
+            roughness: 0.88,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        const gridHelper = new THREE.GridHelper(320, 40, 0x1e293b, 0x111827);
+        gridHelper.position.y = 0.05;
+        scene.add(gridHelper);
+
+        // Roads Group
+        const roadsGroup = new THREE.Group();
+        scene.add(roadsGroup);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x1e2530, roughness: 0.75 });
+        const yellowLineMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+
+        function createRoadSegment(x, z, w, l, rotY = 0) {
+            const r = new THREE.Mesh(new THREE.PlaneGeometry(w, l), roadMat);
+            r.rotation.x = -Math.PI / 2;
+            r.rotation.z = rotY;
+            r.position.set(x, 0.1, z);
+            r.receiveShadow = true;
+            roadsGroup.add(r);
+
+            const line = new THREE.Mesh(new THREE.PlaneGeometry(0.4, l), yellowLineMat);
+            line.rotation.x = -Math.PI / 2;
+            line.rotation.z = rotY;
+            line.position.set(x, 0.12, z);
+            roadsGroup.add(line);
+        }
+
+        createRoadSegment(0, 0, 14, 220, Math.PI / 2);
+        createRoadSegment(-35, 20, 12, 60, 0);
+        createRoadSegment(35, 20, 12, 60, 0);
+
+        // Stations
+        const stations = {};
+
+        function buildBuilding(x, z, w, h, d, color, roofColor, label) {
+            const grp = new THREE.Group();
+            grp.position.set(x, 0, z);
+
+            const pad = new THREE.Mesh(
+                new THREE.BoxGeometry(w + 3, 0.6, d + 3),
+                new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
+            );
+            pad.position.y = 0.3;
+            pad.receiveShadow = true;
+            grp.add(pad);
+
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.2 })
+            );
+            body.position.y = h / 2 + 0.6;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            grp.add(body);
+
+            const roof = new THREE.Mesh(
+                new THREE.BoxGeometry(w + 1, 0.8, d + 1),
+                new THREE.MeshStandardMaterial({ color: roofColor, roughness: 0.4, metalness: 0.3 })
+            );
+            roof.position.y = h + 1;
+            roof.castShadow = true;
+            grp.add(roof);
+
+            const sign = new THREE.Mesh(
+                new THREE.BoxGeometry(w * 0.7, 1.4, 0.4),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+            );
+            sign.position.set(0, h * 0.75, d / 2 + 0.3);
+            grp.add(sign);
+
+            const ringGeo = new THREE.RingGeometry(w * 0.7, w * 0.75, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.2;
+            grp.add(ring);
+            grp.userData.indicatorRing = ring;
+
+            scene.add(grp);
+            return grp;
+        }
+
+        stations.office = buildBuilding(-35, 35, 20, 16, 18, 0x1e293b, 0x2563eb, "สนง.จัดซื้อ");
+        stations.vendor = buildBuilding(-70, -25, 22, 14, 20, 0x1e293b, 0x0284c7, "ผู้ขาย");
+        stations.warehouse = buildBuilding(45, -15, 32, 18, 26, 0x1e293b, 0x10b981, "คลังสินค้า");
+        stations.finance = buildBuilding(35, 35, 18, 14, 16, 0x1e293b, 0xf43f5e, "การเงิน/บัญชี");
+
+        // Weighbridge
+        const weighbridgeGroup = new THREE.Group();
+        weighbridgeGroup.position.set(0, 0, 0);
+
+        const scalePad = new THREE.Mesh(
+            new THREE.BoxGeometry(10, 0.4, 20),
+            new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.5 })
+        );
+        scalePad.position.y = 0.2;
+        scalePad.receiveShadow = true;
+        weighbridgeGroup.add(scalePad);
+
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
+        const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 8, 16), postMat);
+        postL.position.set(-6, 4, 0);
+        weighbridgeGroup.add(postL);
+
+        const postR = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 8, 16), postMat);
+        postR.position.set(6, 4, 0);
+        weighbridgeGroup.add(postR);
+
+        const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(14, 1.2, 1.2), postMat);
+        crossBeam.position.set(0, 8, 0);
+        weighbridgeGroup.add(crossBeam);
+
+        const ledBoard = new THREE.Mesh(
+            new THREE.BoxGeometry(7, 1.8, 0.5),
+            new THREE.MeshBasicMaterial({ color: 0x06b6d4 })
+        );
+        ledBoard.position.set(0, 8, 0.8);
+        weighbridgeGroup.add(ledBoard);
+
+        const barrierBar = new THREE.Mesh(
+            new THREE.BoxGeometry(9, 0.3, 0.3),
+            new THREE.MeshBasicMaterial({ color: 0xf59e0b })
+        );
+        barrierBar.position.set(0, 2.8, -3);
+        weighbridgeGroup.add(barrierBar);
+        weighbridgeGroup.userData.barrier = barrierBar;
+
+        scene.add(weighbridgeGroup);
+        stations.weighbridge = weighbridgeGroup;
+
+        // Animated 3D Truck
+        const truckGroup = new THREE.Group();
+        scene.add(truckGroup);
+
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3, metalness: 0.4 });
+        const cabin = new THREE.Mesh(new THREE.BoxGeometry(3.6, 3.4, 4.2), cabinMat);
+        cabin.position.set(0, 2.4, 3.6);
+        cabin.castShadow = true;
+        truckGroup.add(cabin);
+
+        const glassMat = new THREE.MeshBasicMaterial({ color: 0x93c5fd });
+        const windshield = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.4), glassMat);
+        windshield.position.set(0, 2.8, 5.72);
+        truckGroup.add(windshield);
+
+        const cargoMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.2 });
+        const cargo = new THREE.Mesh(new THREE.BoxGeometry(3.8, 4.2, 8.4), cargoMat);
+        cargo.position.set(0, 3.0, -2.6);
+        cargo.castShadow = true;
+        truckGroup.add(cargo);
+
+        const wheelGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.6, 16);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9 });
+        [
+            [-2.0, 0.8, 3.6], [2.0, 0.8, 3.6],
+            [-2.0, 0.8, -1.5], [2.0, 0.8, -1.5],
+            [-2.0, 0.8, -5.2], [2.0, 0.8, -5.2]
+        ].forEach(wp => {
+            const w = new THREE.Mesh(wheelGeo, wheelMat);
+            w.rotation.z = Math.PI / 2;
+            w.position.set(wp[0], wp[1], wp[2]);
+            w.castShadow = true;
+            truckGroup.add(w);
+        });
+
+        const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 12), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+        beacon.position.set(0, 4.3, 3.6);
+        truckGroup.add(beacon);
+
+        truckGroup.position.set(-65, 0, 0);
+        truckGroup.rotation.y = Math.PI / 2;
+
+        // Trees
+        function addTrees() {
+            const treeMat = new THREE.MeshStandardMaterial({ color: 0x059669, roughness: 0.8 });
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
+            [
+                [-15, 25], [-20, 30], [-10, -20], [-15, -25], [15, 25], [20, 30], [25, -25], [15, -30]
+            ].forEach(c => {
+                const grp = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 3), trunkMat);
+                trunk.position.y = 1.5;
+                grp.add(trunk);
+                const crown = new THREE.Mesh(new THREE.ConeGeometry(2.4, 6, 8), treeMat);
+                crown.position.y = 5.5;
+                crown.castShadow = true;
+                grp.add(crown);
+                grp.position.set(c[0], 0, c[1]);
+                scene.add(grp);
+            });
+        }
+        addTrees();
+
+        // ============================================================================
+        // 3. TIMELINE & ACCURATE ERP FORK RENDERING
+        // ============================================================================
+        const timelineWrapper = document.getElementById('timeline-items-wrapper');
+
+        function renderTimeline() {
+            timelineWrapper.innerHTML = '';
+            procurementSteps.forEach((step, idx) => {
+                const isActive = idx === currentStepIndex;
+                const isPassed = idx < currentStepIndex;
+
+                const item = document.createElement('div');
+                item.className = `timeline-item p-2.5 rounded-xl border transition-all cursor-pointer ${
+                    isActive
+                        ? 'bg-blue-600/20 border-cyan-400 shadow-lg shadow-cyan-950/40 ring-1 ring-cyan-400/50'
+                        : isPassed
+                        ? 'bg-slate-900/60 border-slate-700/60 opacity-85'
+                        : 'bg-slate-900/30 border-white/5 opacity-60 hover:opacity-90'
+                }`;
+                item.onclick = () => jumpToStep(idx);
+
+                // Fork Option Pills with Exact System Consequences
+                let forkHTML = '';
+                if (step.fork) {
+                    forkHTML = `
+                        <div class="mt-2.5 pt-2 border-t border-white/10">
+                            <div class="text-[10px] font-bold text-orange-300 flex items-center gap-1 mb-1.5">
+                                <span>◆ ทางแยก: ${step.fork.question}</span>
+                            </div>
+                            <div class="space-y-1">
+                                ${step.fork.options.map((opt, oIdx) => `
+                                    <div onclick="handleForkClick(event, ${step.id}, '${opt.actionType}', '${opt.label}')"
+                                         class="btn-fork-option text-[10px] p-1.5 rounded-lg border flex items-center justify-between group">
+                                        <div>
+                                            <div class="font-bold text-white group-hover:text-cyan-300">${opt.label}</div>
+                                            <div class="text-[9.5px] text-slate-400">${opt.detail}</div>
+                                        </div>
+                                        <span class="text-[10px] text-cyan-400 opacity-80 group-hover:opacity-100">ทดสอบคลิก ➔</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                item.innerHTML = `
+                    <div class="flex items-start gap-2.5">
+                        <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold font-mono transition-all ${
+                            isActive
+                                ? 'bg-cyan-500 text-slate-950 active-pulse ring-2 ring-cyan-300'
+                                : isPassed
+                                ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/50'
+                                : 'bg-slate-800 text-slate-400 border border-slate-700'
+                        }">
+                            ${isPassed ? '✓' : step.id}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1 flex-wrap">
+                                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                                    <span>${step.icon}</span> ${step.shortTitle}
+                                </span>
+                                <span class="tag-pill ${step.roleClass}">${step.role}</span>
+                            </div>
+                            <p class="text-[10.5px] text-slate-300 mt-1 leading-snug">
+                                ${step.desc}
+                            </p>
+                            ${isActive ? `
+                                <div class="mt-2 text-[10px] font-mono bg-black/40 rounded-lg p-2 border border-white/5 space-y-1">
+                                    <div class="text-cyan-300 font-semibold">📍 หน้าจอใน ERP: ${step.erpPath}</div>
+                                    <div class="text-amber-300">🔘 ปุ่มที่กด: ${step.actionBtnText}</div>
+                                    <div class="text-emerald-300">⚡ ผลต่อระบบ: ${step.systemResult}</div>
+                                </div>
+                            ` : ''}
+                            ${forkHTML}
+                        </div>
+                    </div>
+                `;
+                timelineWrapper.appendChild(item);
+            });
+        }
+
+        // ============================================================================
+        // 4. FORK ACTION HANDLERS (EXACT RELATION TO REAL SYSTEM FLOW)
+        // ============================================================================
+        function handleForkClick(event, stepId, actionType, label) {
+            event.stopPropagation();
+
+            if (actionType === "demo_reschedule") {
+                openRescheduleModal(1);
+            } else if (actionType === "demo_close_remaining") {
+                openCloseRemainingModal(1);
+            } else if (actionType === "demo_revising_po") {
+                // Show actual ERP revising flow
+                alert(
+                    "🔄 [ผลลัพธ์ในระบบ ERP จริง - ส่งกลับแก้ไข (REVISING)]\n\n" +
+                    "1. สถานะใบสั่งซื้อ PO-202611-042 เปลี่ยนเป็น REVISING\n" +
+                    "2. บันทึก rejectedReason จากหัวหน้า: 'ขอให้ต่อรองราคาลง 3% หรือปรับแบ่งส่งเป็น 3 งวด'\n" +
+                    "3. คนจัดซื้อเปิดใบเดิมขึ้นมาแก้ไขที่ /purchase-orders/[id]/edit (ไม่ต้องเริ่มทำใบใหม่!)\n" +
+                    "4. แก้ไขเงื่อนไขแล้วกด [ส่งอนุมัติใหม่ / Resubmit] ➔ สถานะกลับเป็น PENDING_APPROVAL เพื่อให้หัวหน้าอนุมัติผ่าน"
+                );
+                jumpToStep(3); // Go to PO edit step
+            } else if (actionType === "demo_reject_po") {
+                alert(
+                    "❌ [ผลลัพธ์ในระบบ ERP จริง - ปฏิเสธคำสั่งซื้อ (REJECTED)]\n\n" +
+                    "1. สถานะ PO-202611-042 เปลี่ยนเป็น REJECTED (ปิดตาย ไม่สามารถแก้ไขได้อีก)\n" +
+                    "2. ระบบปลดล็อคยอดในใบขอซื้อต้นทาง PR-202611-001 (50.00 ตัน) คืนกลับมา!\n" +
+                    "3. ฝ่ายจัดซื้อสามารถนำ PR-202611-001 เดิมไปเปิด PO ใหม่กับคู่ค้ารายอื่นได้ทันที โดยผู้ขอซื้อไม่ต้องเสียเวลาเปิด PR ใหม่อีกรอบ!"
+                );
+                jumpToStep(2); // Show PR unlocked
+            } else if (actionType === "revising_pr") {
+                alert(
+                    "🔄 [ผลลัพธ์ในระบบ ERP จริง - PR ส่งกลับแก้ไข]\n\n" +
+                    "1. สถานะ PR-202611-001 เปลี่ยนเป็น REVISING\n" +
+                    "2. ผู้ขอซื้อเปิดใบเดิมขึ้นมาปรับจำนวน/สเปก แล้วกดส่งอนุมัติใหม่ ไม่ต้องสร้างใบใหม่"
+                );
+                jumpToStep(1);
+            } else if (actionType === "reject_pr") {
+                alert(
+                    "❌ [ผลลัพธ์ในระบบ ERP จริง - PR ถูกปฏิเสธ]\n\n" +
+                    "1. สถานะ PR-202611-001 เปลี่ยนเป็น REJECTED ปิดจบคำขอ ไม่อนุญาตให้จัดซื้อ"
+                );
+            } else {
+                nextStep();
+            }
+        }
+
+        // ============================================================================
+        // 5. DELIVERY SCHEDULE MODALS
+        // ============================================================================
+        function openRescheduleModal(roundNo) {
+            activeModalRound = roundNo;
+            const rData = roundNo === 1 ? scheduleState.round1 : scheduleState.round2;
+            document.getElementById('reschedule-round-title').textContent = `รอบที่ ${roundNo} (${rData.orderedQty.toFixed(2)} ตัน)`;
+            document.getElementById('reschedule-old-date').value = rData.date;
+            document.getElementById('modal-reschedule').classList.remove('hidden');
+        }
+
+        function confirmReschedule() {
+            const newDate = document.getElementById('reschedule-new-date').value;
+            const reason = document.getElementById('reschedule-reason').value || "ผู้ขายแจ้งเลื่อนส่งมอบ";
+            const rData = activeModalRound === 1 ? scheduleState.round1 : scheduleState.round2;
+
+            rData.reschedules.push({ from: rData.date, to: newDate, reason });
+            rData.date = newDate;
+
+            // Update UI
+            document.getElementById(`round-${activeModalRound}-date`).innerHTML = `${newDate} <span class="text-amber-400 text-[9px]">(เลื่อน)</span>`;
+            closeModals();
+
+            alert(
+                `📅 บันทึกการเลื่อนรอบจัดส่งที่ ${activeModalRound} เรียบร้อย!\n\n` +
+                `วันส่งมอบใหม่: ${newDate}\n` +
+                `เหตุผล: ${reason}\n\n` +
+                `ระบบ ERP บันทึกประวัติใน PoDeliveryScheduleReschedule และอัปเดตวันส่งมอบของรอบโดยไม่ต้องขออนุมัติ PO ใหม่!`
+            );
+        }
+
+        function openCloseRemainingModal(roundNo) {
+            activeModalRound = roundNo;
+            document.getElementById('modal-close-remaining').classList.remove('hidden');
+        }
+
+        function confirmCloseRemaining() {
+            const rData = activeModalRound === 1 ? scheduleState.round1 : scheduleState.round2;
+            rData.status = "CLOSED_PARTIAL";
+            rData.receivedQty = 20.0;
+            rData.remainingQty = 0.0;
+
+            document.getElementById(`round-${activeModalRound}-status-badge`).className = "tag-pill status-badge-closed";
+            document.getElementById(`round-${activeModalRound}-status-badge`).textContent = "ปิดการรับบางส่วน";
+            document.getElementById(`round-${activeModalRound}-received`).textContent = "20.00 ตัน";
+            document.getElementById(`round-${activeModalRound}-remaining`).textContent = "0.00 ตัน (ปิดยอด)";
+
+            closeModals();
+
+            alert(
+                `📦 ปิดยอดคงเหลือของรอบที่ ${activeModalRound} สำเร็จ!\n\n` +
+                `รับของจริง: 20.00 ตัน / ปิดยกเลิก: 5.00 ตัน\n` +
+                `สถานะรอบเปลี่ยนเป็น: CLOSED_PARTIAL\n\n` +
+                `ระบบส่งยอด 20.00 ตันที่รับจริงเข้าสู่ขั้นตอน 3-Way Matching และตั้งหนี้จ่ายเงินได้ทันที!`
+            );
+
+            jumpToStep(10); // Go to 3-Way matching directly
+        }
+
+        function openCancelScheduleModal(roundNo) {
+            if (confirm(`คุณต้องการยกเลิกการรับสินค้าในรอบที่ ${roundNo} ใช่หรือไม่?\n(ทำได้เฉพาะรอบที่ยังไม่เคยรับของเลย)`)) {
+                const rData = roundNo === 1 ? scheduleState.round1 : scheduleState.round2;
+                rData.status = "CANCELLED";
+                document.getElementById(`round-${roundNo}-status-badge`).className = "tag-pill status-badge-cancelled";
+                document.getElementById(`round-${roundNo}-status-badge`).textContent = "ยกเลิกการรับ";
+                alert(`รอบที่ ${roundNo} ถูกยกเลิกเรียบร้อยแล้ว`);
+            }
+        }
+
+        function closeModals() {
+            document.getElementById('modal-reschedule').classList.add('hidden');
+            document.getElementById('modal-close-remaining').classList.add('hidden');
+        }
+
+        // ============================================================================
+        // 6. ANIMATION & STATE SYNCHRONIZER
+        // ============================================================================
+        function updateStepUI() {
+            const step = procurementSteps[currentStepIndex];
+
+            // 1. Update Header Counters
+            document.getElementById('step-counter').textContent = `Step ${step.id} / ${procurementSteps.length}`;
+            document.getElementById('step-badge-large').textContent = step.id;
+            document.getElementById('step-title-large').textContent = `${step.id}. ${step.title}`;
+            document.getElementById('step-desc-large').textContent = step.desc;
+
+            const roleBadge = document.getElementById('step-role-badge');
+            roleBadge.textContent = step.role;
+            roleBadge.className = `tag-pill ${step.roleClass}`;
+
+            // 2. Update Live ERP State Panel
+            document.getElementById('erp-doc-no').textContent = step.docNo;
+            document.getElementById('erp-vendor-name').textContent = step.vendor;
+            document.getElementById('erp-items').textContent = step.items;
+            document.getElementById('erp-round').textContent = step.round;
+            document.getElementById('erp-doc-status').textContent = step.docStatus;
+            document.getElementById('erp-stock-delta').textContent = step.stockDelta;
+
+            // 3. Highlight Round Card in Delivery Schedules Section
+            const r1 = document.getElementById('round-card-1');
+            const r2 = document.getElementById('round-card-2');
+            if (step.id >= 4 && step.id <= 9) {
+                r1.classList.add('ring-2', 'ring-cyan-400', 'bg-cyan-950/40');
+                r2.classList.remove('ring-2', 'ring-cyan-400', 'bg-cyan-950/40');
+                if (step.id >= 9) {
+                    document.getElementById('round-1-status-badge').className = "tag-pill status-badge-fully";
+                    document.getElementById('round-1-status-badge').textContent = "รับสินค้าทั้งหมด";
+                    document.getElementById('round-1-received').textContent = "25.10 ตัน";
+                    document.getElementById('round-1-remaining').textContent = "0.00 ตัน";
+                }
+            } else if (step.id >= 12) {
+                r1.classList.remove('ring-2', 'ring-cyan-400', 'bg-cyan-950/40');
+                r2.classList.add('ring-2', 'ring-amber-400', 'bg-amber-950/40');
+            } else {
+                r1.classList.remove('ring-2', 'ring-cyan-400', 'bg-cyan-950/40');
+                r2.classList.remove('ring-2', 'ring-cyan-400', 'bg-cyan-950/40');
+            }
+
+            // 4. Highlight 3D Station Rings
+            Object.values(stations).forEach(st => {
+                if (st.userData && st.userData.indicatorRing) {
+                    st.userData.indicatorRing.material.opacity = 0.2;
+                }
+            });
+            const activeSt = stations[step.activeStation];
+            if (activeSt && activeSt.userData && activeSt.userData.indicatorRing) {
+                activeSt.userData.indicatorRing.material.opacity = 0.95;
+            }
+
+            // Animate Truck to target
+            if (step.truckPos) {
+                new TWEEN.Tween(truckGroup.position)
+                    .to({ x: step.truckPos.x, y: 0, z: step.truckPos.z }, 950)
+                    .easing(TWEEN.Easing.Cubic.Out)
+                    .start();
+
+                const truckStatus = document.getElementById('truck-status-label');
+                if (step.id <= 5) truckStatus.textContent = "จอดที่สำนักงานจัดซื้อ";
+                else if (step.id === 6) truckStatus.textContent = "ขึ้นของที่ศูนย์ผู้ขาย";
+                else if (step.id >= 7 && step.id <= 8) truckStatus.textContent = "อยู่บนแท่นชั่งน้ำหนัก";
+                else if (step.id === 9) truckStatus.textContent = "เทียบท่าลงของที่คลัง A";
+                else truckStatus.textContent = "ส่งของเสร็จสิ้น เดินทางกลับ";
+            }
+
+            // Animate Camera Focus if Follow Cam enabled
+            if (isFollowCam && step.camTarget) {
+                new TWEEN.Tween(controls.target)
+                    .to({ x: step.camTarget.x, y: 3, z: step.camTarget.z }, 1100)
+                    .easing(TWEEN.Easing.Cubic.Out)
+                    .start();
+
+                new TWEEN.Tween(camera.position)
+                    .to({ x: step.camTarget.x - 35, y: step.camTarget.y + 22, z: step.camTarget.z + 42 }, 1100)
+                    .easing(TWEEN.Easing.Cubic.Out)
+                    .start();
+            }
+
+            // Open/Close barrier at weighbridge
+            if (stations.weighbridge && stations.weighbridge.userData.barrier) {
+                const b = stations.weighbridge.userData.barrier;
+                const shouldOpen = step.id >= 7 && step.id <= 9;
+                new TWEEN.Tween(b.rotation)
+                    .to({ z: shouldOpen ? Math.PI / 2.2 : 0 }, 600)
+                    .start();
+            }
+
+            // Re-render Timeline and auto-scroll to active item
+            renderTimeline();
+            const activeEl = timelineWrapper.children[currentStepIndex];
+            if (activeEl) {
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function nextStep() {
+            currentStepIndex = (currentStepIndex + 1) % procurementSteps.length;
+            updateStepUI();
+        }
+
+        function prevStep() {
+            currentStepIndex = (currentStepIndex - 1 + procurementSteps.length) % procurementSteps.length;
+            updateStepUI();
+        }
+
+        function jumpToStep(stepNum) {
+            currentStepIndex = Math.max(0, Math.min(procurementSteps.length - 1, stepNum - 1));
+            updateStepUI();
+        }
+
+        function resetFlow() {
+            currentStepIndex = 0;
+            updateStepUI();
+        }
+
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const playText = document.getElementById('play-text');
+            const btn = document.getElementById('btn-play-pause');
+
+            if (isPlaying) {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                playText.textContent = 'หยุด';
+                btn.classList.add('active');
+                startAutoPlay();
+            } else {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                playText.textContent = 'เล่น';
+                btn.classList.remove('active');
+                stopAutoPlay();
+            }
+        }
+
+        function startAutoPlay() {
+            stopAutoPlay();
+            playInterval = setInterval(() => {
+                nextStep();
+            }, 4600 / playSpeed);
+        }
+
+        function stopAutoPlay() {
+            if (playInterval) clearInterval(playInterval);
+            playInterval = null;
+        }
+
+        function toggleSpeed() {
+            const btn = document.getElementById('btn-speed');
+            if (playSpeed === 1.0) {
+                playSpeed = 1.5;
+                btn.textContent = '1.5x';
+            } else if (playSpeed === 1.5) {
+                playSpeed = 2.0;
+                btn.textContent = '2x';
+            } else {
+                playSpeed = 1.0;
+                btn.textContent = '1x';
+            }
+            if (isPlaying) startAutoPlay();
+        }
+
+        function setScenario(sc) {
+            activeScenario = sc;
+            document.querySelectorAll('#scenario-all, #scenario-schedules, #scenario-revising, #scenario-reject, #scenario-close-partial')
+                .forEach(b => b.classList.remove('active'));
+            const targetBtn = document.getElementById(`scenario-${sc}`);
+            if (targetBtn) targetBtn.classList.add('active');
+
+            if (sc === 'schedules') {
+                jumpToStep(4);
+            } else if (sc === 'revising') {
+                handleForkClick(new Event('click'), 5, 'demo_revising_po', 'ส่งกลับแก้ไข');
+            } else if (sc === 'reject') {
+                handleForkClick(new Event('click'), 5, 'demo_reject_po', 'ปฏิเสธคำสั่งซื้อ');
+            } else if (sc === 'close-partial') {
+                handleForkClick(new Event('click'), 9, 'demo_close_remaining', 'รับไม่ครบแล้วขอปิดยอด');
+            } else {
+                jumpToStep(1);
+            }
+        }
+
+        function toggleCameraPreset() {
+            isFollowCam = !isFollowCam;
+            const btn = document.getElementById('btn-toggle-cam');
+            if (isFollowCam) {
+                btn.classList.add('active');
+                btn.textContent = '🎥 กล้องตามสเต็ป';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '🌐 มุมมองภาพรวม';
+                new TWEEN.Tween(camera.position).to({ x: -70, y: 70, z: 85 }, 1200).start();
+                new TWEEN.Tween(controls.target).to({ x: 0, y: 0, z: 0 }, 1200).start();
+            }
+        }
+
+        function toggleUI() {
+            hudHidden = !hudHidden;
+            const left = document.getElementById('left-panel');
+            const right = document.getElementById('right-panel');
+            const bottom = document.getElementById('bottom-dock');
+            const btn = document.getElementById('btn-toggle-ui');
+
+            if (hudHidden) {
+                left.classList.add('-translate-x-96', 'opacity-0', 'pointer-events-none');
+                right.classList.add('translate-x-96', 'opacity-0', 'pointer-events-none');
+                bottom.classList.add('translate-y-28', 'opacity-0', 'pointer-events-none');
+                btn.textContent = 'แสดงเมนู';
+                btn.classList.add('active');
+            } else {
+                left.classList.remove('-translate-x-96', 'opacity-0', 'pointer-events-none');
+                right.classList.remove('translate-x-96', 'opacity-0', 'pointer-events-none');
+                bottom.classList.remove('translate-y-28', 'opacity-0', 'pointer-events-none');
+                btn.textContent = 'ซ่อนเมนู';
+                btn.classList.remove('active');
+            }
+        }
+
+        // ============================================================================
+        // 7. RENDER LOOP
+        // ============================================================================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update(time);
+            controls.update();
+
+            Object.values(stations).forEach(st => {
+                if (st.userData && st.userData.indicatorRing) {
+                    st.userData.indicatorRing.rotation.z += 0.005;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // Init
+        updateStepUI();
+        animate();
+    </script>
+</body>
+</html>

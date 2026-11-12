@@ -183,7 +183,7 @@ export default function ReceivingsPage() {
               description={t("ผล Lab อนุมัติ → ปล่อย Lot อัตโนมัติ · ตีกลับ → ปฏิเสธ Lot (ยอดถูก Block)")}
               okText={t("ส่งตัวอย่าง")}
               cancelText={t("ยกเลิก")}
-              onConfirm={() => sendLab.mutate({ collectedDate: dayjs().format("YYYY-MM-DD"), referenceDocId: r.id, referenceDocNo: r.receivingNo })}
+              onConfirm={() => sendLab.mutate({ collectedDate: dayjs().format("YYYY-MM-DD"), referenceDocId: r.id, referenceDocNo: r.receivingNo, itemId: r.itemId, lotId: r.lotId })}
             >
               <Button size="small" loading={sendLab.isPending && sendLab.variables?.referenceDocId === r.id}>{t("ส่งตัวอย่าง Lab")}</Button>
             </Popconfirm>

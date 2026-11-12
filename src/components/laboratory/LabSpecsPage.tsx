@@ -1,9 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Popconfirm, Table, Tag, Typography } from "antd";
+import { App, Button, Dropdown, Popconfirm, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ExperimentOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  DownloadOutlined,
+  ExperimentOutlined,
+  PlusOutlined,
+  UploadOutlined,
+} from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
@@ -12,6 +17,10 @@ import {
   useLabSpecsQuery,
   useUpdateLabSpecMutation,
 } from "@/hooks/laboratory/useLabSpecs";
+import { ApiError } from "@/lib/api/client";
+import { downloadLabSpecImportTemplate } from "@/lib/api/lab-specs";
+import { getAccessToken } from "@/lib/auth/token";
+import { downloadBlob } from "@/utils/downloadTabularReport";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
@@ -23,6 +32,7 @@ import {
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import LabSpecFormModal from "./LabSpecFormModal";
+import LabSpecImportModal from "./LabSpecImportModal";
 import PageHeader from "@/components/common/PageHeader";
 
 /** หน้า /laboratory/specs — Spec การตรวจ (พารามิเตอร์ + เกณฑ์ min/max) ตามประเภทตัวอย่าง/สินค้า (M8.3) */
@@ -36,6 +46,22 @@ export default function LabSpecsPage() {
   const { canAdd, canEdit, canDelete } =
     getScreenActionPermissions("LAB_SPECS");
   const [editing, setEditing] = useState<LabSpec | "new" | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const { message } = App.useApp();
+
+  const downloadTemplate = async (format: "xlsx" | "csv") => {
+    try {
+      const { blob, filename } = await downloadLabSpecImportTemplate(
+        getAccessToken(),
+        format,
+      );
+      downloadBlob(filename ?? `lab-specs-import-template.${format}`, blob);
+    } catch (e) {
+      message.error(
+        e instanceof ApiError ? e.message : t("ดาวน์โหลด Template ไม่สำเร็จ"),
+      );
+    }
+  };
 
   const columns: ColumnsType<LabSpec> = [
     {
@@ -129,6 +155,29 @@ export default function LabSpecsPage() {
           )}
           actions={
             <>
+              <Dropdown
+                menu={{
+                  items: [
+                    { key: "xlsx", label: t("Excel (.xlsx)") },
+                    { key: "csv", label: t("CSV (.csv)") },
+                  ],
+                  onClick: ({ key }) =>
+                    void downloadTemplate(key as "xlsx" | "csv"),
+                }}
+              >
+                <Button size="large" icon={<DownloadOutlined />}>
+                  {t("ดาวน์โหลด Template")}
+                </Button>
+              </Dropdown>
+              {canAdd ? (
+                <Button
+                  size="large"
+                  icon={<UploadOutlined />}
+                  onClick={() => setImportOpen(true)}
+                >
+                  {t("นำเข้าข้อมูล")}
+                </Button>
+              ) : null}
 {canAdd ? (
             <Button
               type="primary"
@@ -155,6 +204,10 @@ export default function LabSpecsPage() {
             locale={{ emptyText: t("ยังไม่มี Spec — กด เพิ่ม Spec") }}
           />
         </div>
+        <LabSpecImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+        />
         {editing ? (
           <LabSpecFormModal
             key={editing === "new" ? "new" : editing.id}

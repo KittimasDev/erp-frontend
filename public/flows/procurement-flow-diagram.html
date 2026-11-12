@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMT ERP — ผังกระบวนการจัดซื้อและการเชื่อมโยงข้อมูล (Procurement ER & Flow Diagram)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #070b14;
+            --bg-surface: #0f172a;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(59, 130, 246, 0.5);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --emerald: #10b981;
+            --cyan: #06b6d4;
+            --blue: #3b82f6;
+            --amber: #f59e0b;
+            --rose: #f43f5e;
+            --purple: #a855f7;
+            --indigo: #6366f1;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-base);
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            color: var(--text-main);
+        }
+
+        /* Top Header Bar */
+        #header-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(11, 17, 30, 0.94);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 50;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-badge {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Scenario Selector Pills Bar */
+        #scenario-bar {
+            position: absolute;
+            top: 64px;
+            left: 0;
+            right: 0;
+            height: 52px;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 24px;
+            overflow-x: auto;
+            white-space: nowrap;
+            z-index: 45;
+            scrollbar-width: none;
+        }
+        #scenario-bar::-webkit-scrollbar { display: none; }
+
+        .scenario-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+        }
+        .scenario-pill:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .scenario-pill.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: #60a5fa;
+            color: #93c5fd;
+            box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
+        }
+
+        /* Viewport Canvas */
+        #viewport {
+            position: absolute;
+            top: 116px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            cursor: grab;
+        }
+        #viewport:active {
+            cursor: grabbing;
+        }
+
+        /* Pan-Zoom Workspace Container */
+        #workspace {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4800px;
+            height: 2400px;
+            transform-origin: 0 0;
+            background-image: 
+                radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.06) 1px, transparent 0);
+            background-size: 32px 32px;
+        }
+
+        /* Phase Swimlane Columns */
+        .swimlane-header {
+            position: absolute;
+            top: 24px;
+            height: 38px;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+        .swimlane-col {
+            position: absolute;
+            top: 72px;
+            bottom: 40px;
+            border-right: 1px dashed rgba(255, 255, 255, 0.06);
+            pointer-events: none;
+        }
+
+        /* SVG Connectors Overlay */
+        #connections-svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Connection Path Styles */
+        .flow-path {
+            fill: none;
+            stroke-width: 2.5;
+            transition: opacity 0.3s ease, stroke-width 0.2s ease, stroke 0.3s ease;
+        }
+        .flow-path.path-dimmed {
+            opacity: 0.12 !important;
+            stroke-width: 1.5;
+        }
+        .flow-path.path-highlight {
+            opacity: 1 !important;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 6px currentColor);
+        }
+        .path-animated {
+            stroke-dasharray: 8 6;
+            animation: dashMove 1.4s linear infinite;
+        }
+        @keyframes dashMove {
+            to { stroke-dashoffset: -28; }
+        }
+
+        /* Node / ER Card */
+        .node-card {
+            position: absolute;
+            width: 320px;
+            background: var(--bg-card);
+            backdrop-filter: blur(14px);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, opacity 0.3s ease;
+            cursor: pointer;
+            z-index: 20;
+        }
+        .node-card:hover {
+            transform: translateY(-3px) scale(1.015);
+            border-color: rgba(96, 165, 250, 0.7);
+            box-shadow: 0 16px 36px rgba(37, 99, 235, 0.25);
+            z-index: 30;
+        }
+        .node-card.node-active {
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.4), 0 16px 36px rgba(37, 99, 235, 0.35) !important;
+        }
+        .node-card.node-dimmed {
+            opacity: 0.22 !important;
+        }
+
+        /* Decision Fork / Diamond Card */
+        .fork-card {
+            position: absolute;
+            width: 260px;
+            background: rgba(23, 20, 36, 0.9);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+            padding: 12px 14px;
+            cursor: pointer;
+            z-index: 22;
+            transition: all 0.2s ease;
+        }
+        .fork-card:hover {
+            border-color: #f59e0b;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(245, 158, 11, 0.25);
+            z-index: 32;
+        }
+        .fork-card.node-dimmed {
+            opacity: 0.22 !important;
+        }
+
+        /* ER Card Header */
+        .card-header {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .step-num-pill {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #93c5fd;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .entity-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .role-tag {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            letter-spacing: 0.02em;
+        }
+
+        /* ER Card Body - Fields List */
+        .card-fields {
+            padding: 10px 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 11px;
+            color: #cbd5e1;
+            line-height: 1.7;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .field-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .field-pk { color: #f59e0b; font-weight: 600; }
+        .field-fk { color: #60a5fa; }
+        .field-type { color: #64748b; font-size: 10px; }
+
+        /* ER Card Statuses & Transitions */
+        .card-footer {
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+        .status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Bottom Floating HUD */
+        #bottom-hud {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 8px 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+            z-index: 40;
+        }
+        .hud-btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hud-btn:hover {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: #60a5fa;
+            color: #fff;
+        }
+
+        /* Side Details Drawer */
+        #drawer {
+            position: absolute;
+            top: 64px;
+            right: -460px;
+            width: 440px;
+            bottom: 0;
+            background: rgba(11, 17, 30, 0.96);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: -12px 0 36px rgba(0,0,0,0.7);
+            z-index: 60;
+            transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        #drawer.open {
+            right: 0;
+        }
+        .drawer-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .drawer-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .drawer-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+        .drawer-sec-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #93c5fd;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Label on Flow Paths */
+        .path-label {
+            position: absolute;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 15;
+            transition: opacity 0.3s ease;
+        }
+        .path-label.label-dimmed {
+            opacity: 0.15;
+        }
+
+        /* Quick Info Legend Bar */
+        #legend-bar {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(15, 23, 42, 0.88);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-size: 11px;
+            color: #cbd5e1;
+            z-index: 40;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. Header Bar -->
+    <div id="header-bar">
+        <div class="header-title">
+            <span class="header-badge">SMT ERP Core Architecture</span>
+            <h1 style="font-size: 17px; font-weight: 700; letter-spacing: -0.01em;">
+                ผังกระบวนการจัดซื้อและการเชื่อมโยงข้อมูล (Procurement ER & Flow Diagram)
+            </h1>
+            <span style="font-size: 12px; color: #64748b;">| Lopburi 15180</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <a href="procurement-flow-3d.html" style="text-decoration: none;" class="hud-btn">
+                🎮 สลับเป็นมุมมอง 3D Simulation
+            </a>
+            <button onclick="resetView()" class="hud-btn">
+                🎯 จัดกึ่งกลาง
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Scenario Filter Bar (เห็นชัดเจนว่าทำได้กี่แบบ) -->
+    <div id="scenario-bar">
+        <span style="font-size: 12px; font-weight: 700; color: #94a3b8; margin-right: 6px;">
+            เลือกรูปแบบการทำงาน (Path Variations):
+        </span>
+        <button class="scenario-pill active" onclick="selectScenario('all')">
+            🌐 ทั้งหมด (Full Architecture Overview)
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('happy')">
+            ✨ แบบที่ 1: ทางหลักรับครบ 100% (Standard Happy Path)
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('revising')">
+            🔄 แบบที่ 2: ส่งกลับแก้ไข (PO Revising & Resubmit)
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('rejected')">
+            ❌ แบบที่ 3: ปฏิเสธ PO & ปลดล็อก PR คืนกองกลาง
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('split_reschedule')">
+            📅 แบบที่ 4: แบ่งส่งหลายงวด & เลื่อนส่ง (Split Schedules & Reschedule)
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('closed_partial')">
+            📦 แบบที่ 5: ส่งไม่ครบ & ปิดยอด (Closed Partial)
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('qc_deduct')">
+            ⚖️ แบบที่ 6: หักสิ่งเจือปน QC & ปรับน้ำหนัก
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('threeway_diff')">
+            📑 แบบที่ 7: 3-Way Matching ยอดต่าง & ใบลดหนี้
+        </button>
+        <button class="scenario-pill" onclick="selectScenario('advance_pay')">
+            💰 แบบที่ 8: จ่ายเงินมัดจำล่วงหน้า (Advance Deposit)
+        </button>
+    </div>
+
+    <!-- 3. Pan-Zoom Viewport -->
+    <div id="viewport">
+        <div id="workspace">
+
+            <!-- Swimlane Labels (7 Columns) -->
+            <!-- Col 1: ขอซื้อ & งบประมาณ (X: 40) -->
+            <div class="swimlane-header" style="left: 40px; width: 340px;">
+                <span>1. ขอซื้อ & ตรวจงบประมาณ</span>
+                <span style="font-size: 11px; color: #38bdf8;">Requester / Dept Head</span>
+            </div>
+            <div class="swimlane-col" style="left: 400px;"></div>
+
+            <!-- Col 2: ออกคำสั่งซื้อ & รอบส่ง (X: 440) -->
+            <div class="swimlane-header" style="left: 440px; width: 720px;">
+                <span>2. ออกใบสั่งซื้อ (PO) & กำหนดรอบจัดส่ง (Delivery Schedules)</span>
+                <span style="font-size: 11px; color: #a78bfa;">Procurement Officer</span>
+            </div>
+            <div class="swimlane-col" style="left: 1180px;"></div>
+
+            <!-- Col 3: อนุมัติ & ยืนยันผู้ขาย (X: 1220) -->
+            <div class="swimlane-header" style="left: 1220px; width: 560px;">
+                <span>3. การอนุมัติ (PO Approval) & ยืนยันคำสั่งซื้อ</span>
+                <span style="font-size: 11px; color: #fbbf24;">Plant Mgr / Vendor</span>
+            </div>
+            <div class="swimlane-col" style="left: 1800px;"></div>
+
+            <!-- Col 4: ชั่งน้ำหนัก & ตรวจ QC (X: 1840) -->
+            <div class="swimlane-header" style="left: 1840px; width: 680px;">
+                <span>4. ด่านชั่งน้ำหนัก (Weighbridge) & ตรวจคุณภาพ (QC)</span>
+                <span style="font-size: 11px; color: #34d399;">Gate Guard / QC Lab</span>
+            </div>
+            <div class="swimlane-col" style="left: 2540px;"></div>
+
+            <!-- Col 5: ตรวจรับ & ขยับสต๊อกคลัง (X: 2580) -->
+            <div class="swimlane-header" style="left: 2580px; width: 540px;">
+                <span>5. ตรวจรับสินค้า (GR) & ขยับสต๊อกเข้าคลัง</span>
+                <span style="font-size: 11px; color: #f43f5e;">Warehouse Officer</span>
+            </div>
+            <div class="swimlane-col" style="left: 3140px;"></div>
+
+            <!-- Col 6: เทียบเอกสาร 3 ด้าน (X: 3180) -->
+            <div class="swimlane-header" style="left: 3180px; width: 560px;">
+                <span>6. เปรียบเทียบเอกสาร 3 ด้าน (3-Way Matching)</span>
+                <span style="font-size: 11px; color: #e879f9;">AP Accountant</span>
+            </div>
+            <div class="swimlane-col" style="left: 3760px;"></div>
+
+            <!-- Col 7: ตั้งหนี้ & จ่ายเงิน (X: 3800) -->
+            <div class="swimlane-header" style="left: 3800px; width: 560px;">
+                <span>7. ตั้งหนี้เจ้าหนี้ & จ่ายเงิน (AP & Payment)</span>
+                <span style="font-size: 11px; color: #10b981;">Finance / Treasury</span>
+            </div>
+
+            <!-- SVG Connector Canvas -->
+            <svg id="connections-svg">
+                <defs>
+                    <!-- Arrowheads Marker Definitions -->
+                    <marker id="arrow-emerald" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#10b981" />
+                    </marker>
+                    <marker id="arrow-blue" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#3b82f6" />
+                    </marker>
+                    <marker id="arrow-amber" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#f59e0b" />
+                    </marker>
+                    <marker id="arrow-rose" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#f43f5e" />
+                    </marker>
+                    <marker id="arrow-purple" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#a855f7" />
+                    </marker>
+                    <marker id="arrow-indigo" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#6366f1" />
+                    </marker>
+                    <marker id="arrow-gray" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+                        <polygon points="0 0, 8 3.5, 0 7" fill="#64748b" />
+                    </marker>
+                </defs>
+                <!-- SVG Paths will be rendered dynamically by JavaScript -->
+            </svg>
+
+            <!-- Path Labels Container -->
+            <div id="labels-layer"></div>
+
+            <!-- 4. ENTITY & WORKFLOW NODES (HTML Cards) -->
+
+            <!-- NODE 1: PR Creation -->
+            <div id="node_pr" class="node-card" style="left: 50px; top: 120px;" onclick="openNodeDetails('node_pr')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #38bdf8;">📑</span>
+                        <span>purchase_requests</span>
+                    </div>
+                    <span class="step-num-pill">STEP 1</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>pr_no</span><span class="field-type">varchar (UQ)</span></div>
+                    <div class="field-row"><span class="field-fk">FK requester_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>total_amount</span><span class="field-type">decimal(15,2)</span></div>
+                    <div class="field-row"><span>status</span><span class="field-type">enum</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Initial Status:</span>
+                        <span class="status-badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd;">PENDING_APPROVAL</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">ผู้ขอซื้อ / แผนกผู้ใช้งาน</span>
+                </div>
+            </div>
+
+            <!-- FORK 1: PR Approval Threshold -->
+            <div id="fork_pr_approval" class="fork-card" style="left: 90px; top: 400px;" onclick="openNodeDetails('fork_pr_approval')">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #fbbf24;">DECISION FORK 1</span>
+                    <span style="font-size: 10px; color: #94a3b8;">วงเงินขอซื้อ</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+                    อนุมัติใบขอซื้อ (PR)?
+                </div>
+                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.5;">
+                    • ต่ำกว่า 50,000 บ. ➔ ผจก. แผนก<br>
+                    • เกิน 50,000 บ. ➔ ผจก. โรงงาน / MD
+                </div>
+            </div>
+
+            <!-- NODE 2: PO Draft & Negotiation -->
+            <div id="node_po" class="node-card" style="left: 460px; top: 120px;" onclick="openNodeDetails('node_po')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #a78bfa;">📦</span>
+                        <span>purchase_orders</span>
+                    </div>
+                    <span class="step-num-pill">STEP 2</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>po_no</span><span class="field-type">varchar (UQ)</span></div>
+                    <div class="field-row"><span class="field-fk">FK pr_id</span><span class="field-type">uuid (Nullable)</span></div>
+                    <div class="field-row"><span class="field-fk">FK vendor_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>total_quantity</span><span class="field-type">decimal(12,4)</span></div>
+                    <div class="field-row"><span>status</span><span class="field-type">enum</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Statuses:</span>
+                        <span class="status-badge" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe;">DRAFT / REVISING</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(167, 139, 250, 0.15); color: #a78bfa;">ฝ่ายจัดซื้อ (Purchasing)</span>
+                </div>
+            </div>
+
+            <!-- NODE 3: PO Delivery Schedules (รอบจัดส่ง) -->
+            <div id="node_schedules" class="node-card" style="left: 820px; top: 120px;" onclick="openNodeDetails('node_schedules')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #38bdf8;">📅</span>
+                        <span>po_delivery_schedules</span>
+                    </div>
+                    <span class="step-num-pill">STEP 3</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span class="field-fk">FK po_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>round_no</span><span class="field-type">integer (งวดที่ 1, 2)</span></div>
+                    <div class="field-row"><span>delivery_date</span><span class="field-type">date</span></div>
+                    <div class="field-row"><span>scheduled_quantity</span><span class="field-type">decimal</span></div>
+                    <div class="field-row"><span>received_quantity</span><span class="field-type">decimal</span></div>
+                    <div class="field-row"><span>receive_status</span><span class="field-type">enum</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Constraint:</span>
+                        <span style="color: #34d399; font-weight: 700; font-size: 10px;">บังคับครบ 100% ยอด PO</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">การกระจายงวดส่งมอบ</span>
+                </div>
+            </div>
+
+            <!-- FORK 2: PO Approval & Revising & Reject -->
+            <div id="fork_po_approval" class="fork-card" style="left: 1240px; top: 120px;" onclick="openNodeDetails('fork_po_approval')">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #fbbf24;">DECISION FORK 2</span>
+                    <span style="font-size: 10px; color: #94a3b8;">ผลอนุมัติ PO</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+                    ผู้บริหารตัดสินใจอย่างไร?
+                </div>
+                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.6;">
+                    🟢 <b>APPROVED:</b> อนุมัติ ส่งผู้ขายยืนยัน<br>
+                    🔄 <b>REVISING:</b> ส่งกลับแก้ราคา/รอบส่ง (ไม่เริ่มใหม่)<br>
+                    ❌ <b>REJECTED:</b> ปฏิเสธ & คืนยอด PR กองกลาง
+                </div>
+            </div>
+
+            <!-- NODE 4: Vendor Confirmation -->
+            <div id="node_vendor_confirm" class="node-card" style="left: 1240px; top: 380px;" onclick="openNodeDetails('node_vendor_confirm')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #34d399;">🤝</span>
+                        <span>vendor_confirmation</span>
+                    </div>
+                    <span class="step-num-pill">STEP 4</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span>po.status</span><span class="field-type">CONFIRMED</span></div>
+                    <div class="field-row"><span>vendor_ack_date</span><span class="field-type">timestamp</span></div>
+                    <div class="field-row"><span>confirmed_rounds</span><span class="field-type">Round 1, 2 locked</span></div>
+                    <div class="field-row"><span>action</span><span class="field-type">Dispatch Truck 🚚</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">PO State:</span>
+                        <span class="status-badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7;">CONFIRMED</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">ผู้ขาย (Vendor Partner)</span>
+                </div>
+            </div>
+
+            <!-- NODE 5: Weigh-in & Weight Ticket -->
+            <div id="node_weigh_in" class="node-card" style="left: 1860px; top: 120px;" onclick="openNodeDetails('node_weigh_in')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #38bdf8;">⚖️</span>
+                        <span>weigh_tickets (IN)</span>
+                    </div>
+                    <span class="step-num-pill">STEP 5</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>ticket_no</span><span class="field-type">varchar (WT-IN)</span></div>
+                    <div class="field-row"><span class="field-fk">FK po_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span class="field-fk">FK schedule_id</span><span class="field-type">uuid (Round 1)</span></div>
+                    <div class="field-row"><span>license_plate</span><span class="field-type">varchar (70-8899)</span></div>
+                    <div class="field-row"><span>gross_weight</span><span class="field-type">decimal (38.50 ตัน)</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Gate Action:</span>
+                        <span style="color: #38bdf8; font-weight: 700; font-size: 10px;">เปิดไม้กั้น ➔ ส่งรถไปจุด QC</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">เจ้าหน้าที่ตาชั่ง / รปภ.</span>
+                </div>
+            </div>
+
+            <!-- FORK 3: QC Inspection Results -->
+            <div id="fork_qc" class="fork-card" style="left: 1900px; top: 380px;" onclick="openNodeDetails('fork_qc')">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #fbbf24;">DECISION FORK 3</span>
+                    <span style="font-size: 10px; color: #94a3b8;">ผลตรวจคุณภาพ</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+                    สุ่มตรวจแล็บ QC (Lab Inspection)
+                </div>
+                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.6;">
+                    🟢 <b>ผ่าน 100%:</b> ความชื้น & สิ่งเจือปนตามเกณฑ์<br>
+                    ⚠️ <b>ตัดน้ำหนัก (Deduct):</b> ความชื้นเกิน ตัดยอด kg<br>
+                    ⛔ <b>ตีคืนทั้งคัน (Reject):</b> วัตถุดิบผิดสเปก ไม่รับเข้า
+                </div>
+            </div>
+
+            <!-- NODE 6: Goods Receipt (GR) & Inventory Movement -->
+            <div id="node_gr" class="node-card" style="left: 2600px; top: 120px;" onclick="openNodeDetails('node_gr')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #10b981;">📦</span>
+                        <span>goods_receipts (GR)</span>
+                    </div>
+                    <span class="step-num-pill">STEP 6</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>gr_no</span><span class="field-type">varchar (GR-202611)</span></div>
+                    <div class="field-row"><span class="field-fk">FK po_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span class="field-fk">FK schedule_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span class="field-fk">FK weigh_ticket_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>received_qty</span><span class="field-type">decimal (25.10 ตัน)</span></div>
+                    <div class="field-row"><span>status</span><span class="field-type">POSTED</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Event Trigger:</span>
+                        <span style="color: #10b981; font-weight: 700; font-size: 11px;">📦 สต๊อกคลังขยับทันที</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">คลังสินค้า (Stock Inflow)</span>
+                </div>
+            </div>
+
+            <!-- FORK 4: Partial Delivery / Fulfillment Check -->
+            <div id="fork_fulfillment" class="fork-card" style="left: 2630px; top: 400px;" onclick="openNodeDetails('fork_fulfillment')">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #fbbf24;">DECISION FORK 4</span>
+                    <span style="font-size: 10px; color: #94a3b8;">การส่งมอบครบหรือไม่</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+                    ตรวจยอดรวมสินค้าตามสัญญา
+                </div>
+                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.6;">
+                    🟢 <b>รับครบ (Completed):</b> รับตามยอดสัญญา 100%<br>
+                    📅 <b>รอรับงวดถัดไป:</b> สเตตัส PARTIALLY_RECEIVED<br>
+                    📦 <b>ส่งไม่ครบ & ปิดยอด:</b> ผู้ขายส่งต่อไม่ได้ สั่ง closeRemaining() ปรับเป็น CLOSED_PARTIAL
+                </div>
+            </div>
+
+            <!-- NODE 7: 3-Way Matching Engine -->
+            <div id="node_matching" class="node-card" style="left: 3200px; top: 120px;" onclick="openNodeDetails('node_matching')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #e879f9;">🔍</span>
+                        <span>three_way_matching</span>
+                    </div>
+                    <span class="step-num-pill">STEP 7</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span>Doc 1: PO</span><span class="field-type">ราคาต่อหน่วย & เงื่อนไข</span></div>
+                    <div class="field-row"><span>Doc 2: GR / WT</span><span class="field-type">น้ำหนักสุทธิรับจริง</span></div>
+                    <div class="field-row"><span>Doc 3: Invoice</span><span class="field-type">ใบกำกับภาษีผู้ขาย</span></div>
+                    <div class="field-row"><span>match_result</span><span class="field-type">enum (MATCHED / DIFF)</span></div>
+                    <div class="field-row"><span>tolerance_rule</span><span class="field-type">±0.00% Price, ±0.5% Wt</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Matching Status:</span>
+                        <span class="status-badge" style="background: rgba(232, 121, 249, 0.2); color: #f0abfc;">MATCHED</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(232, 121, 249, 0.15); color: #e879f9;">ฝ่ายบัญชีเจ้าหนี้ (AP)</span>
+                </div>
+            </div>
+
+            <!-- FORK 5: Matching Variance & Discrepancy -->
+            <div id="fork_matching" class="fork-card" style="left: 3240px; top: 400px;" onclick="openNodeDetails('fork_matching')">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #fbbf24;">DECISION FORK 5</span>
+                    <span style="font-size: 10px; color: #94a3b8;">การตรวจสอบความถูกต้อง</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+                    ยอดทั้ง 3 ฝ่ายตรงกันหรือไม่?
+                </div>
+                <div style="font-size: 11px; color: #cbd5e1; line-height: 1.6;">
+                    🟢 <b>MATCHED:</b> ยอดตรงสมบูรณ์ ➔ ตั้งหนี้ทันที<br>
+                    ⚠️ <b>VARIANCE:</b> ราคาหรือจำนวนไม่ตรง ➔ ขอใบลดหนี้ (Credit Note) หรือออกใบแจ้งยอดต่าง
+                </div>
+            </div>
+
+            <!-- NODE 8: AP Invoice & Payment Voucher (PV) -->
+            <div id="node_ap_payment" class="node-card" style="left: 3840px; top: 120px;" onclick="openNodeDetails('node_ap_payment')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #10b981;">💵</span>
+                        <span>payment_vouchers (PV)</span>
+                    </div>
+                    <span class="step-num-pill">STEP 8</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>pv_no</span><span class="field-type">varchar (PV-202611)</span></div>
+                    <div class="field-row"><span class="field-fk">FK invoice_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>gross_amount</span><span class="field-type">decimal (564,750 บ.)</span></div>
+                    <div class="field-row"><span>wht_amount</span><span class="field-type">decimal (หัก ณ ที่จ่าย 1%)</span></div>
+                    <div class="field-row"><span>net_paid</span><span class="field-type">decimal (559,102.50 บ.)</span></div>
+                    <div class="field-row"><span>status</span><span class="field-type">PAID & POSTED_GL</span></div>
+                </div>
+                <div class="card-footer">
+                    <div class="status-row">
+                        <span style="color: #94a3b8;">Final Step:</span>
+                        <span style="color: #10b981; font-weight: 700; font-size: 11px;">โอนเงิน & ปิดรอบจัดซื้อ</span>
+                    </div>
+                    <span class="role-tag" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">ฝ่ายการเงิน (Treasury)</span>
+                </div>
+            </div>
+
+            <!-- SPECIAL NODE: Advance Payment Request (มัดจำล่วงหน้า) -->
+            <div id="node_advance" class="node-card" style="left: 1240px; top: 680px;" onclick="openNodeDetails('node_advance')">
+                <div class="card-header">
+                    <div class="entity-title">
+                        <span style="color: #6366f1;">💰</span>
+                        <span>advance_payment_requests</span>
+                    </div>
+                    <span class="step-num-pill" style="color: #a5b4fc;">OPTIONAL</span>
+                </div>
+                <div class="card-fields">
+                    <div class="field-row"><span class="field-pk">PK id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span class="field-fk">FK po_id</span><span class="field-type">uuid</span></div>
+                    <div class="field-row"><span>advance_amount</span><span class="field-type">decimal (30% มัดจำ)</span></div>
+                    <div class="field-row"><span>payment_status</span><span class="field-type">PAID</span></div>
+                    <div class="field-row"><span>deduction_rule</span><span class="field-type">หักกลบในบิล GR งวดแรก</span></div>
+                </div>
+                <div class="card-footer">
+                    <span class="role-tag" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">ขอเบิกจ่ายมัดจำล่วงหน้า</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 5. Bottom HUD Floating Controls -->
+    <div id="bottom-hud">
+        <button class="hud-btn" onclick="zoomIn()">➕ ขยาย (+)</button>
+        <button class="hud-btn" onclick="zoomOut()">➖ ย่อ (-)</button>
+        <button class="hud-btn" onclick="resetView()">🎯 จัดกึ่งกลาง</button>
+        <div style="height: 16px; width: 1px; background: rgba(255,255,255,0.15);"></div>
+        <span id="scale-indicator" style="font-size: 11px; color: #94a3b8; font-family: monospace;">100%</span>
+        <div style="height: 16px; width: 1px; background: rgba(255,255,255,0.15);"></div>
+        <span style="font-size: 11px; color: #cbd5e1;">💡 คลิกที่การ์ดเพื่อดูรายละเอียด schema และกฎเงื่อนไข</span>
+    </div>
+
+    <!-- 6. Legend Bar -->
+    <div id="legend-bar">
+        <div class="legend-item"><div class="legend-dot" style="background: #10b981;"></div><span>ทางหลัก (Happy Path)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: #f59e0b;"></div><span>ส่งกลับแก้ไข (Revising)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: #f43f5e;"></div><span>ปฏิเสธ/ตีคืน (Reject)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: #a855f7;"></div><span>ปิดยอดส่งไม่ครบ (Closed Partial)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: #38bdf8;"></div><span>รอบจัดส่ง/ตาชั่ง</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background: #6366f1;"></div><span>มัดจำล่วงหน้า</span></div>
+    </div>
+
+    <!-- 7. Side Details Drawer -->
+    <div id="drawer">
+        <div class="drawer-header">
+            <div>
+                <span id="drawer-tag" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #38bdf8; letter-spacing: 0.05em;">STEP DETAILS</span>
+                <h2 id="drawer-title" style="font-size: 18px; font-weight: 700; color: #fff; margin-top: 2px;">รายละเอียดข้อมูล</h2>
+            </div>
+            <button onclick="closeDrawer()" class="hud-btn" style="padding: 4px 10px;">✕ ปิด</button>
+        </div>
+        <div class="drawer-body">
+
+            <!-- Section 1: Overview & Role -->
+            <div class="drawer-section">
+                <div class="drawer-sec-title">👤 บทบาทผู้รับผิดชอบ & หน้าที่</div>
+                <div id="drawer-role" style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">-</div>
+            </div>
+
+            <!-- Section 2: Business Rules & Validations -->
+            <div class="drawer-section">
+                <div class="drawer-sec-title">⚖️ กฎเงื่อนไขของระบบ (Business Rules)</div>
+                <div id="drawer-rules" style="font-size: 12px; color: #e2e8f0; line-height: 1.6; font-family: 'Sarabun', sans-serif;">-</div>
+            </div>
+
+            <!-- Section 3: Database & Relations -->
+            <div class="drawer-section">
+                <div class="drawer-sec-title">🗄️ โครงสร้างฐานข้อมูล & ER Relationships</div>
+                <div id="drawer-db" style="font-size: 11px; font-family: 'Fira Code', monospace; color: #93c5fd; line-height: 1.7;">-</div>
+            </div>
+
+            <!-- Section 4: API & Permissions -->
+            <div class="drawer-section">
+                <div class="drawer-sec-title">🌐 API Endpoint & สิทธิ์การใช้งาน</div>
+                <div id="drawer-api" style="font-size: 11px; font-family: 'Fira Code', monospace; color: #a78bfa; line-height: 1.7;">-</div>
+            </div>
+
+            <!-- Section 5: Scenario Branches Supported -->
+            <div class="drawer-section">
+                <div class="drawer-sec-title">🔀 ทางแยกที่เกิดขึ้นได้ในจุดนี้ (Branches)</div>
+                <div id="drawer-branches" style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">-</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Core Script -->
+    <script>
+        // 1. DATA DICTIONARY & NODE REGISTRY
+        const nodeData = {
+            node_pr: {
+                title: "Purchase Request (ใบขอซื้อ)",
+                tag: "STEP 1: REQUISITION",
+                role: "ผู้ขอซื้อ (Requester) / หัวหน้าแผนกผู้ขอใช้งาน (Department Head)",
+                rules: "• ผู้ขอซื้อระบุรายการวัตถุดิบ/สินค้า, ปริมาณที่ต้องการ, วันที่ต้องการใช้งาน, และเหตุผลความจำเป็น<br>• ระบบตรวจสอบงบประมาณของแผนก (Budget Checking) แบบเรียลไทม์<br>• หากยอดรวมต่ำกว่า 50,000 บ. ผจก.แผนกอนุมัติได้ทันที<br>• หากเกิน 50,000 บ. ต้องส่งต่อให้ผู้จัดการโรงงานหรือกรรมการผู้จัดการ (MD) อนุมัติ",
+                db: "TABLE: purchase_requests<br>PK id (uuid)<br>UQ pr_no (varchar: 'PR-202611-001')<br>FK requester_id -> users(id)<br>FK department_id -> departments(id)<br>RELATION: 1:N purchase_request_items<br>STATUSES: DRAFT -> PENDING_APPROVAL -> APPROVED / REJECTED / CANCELLED",
+                api: "POST /api/procurement/purchase-requests (สร้างใบขอซื้อ)<br>PATCH /api/procurement/purchase-requests/:id/approve (อนุมัติ PR)<br>PERMISSION: procurement:pr:write, procurement:pr:approve",
+                branches: "1. <b>Approved:</b> ผ่านการอนุมัติ ➔ ส่งต่อให้จัดซื้อนำไปออกใบสั่งซื้อ (PO)<br>2. <b>Rejected:</b> ไม่อนุมัติ ➔ เอกสารสิ้นสุด Requester แก้ไขหรือยกเลิก<br>3. <b>Cancelled:</b> ยกเลิกก่อนอนุมัติ"
+            },
+            fork_pr_approval: {
+                title: "PR Approval Routing & Threshold",
+                tag: "DECISION FORK 1",
+                role: "ผู้อนุมัติตามลำดับขั้น (Dept Head / Plant Manager)",
+                rules: "ตรวจสอบความเหมาะสมของงบประมาณและสิทธิการเซ็นอนุมัติ:<br>• <= 50,000 บ. อนุมัติขั้นตอนเดียว (Level 1)<br>• > 50,000 บ. อนุมัติ 2 ขั้นตอน (Level 1 + Level 2)",
+                db: "TABLE: approval_matrix / purchase_request_approvals<br>PK id (uuid)<br>FK pr_id -> purchase_requests(id)<br>step_order (int), status (enum), approved_at (timestamp)",
+                api: "GET /api/procurement/purchase-requests/:id/approval-history<br>PATCH /api/procurement/purchase-requests/:id/approve",
+                branches: "• <b>อนุมัติ (Approved):</b> ปลดล็อกให้ฝ่ายจัดซื้อดึงรายการไปทำ PO ได้<br>• <b>ส่งกลับ (Return):</b> ส่งกลับให้ Requester แก้ไขจำนวน/สเปก"
+            },
+            node_po: {
+                title: "Purchase Order (ใบสั่งซื้อ)",
+                tag: "STEP 2: PURCHASING",
+                role: "ฝ่ายจัดซื้อ (Purchasing Officer / Manager)",
+                rules: "• ดึงรายการที่อนุมัติแล้วจาก PR มาเปิด PO (1 PR สามารถแบ่งทำหลาย PO ได้ หรือรวมหลาย PR เป็น 1 PO ได้)<br>• ระบุผู้ขาย (Vendor), ราคาต่อหน่วยจากการต่อรอง, เครดิตเทอม, และเงื่อนไขการส่งมอบ<br>• สถานะเริ่มต้นคือ DRAFT ➔ เมื่อทำรอบส่งครบแล้วส่งขออนุมัติเป็น PENDING_APPROVAL<br>• หากถูกส่งกลับแก้ไข สถานะจะเป็น REVISING (ไม่ถูกลบ แก้แล้วส่งใหม่ได้)",
+                db: "TABLE: purchase_orders<br>PK id (uuid)<br>UQ po_no (varchar: 'PO-202611-042')<br>FK pr_id -> purchase_requests(id) [Nullable]<br>FK vendor_id -> vendors(id)<br>RELATION: 1:N purchase_order_items<br>RELATION: 1:N po_delivery_schedules<br>STATUSES: DRAFT, PENDING_APPROVAL, REVISING, APPROVED, CONFIRMED, REJECTED, PARTIALLY_RECEIVED, COMPLETED, CLOSED_PARTIAL, CANCELLED",
+                api: "POST /api/procurement/purchase-orders (สร้าง PO)<br>PUT /api/procurement/purchase-orders/:id (แก้ไข PO ระหว่าง Draft/Revising)<br>PATCH /api/procurement/purchase-orders/:id/submit (ส่งอนุมัติ)<br>PERMISSION: procurement:po:write, procurement:po:read",
+                branches: "1. <b>กำหนดรอบจัดส่ง:</b> บังคับทำ Delivery Schedules ก่อนส่งอนุมัติ<br>2. <b>ขอยกเลิก PO:</b> ยกเลิกได้เฉพาะตอนยังไม่มีการรับของ (GR) เท่านั้น"
+            },
+            node_schedules: {
+                title: "PO Delivery Schedules (รอบจัดส่งสินค้า)",
+                tag: "STEP 3: DELIVERY PLANNING",
+                role: "ฝ่ายจัดซื้อ (ร่วมกับตารางกำลังการผลิตและคลัง)",
+                rules: "• บังคับตามฟังก์ชัน <b>assertFullyScheduled()</b> ใน NestJS: ผลรวมจำนวนสินค้าในทุกงวดจัดส่ง (Round 1, 2, ...) ต้องเท่ากับจำนวนที่สั่งซื้อใน PO ครบ 100% ถึงจะส่งอนุมัติได้<br>• แต่ละงวดสามารถกด <b>[เลื่อนรอบส่ง (Reschedule)]</b> เพื่อเปลี่ยนวันนัดหมายและบันทึกประวัติพร้อมเหตุผล<br>• หากผู้ขายส่งของได้ไม่ครบตามสัญญา สามารถกด <b>[ปิดยอดคงค้าง (Close Remaining)]</b> เพื่อเปลี่ยนสถานะ PO เป็น CLOSED_PARTIAL ได้",
+                db: "TABLE: po_delivery_schedules<br>PK id (uuid)<br>FK po_id -> purchase_orders(id)<br>round_no (int: 1, 2, 3)<br>delivery_date (date)<br>scheduled_quantity (decimal)<br>received_quantity (decimal)<br>receive_status (NOT_RECEIVED, PARTIALLY_RECEIVED, FULLY_RECEIVED, CLOSED_PARTIAL, CANCELLED)",
+                api: "POST /api/procurement/purchase-orders/:id/delivery-schedules (แบ่งงวด)<br>PATCH /api/procurement/delivery-schedules/:id/reschedule (ขอเลื่อนงวดส่ง)<br>PATCH /api/procurement/delivery-schedules/:id/close-remaining (ปิดยอดคงค้าง)",
+                branches: "1. <b>รอบเดียวจบ (Single Delivery):</b> ส่ง 100% ในงวดเดียว<br>2. <b>แบ่งหลายงวด (Multiple Rounds):</b> เช่น งวด 1: 15 ตัน, งวด 2: 10 ตัน<br>3. <b>ขอเลื่อนนัด (Rescheduled):</b> ปรับวันส่งมอบใหม่โดยไม่ต้องออก PO ใหม่"
+            },
+            fork_po_approval: {
+                title: "PO Approval & Rejection Logic",
+                tag: "DECISION FORK 2",
+                role: "ผู้จัดการโรงงาน / ผู้มีอำนาจลงนามจัดซื้อ",
+                rules: "ตรวจสอบความสมบูรณ์ของใบสั่งซื้อ, ราคาเปรียบเทียบเทียบราคาตลาด, และรอบส่งมอบ:<br>1. <b>APPROVED:</b> อนุมัติใบสั่งซื้อเพื่อส่งต่อให้ผู้ขายยืนยัน<br>2. <b>REVISING (ส่งกลับแก้ไข):</b> เรียก method <code>returnToDraft()</code> ใน Backend PO จะเข้าสถานะ REVISING จัดซื้อเปิดเอกสารเดิมขึ้นมาแก้ราคาหรือรอบส่ง แล้วกดส่งอนุมัติใหม่ได้ทันที ไม่ต้องพิมพ์ใหม่ตั้งแต่สเต็ป 1<br>3. <b>REJECTED (ปฏิเสธ):</b> เรียก method <code>reject()</code> PO จะถูกปิดถาวร และระบบจะ <b>ปลดล็อกยอดจองในใบขอซื้อ PR (Unlock PR balance)</b> คืนกองกลางทันที จัดซื้อนำ PR ไปเปิด PO เจ้าอื่นได้เลยโดยผู้ขอซื้อไม่ต้องสร้างใหม่",
+                db: "TABLE: purchase_orders<br>status -> APPROVED / REVISING / REJECTED<br>rejected_reason (text)<br>approved_by (uuid), approved_at (timestamp)",
+                api: "PATCH /api/procurement/purchase-orders/:id/approve<br>PATCH /api/procurement/purchase-orders/:id/return-to-draft (ส่งกลับแก้ไข)<br>PATCH /api/procurement/purchase-orders/:id/reject (ปฏิเสธถาวร)",
+                branches: "• <b>APPROVED ➔</b> ไปขั้นตอนยืนยันผู้ขาย (Vendor Confirmation)<br>• <b>REVISING ➔</b> วนกลับไปที่ PO Draft ให้แก้ไขได้ทันที<br>• <b>REJECTED ➔</b> คืนยอด PR กลับกองกลาง เพื่อเปิด PO เจ้าใหม่"
+            },
+            node_vendor_confirm: {
+                title: "Vendor Confirmation & Truck Dispatch",
+                tag: "STEP 4: VENDOR CONFIRM",
+                role: "ผู้ขาย / ซัพพลายเออร์ (Vendor Partner)",
+                rules: "• ผู้ขายได้รับเอกสาร PO ที่อนุมัติแล้ว และตอบรับเงื่อนไขราคาและวันนัดหมายตาม Delivery Schedules<br>• สถานะ PO ปรับเป็น CONFIRMED<br>• ผู้ขายเตรียมสินค้าและส่งรถบรรทุกเข้ามาตามงวดที่กำหนด (เช่น งวดที่ 1: 15 ตัน)",
+                db: "TABLE: purchase_orders<br>status -> CONFIRMED<br>vendor_confirmed_at (timestamp)",
+                api: "PATCH /api/procurement/purchase-orders/:id/confirm<br>PERMISSION: procurement:po:confirm",
+                branches: "• <b>ยืนยันปกติ ➔</b> รถบรรทุกเดินทางเข้าโรงงานตามงวด<br>• <b>ผู้ขายแจ้งส่งล่าช้า ➔</b> จัดซื้อกดเลื่อนรอบส่ง (Reschedule) ในระบบ"
+            },
+            node_weigh_in: {
+                title: "Weighbridge Inbound (ชั่งน้ำหนักรถเข้า)",
+                tag: "STEP 5: WEIGH-IN",
+                role: "เจ้าหน้าที่ด่านชั่งน้ำหนัก / รปภ. ประจำป้อมตาชั่ง",
+                rules: "• รถบรรทุกมาถึงด่านชั่ง เจ้าหน้าที่สแกนทะเบียนรถหรือค้นหาใบ PO / Delivery Schedule งวดที่มาส่ง<br>• ระบบบันทึกน้ำหนักรวมรถพร้อมสินค้า (Gross Weight) อัตโนมัติจากเซนเซอร์หัวชั่งดิจิทัล<br>• ออกใบชั่งน้ำหนักขาเข้า (Weigh Ticket: WT-IN) พร้อมถ่ายภาพรถและป้ายทะเบียน<br>• ไม้กั้นตาชั่งเปิดออก และสั่งให้รถขับไปยังจุดสุ่มตรวจ QC",
+                db: "TABLE: weigh_tickets<br>PK id (uuid)<br>UQ ticket_no (varchar: 'WT-202611-0089')<br>FK po_id -> purchase_orders(id)<br>FK delivery_schedule_id -> po_delivery_schedules(id)<br>license_plate (varchar)<br>gross_weight (decimal: 38.50 ตัน)<br>status -> IN_PROCESS",
+                api: "POST /api/weighbridge/tickets/inbound (ชั่งรถเข้า)<br>PERMISSION: weighbridge:ticket:write",
+                branches: "• บันทึกน้ำหนักเข้าสำเร็จ ➔ รถวิ่งเข้าจุดตรวจคุณภาพ QC"
+            },
+            fork_qc: {
+                title: "QC Inspection & Moisture/Impurity Deduction",
+                tag: "DECISION FORK 3",
+                role: "เจ้าหน้าที่ห้องปฏิบัติการตรวจสอบคุณภาพ (QC Chemist / Inspector)",
+                rules: "เจ้าหน้าที่ QC เจาะสุ่มตัวอย่างวัตถุดิบ (เช่น แกลบ/ไม้ยางพารา/เนื้อยาง) เพื่อวัดค่าความชื้นและสิ่งเจือปน:<br>1. <b>ผ่านเกณฑ์ 100% (Passed):</b> ค่ามาตรฐานผ่าน รับเข้าคลังได้เต็มจำนวน<br>2. <b>ตัดน้ำหนักสิ่งเจือปน (Deduct Weight):</b> หากความชื้นหรือฝุ่นดินเกินเกณฑ์ ระบบจะคำนวณสูตรตัดน้ำหนัก (Tare Deduction) อัตโนมัติ เพื่อไม่จ่ายเงินในส่วนน้ำเกิน<br>3. <b>ตีคืนสินค้าทั้งคัน (Rejected):</b> หากพบสารปนเปื้อนอันตรายหรือเน่าเสีย ปฏิเสธการรับและให้รถขับออกจากโรงงานทันที",
+                db: "TABLE: qc_inspection_logs<br>PK id (uuid)<br>FK weigh_ticket_id -> weigh_tickets(id)<br>moisture_percentage (decimal)<br>impurity_percentage (decimal)<br>deducted_weight (decimal)<br>qc_result (PASSED, DEDUCTED, REJECTED)",
+                api: "POST /api/qc/inspections (บันทึกผลแล็บ QC)<br>PERMISSION: qc:inspection:write",
+                branches: "• <b>QC ผ่าน/ตัดน้ำหนัก ➔</b> รถไปเทของที่คลังสินค้า<br>• <b>QC ไม่ผ่าน (ตีคืน) ➔</b> รถขับออก ด่านชั่งปิดตั๋วเป็น REJECTED ไม่เกิด GR"
+            },
+            node_gr: {
+                title: "Goods Receipt (ใบรับสินค้า) & Stock Movement",
+                tag: "STEP 6: WAREHOUSE RECEIVING",
+                role: "เจ้าหน้าที่คลังสินค้า (Warehouse Officer)",
+                rules: "• เมื่อรถเทสินค้าลงในลาน/ไซโลคลังเรียบร้อย และขับมาชั่งน้ำหนักรถเปล่าออก (Tare Weight)<br>• ระบบคำนวณน้ำหนักสุทธิ = (Gross - Tare - หักสิ่งเจือปน QC) = Net Quantity<br>• ออกใบรับสินค้า (Goods Receipt: GR) สถานะ POSTED<br>• <b>📦 สต๊อกขยับเพิ่มขึ้นจริงในคลังทันที!</b> บันทึกประวัติเข้า Inventory Stock Ledger พร้อมเลขล็อต (Lot Number) และ Location คลัง",
+                db: "TABLE: goods_receipts<br>PK id (uuid)<br>UQ gr_no (varchar: 'GR-202611-0018')<br>FK po_id -> purchase_orders(id)<br>FK schedule_id -> po_delivery_schedules(id)<br>FK weigh_ticket_id -> weigh_tickets(id)<br>received_quantity (decimal: 25.10 ตัน)<br>status -> POSTED<br>RELATION: stock_ledger_entries (Quantity Inflow)",
+                api: "POST /api/procurement/goods-receipts/from-weigh-ticket<br>PATCH /api/procurement/goods-receipts/:id/post<br>PERMISSION: procurement:gr:write, inventory:stock:adjust",
+                branches: "• <b>อัปเดตยอดรับใน Delivery Schedule:</b> received_quantity เพิ่มขึ้น<br>• <b>ส่งข้อมูลให้ฝ่ายบัญชี:</b> เตรียมเปรียบเทียบ 3-Way Matching"
+            },
+            fork_fulfillment: {
+                title: "Contract Fulfillment & Close Remaining Check",
+                tag: "DECISION FORK 4",
+                role: "ฝ่ายจัดซื้อ ร่วมกับคลังสินค้า",
+                rules: "ตรวจสอบว่ายอดที่ส่งมอบมา ครบตามสัญญา PO แล้วหรือไม่:<br>1. <b>ครบ 100%:</b> สถานะ PO เปลี่ยนเป็น COMPLETED<br>2. <b>ยังไม่ครบและมีงวดถัดไป:</b> สถานะ PO เป็น PARTIALLY_RECEIVED รอรถงวดถัดไปเข้ามาส่ง<br>3. <b>ส่งไม่ครบและผู้ขายไม่สามารถส่งเพิ่มได้:</b> (เช่น สั่ง 25 ตัน แต่ผู้ขายส่งได้แค่ 20 ตัน) จัดซื้อกด <b>[ปิดยอดที่เหลือ (Close Remaining)]</b> ระบบจะตัดยอดคงค้างเป็น 0 ปรับ PO เป็น CLOSED_PARTIAL และปลดล็อกให้บัญชีจ่ายเงินเฉพาะ 20 ตันที่รับจริงได้ทันที",
+                db: "TABLE: purchase_orders / po_delivery_schedules<br>status -> COMPLETED / PARTIALLY_RECEIVED / CLOSED_PARTIAL",
+                api: "PATCH /api/procurement/delivery-schedules/:id/close-remaining<br>PATCH /api/procurement/purchase-orders/:id/close-partial",
+                branches: "• <b>รับครบ ➔</b> ปิดจ๊อบ PO ส่งยอดตั้งหนี้<br>• <b>รับบางส่วน ➔</b> รอรอบส่งต่อไป<br>• <b>ปิดยอดไม่ครบ ➔</b> สเตตัส CLOSED_PARTIAL สรุปยอดจ่ายเฉพาะของจริง"
+            },
+            node_matching: {
+                title: "3-Way Matching Engine (เปรียบเทียบเอกสาร 3 ด้าน)",
+                tag: "STEP 7: ACCOUNTS PAYABLE MATCHING",
+                role: "ฝ่ายบัญชีเจ้าหนี้ (AP Accountant)",
+                rules: "ระบบเปรียบเทียบเอกสาร 3 ชุดโดยอัตโนมัติ:<br>1. <b>ใบสั่งซื้อ (PO):</b> เช็กราคาต่อหน่วยที่ตกลงและเงื่อนไขส่วนลด<br>2. <b>ใบรับสินค้า / ใบชั่ง (GR / WT):</b> เช็กปริมาณน้ำหนักสุทธิที่รับเข้าคลังจริง<br>3. <b>ใบแจ้งหนี้ / ใบกำกับภาษี (Vendor Invoice):</b> เช็กยอดเงินที่ผู้ขายเรียกเก็บ<br>• <b>Match 100%:</b> ยอดตรงกันสมบูรณ์ ส่งต่อทำใบสำคัญจ่าย<br>• <b>Discrepancy (ยอดต่าง):</b> เช่น ราคาไม่ตรง หรือผู้ขายคิดเงินเกินจำนวนรับจริง",
+                db: "TABLE: ap_invoices<br>PK id (uuid)<br>UQ invoice_no (varchar)<br>FK po_id -> purchase_orders(id)<br>FK gr_id -> goods_receipts(id)<br>matching_status (MATCHED, DISCREPANCY, UNMATCHED)<br>price_variance (decimal), qty_variance (decimal)",
+                api: "POST /api/procurement/ap-documents/match<br>GET /api/procurement/ap-documents/:id/matching-details",
+                branches: "• <b>MATCHED ➔</b> ผ่านไปตั้งหนี้และขออนุมัติจ่ายเงิน<br>• <b>DISCREPANCY ➔</b> ส่งให้จัดซื้อเจรจา หรือออก Debit/Credit Note"
+            },
+            fork_matching: {
+                title: "Matching Variance & Resolution Branch",
+                tag: "DECISION FORK 5",
+                role: "ฝ่ายบัญชี ร่วมกับฝ่ายจัดซื้อ",
+                rules: "หากยอดเทียบ 3 ด้านไม่ตรงกัน (Discrepancy):<br>• <b>ผู้ขายยอมรับ:</b> ผู้ขายออกใบลดหนี้ (Credit Note) มาหักลบยอดส่วนต่าง<br>• <b>บริษัทปรับลดหนี้:</b> ออกใบเพิ่มหนี้/ลดหนี้ในระบบ (AP Debit Note)<br>• เมื่อยอดสุทธิหักกลบลงตัว จึงจะปลดล็อกให้ส่งจ่ายเงินได้",
+                db: "TABLE: ap_credit_notes / ap_debit_notes<br>PK id (uuid)<br>FK invoice_id -> ap_invoices(id)<br>amount (decimal), reason (varchar)",
+                api: "POST /api/procurement/ap-credit-notes<br>POST /api/procurement/ap-debit-notes",
+                branches: "• <b>ยอดตรงกัน ➔</b> ส่งเข้าคิวทำใบสำคัญจ่าย (Payment Voucher Queue)<br>• <b>ยอดไม่ตรง ➔</b> รอเอกสาร Credit Note ก่อนอนุมัติจ่าย"
+            },
+            node_ap_payment: {
+                title: "Payment Voucher (PV) & GL Posting",
+                tag: "STEP 8: TREASURY PAYMENT",
+                role: "ฝ่ายการเงินและการบัญชี (Finance & Treasury Officer)",
+                rules: "• ออกใบสำคัญจ่าย (Payment Voucher: PV) ตามรอบวันครบกำหนดชำระ (Due Date)<br>• คำนวณหักภาษี ณ ที่จ่าย (Withholding Tax: WHT) อัตโนมัติ (เช่น ค่าสินค้าพืชผลยกเว้น, ค่าขนส่งหัก 1%, ค่าบริการหัก 3%)<br>• ออกหนังสือรับรองการหัก ณ ที่จ่าย (ภ.ง.ด. 53/3)<br>• ทำรายการจ่ายเงินผ่านระบบธนาคาร (Cheque / Bank Transfer)<br>• <b>บันทึกบัญชีแยกประเภท (GL Posting) อัตโนมัติ:</b> Dr. เจ้าหนี้การค้า (AP), Cr. ธนาคาร/เงินสด, Cr. ภาษีหัก ณ ที่จ่ายค้างจ่าย ➔ สิ้นสุดกระบวนการจัดซื้อสมบูรณ์",
+                db: "TABLE: supplier_payment_vouchers<br>PK id (uuid)<br>UQ pv_no (varchar: 'PV-202611-0012')<br>FK ap_invoice_id -> ap_invoices(id)<br>gross_amount (decimal), wht_amount (decimal), net_paid (decimal)<br>status -> PAID<br>RELATION: gl_journal_entries (General Ledger)",
+                api: "POST /api/procurement/purchase-payments/vouchers<br>PATCH /api/procurement/purchase-payments/vouchers/:id/confirm-paid<br>PERMISSION: finance:payment:write, finance:payment:approve",
+                branches: "• จ่ายเงินเสร็จสิ้น ปิดเอกสาร PO, GR, Invoice, และบันทึกสมุดรายวันทั่วไป (GL) สมบูรณ์"
+            },
+            node_advance: {
+                title: "Advance Payment Request (เบิกเงินมัดจำล่วงหน้า)",
+                tag: "SPECIAL PATH: ADVANCE DEPOSIT",
+                role: "ฝ่ายจัดซื้อ / ฝ่ายการเงิน",
+                rules: "• ใช้ในกรณีสัญญาจัดซื้อกำหนดให้ต้องจ่ายเงินมัดจำล่วงหน้าก่อนผู้ขายส่งสินค้า (เช่น 30% หรือ 50%)<br>• เปิดใบขอเบิกเงินมัดจำ (Advance Payment Request) ผูกกับ PO ที่อนุมัติแล้ว<br>• การเงินจ่ายเงินมัดจำล่วงหน้า และลงบันทึกเป็นสินทรัพย์ 'เงินจ่ายล่วงหน้าค่าสินค้า'<br>• เมื่อสินค้ามาส่งจริงและออกใบกำกับภาษี ระบบจะดึงยอดมัดจำนี้ไปหักกลบ (Deduct Advance) อัตโนมัติในขั้นตอน 3-Way Matching",
+                db: "TABLE: advance_payment_requests<br>PK id (uuid)<br>FK po_id -> purchase_orders(id)<br>advance_amount (decimal)<br>payment_status (PENDING, PAID, FULLY_DEDUCTED)",
+                api: "POST /api/procurement/advance-payment-requests<br>PATCH /api/procurement/advance-payment-requests/:id/pay",
+                branches: "• <b>จ่ายมัดจำแล้ว ➔</b> รอของส่งมอบ แล้วนำยอดมัดจำไปหักกลบในใบแจ้งหนี้จริง"
+            }
+        };
+
+        // 2. PATH CONNECTIONS DEFINITION (เส้นเชื่อมโยงและทางแยก)
+        const flowConnections = [
+            // Standard Happy Path (ทางหลัก)
+            { id: "c_pr_fork", from: "node_pr", to: "fork_pr_approval", type: "blue", label: "ตรวจวงเงิน", scenarios: ["all", "happy", "revising", "rejected", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            { id: "c_fork_po", from: "fork_pr_approval", to: "node_po", type: "emerald", label: "อนุมัติ PR ผ่าน", scenarios: ["all", "happy", "revising", "rejected", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            { id: "c_po_sched", from: "node_po", to: "node_schedules", type: "blue", label: "แบ่งงวดส่ง 100%", scenarios: ["all", "happy", "revising", "rejected", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            { id: "c_sched_forkpo", from: "node_schedules", to: "fork_po_approval", type: "blue", label: "ส่งอนุมัติ PO", scenarios: ["all", "happy", "revising", "rejected", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // PO Decision Branches:
+            // 1. Approved -> Vendor Confirm
+            { id: "c_forkpo_vendor", from: "fork_po_approval", to: "node_vendor_confirm", type: "emerald", label: "อนุมัติ PO (APPROVED)", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // 2. Revising -> Return to PO Draft (วนกลับมาแก้ ไม่เริ่มใหม่)
+            { id: "c_forkpo_revising", from: "fork_po_approval", to: "node_po", type: "amber", label: "🔄 ส่งกลับแก้ไข (REVISING)", curveOffset: -120, scenarios: ["all", "revising"] },
+            
+            // 3. Rejected -> Unlock PR (คืนยอด PR)
+            { id: "c_forkpo_rejected", from: "fork_po_approval", to: "node_pr", type: "rose", label: "❌ ปฏิเสธ PO & ปลดล็อก PR คืน", curveOffset: -220, scenarios: ["all", "rejected"] },
+            
+            // Vendor -> Weigh-in
+            { id: "c_vendor_weighin", from: "node_vendor_confirm", to: "node_weigh_in", type: "emerald", label: "รถขนส่งเข้าด่านชั่ง (Round 1)", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // Advance Payment Option (จาก PO Approved -> Advance)
+            { id: "c_po_advance", from: "node_vendor_confirm", to: "node_advance", type: "indigo", label: "สัญญาต้องจ่ายมัดจำ", scenarios: ["all", "advance_pay"] },
+            { id: "c_advance_matching", from: "node_advance", to: "node_matching", type: "indigo", label: "นำมัดจำไปหักกลบตอนตั้งหนี้", curveOffset: 160, scenarios: ["all", "advance_pay"] },
+
+            // Weigh-in -> QC Fork
+            { id: "c_weighin_qc", from: "node_weigh_in", to: "fork_qc", type: "blue", label: "สุ่มตรวจคุณภาพ", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // QC Results:
+            // Passed / Deduct -> GR
+            { id: "c_qc_gr", from: "fork_qc", to: "node_gr", type: "emerald", label: "QC ผ่าน / ตัดน้ำหนัก ➔ รับเข้าคลัง", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            // Reject QC -> Exit (ไม่รับ)
+            { id: "c_qc_reject", from: "fork_qc", to: "node_weigh_in", type: "rose", label: "⛔ ตีคืนสินค้า (ไม่รับเข้า)", curveOffset: 120, scenarios: ["all", "qc_deduct"] },
+
+            // GR -> Fulfillment Fork
+            { id: "c_gr_fulfill", from: "node_gr", to: "fork_fulfillment", type: "blue", label: "ตรวจยอดครบสัญญา", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // Fulfillment Branches:
+            // 1. Completed -> 3-Way Matching
+            { id: "c_fulfill_match", from: "fork_fulfillment", to: "node_matching", type: "emerald", label: "รับครบ 100% (COMPLETED)", scenarios: ["all", "happy", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // 2. Partial Delivery -> Loop to next round Weigh-in
+            { id: "c_fulfill_nextround", from: "fork_fulfillment", to: "node_schedules", type: "blue", label: "📅 รับบางส่วน ➔ รอรอบถัดไป (Round 2)", curveOffset: -280, scenarios: ["all", "split_reschedule"] },
+            
+            // 3. Closed Partial -> 3-Way Matching (ตัดยอดที่เหลือ)
+            { id: "c_fulfill_closed_partial", from: "fork_fulfillment", to: "node_matching", type: "purple", label: "📦 ปิดยอดคงเหลือ (CLOSED_PARTIAL)", curveOffset: 70, scenarios: ["all", "closed_partial"] },
+
+            // Matching -> Matching Fork
+            { id: "c_match_fork", from: "node_matching", to: "fork_matching", type: "blue", label: "ตรวจสอบยอด 3 ด้าน", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "threeway_diff", "advance_pay"] },
+            
+            // Matching Branches:
+            // 1. Matched -> AP Payment
+            { id: "c_forkmatch_pay", from: "fork_matching", to: "node_ap_payment", type: "emerald", label: "ยอดตรงสมบูรณ์ ➔ ตั้งหนี้ & โอนจ่ายเงิน", scenarios: ["all", "happy", "split_reschedule", "closed_partial", "qc_deduct", "advance_pay"] },
+            // 2. Discrepancy -> Credit/Debit Note
+            { id: "c_forkmatch_diff", from: "fork_matching", to: "node_matching", type: "rose", label: "⚠️ ยอดไม่ตรง ➔ ออกใบลดหนี้ (Credit Note)", curveOffset: 100, scenarios: ["all", "threeway_diff"] }
+        ];
+
+        // 3. PAN & ZOOM STATE
+        let scale = 0.85;
+        let panX = 40;
+        let panY = 20;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+
+        const viewport = document.getElementById("viewport");
+        const workspace = document.getElementById("workspace");
+        const svgCanvas = document.getElementById("connections-svg");
+        const labelsLayer = document.getElementById("labels-layer");
+        const scaleIndicator = document.getElementById("scale-indicator");
+
+        function updateTransform() {
+            workspace.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            scaleIndicator.innerText = Math.round(scale * 100) + "%";
+        }
+
+        viewport.addEventListener("mousedown", (e) => {
+            if (e.target.closest(".node-card") || e.target.closest(".fork-card") || e.target.closest("#bottom-hud") || e.target.closest("#legend-bar")) return;
+            isDragging = true;
+            startX = e.clientX - panX;
+            startY = e.clientY - panY;
+        });
+
+        window.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            panX = e.clientX - startX;
+            panY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener("mouseup", () => {
+            isDragging = false;
+        });
+
+        viewport.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            const zoomFactor = 1.1;
+            let newScale = e.deltaY < 0 ? scale * zoomFactor : scale / zoomFactor;
+            newScale = Math.max(0.35, Math.min(2.0, newScale));
+
+            // Zoom centered to mouse
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            panX = mouseX - (mouseX - panX) * (newScale / scale);
+            panY = mouseY - (mouseY - panY) * (newScale / scale);
+            scale = newScale;
+            updateTransform();
+        }, { passive: false });
+
+        function zoomIn() {
+            scale = Math.min(2.0, scale * 1.2);
+            updateTransform();
+        }
+        function zoomOut() {
+            scale = Math.max(0.35, scale / 1.2);
+            updateTransform();
+        }
+        function resetView() {
+            scale = 0.82;
+            panX = 30;
+            panY = 15;
+            updateTransform();
+        }
+
+        // 4. DRAW SVG CONNECTORS & BEZIER CURVES
+        function renderConnectors(currentScenario = "all") {
+            svgCanvas.innerHTML = `
+                <defs>
+                    <marker id="arrow-emerald" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><polygon points="0 0, 8 3.5, 0 7" fill="#10b981" /></marker>
+                    <marker id="arrow-blue" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><polygon points="0 0, 8 3.5, 0 7" fill="#3b82f6" /></marker>
+                    <marker id="arrow-amber" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><polygon points="0 0, 8 3.5, 0 7" fill="#f59e0b" /></marker>
+                    <marker id="arrow-rose" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><polygon points="0 0, 8 3.5, 0 7" fill="#f43f5e" /></marker>
+                    <marker id="arrow-purple" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><polygon points="0 0, 8 3.5, 0 7" fill="#a855f7" /></marker>
+                    <marker id="arrow-indigo" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto"><polygon points="0 0, 8 3.5, 0 7" fill="#6366f1" /></marker>
+                </defs>
+            `;
+            labelsLayer.innerHTML = "";
+
+            const colorMap = {
+                emerald: "#10b981",
+                blue: "#3b82f6",
+                amber: "#f59e0b",
+                rose: "#f43f5e",
+                purple: "#a855f7",
+                indigo: "#6366f1"
+            };
+
+            flowConnections.forEach(conn => {
+                const fromEl = document.getElementById(conn.from);
+                const toEl = document.getElementById(conn.to);
+                if (!fromEl || !toEl) return;
+
+                const fromX = fromEl.offsetLeft;
+                const fromY = fromEl.offsetTop;
+                const fromW = fromEl.offsetWidth;
+                const fromH = fromEl.offsetHeight;
+
+                const toX = toEl.offsetLeft;
+                const toY = toEl.offsetTop;
+                const toW = toEl.offsetWidth;
+                const toH = toEl.offsetHeight;
+
+                // Determine anchor points based on relative positions
+                let startPoint, endPoint;
+                const curveOffset = conn.curveOffset || 0;
+
+                if (curveOffset < 0) {
+                    // Backward loop (e.g. Revising / Reject)
+                    startPoint = { x: fromX, y: fromY + fromH * 0.5 };
+                    endPoint = { x: toX + toW, y: toY + toH * 0.7 };
+                } else if (toX > fromX + fromW - 20) {
+                    // Left to Right flow
+                    startPoint = { x: fromX + fromW, y: fromY + fromH * 0.45 };
+                    endPoint = { x: toX, y: toY + toH * 0.45 };
+                } else if (Math.abs(toX - fromX) < 180 && toY > fromY) {
+                    // Top to Down flow
+                    startPoint = { x: fromX + fromW * 0.5, y: fromY + fromH };
+                    endPoint = { x: toX + toW * 0.5, y: toY };
+                } else {
+                    // Diagonal / Other
+                    startPoint = { x: fromX + fromW * 0.5, y: fromY + fromH * 0.5 };
+                    endPoint = { x: toX + toW * 0.5, y: toY + toH * 0.5 };
+                }
+
+                // Calculate Smooth Bezier Curves
+                let d = "";
+                let midX, midY;
+
+                if (curveOffset !== 0) {
+                    // Curved backward or upward path
+                    const cpY = Math.min(startPoint.y, endPoint.y) + curveOffset;
+                    d = `M ${startPoint.x} ${startPoint.y} C ${startPoint.x} ${cpY}, ${endPoint.x} ${cpY}, ${endPoint.x} ${endPoint.y}`;
+                    midX = (startPoint.x + endPoint.x) / 2;
+                    midY = cpY;
+                } else {
+                    const dx = Math.abs(endPoint.x - startPoint.x) * 0.5;
+                    d = `M ${startPoint.x} ${startPoint.y} C ${startPoint.x + dx} ${startPoint.y}, ${endPoint.x - dx} ${endPoint.y}, ${endPoint.x} ${endPoint.y}`;
+                    midX = (startPoint.x + endPoint.x) / 2;
+                    midY = (startPoint.y + endPoint.y) / 2;
+                }
+
+                const isActive = (currentScenario === "all") || conn.scenarios.includes(currentScenario);
+                const pathColor = colorMap[conn.type] || "#3b82f6";
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", d);
+                path.setAttribute("stroke", pathColor);
+                path.setAttribute("class", `flow-path ${isActive ? (currentScenario !== 'all' ? 'path-highlight path-animated' : '') : 'path-dimmed'}`);
+                path.setAttribute("marker-end", `url(#arrow-${conn.type})`);
+                svgCanvas.appendChild(path);
+
+                // Add Path Label
+                if (conn.label) {
+                    const labelDiv = document.createElement("div");
+                    labelDiv.className = `path-label ${isActive ? '' : 'label-dimmed'}`;
+                    labelDiv.style.left = `${midX}px`;
+                    labelDiv.style.top = `${midY}px`;
+                    labelDiv.style.borderColor = isActive ? pathColor : 'rgba(255,255,255,0.1)';
+                    labelDiv.style.color = isActive ? '#fff' : '#64748b';
+                    labelDiv.innerText = conn.label;
+                    labelsLayer.appendChild(labelDiv);
+                }
+            });
+        }
+
+        // 5. SCENARIO FILTER SELECTION
+        function selectScenario(scenarioKey) {
+            document.querySelectorAll(".scenario-pill").forEach(btn => btn.classList.remove("active"));
+            event.currentTarget.classList.add("active");
+
+            // Filter nodes
+            const allNodeIds = Object.keys(nodeData);
+            allNodeIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                if (scenarioKey === "all") {
+                    el.classList.remove("node-dimmed");
+                } else {
+                    // Check if node is part of active connections
+                    const isNodeInScenario = flowConnections.some(c => 
+                        c.scenarios.includes(scenarioKey) && (c.from === id || c.to === id)
+                    );
+                    if (isNodeInScenario) {
+                        el.classList.remove("node-dimmed");
+                    } else {
+                        el.classList.add("node-dimmed");
+                    }
+                }
+            });
+
+            // Re-render connectors with highlight / dim
+            renderConnectors(scenarioKey);
+        }
+
+        // 6. DRAWER INSPECTOR
+        function openNodeDetails(nodeId) {
+            const data = nodeData[nodeId];
+            if (!data) return;
+
+            document.querySelectorAll(".node-card, .fork-card").forEach(c => c.classList.remove("node-active"));
+            const targetEl = document.getElementById(nodeId);
+            if (targetEl) targetEl.classList.add("node-active");
+
+            document.getElementById("drawer-title").innerText = data.title;
+            document.getElementById("drawer-tag").innerText = data.tag;
+            document.getElementById("drawer-role").innerHTML = data.role;
+            document.getElementById("drawer-rules").innerHTML = data.rules;
+            document.getElementById("drawer-db").innerHTML = data.db;
+            document.getElementById("drawer-api").innerHTML = data.api;
+            document.getElementById("drawer-branches").innerHTML = data.branches;
+
+            document.getElementById("drawer").classList.add("open");
+        }
+
+        function closeDrawer() {
+            document.getElementById("drawer").classList.remove("open");
+            document.querySelectorAll(".node-card, .fork-card").forEach(c => c.classList.remove("node-active"));
+        }
+
+        // Initialize on load
+        window.addEventListener("load", () => {
+            resetView();
+            renderConnectors("all");
+            // Auto open first node details for guided overview
+            setTimeout(() => {
+                openNodeDetails("node_po");
+            }, 500);
+        });
+
+        // Re-render lines on window resize
+        window.addEventListener("resize", () => {
+            renderConnectors(document.querySelector(".scenario-pill.active")?.getAttribute("onclick")?.match(/'([^']+)'/)?.[1] || "all");
+        });
+    </script>
+</body>
+</html>

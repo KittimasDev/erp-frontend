@@ -114,6 +114,7 @@ export type OilReceiving = {
   unitCode?: string;
   status: string;
   lotId?: string;
+  itemId?: string;
   qcStatus?: string;
   batchNo?: string;
   productionOrderId?: string;

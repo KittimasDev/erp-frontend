@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Select, Space, Table, Tabs, Tag } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { App, Button, Dropdown, Input, Select, Space, Table, Tabs, Tag } from "antd";
+import { DownloadOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
   ExperimentOutlined,
@@ -26,6 +26,11 @@ import {
 } from "@/types/laboratory";
 import LabCoaHistoryTab from "./LabCoaHistoryTab";
 import LabSampleCreateModal from "./LabSampleCreateModal";
+import LabSampleImportModal from "./LabSampleImportModal";
+import { ApiError } from "@/lib/api/client";
+import { downloadLabSampleImportTemplate } from "@/lib/api/laboratory";
+import { getAccessToken } from "@/lib/auth/token";
+import { downloadBlob } from "@/utils/downloadTabularReport";
 import styles from "./LabSamplesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -43,6 +48,22 @@ export default function LabSamplesListPage() {
   const [status, setStatus] = useState<string | undefined>();
   const [sampleType, setSampleType] = useState<string | undefined>();
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const { message } = App.useApp();
+
+  const downloadTemplate = async (format: "xlsx" | "csv") => {
+    try {
+      const { blob, filename } = await downloadLabSampleImportTemplate(
+        getAccessToken(),
+        format,
+      );
+      downloadBlob(filename ?? `lab-samples-import-template.${format}`, blob);
+    } catch (e) {
+      message.error(
+        e instanceof ApiError ? e.message : t("ดาวน์โหลด Template ไม่สำเร็จ"),
+      );
+    }
+  };
   const [tab, setTab] = useState<"samples" | "coas">("samples");
   const { canAdd } = getScreenActionPermissions("LAB_SAMPLES");
   const [applied, setApplied] = useState<{
@@ -148,6 +169,28 @@ export default function LabSamplesListPage() {
         )}
         actions={
           <>
+          <Dropdown
+            menu={{
+              items: [
+                { key: "xlsx", label: t("Excel (.xlsx)") },
+                { key: "csv", label: t("CSV (.csv)") },
+              ],
+              onClick: ({ key }) => void downloadTemplate(key as "xlsx" | "csv"),
+            }}
+          >
+            <Button size="large" icon={<DownloadOutlined />}>
+              {t("ดาวน์โหลด Template")}
+            </Button>
+          </Dropdown>
+          {canAdd ? (
+            <Button
+              size="large"
+              icon={<UploadOutlined />}
+              onClick={() => setImporting(true)}
+            >
+              {t("นำเข้าข้อมูล")}
+            </Button>
+          ) : null}
 {canAdd ? (
           <Button
             type="primary"
@@ -264,6 +307,7 @@ export default function LabSamplesListPage() {
           </section>
         </>
       ) : null}
+      <LabSampleImportModal open={importing} onClose={() => setImporting(false)} />
       {creating ? (
         <LabSampleCreateModal
           onClose={() => setCreating(false)}
