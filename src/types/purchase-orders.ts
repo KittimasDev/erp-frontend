@@ -396,6 +396,10 @@ export type PurchaseOrderRelatedDocuments = {
   draftGoodsReceipts: PurchaseOrderRelatedDocumentRef[];
   apInvoices: PurchaseOrderRelatedDocumentRef[];
   paymentVouchers: PurchaseOrderRelatedDocumentRef[];
+  /** รายการขอจ่ายล่วงหน้า/มัดจำ (APR) ที่ยังมีผล */
+  advanceRequests: PurchaseOrderRelatedDocumentRef[];
+  /** ใบสำคัญจ่ายมัดจำที่ยังไม่ยกเลิก */
+  depositVouchers: PurchaseOrderRelatedDocumentRef[];
   blockers: string[];
   canCancel: boolean;
   reason?: string;

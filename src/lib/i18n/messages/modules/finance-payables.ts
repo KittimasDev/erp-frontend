@@ -169,4 +169,5 @@ export const EN_FINANCE_PAYABLES: Record<string, string> = {
   "อัปโหลดหลักฐานการจ่ายเงินสำเร็จ": "Payment evidence uploaded",
 
   /* ---------- finance landing ---------- */
+  "PO {no} ยกเลิกแล้ว — ยืนยันรายการ/สร้างใบสำคัญจ่ายไม่ได้ กรุณายกเลิกรายการนี้": "PO {no} is cancelled. This request cannot be confirmed or turned into a payment voucher; please cancel it.",
 };

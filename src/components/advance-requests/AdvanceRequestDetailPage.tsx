@@ -40,6 +40,7 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
 
   if (query.isLoading) return <Spin />;
   if (!r) return <Alert type="error" showIcon title={t("ไม่พบรายการขอจ่าย")} />;
+  const poCancelled = r.purchaseOrderStatus === "CANCELLED";
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
@@ -64,7 +65,7 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
               <Button type="primary" onClick={() => router.push(r.paymentVoucherId ? `${PV_PATH}/${r.paymentVoucherId}` : PV_PATH)}>{t("ดูใบสำคัญจ่าย")}</Button>
             ) : null}
             {/* ยกเลิกได้เฉพาะสถานะร่าง — ยืนยันแล้วหรือสร้าง PV แล้วดูรายละเอียดได้อย่างเดียว */}
-            {r.status === "DRAFT" && perms.canDelete ? (
+            {(r.status === "DRAFT" || (r.status === "PENDING_PV" && poCancelled)) && perms.canDelete ? (
               <Button danger onClick={() => setCancelling(true)}>{t("ยกเลิกรายการ")}</Button>
             ) : null}
           
@@ -72,7 +73,14 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
         }
       />
 
-      {r.status === "PENDING_PV" ? (
+      {poCancelled && (r.status === "DRAFT" || r.status === "PENDING_PV") ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t("PO {no} ยกเลิกแล้ว — ยืนยันรายการ/สร้างใบสำคัญจ่ายไม่ได้ กรุณายกเลิกรายการนี้", { no: r.poNo })}
+        />
+      ) : null}
+      {r.status === "PENDING_PV" && !poCancelled ? (
         <Alert type="success" showIcon title={t("ยืนยันรายการแล้ว — พร้อมนำไปสร้างใบสำคัญจ่าย (PV) ขั้นตอนถัดไป")} description={r.confirmedAt ? t("ยืนยันเมื่อ {at}", { at: dayjs(r.confirmedAt).format("DD/MM/BBBB HH:mm") }) : undefined} />
       ) : null}
       {r.status === "PV_CREATED" ? (

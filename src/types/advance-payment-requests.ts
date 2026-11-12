@@ -49,6 +49,8 @@ export type AdvanceRequest = {
   status: AdvanceRequestStatus | string;
   purchaseOrderId: string;
   poNo: string;
+  /** สถานะ PO ต้นทาง — CANCELLED = ยืนยัน/สร้าง PV ไม่ได้ */
+  purchaseOrderStatus?: string;
   creditorId: string;
   creditorCode: string;
   creditorName: string;

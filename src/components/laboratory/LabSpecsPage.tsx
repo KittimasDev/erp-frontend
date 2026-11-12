@@ -91,7 +91,7 @@ export default function LabSpecsPage() {
       key: "params",
       render: (_v, s) => (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {s.parameters.map((p) => (
+          {s.parameters.filter((p) => p.isActive !== false).map((p) => (
             <Tag key={p.id} color={p.specMin || p.specMax ? "blue" : "default"}>
               {p.parameterName}
               {p.specMin || p.specMax

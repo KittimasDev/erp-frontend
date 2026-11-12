@@ -27,6 +27,8 @@ type Values = {
   nameTh: string;
   isActive: boolean;
   parameters: Array<{
+    /** id พารามิเตอร์เดิม — ส่งกลับตอนบันทึกเพื่อให้ backend อัปเดตแถวเดิม (พารามิเตอร์ใหม่ไม่มี id) */
+    id?: string;
     parameterName: string;
     unit?: string;
     specMin?: string;
@@ -46,6 +48,9 @@ export default function LabSpecFormModal({
   const t = useT();
   const [form] = Form.useForm<Values>();
   const editing = Boolean(spec);
+  const activeParameters = (spec?.parameters ?? []).filter(
+    (p) => p.isActive !== false,
+  );
   const itemsQuery = useItemsQuery({ isActive: true });
 
   return (
@@ -64,6 +69,7 @@ export default function LabSpecFormModal({
       onOk={() =>
         void form.validateFields().then((v) => {
           const parameters = v.parameters.map((p, index) => ({
+            id: p.id || undefined,
             parameterName: p.parameterName.trim(),
             unit: p.unit?.trim() || undefined,
             specMin: p.specMin?.trim() || undefined,
@@ -96,8 +102,10 @@ export default function LabSpecFormModal({
           itemId: spec?.itemId,
           nameTh: spec?.nameTh,
           isActive: spec?.isActive ?? true,
-          parameters: spec?.parameters.length
-            ? spec.parameters.map((p) => ({
+          // พารามิเตอร์ที่ถูกนำออกไปแล้ว (ปิดใช้งาน เพราะมีผลตรวจอ้างอิง) ไม่แสดงในฟอร์ม
+          parameters: activeParameters.length
+            ? activeParameters.map((p) => ({
+                id: p.id,
                 parameterName: p.parameterName,
                 unit: p.unit,
                 specMin: p.specMin,
@@ -170,6 +178,10 @@ export default function LabSpecFormModal({
                   key={field.key}
                   style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
                 >
+                  {/* ต้องลงทะเบียนเป็นฟิลด์ ไม่งั้น validateFields ไม่คืน id กลับมา */}
+                  <Form.Item name={[field.name, "id"]} hidden noStyle>
+                    <Input type="hidden" />
+                  </Form.Item>
                   <Form.Item
                     name={[field.name, "parameterName"]}
                     rules={[{ required: true, message: t("ชื่อ") }]}

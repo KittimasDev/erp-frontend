@@ -443,4 +443,6 @@ export const EN_PURCHASING: Record<string, string> = {
   "ใบขอซื้อนี้ถูกยกเลิกแล้ว": "This purchase request is cancelled",
   "ยืนยันยกเลิกใบขอซื้อ": "Confirm cancelling purchase request",
   "ยกเลิกรายการรอสร้างใบสำคัญจ่าย": "Cancel pending payment voucher item",
+  "รายการขอจ่ายล่วงหน้า/มัดจำ (APR)": "Advance / deposit requests (APR)",
+  "ใบสำคัญจ่ายมัดจำ (PV)": "Deposit payment vouchers (PV)",
 };

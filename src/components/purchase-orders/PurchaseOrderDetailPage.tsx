@@ -1194,7 +1194,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           ) : null}
 
           {related &&
-          related.goodsReceipts.length + related.apInvoices.length + related.paymentVouchers.length >
+          related.goodsReceipts.length +
+            related.apInvoices.length +
+            related.paymentVouchers.length +
+            related.advanceRequests.length +
+            related.depositVouchers.length >
             0 ? (
             <div className={styles.flowNote}>
               <strong>{t("เอกสารที่เกี่ยวข้อง")}</strong>

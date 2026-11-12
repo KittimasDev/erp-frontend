@@ -7,6 +7,7 @@ import StatusTag from "@/components/common/StatusTag";
 import { AP_DOCUMENT_CONFIG } from "@/components/ap-documents/apDocumentConfig";
 import { useT } from "@/lib/i18n/useT";
 import { STANDARD_STATUS, type StandardStatus } from "@/lib/status/standard-status";
+import { ADVANCE_STATUS_LABEL } from "@/types/advance-payment-requests";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { tStatus } from "@/types/purchase-orders";
 import type {
@@ -17,7 +18,13 @@ import type {
 /** สถานะที่ตรงกับมาตรฐานใช้ป้ายมาตรฐาน ที่เหลือ (เช่น CONFIRMED, PAID) แสดงชื่อเดิมของเอกสารนั้น */
 function DocStatus({ status }: { status: string }) {
   if (status in STANDARD_STATUS) return <StatusTag status={status as StandardStatus} />;
-  return <Tag>{tStatus(GOODS_RECEIPT_STATUS_LABEL[status] ?? status)}</Tag>;
+  return (
+    <Tag>
+      {tStatus(
+        GOODS_RECEIPT_STATUS_LABEL[status] ?? ADVANCE_STATUS_LABEL[status] ?? status,
+      )}
+    </Tag>
+  );
 }
 
 type GroupProps = {
@@ -59,7 +66,11 @@ type Props = {
 export default function PurchaseOrderRelatedDocumentList({ related, newTab }: Props) {
   const t = useT();
   const total =
-    related.goodsReceipts.length + related.apInvoices.length + related.paymentVouchers.length;
+    related.goodsReceipts.length +
+    related.apInvoices.length +
+    related.paymentVouchers.length +
+    related.advanceRequests.length +
+    related.depositVouchers.length;
   if (total === 0) {
     return <Typography.Text type="secondary">{t("ไม่มีเอกสารที่เกี่ยวข้อง")}</Typography.Text>;
   }
@@ -75,6 +86,18 @@ export default function PurchaseOrderRelatedDocumentList({ related, newTab }: Pr
         title={t("ใบตั้งหนี้ (AP)")}
         rows={related.apInvoices}
         hrefOf={(r) => `${AP_DOCUMENT_CONFIG.invoice.basePath}/${r.id}`}
+        newTab={newTab}
+      />
+      <Group
+        title={t("รายการขอจ่ายล่วงหน้า/มัดจำ (APR)")}
+        rows={related.advanceRequests}
+        hrefOf={(r) => `/finance/payables/advance-requests/${r.id}`}
+        newTab={newTab}
+      />
+      <Group
+        title={t("ใบสำคัญจ่ายมัดจำ (PV)")}
+        rows={related.depositVouchers}
+        hrefOf={(r) => `/finance/payables/payment-vouchers/${r.id}`}
         newTab={newTab}
       />
       <Group

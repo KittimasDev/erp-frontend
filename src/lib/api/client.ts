@@ -11,6 +11,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * ข้อความ error จาก backend — Nest validation (class-validator) ส่ง `message` เป็น array
+ * ต้องรวมเป็นข้อความเดียว ไม่งั้นผู้ใช้เห็นแค่ "คำขอไม่สำเร็จ" ทั้งที่ backend บอกสาเหตุมาแล้ว
+ */
+function extractErrorMessage(data: unknown): string {
+  if (typeof data === "object" && data !== null && "message" in data) {
+    const raw = (data as { message: unknown }).message;
+    if (typeof raw === "string" && raw.trim()) return raw;
+    if (Array.isArray(raw)) {
+      const parts = raw.filter(
+        (item): item is string => typeof item === "string" && item.trim() !== "",
+      );
+      if (parts.length > 0) return [...new Set(parts)].join(" · ");
+    }
+  }
+  return "คำขอไม่สำเร็จ";
+}
+
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string | null;
@@ -56,13 +74,7 @@ export async function apiFetch<T>(
   const data: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message =
-      typeof data === "object" &&
-      data !== null &&
-      "message" in data &&
-      typeof (data as { message: unknown }).message === "string"
-        ? (data as { message: string }).message
-        : "คำขอไม่สำเร็จ";
+    const message = extractErrorMessage(data);
 
     const isLoginRequest = path.includes("/auth/login");
 

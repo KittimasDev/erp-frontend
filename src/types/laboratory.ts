@@ -109,6 +109,8 @@ export type LabCoa = {
 
 export type LabSpecParameter = {
   id: string;
+  /** false = ถูกนำออกจาก Spec แล้ว (ยังมีผลตรวจอ้างอิง) */
+  isActive?: boolean;
   parameterName: string;
   unit?: string;
   specMin?: string;
@@ -129,6 +131,8 @@ export type LabSpec = {
 };
 
 export type LabSpecParameterInput = {
+  /** id พารามิเตอร์เดิมตอนแก้ Spec — พารามิเตอร์ใหม่ไม่ต้องส่ง */
+  id?: string;
   parameterName: string;
   unit?: string;
   specMin?: string;

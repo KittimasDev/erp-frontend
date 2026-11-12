@@ -167,8 +167,8 @@ export const EN_LAB: Record<string, string> = {
   "นำเข้าข้อมูล": "Import",
   "ดาวน์โหลด Template ไม่สำเร็จ": "Could not download the template",
   "นำเข้า Spec การตรวจจาก Excel / CSV": "Import test specs from Excel / CSV",
-  "1 แถว = 1 พารามิเตอร์ · Spec ที่มีหลายพารามิเตอร์ให้ใส่ประเภทตัวอย่าง รหัสสินค้าเฉพาะ และชื่อ Spec ซ้ำทุกแถว · เว้นรหัสสินค้าเฉพาะ = ใช้กับสินค้าทั้งประเภท · ถ้ามี Spec ของประเภท/สินค้านั้นอยู่แล้ว ระบบจะไม่เขียนทับ · ดาวน์โหลด Template ได้จากปุ่มหน้ารายการ Spec":
-    "1 row = 1 parameter. For a spec with several parameters, repeat the sample type, specific item code and spec name on every row. Blank item code = applies to the whole type. Existing specs are never overwritten. Download the template from the button on the spec list.",
+  "1 แถว = 1 พารามิเตอร์ · Spec ที่มีหลายพารามิเตอร์ให้ใส่ประเภทตัวอย่าง รหัสสินค้าเฉพาะ และชื่อ Spec ซ้ำทุกแถว · เว้นรหัสสินค้าเฉพาะ = ใช้กับสินค้าทั้งประเภท · ประเภท/สินค้าเดียวกันมีได้หลาย Spec · ถ้ามี Spec ชื่อเดียวกันในประเภท/สินค้านั้นอยู่แล้ว ระบบจะไม่เขียนทับ · ดาวน์โหลด Template ได้จากปุ่มหน้ารายการ Spec":
+    "1 row = 1 parameter. For a spec with several parameters, repeat the sample type, specific item code and spec name on every row. Blank item code = applies to the whole type. Several specs can share a type/item; a spec with the same name at the same level is never overwritten. Download the template from the button on the spec list.",
   "รองรับเฉพาะไฟล์ .xlsx หรือ .csv": "Only .xlsx or .csv files are supported",
   "ตรวจไฟล์ไม่สำเร็จ": "Could not check the file",
   "นำเข้าไม่สำเร็จ": "Import failed",
