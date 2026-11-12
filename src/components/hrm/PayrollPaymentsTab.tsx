@@ -36,6 +36,9 @@ type Props = {
   canExport: boolean;
 };
 
+type PayFilter = "ALL" | "PENDING" | "PARTIAL" | "SUCCESS" | "FAILED";
+type BankFilter = "ALL" | "COMPLETE" | "MISSING";
+
 type MissingBank = Array<{ userId: string; employeeCode?: string | null; displayName: string }>;
 
 /**
@@ -64,6 +67,20 @@ export default function PayrollPaymentsTab({ run, canPay, canExport }: Props) {
   const summary = run.paymentSummary;
   const payments = run.payments;
   const remaining = payments.filter((p) => p.status !== "SUCCESS");
+  // ตัวกรองในแท็บ — กรองฝั่งหน้าเว็บจากรายการที่โหลดมาแล้ว ไม่เรียก API ซ้ำ
+  const [payFilter, setPayFilter] = useState<PayFilter>("ALL");
+  const [bankFilter, setBankFilter] = useState<BankFilter>("ALL");
+  const hasBank = (p: PayrollPayment) => Boolean(p.bankName && p.bankAccountNo);
+  const shownPayments = payments.filter((p) => {
+    if (payFilter === "SUCCESS" && p.status !== "SUCCESS") return false;
+    if (payFilter === "FAILED" && p.status !== "FAILED") return false;
+    if (payFilter === "PARTIAL" && !(p.status === "PENDING" && p.amountPaid > 0)) return false;
+    if (payFilter === "PENDING" && !(p.status === "PENDING" && p.amountPaid <= 0)) return false;
+    if (bankFilter === "COMPLETE" && !hasBank(p)) return false;
+    if (bankFilter === "MISSING" && hasBank(p)) return false;
+    return true;
+  });
+  const bankChangedCount = remaining.filter((p) => p.bankChanged).length;
 
   const common = () => ({
     paidDate: paidDate.format("YYYY-MM-DD"),
@@ -139,6 +156,16 @@ export default function PayrollPaymentsTab({ run, canPay, canExport }: Props) {
           <div>
             {p.bankName}
             <div style={{ fontSize: 12, color: "#8a94a6" }}>{p.bankAccountNo}</div>
+            {p.bankChanged ? (
+              <Tooltip title={t("บัญชีล่าสุดต่างจากที่บันทึกไว้ตอนส่งออก/จ่ายบางส่วน — ตรวจสอบก่อนจ่ายจริง ไฟล์ที่ส่งออกไปแล้วไม่ถูกแก้ย้อนหลัง")}>
+                <Tag color="gold" style={{ marginTop: 4 }}>{t("บัญชีเปลี่ยน")}</Tag>
+              </Tooltip>
+            ) : null}
+            {p.paidBankAccountNo ? (
+              <div style={{ fontSize: 12, color: "#8a94a6" }}>
+                {t("ยอดที่จ่ายแล้วโอนเข้า")} {[p.paidBankName, p.paidBankAccountNo].filter(Boolean).join(" ")}
+              </div>
+            ) : null}
           </div>
         ) : (
           <Tag color="orange">{t("ยังไม่มีข้อมูลธนาคาร")}</Tag>
@@ -298,11 +325,64 @@ export default function PayrollPaymentsTab({ run, canPay, canExport }: Props) {
         </div>
       ) : null}
 
+      {open && bankChangedCount > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t("บัญชีธนาคารของพนักงาน {n} คนเปลี่ยนไปจากที่บันทึกไว้ — ไฟล์ที่ส่งออกไปแล้วไม่ถูกแก้ ตรวจสอบข้อมูลก่อนจ่ายจริง และส่งออกรายการจ่ายใหม่", { n: bankChangedCount })}
+        />
+      ) : null}
+
+      <Space wrap size={[12, 8]} style={{ marginBottom: 12 }}>
+        <Space size={6}>
+          <span style={{ fontSize: 13 }}>{t("สถานะการจ่าย")}</span>
+          <Select<PayFilter>
+            size="small"
+            style={{ width: 150 }}
+            value={payFilter}
+            onChange={setPayFilter}
+            options={[
+              { value: "ALL", label: t("ทั้งหมด") },
+              { value: "PENDING", label: t("รอจ่าย") },
+              { value: "PARTIAL", label: t("จ่ายบางส่วน") },
+              { value: "SUCCESS", label: t("จ่ายสำเร็จ") },
+              { value: "FAILED", label: t("จ่ายไม่สำเร็จ") },
+            ]}
+          />
+        </Space>
+        <Space size={6}>
+          <span style={{ fontSize: 13 }}>{t("ข้อมูลบัญชีธนาคาร")}</span>
+          <Select<BankFilter>
+            size="small"
+            style={{ width: 150 }}
+            value={bankFilter}
+            onChange={setBankFilter}
+            options={[
+              { value: "ALL", label: t("ทั้งหมด") },
+              { value: "COMPLETE", label: t("ข้อมูลครบ") },
+              { value: "MISSING", label: t("ยังไม่มีบัญชี") },
+            ]}
+          />
+        </Space>
+        {payFilter !== "ALL" || bankFilter !== "ALL" ? (
+          <Button
+            size="small"
+            onClick={() => {
+              setPayFilter("ALL");
+              setBankFilter("ALL");
+            }}
+          >
+            {t("ล้างตัวกรอง")}
+          </Button>
+        ) : null}
+      </Space>
+
       <Table
         rowKey="userId"
         size="small"
         columns={columns}
-        dataSource={payments}
+        dataSource={shownPayments}
         pagination={{ pageSize: 50, showTotal: (total) => t("ทั้งหมด {n} คน", { n: total }) }}
         rowSelection={
           open && canPay

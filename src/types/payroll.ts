@@ -148,6 +148,14 @@ export type PayrollPayment = {
   bankName?: string | null;
   bankAccountNo?: string | null;
   bankAccountName?: string | null;
+  /** LATEST = บัญชีล่าสุดจากข้อมูลพนักงาน (ยังจ่ายไม่สำเร็จ) · SNAPSHOT = บัญชีที่ใช้จ่ายจริง (จ่ายสำเร็จแล้ว) */
+  bankSource?: "LATEST" | "SNAPSHOT";
+  /** จ่ายบางส่วน: บัญชีที่รับยอดที่จ่ายไปแล้ว (ยอดคงค้างใช้บัญชีที่แสดงด้านบน) */
+  paidBankName?: string | null;
+  paidBankAccountNo?: string | null;
+  paidBankAccountName?: string | null;
+  /** บัญชีล่าสุดต่างจากที่บันทึกไว้หลังส่งออก/หลังจ่ายบางส่วน → ตรวจก่อนจ่ายจริง */
+  bankChanged?: boolean;
   recordedByName?: string | null;
   recordedAt?: string | null;
 };

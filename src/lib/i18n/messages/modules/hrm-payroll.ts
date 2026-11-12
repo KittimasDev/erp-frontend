@@ -143,4 +143,12 @@ export const EN_HRM_PAYROLL: Record<string, string> = {
   "ยังไม่บันทึก": "not saved yet",
   "รีเฟรชข้อมูล": "Refresh data",
   "ยังมีพนักงาน {n} คนที่ข้อมูลไม่ครบ เช่น ข้อมูลบัญชีธนาคาร กรุณากรอกข้อมูลให้ครบก่อนส่งอนุมัติ": "{n} employee(s) have incomplete data, such as bank account details — please complete it before submitting for approval",
+  "สถานะการจ่าย": "Payment status",
+  "ข้อมูลบัญชีธนาคาร": "Bank account data",
+  "ข้อมูลครบ": "Complete",
+  "ยังไม่มีบัญชี": "No bank account",
+  "บัญชีเปลี่ยน": "Account changed",
+  "ยอดที่จ่ายแล้วโอนเข้า": "Amount already paid went to",
+  "บัญชีล่าสุดต่างจากที่บันทึกไว้ตอนส่งออก/จ่ายบางส่วน — ตรวจสอบก่อนจ่ายจริง ไฟล์ที่ส่งออกไปแล้วไม่ถูกแก้ย้อนหลัง": "The latest account differs from what was recorded at export / partial payment — verify before paying. Files already exported are not changed.",
+  "บัญชีธนาคารของพนักงาน {n} คนเปลี่ยนไปจากที่บันทึกไว้ — ไฟล์ที่ส่งออกไปแล้วไม่ถูกแก้ ตรวจสอบข้อมูลก่อนจ่ายจริง และส่งออกรายการจ่ายใหม่": "{n} employee(s) changed bank account since it was recorded — files already exported are not changed. Verify before paying and export the payment list again.",
 };

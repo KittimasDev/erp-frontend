@@ -488,7 +488,11 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           ) : null}
           <Tabs
             activeKey={tab}
-            onChange={setTab}
+            onChange={(key) => {
+              setTab(key);
+              // เปิดแท็บการจ่ายเงินทีไร โหลดข้อมูลล่าสุดใหม่ (บัญชีพนักงานอาจถูกแก้จากอีกแท็บ)
+              if (key === "payments") void query.refetch();
+            }}
             items={[
               {
                 key: "slips",
