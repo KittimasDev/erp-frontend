@@ -1,3 +1,4 @@
+import type { CancelInfo } from "@/types/cancel-info";
 import { standardStatusColor, standardStatusLabel } from "@/lib/status/standard-status";
 export type GoodsReceiptStatus =
   | "DRAFT"
@@ -109,6 +110,8 @@ export type GoodsReceipt = {
   sourceDocumentType?: string;
   sourceDocumentId?: string;
   qcStatus?: string;
+  /** เหตุผล/ผู้ยกเลิก/วันเวลา — มีเมื่อสถานะ CANCELLED (เอกสารเก่าไม่มี = "ไม่ได้ระบุเหตุผล") */
+  cancelInfo?: CancelInfo;
   items: GoodsReceiptItem[];
   createdAt: string;
   updatedAt: string;

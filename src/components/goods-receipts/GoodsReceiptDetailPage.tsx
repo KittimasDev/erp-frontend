@@ -2,9 +2,12 @@
 import { Tag } from "antd";
 
 import { tStatus } from "@/types/purchase-orders";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, App, Button, Spin } from "antd";
+import CancelInfoAlert from "@/components/common/CancelInfoAlert";
+import CancelReasonModal from "@/components/common/CancelReasonModal";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -56,6 +59,7 @@ function formatMoney(value?: string) {
 export default function GoodsReceiptDetailPage({ id }: Props) {
   const t = useT();
   const router = useRouter();
+  const [cancelOpen, setCancelOpen] = useState(false);
   const { modal } = App.useApp();
   const query = useGoodsReceiptQuery(id);
   const confirmMutation = useConfirmGoodsReceiptMutation();
@@ -195,6 +199,14 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
           </>
         }
       />
+
+      {data.status === "CANCELLED" ? (
+        <CancelInfoAlert
+          style={{ marginBottom: 12 }}
+          title={t("ใบรับของนี้ถูกยกเลิกแล้ว")}
+          info={data.cancelInfo}
+        />
+      ) : null}
 
       {poCancelled && data.purchaseOrder ? (
         <Alert
@@ -367,12 +379,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   className={styles.secondaryBtn}
                   danger
                   loading={busy}
-                  onClick={() =>
-                    modal.confirm({
-                      title: t("ยืนยันยกเลิกใบรับของ?"),
-                      onOk: () => cancelMutation.mutateAsync(data.id),
-                    })
-                  }
+                  onClick={() => setCancelOpen(true)}
                 >
                   {t("ยกเลิกเอกสาร")}
                 </Button>
@@ -518,6 +525,17 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
           />
         </aside>
       </div>
+
+      <CancelReasonModal
+        open={cancelOpen}
+        title={`${t("ยืนยันยกเลิกใบรับของ")} ${data.grNo}`}
+        confirmLoading={cancelMutation.isPending}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={async (reason) => {
+          await cancelMutation.mutateAsync({ id: data.id, reason });
+          setCancelOpen(false);
+        }}
+      />
     </div>
   );
 }

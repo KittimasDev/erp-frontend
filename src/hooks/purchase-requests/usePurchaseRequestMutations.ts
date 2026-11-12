@@ -178,7 +178,8 @@ export function useCancelPurchaseRequestMutation() {
 
   return useMutation({
     mutationKey: [...purchaseRequestsQueryKey, "cancel"],
-    mutationFn: (id: string) => cancelPurchaseRequest(getAccessToken(), id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      cancelPurchaseRequest(getAccessToken(), id, reason),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
       message.success(response.message || t("ยกเลิกใบขอซื้อแล้ว"));

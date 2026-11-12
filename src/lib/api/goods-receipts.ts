@@ -97,9 +97,10 @@ export function confirmGoodsReceipt(
   );
 }
 
-export function cancelGoodsReceipt(token: string, id: string) {
+/** ยกเลิกใบรับของฉบับร่าง — เหตุผลบังคับ ≥ 5 ตัวอักษร (backend ตรวจซ้ำ) */
+export function cancelGoodsReceipt(token: string, id: string, reason: string) {
   return apiFetch<GoodsReceiptApiResponse>(
     `/api/goods-receipts/${id}/cancel`,
-    { method: "POST", token },
+    { method: "POST", token, body: { reason } },
   );
 }

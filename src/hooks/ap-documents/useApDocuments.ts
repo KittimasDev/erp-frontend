@@ -278,7 +278,8 @@ export function useApInvoicePvMutation(id: string) {
     onSuccess: refresh,
   });
   const cancelQueue = useMutation({
-    mutationFn: (queueItemId: string) => cancelApPvQueueItem(getAccessToken(), id, queueItemId),
+    mutationFn: ({ queueItemId, reason }: { queueItemId: string; reason: string }) =>
+      cancelApPvQueueItem(getAccessToken(), id, queueItemId, reason),
     onSuccess: refresh,
   });
   return { issue, cancelQueue };

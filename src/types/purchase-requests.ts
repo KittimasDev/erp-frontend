@@ -1,3 +1,4 @@
+import type { CancelInfo } from "@/types/cancel-info";
 import {
   standardStatusColor,
   standardStatusLabel,
@@ -109,6 +110,8 @@ export type PurchaseRequest = {
   remark?: string;
   /** สิ่งที่ผู้อนุมัติสั่งให้แก้ไข ตอนส่งกลับแก้ไข (สถานะ REVISING) */
   rejectedReason?: string;
+  /** เหตุผล/ผู้ยกเลิก/วันเวลา — มีเมื่อสถานะ CANCELLED (เอกสารเก่าไม่มี = "ไม่ได้ระบุเหตุผล") */
+  cancelInfo?: CancelInfo;
   items: PurchaseRequestItem[];
   /** ใบล่าสุด — คงไว้เพื่อความเข้ากันได้ย้อนหลัง ตัวเต็มอยู่ใน linkedPurchaseOrders */
   linkedPurchaseOrder?: PurchaseRequestLinkedPo | null;

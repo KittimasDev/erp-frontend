@@ -1,8 +1,8 @@
 "use client";
 
-import { Alert, Input, Modal, Spin, Typography } from "antd";
-import { useState } from "react";
+import { Alert, Spin, Typography } from "antd";
 
+import CancelReasonModal from "@/components/common/CancelReasonModal";
 import { usePurchaseOrderRelatedDocumentsQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useT } from "@/lib/i18n/useT";
 import PurchaseOrderRelatedDocumentList from "./PurchaseOrderRelatedDocuments";
@@ -13,16 +13,15 @@ type Props = {
   poNo: string;
   confirmLoading?: boolean;
   onClose: () => void;
-  /** เรียกเมื่อกดยืนยัน — เหตุผลถูก trim แล้วและไม่ว่างแน่นอน */
+  /** เรียกเมื่อกดยืนยัน — เหตุผลถูก trim แล้วและยาวอย่างน้อย 5 ตัวอักษร */
   onConfirm: (reason: string) => Promise<unknown> | void;
 };
 
 /**
- * Dialog ยืนยันยกเลิก PO
+ * ยกเลิก PO ด้วย Modal กลาง (CancelReasonModal) + ส่วนเฉพาะ PO:
  * - แสดงเอกสารที่ผูกอยู่ (GRN / AP / PV) พร้อมลิงก์
  * - มีเอกสารที่ทำให้ยกเลิกไม่ได้ → แสดงเหตุผลสีแดงและปิดปุ่มยืนยัน (backend ตรวจซ้ำอยู่แล้ว)
  * - มีเฉพาะ GRN ฉบับร่าง → ยกเลิกได้ แต่เตือนให้ผู้ใช้ไปยกเลิกใบรับของเอง
- * - เหตุผลบังคับ
  */
 export default function CancelPurchaseOrderModal({
   open,
@@ -33,29 +32,20 @@ export default function CancelPurchaseOrderModal({
   onConfirm,
 }: Props) {
   const t = useT();
-  const [reason, setReason] = useState("");
   const query = usePurchaseOrderRelatedDocumentsQuery(poId, open);
   const related = query.data?.data;
-
-  const trimmed = reason.trim();
-  const blocked = related ? !related.canCancel : false;
-  const okDisabled = !related || blocked || !trimmed || query.isFetching;
+  // ยังโหลดไม่เสร็จ/โหลดไม่สำเร็จ = ถือว่ายังยืนยันไม่ได้ (ไม่ปล่อยผ่านโดยไม่รู้เอกสารที่ผูก)
+  const blocked = !related || !related.canCancel || query.isFetching;
 
   return (
-    <Modal
-      title={`${t("ยืนยันยกเลิกใบสั่งซื้อ")} ${poNo}`}
+    <CancelReasonModal
       open={open}
-      onCancel={onClose}
-      afterClose={() => setReason("")}
+      title={`${t("ยืนยันยกเลิกใบสั่งซื้อ")} ${poNo}`}
       okText={t("ยืนยันยกเลิก PO")}
-      cancelText={t("ปิด")}
-      okButtonProps={{ danger: true, disabled: okDisabled }}
       confirmLoading={confirmLoading}
-      onOk={async () => {
-        if (okDisabled) return;
-        await onConfirm(trimmed);
-      }}
-      destroyOnHidden
+      blocked={blocked}
+      onClose={onClose}
+      onConfirm={onConfirm}
     >
       {query.isLoading ? (
         <Spin />
@@ -87,28 +77,8 @@ export default function CancelPurchaseOrderModal({
           <div style={{ marginBottom: 12 }}>
             <PurchaseOrderRelatedDocumentList related={related} newTab />
           </div>
-
-          {related.canCancel ? (
-            <>
-              <Typography.Text strong>
-                {t("เหตุผลการยกเลิก")} <span style={{ color: "#cf1322" }}>*</span>
-              </Typography.Text>
-              <Input.TextArea
-                rows={3}
-                maxLength={2000}
-                showCount
-                style={{ marginTop: 4 }}
-                placeholder={t("ระบุเหตุผลการยกเลิก PO (บังคับ)")}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-              <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                {t("ระบบบันทึกเหตุผล ผู้ยกเลิก และวันเวลาไว้ในประวัติการใช้งาน")}
-              </Typography.Paragraph>
-            </>
-          ) : null}
         </>
       )}
-    </Modal>
+    </CancelReasonModal>
   );
 }

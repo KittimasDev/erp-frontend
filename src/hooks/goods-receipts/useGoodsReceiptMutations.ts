@@ -112,7 +112,8 @@ export function useCancelGoodsReceiptMutation() {
   const t = useT();
 
   return useMutation({
-    mutationFn: (id: string) => cancelGoodsReceipt(getAccessToken(), id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      cancelGoodsReceipt(getAccessToken(), id, reason),
     onSuccess: (res) => {
       message.success(res.message || t("ยกเลิกใบรับของแล้ว"));
       void queryClient.invalidateQueries({ queryKey: goodsReceiptsQueryKey });

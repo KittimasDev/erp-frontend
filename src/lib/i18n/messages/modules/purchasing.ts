@@ -433,4 +433,14 @@ export const EN_PURCHASING: Record<string, string> = {
   "ไม่มีเอกสารที่เกี่ยวข้อง": "No related documents",
   "ใบรับของ (GRN)": "Goods receipts (GRN)",
   "ใบสำคัญจ่าย (PV)": "Payment vouchers (PV)",
+
+  /* ---------- Modal ยกเลิกเอกสารกลาง (เหตุผลบังคับ ≥ 5 ตัวอักษร) ---------- */
+  "ไม่ได้ระบุเหตุผล": "No reason recorded",
+  "ระบุเหตุผลการยกเลิก (อย่างน้อย 5 ตัวอักษร)": "Enter the reason for cancelling (at least 5 characters)",
+  "กรุณาระบุเหตุผลอย่างน้อย 5 ตัวอักษร": "Please enter a reason of at least 5 characters",
+  "ใบรับของนี้ถูกยกเลิกแล้ว": "This goods receipt is cancelled",
+  "ยืนยันยกเลิกใบรับของ": "Confirm cancelling goods receipt",
+  "ใบขอซื้อนี้ถูกยกเลิกแล้ว": "This purchase request is cancelled",
+  "ยืนยันยกเลิกใบขอซื้อ": "Confirm cancelling purchase request",
+  "ยกเลิกรายการรอสร้างใบสำคัญจ่าย": "Cancel pending payment voucher item",
 };

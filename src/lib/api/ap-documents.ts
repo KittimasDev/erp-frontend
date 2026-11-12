@@ -231,10 +231,11 @@ export function issueApInvoicePv(token: string, id: string, body: { amount: numb
 }
 
 /** ยกเลิกรายการรอสร้าง PV ที่ออกจาก AP นี้ */
-export function cancelApPvQueueItem(token: string, id: string, queueItemId: string) {
+export function cancelApPvQueueItem(token: string, id: string, queueItemId: string, reason: string) {
   return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/pv-queue/${queueItemId}/cancel`, {
     method: "POST",
     token,
+    body: { reason },
   });
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CancelReasonModal from "@/components/common/CancelReasonModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -84,6 +85,8 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const { cancelQueue } = useApInvoicePvMutation(id);
   const [reasonFor, setReasonFor] = useState<"reject" | "cancel" | null>(null);
+  // คิวรอสร้าง PV ที่กำลังจะยกเลิก (เปิด Modal กรอกเหตุผล)
+  const [cancelQueueId, setCancelQueueId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
   const d = query.data;
@@ -270,24 +273,14 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
             </Link>
           )}
           {r.canCancelQueue && r.queueItemId && perms.canEdit ? (
-            <Popconfirm
-              title={t("ยกเลิกรายการรอสร้างใบสำคัญจ่าย?")}
-              description={t("ยอดจะกลับมาออกใบสำคัญจ่ายได้อีกครั้ง")}
-              okText={t("ยกเลิกรายการ")}
-              cancelText={t("ปิด")}
-              onConfirm={async () => {
-                try {
-                  await cancelQueue.mutateAsync(r.queueItemId as string);
-                  message.success(t("ยกเลิกรายการรอสร้างใบสำคัญจ่ายแล้ว"));
-                } catch (e) {
-                  message.error(e instanceof Error ? e.message : t("ยกเลิกรายการไม่สำเร็จ"));
-                }
-              }}
+            <Button
+              size="small"
+              danger
+              loading={cancelQueue.isPending}
+              onClick={() => setCancelQueueId(r.queueItemId as string)}
             >
-              <Button size="small" danger loading={cancelQueue.isPending}>
-                {t("ยกเลิกรายการ")}
-              </Button>
-            </Popconfirm>
+              {t("ยกเลิกรายการ")}
+            </Button>
           ) : null}
         </Space>
       ),
@@ -613,6 +606,28 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
           </Typography.Text>
         ) : null}
       </Modal>
+
+      <CancelReasonModal
+        open={Boolean(cancelQueueId)}
+        title={t("ยกเลิกรายการรอสร้างใบสำคัญจ่าย")}
+        okText={t("ยกเลิกรายการ")}
+        confirmLoading={cancelQueue.isPending}
+        onClose={() => setCancelQueueId(null)}
+        onConfirm={async (reason) => {
+          if (!cancelQueueId) return;
+          try {
+            await cancelQueue.mutateAsync({ queueItemId: cancelQueueId, reason });
+            message.success(t("ยกเลิกรายการรอสร้างใบสำคัญจ่ายแล้ว"));
+            setCancelQueueId(null);
+          } catch (e) {
+            message.error(e instanceof Error ? e.message : t("ยกเลิกรายการไม่สำเร็จ"));
+          }
+        }}
+      >
+        <Typography.Paragraph type="secondary">
+          {t("ยอดจะกลับมาออกใบสำคัญจ่ายได้อีกครั้ง")}
+        </Typography.Paragraph>
+      </CancelReasonModal>
     </Space>
   );
 }

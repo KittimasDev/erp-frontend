@@ -42,6 +42,7 @@ import {
   usePurchaseOrderQuery,
   usePurchaseOrderRelatedDocumentsQuery,
 } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import CancelInfoAlert from "@/components/common/CancelInfoAlert";
 import CancelPurchaseOrderModal from "./CancelPurchaseOrderModal";
 import PurchaseOrderRelatedDocumentList from "./PurchaseOrderRelatedDocuments";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
@@ -1185,28 +1186,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           </div>
 
           {data.status === "CANCELLED" && related ? (
-            <Alert
-              type="error"
-              showIcon
+            <CancelInfoAlert
               style={{ marginTop: 12 }}
               title={t("ใบสั่งซื้อนี้ถูกยกเลิกแล้ว — เอกสารที่ค้างอยู่ต้องยกเลิกเอง และยืนยัน/อนุมัติต่อไม่ได้")}
-              description={
-                <div>
-                  {related.reason ? (
-                    <div>
-                      {t("เหตุผล")}: {related.reason}
-                    </div>
-                  ) : null}
-                  {related.cancelledByName || related.cancelledAt ? (
-                    <div>
-                      {t("ยกเลิกโดย")} {related.cancelledByName ?? "-"}
-                      {related.cancelledAt
-                        ? ` · ${dayjs(related.cancelledAt).format("DD/MM/BBBB HH:mm")}`
-                        : ""}
-                    </div>
-                  ) : null}
-                </div>
-              }
+              info={related}
             />
           ) : null}
 

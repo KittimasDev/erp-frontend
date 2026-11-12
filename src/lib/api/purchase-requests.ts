@@ -173,12 +173,14 @@ export function returnPurchaseRequestToDraft(
   );
 }
 
-export function cancelPurchaseRequest(token: string, id: string) {
+/** ยกเลิกใบขอซื้อ — เหตุผลบังคับ ≥ 5 ตัวอักษร (backend ตรวจซ้ำ) */
+export function cancelPurchaseRequest(token: string, id: string, reason: string) {
   return apiFetch<PurchaseRequestApiResponse>(
     `/api/purchase-requests/${id}/cancel`,
     {
       method: "POST",
       token,
+      body: { reason },
     },
   );
 }

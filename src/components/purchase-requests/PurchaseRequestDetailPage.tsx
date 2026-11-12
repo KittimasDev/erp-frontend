@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Input, Modal, Spin, Tag } from "antd";
+import CancelInfoAlert from "@/components/common/CancelInfoAlert";
+import CancelReasonModal from "@/components/common/CancelReasonModal";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -78,6 +80,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
   const cancelMutation = useCancelPurchaseRequestMutation();
   const [rejectReason, setRejectReason] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   // modal เหตุผลตัวเดียวใช้ทั้งไม่อนุมัติและส่งกลับแก้ไข
   const [reviewAction, setReviewAction] = useState<"reject" | "return">(
     "reject",
@@ -188,6 +191,14 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
           </>
         }
       />
+
+      {data.status === "CANCELLED" ? (
+        <CancelInfoAlert
+          style={{ marginBottom: 12 }}
+          title={t("ใบขอซื้อนี้ถูกยกเลิกแล้ว")}
+          info={data.cancelInfo}
+        />
+      ) : null}
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
@@ -367,12 +378,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   className={styles.secondaryBtn}
                   danger
                   loading={busy}
-                  onClick={() =>
-                    modal.confirm({
-                      title: t("ยืนยันยกเลิกใบขอซื้อ?"),
-                      onOk: () => cancelMutation.mutateAsync(data.id),
-                    })
-                  }
+                  onClick={() => setCancelOpen(true)}
                 >
                   {t("ยกเลิกเอกสาร")}
                 </Button>
@@ -423,12 +429,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   className={styles.secondaryBtn}
                   danger
                   loading={busy}
-                  onClick={() =>
-                    modal.confirm({
-                      title: t("ยืนยันยกเลิกใบขอซื้อ?"),
-                      onOk: () => cancelMutation.mutateAsync(data.id),
-                    })
-                  }
+                  onClick={() => setCancelOpen(true)}
                 >
                   {t("ยกเลิกเอกสาร")}
                 </Button>
@@ -510,6 +511,17 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
           />
         </aside>
       </div>
+
+      <CancelReasonModal
+        open={cancelOpen}
+        title={`${t("ยืนยันยกเลิกใบขอซื้อ")} ${data.prNo}`}
+        confirmLoading={cancelMutation.isPending}
+        onClose={() => setCancelOpen(false)}
+        onConfirm={async (reason) => {
+          await cancelMutation.mutateAsync({ id: data.id, reason });
+          setCancelOpen(false);
+        }}
+      />
 
       <Modal
         title={
