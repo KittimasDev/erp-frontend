@@ -98,7 +98,8 @@
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.75fr);
+  /* กล่องรายละเอียดเต็มความกว้าง (ไม่มีคอลัมน์ข้างแล้ว) */
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
