@@ -9,6 +9,7 @@ import {
   Popconfirm,
   Select,
   Spin,
+  Tooltip,
   Typography,
 } from "antd";
 import {
@@ -28,10 +29,15 @@ import {
   useDeleteRoleMutation,
 } from "@/hooks/users/useRoleMutations";
 import { usePermissionScreensQuery } from "@/hooks/permissions/usePermissionScreensQuery";
+import {
+  useESignSettingsQuery,
+  useUpdateESignSettingMutation,
+} from "@/hooks/permissions/useESignSettings";
 import { useRolePermissionsQuery } from "@/hooks/permissions/useRolePermissionsQuery";
 import { useUpdateRolePermissionsMutation } from "@/hooks/permissions/useUpdateRolePermissionsMutation";
 import { isAdministrator } from "@/lib/auth/session";
 import { useT } from "@/lib/i18n/useT";
+import type { ESignMode } from "@/types/esign";
 import type {
   RolePermissionAssignment,
   ScreenCatalog,
@@ -58,6 +64,12 @@ const FUNCTION_ORDER = [
   "APPROVE",
   "EXPORT",
   "PRINT",
+];
+
+const ESIGN_MODE_OPTIONS: Array<{ value: ESignMode; label: string }> = [
+  { value: "OFF", label: "ไม่ต้องยืนยัน" },
+  { value: "PASSWORD", label: "รหัสผ่าน" },
+  { value: "LOGIN", label: "Username + รหัสผ่าน" },
 ];
 
 /** ติ๊ก action ใด ๆ ต้องได้ VIEW ด้วย — ตรงกับ implied-VIEW ใน PermissionsGuard */
@@ -166,6 +178,10 @@ type MatrixRowProps = {
    */
   signature: string;
   disabled: boolean;
+  /** โหมด E-Signature ของหน้าจอนี้ — undefined = หน้าจอนี้ไม่มี endpoint อนุมัติ (แสดง "—") */
+  esignMode?: ESignMode;
+  esignSaving: boolean;
+  onEsignChange: (screenCode: string, mode: ESignMode) => void;
   onToggle: (permissionId: string) => void;
   onToggleRow: (screen: ScreenCatalog, value: boolean) => void;
 };
@@ -179,6 +195,9 @@ function matrixRowPropsEqual(prev: MatrixRowProps, next: MatrixRowProps) {
     prev.rowState.indeterminate === next.rowState.indeterminate &&
     prev.signature === next.signature &&
     prev.disabled === next.disabled &&
+    prev.esignMode === next.esignMode &&
+    prev.esignSaving === next.esignSaving &&
+    prev.onEsignChange === next.onEsignChange &&
     prev.onToggle === next.onToggle &&
     prev.onToggleRow === next.onToggleRow
   );
@@ -191,6 +210,9 @@ const MatrixRow = memo(function MatrixRow({
   rowState,
   allowed,
   disabled,
+  esignMode,
+  esignSaving,
+  onEsignChange,
   onToggle,
   onToggleRow,
 }: MatrixRowProps) {
@@ -228,6 +250,24 @@ const MatrixRow = memo(function MatrixRow({
           </td>
         );
       })}
+      <td className={styles.checkboxCell}>
+        {esignMode ? (
+          <Select<ESignMode>
+            size="small"
+            value={esignMode}
+            loading={esignSaving}
+            disabled={esignSaving}
+            style={{ minWidth: 160 }}
+            options={ESIGN_MODE_OPTIONS.map((o) => ({
+              value: o.value,
+              label: t(o.label),
+            }))}
+            onChange={(value) => onEsignChange(screen.screenCode, value)}
+          />
+        ) : (
+          <span className={styles.notApplicable}>—</span>
+        )}
+      </td>
     </tr>
   );
 },
@@ -277,6 +317,41 @@ export default function PermissionMatrixPage({
   const [draftModuleFilter, setDraftModuleFilter] = useState<string[]>([]);
   const [moduleFilter, setModuleFilter] = useState<string[]>([]);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+
+  /**
+   * E-Signature เป็นค่าต่อ "หน้าจอ" ใช้ร่วมกันทุก Role — บันทึกทันทีที่เลือก
+   * ไม่เกี่ยวกับปุ่มบันทึกสิทธิ์/isDirty ด้านบน · โหลดไม่ได้ = คอลัมน์แสดง "—"
+   */
+  const esignQuery = useESignSettingsQuery();
+  const esignMutation = useUpdateESignSettingMutation();
+  const [esignSavingCodes, setEsignSavingCodes] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const esignModeByScreen = useMemo(() => {
+    const map = new Map<string, ESignMode>();
+    for (const row of esignQuery.data?.data ?? []) {
+      map.set(row.screenCode, row.mode);
+    }
+    return map;
+  }, [esignQuery.data]);
+  const { mutate: mutateEsign } = esignMutation;
+  const handleEsignChange = useCallback(
+    (screenCode: string, mode: ESignMode) => {
+      setEsignSavingCodes((prev) => new Set(prev).add(screenCode));
+      mutateEsign(
+        { screenCode, mode },
+        {
+          onSettled: () =>
+            setEsignSavingCodes((prev) => {
+              const next = new Set(prev);
+              next.delete(screenCode);
+              return next;
+            }),
+        },
+      );
+    },
+    [mutateEsign],
+  );
 
   const selectedRoleId = lockedRoleId ?? roles[0]?.id;
   const rolePermissionsQuery = useRolePermissionsQuery(selectedRoleId);
@@ -931,6 +1006,13 @@ export default function PermissionMatrixPage({
                         </th>
                       );
                     })}
+                    <th className={styles.functionHeaderCell}>
+                      <Tooltip
+                        title={t("ตั้งค่าต่อหน้าจอ ใช้กับทุก Role และบันทึกทันที (ไม่ต้องกดบันทึกสิทธิ์) — กำหนดวิธียืนยันตัวตนตอนอนุมัติ")}
+                      >
+                        <span>{t("E-Signature")} ⓘ</span>
+                      </Tooltip>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -939,7 +1021,7 @@ export default function PermissionMatrixPage({
                       <tr className={styles.sectionRow}>
                         <td
                           className={styles.sectionCell}
-                          colSpan={functionCodes.length + 1}
+                          colSpan={functionCodes.length + 2}
                         >
                           <span className={styles.sectionLabel}>
                             {t(group.label)}
@@ -1028,6 +1110,9 @@ export default function PermissionMatrixPage({
                             rowSignatureByScreenId.get(screen.id) ?? ""
                           }
                           disabled={isReadOnly}
+                          esignMode={esignModeByScreen.get(screen.screenCode)}
+                          esignSaving={esignSavingCodes.has(screen.screenCode)}
+                          onEsignChange={handleEsignChange}
                           onToggle={toggle}
                           onToggleRow={setScreenAllowed}
                         />

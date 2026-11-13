@@ -27,6 +27,7 @@ import { EN_HRM_TIME } from "./modules/hrm-time";
 import { EN_HRM_PAYROLL } from "./modules/hrm-payroll";
 import { EN_REPORTS } from "./modules/reports";
 import { EN_DASHBOARDS } from "./modules/dashboards";
+import { EN_ESIGN } from "./modules/esign";
 import { EN_LAB } from "./modules/lab";
 import { EN_MAINTENANCE } from "./modules/maintenance";
 import { EN_MISC } from "./modules/misc";
@@ -69,6 +70,7 @@ export const EN_MESSAGES: Record<string, string> = {
   ...EN_HRM_PAYROLL,
   ...EN_REPORTS,
   ...EN_DASHBOARDS,
+  ...EN_ESIGN,
   ...EN_LAB,
   ...EN_MAINTENANCE,
   ...EN_MISC,

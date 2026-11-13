@@ -15,13 +15,12 @@ type Props = {
 };
 
 /**
- * อนุมัติ/ตีกลับผลตรวจ พร้อมลายเซ็นอิเล็กทรอนิกส์ (M8.5) — ยืนยันด้วยรหัสผ่านของผู้ใช้ที่ล็อกอินอยู่
- * มีพารามิเตอร์ FAIL แล้วอนุมัติ → ต้องใส่เหตุผล (M8.3) · รหัสผ่านไม่ถูกเก็บ ไม่ส่งไปที่อื่น
+ * อนุมัติ/ตีกลับผลตรวจ พร้อมลายเซ็นอิเล็กทรอนิกส์ (M8.5) — หน้าต่างยืนยันตัวตนกลางเด้งเองจาก apiFetch เมื่อ backend ขอ (E-Signature)
+ * มีพารามิเตอร์ FAIL แล้วอนุมัติ → ต้องใส่เหตุผล (M8.3)
  */
 export default function LabSignModal({ sample, action, onClose }: Props) {
   const t = useT();
   const review = useReviewLabSampleMutation(sample.id);
-  const [password, setPassword] = useState("");
   const [remark, setRemark] = useState("");
   const [failReason, setFailReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -29,15 +28,13 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
   const approve = action === "approve";
   const fails = (sample.results ?? []).filter((r) => r.judgement === "FAIL");
   const needFailReason = approve && fails.length > 0;
-  const ready =
-    password.length > 0 && (!needFailReason || failReason.trim().length > 0);
+  const ready = !needFailReason || failReason.trim().length > 0;
 
   const submit = () =>
     review.mutate(
       {
         action,
         body: {
-          password,
           remark: remark.trim() || undefined,
           failReason: needFailReason ? failReason.trim() : undefined,
         },
@@ -107,16 +104,6 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
         style={{ marginBottom: 12 }}
       />
 
-      <Typography.Text strong>{t("ยืนยันด้วยรหัสผ่านของคุณ")}</Typography.Text>
-      <Input.Password
-        autoComplete="current-password"
-        value={password}
-        onChange={(e) => {
-          setPassword(e.target.value);
-          setError(null);
-        }}
-        onPressEnter={() => ready && !review.isPending && submit()}
-      />
       {error ? (
         <Alert type="error" showIcon style={{ marginTop: 8 }} title={error} />
       ) : null}

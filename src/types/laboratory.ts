@@ -168,7 +168,6 @@ export type UpdateLabResultBody = {
 };
 
 export type ReviewLabSampleBody = {
-  password: string;
   remark?: string;
   failReason?: string;
 };

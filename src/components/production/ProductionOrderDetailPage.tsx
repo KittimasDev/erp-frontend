@@ -220,7 +220,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   >({});
 
   const [completeOpen, setCompleteOpen] = useState(false);
-  const [signatureName, setSignatureName] = useState("");
   const [wasteActualRows, setWasteActualRows] = useState<
     {
       key: string;
@@ -2012,13 +2011,9 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           open={completeOpen}
           onCancel={() => {
             setCompleteOpen(false);
-            setSignatureName("");
             setWasteActualRows([]);
           }}
           okText={t("ยืนยัน")}
-          okButtonProps={{
-            disabled: signatureName.trim().toLowerCase() !== "done",
-          }}
           confirmLoading={completeMutation.isPending}
           width={720}
           onOk={() =>
@@ -2026,7 +2021,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               {
                 id: orderId,
                 body: {
-                  signature: { typedName: signatureName.trim() },
                   wasteActualLines:
                     wasteActualRows.length > 0
                       ? wasteActualRows.map((row) => ({
@@ -2041,7 +2035,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               {
                 onSuccess: () => {
                   setCompleteOpen(false);
-                  setSignatureName("");
                   setWasteActualRows([]);
                   void summaryQuery.refetch();
                 },
@@ -2066,19 +2059,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               description={t("ปิดงานได้ตามปกติ และยังขอรับผลผลิตเข้าคลังเพิ่มได้หลังปิดงาน")}
             />
           ) : null}
-          <p>
-            {lang === "en" ? (
-              <>Type <strong>done</strong> to confirm production completion</>
-            ) : (
-              <>พิมพ์ <strong>done</strong> เพื่อยืนยันเสร็จสิ้นการผลิต</>
-            )}
-          </p>
-          <Input
-            value={signatureName}
-            onChange={(e) => setSignatureName(e.target.value)}
-            placeholder="done"
-            autoFocus
-          />
           {wasteActualRows.length > 0 ? (
             <>
               <Typography.Paragraph type="secondary" style={{ marginTop: 16 }}>

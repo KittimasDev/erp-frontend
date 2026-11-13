@@ -449,7 +449,6 @@ export type CompleteProductionOrderWasteLineBody = {
 };
 
 export type CompleteProductionOrderBody = {
-  signature: { typedName: string };
   wasteActualLines?: CompleteProductionOrderWasteLineBody[];
 };
 
@@ -488,7 +487,6 @@ export type ResumeProductionOrderBody = {
 export type CancelProductionOrderBody = {
   /** ชื่อฟิลด์ตรงกับ `CancelProductionOrderDto.cancelReason` ฝั่ง backend */
   cancelReason?: string;
-  signature?: { typedName: string };
 };
 
 export type CreateProductionOrderLogBody = {

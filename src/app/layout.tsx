@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Kanit } from "next/font/google";
 import { App as AntdApp } from "antd";
 import AntdProvider from "@/components/providers/AntdProvider";
+import ESignProvider from "@/components/esign/ESignProvider";
 import QueryProvider from "@/components/providers/QueryProvider";
 import "./globals.css";
 import "antd/dist/reset.css";
@@ -28,7 +29,10 @@ export default function RootLayout({
       <body className={kanit.className}>
         <QueryProvider>
           <AntdProvider>
-            <AntdApp>{children}</AntdApp>
+            <AntdApp>
+              {children}
+              <ESignProvider />
+            </AntdApp>
           </AntdProvider>
         </QueryProvider>
       </body>

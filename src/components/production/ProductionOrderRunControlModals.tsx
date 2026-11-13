@@ -157,14 +157,11 @@ type CancelModalProps = {
 
 function CancelModalBody(props: Omit<CancelModalProps, "open">) {
   const t = useT();
-  const lang = useLanguage();
   const [reason, setReason] = useState("");
-  const [typedName, setTypedName] = useState("");
 
   const trimmedReason = reason.trim();
-  const trimmedName = typedName.trim();
   const ready = props.started
-    ? trimmedReason.length >= CANCEL_REASON_MIN && trimmedName.length > 0
+    ? trimmedReason.length >= CANCEL_REASON_MIN
     : true;
 
   return (
@@ -196,25 +193,6 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
         />
       </div>
 
-      {props.started ? (
-        <div className={styles.cellStack} style={{ marginTop: 12 }}>
-          {/* ด่านฝั่ง server รับได้แค่ "done" หรือชื่อผู้ใช้ที่ login อยู่
-              — ต้องบอกให้ตรง ไม่งั้นผู้ใช้พิมพ์ชื่อจริงแล้วโดน 400 */}
-          <span className={styles.cellMuted}>
-            {lang === "en" ? (
-              <>Type <strong>done</strong> to sign and confirm the cancellation</>
-            ) : (
-              <>พิมพ์ <strong>done</strong> เพื่อลงชื่อยืนยันการยกเลิก</>
-            )}
-          </span>
-          <Input
-            value={typedName}
-            onChange={(e) => setTypedName(e.target.value)}
-            placeholder="done"
-          />
-        </div>
-      ) : null}
-
       <div className={styles.footer}>
         <Button onClick={props.onCancel}>{t("ไม่ยกเลิก")}</Button>
         <Button
@@ -225,7 +203,6 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           onClick={() =>
             props.onConfirm({
               cancelReason: trimmedReason || undefined,
-              signature: trimmedName ? { typedName: trimmedName } : undefined,
             })
           }
         >

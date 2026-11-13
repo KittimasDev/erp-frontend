@@ -1,6 +1,16 @@
 import { redirectToLogin } from "@/lib/auth/redirect-to-login";
+import {
+  ESignCancelledError,
+  hasESignRequester,
+  invalidateESignGrant,
+  obtainESignGrant,
+} from "@/lib/esign/esign-gate";
+import type { ESignMode } from "@/types/esign";
 
 export class ApiError extends Error {
+  /** รหัสข้อผิดพลาดจาก body.code (เช่น ESIGN_REQUIRED, ESIGN_INVALID) */
+  public readonly code?: string;
+
   constructor(
     message: string,
     public readonly status: number,
@@ -8,7 +18,24 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = "ApiError";
+    if (typeof body === "object" && body !== null && "code" in body) {
+      const raw = (body as { code: unknown }).code;
+      if (typeof raw === "string") this.code = raw;
+    }
   }
+}
+
+type ESignRequiredInfo = { screenCode: string; mode: ESignMode };
+
+/** อ่าน 428 ESIGN_REQUIRED จาก body — ไม่ครบ = ไม่ใช่เคส E-Signature */
+function readESignRequired(data: unknown): ESignRequiredInfo | null {
+  if (typeof data !== "object" || data === null) return null;
+  const body = data as Record<string, unknown>;
+  if (body.code !== "ESIGN_REQUIRED" || typeof body.screenCode !== "string") {
+    return null;
+  }
+  const mode: ESignMode = body.mode === "LOGIN" ? "LOGIN" : "PASSWORD";
+  return { screenCode: body.screenCode, mode };
 }
 
 /**
@@ -50,28 +77,59 @@ export async function apiFetch<T>(
   const isFormData =
     typeof FormData !== "undefined" && body instanceof FormData;
 
-  const response = await fetch(path, {
-    ...rest,
-    headers: {
-      Accept: "application/json",
-      ...(body !== undefined && !isFormData
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(ifMatch !== undefined && ifMatch !== null
-        ? { "If-Match": `"${ifMatch}"` }
-        : {}),
-      ...headers,
-    },
-    body:
-      body === undefined
-        ? undefined
-        : isFormData
-          ? body
-          : JSON.stringify(body),
-  });
+  const send = async (grantToken?: string) => {
+    const response = await fetch(path, {
+      ...rest,
+      headers: {
+        Accept: "application/json",
+        ...(body !== undefined && !isFormData
+          ? { "Content-Type": "application/json" }
+          : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(ifMatch !== undefined && ifMatch !== null
+          ? { "If-Match": `"${ifMatch}"` }
+          : {}),
+        ...headers,
+        ...(grantToken ? { "x-esign-grant": grantToken } : {}),
+      },
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? body
+            : JSON.stringify(body),
+    });
+    const data: unknown = await response.json().catch(() => null);
+    return { response, data };
+  };
 
-  const data: unknown = await response.json().catch(() => null);
+  let { response, data } = await send();
+
+  /**
+   * E-Signature: backend ตอบ 428 โดยยังไม่ทำอะไร → ขอ grant (modal กลาง / cache) แล้วยิงซ้ำ
+   * ถ้า grant ที่ใช้ซ้ำถูกปฏิเสธ (หมดอายุฝั่ง server) ขอใหม่อีกหนึ่งรอบ
+   */
+  const accessKey = token ?? "";
+  for (
+    let attempt = 0;
+    attempt < 2 && response.status === 428 && hasESignRequester();
+    attempt += 1
+  ) {
+    const info = readESignRequired(data);
+    if (!info) break;
+    try {
+      const grant = await obtainESignGrant(accessKey, info, attempt > 0);
+      ({ response, data } = await send(grant));
+      if (response.status === 428) {
+        invalidateESignGrant(accessKey, info.screenCode);
+      }
+    } catch (error) {
+      if (error instanceof ESignCancelledError) {
+        throw new ApiError(error.message, 428, data);
+      }
+      throw error;
+    }
+  }
 
   if (!response.ok) {
     const message = extractErrorMessage(data);
