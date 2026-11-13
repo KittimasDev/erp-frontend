@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Alert, App, Button, Input, Popconfirm, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DeleteOutlined, SaveOutlined } from "@ant-design/icons";
+import { DeleteOutlined, SaveOutlined, SyncOutlined } from "@ant-design/icons";
 
 import {
   useDeleteLabResultMutation,
@@ -13,6 +13,14 @@ import {
 import { useLabSpecsQuery } from "@/hooks/laboratory/useLabSpecs";
 import { useT } from "@/lib/i18n/useT";
 import { labResultSnapshot } from "./labResultSnapshot";
+import LabApplySpecModal from "./LabApplySpecModal";
+import LabSpecChangeIcon from "./LabSpecChangeIcon";
+import {
+  LAB_SPEC_FIELD_LABEL,
+  canApplyDirectly,
+  isCriteriaChanged,
+  showCriterion,
+} from "./labSpecCheck";
 import {
   LAB_JUDGEMENT_COLOR,
   LAB_JUDGEMENT_LABEL,
@@ -53,7 +61,20 @@ function LegacyResults({
   const remove = useDeleteLabResultMutation(sampleId);
   if (results.length === 0) return null;
   const columns: ColumnsType<LabTestResult> = [
-    { title: t("พารามิเตอร์"), dataIndex: "parameterName" },
+    {
+      title: t("พารามิเตอร์"),
+      dataIndex: "parameterName",
+      render: (v: string, r) => (
+        <span>
+          {v}
+          {r.specCheck?.status === "REMOVED" ? (
+            <Tag color="orange" style={{ marginLeft: 6 }}>
+              {t("ถูกนำออกจาก Spec")}
+            </Tag>
+          ) : null}
+        </span>
+      ),
+    },
     { title: t("ผลตรวจ"), dataIndex: "resultValue" },
     { title: t("หน่วย"), dataIndex: "unit", render: dash },
     { title: "Min", dataIndex: "specMin", width: 80, render: dash },
@@ -171,10 +192,16 @@ function SpecResultsTable({
   byParam: Map<string, LabTestResult>;
 }) {
   const t = useT();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const save = useSaveLabResultsMutation(sample.id);
   const remove = useDeleteLabResultMutation(sample.id);
   const spec = sample.spec!;
+  // ใช้เกณฑ์ปัจจุบัน: undefined = ปิด · [] ไม่ใช้ · "all" = ทั้ง Sample · [id] = รายแถว
+  const [applyScope, setApplyScope] = useState<"all" | string[] | null>(null);
+  const changedRows = (sample.results ?? []).filter(canApplyDirectly);
+  const blockedRows = (sample.results ?? []).filter(
+    (r) => isCriteriaChanged(r) && !canApplyDirectly(r),
+  );
 
   const [draft, setDraft] = useState<Record<string, RowDraft>>(() => {
     const init: Record<string, RowDraft> = {};
@@ -241,6 +268,40 @@ function SpecResultsTable({
       message.info(t("ยังไม่มีผลตรวจที่เปลี่ยนแปลง"));
       return;
     }
+    // แก้ค่าผลตรวจของแถวที่เกณฑ์ใน Spec เปลี่ยน → ระบบใช้เกณฑ์ปัจจุบันกับแถวนั้น ต้องเตือนก่อนบันทึก
+    // (แก้เฉพาะหมายเหตุไม่เข้าเงื่อนไขนี้ — ไม่เตือน ไม่เปลี่ยนเกณฑ์)
+    const warnRows = updates
+      .filter((u) => u.body.resultValue !== undefined)
+      .map((u) => (sample.results ?? []).find((r) => r.id === u.resultId))
+      .filter((r): r is NonNullable<typeof r> => !!r && isCriteriaChanged(r));
+    if (warnRows.length > 0) {
+      modal.confirm({
+        title: t("เกณฑ์ใน Spec เปลี่ยนไปแล้ว"),
+        width: 560,
+        okText: t("บันทึกและใช้เกณฑ์ปัจจุบัน"),
+        cancelText: t("ยกเลิก"),
+        content: (
+          <div>
+            <p style={{ marginTop: 0 }}>
+              {t("การแก้ค่าผลตรวจจะใช้เกณฑ์ปัจจุบันของ Spec กับแถวต่อไปนี้ (แถวที่ไม่ได้แก้ค่าไม่เปลี่ยน):")}
+            </p>
+            {warnRows.map((r) => (
+              <div key={r.id} style={{ marginBottom: 6 }}>
+                <strong>{r.parameterName}</strong>
+                {(r.specCheck?.changes ?? []).map((c) => (
+                  <div key={c.field} style={{ color: "#595959" }}>
+                    {t(LAB_SPEC_FIELD_LABEL[c.field])}: {showCriterion(c.before)} →{" "}
+                    <strong>{showCriterion(c.after)}</strong>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ),
+        onOk: () => save.mutate({ adds, updates }),
+      });
+      return;
+    }
     save.mutate({ adds, updates });
   };
 
@@ -253,6 +314,13 @@ function SpecResultsTable({
       render: (_v, p) => (
         <span>
           {byParam.get(p.id)?.parameterName ?? p.parameterName}
+          {byParam.get(p.id) ? (
+            <LabSpecChangeIcon result={byParam.get(p.id)!} />
+          ) : p.addedLater ? (
+            <Tag color="blue" style={{ marginLeft: 6 }}>
+              {t("เพิ่มภายหลัง")}
+            </Tag>
+          ) : null}
           {p.isRequired ? (
             <Tag color="red" style={{ marginLeft: 6 }}>
               {t("จำเป็น")}
@@ -348,10 +416,29 @@ function SpecResultsTable({
     columns.push({
       title: "",
       key: "act",
-      width: 56,
+      width: 120,
       render: (_v, p) => {
         const r = byParam.get(p.id);
+        const applyBtn =
+          r && canApplyDirectly(r) ? (
+            <Button
+              size="small"
+              icon={<SyncOutlined />}
+              onClick={() => setApplyScope([r.id])}
+              aria-label={t("ใช้เกณฑ์ปัจจุบัน")}
+              title={t("ใช้เกณฑ์ปัจจุบัน")}
+            />
+          ) : r && isCriteriaChanged(r) ? (
+            <Button
+              size="small"
+              icon={<SyncOutlined />}
+              disabled
+              title={t("หน่วยเปลี่ยน — ต้องตรวจสอบหรือแปลงผลตรวจก่อน")}
+            />
+          ) : null;
         return r ? (
+          <span style={{ display: "inline-flex", gap: 4 }}>
+          {applyBtn}
           <Popconfirm
             title={t("ลบผลบรรทัดนี้?")}
             okText={t("ลบ")}
@@ -365,6 +452,7 @@ function SpecResultsTable({
               aria-label={t("ลบผล")}
             />
           </Popconfirm>
+          </span>
         ) : null;
       },
     });
@@ -372,6 +460,38 @@ function SpecResultsTable({
 
   return (
     <>
+      {editable && (changedRows.length > 0 || blockedRows.length > 0) ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 8 }}
+          title={t("เกณฑ์ใน Spec เปลี่ยนจากตอนบันทึกผล {n} รายการ", {
+            n: changedRows.length + blockedRows.length,
+          })}
+          description={
+            blockedRows.length > 0
+              ? t("หน่วยเปลี่ยน {n} รายการ ({names}) ใช้เกณฑ์ใหม่ตรง ๆ ไม่ได้ — ต้องตรวจสอบหรือแปลงผลตรวจก่อน", {
+                  n: blockedRows.length,
+                  names: blockedRows.map((r) => r.parameterName).join(", "),
+                })
+              : t("ผลตรวจและผลประเมินเดิมไม่เปลี่ยนเอง — เลือกใช้เกณฑ์ปัจจุบันได้ทั้ง Sample หรือรายพารามิเตอร์")
+          }
+          action={
+            changedRows.length > 0 ? (
+              <Button size="small" type="primary" onClick={() => setApplyScope("all")}>
+                {t("ใช้เกณฑ์ปัจจุบันทั้ง Sample ({n})", { n: changedRows.length })}
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : null}
+      {applyScope ? (
+        <LabApplySpecModal
+          sample={sample}
+          resultIds={applyScope === "all" ? undefined : applyScope}
+          onClose={() => setApplyScope(null)}
+        />
+      ) : null}
       {editable && missingRequired.length > 0 ? (
         <Alert
           type="warning"
@@ -380,7 +500,7 @@ function SpecResultsTable({
           title={t("ยังไม่มีผลพารามิเตอร์ที่จำเป็น: {names}", {
             names: missingRequired.map((p) => p.parameterName).join(", "),
           })}
-          description={t("เตือนเท่านั้น ไม่บล็อกการอนุมัติ")}
+          description={t("ต้องกรอกผลของพารามิเตอร์ที่จำเป็นให้ครบก่อนอนุมัติ")}
         />
       ) : null}
       <Table

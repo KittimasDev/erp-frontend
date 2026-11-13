@@ -117,6 +117,8 @@ export type LabSpecParameter = {
   specMax?: string;
   isRequired: boolean;
   sortOrder: number;
+  /** true = เพิ่มเข้า Spec หลังสร้างตัวอย่างนี้ (ไม่ทราบเวลา = ไม่ระบุ) */
+  addedLater?: boolean;
 };
 
 export type LabSpec = {
@@ -193,6 +195,71 @@ export type LabTestResult = {
   remark?: string;
   testedById?: string;
   testedAt: string;
+  /** เทียบเกณฑ์ Snapshot กับ Spec ปัจจุบัน — มีเฉพาะตัวอย่างที่ยังไม่ตัดสิน */
+  specCheck?: LabSpecCheck;
+};
+
+export type LabSpecCheckStatus =
+  | "UNCHANGED"
+  | "CHANGED"
+  | "UNIT_CONFLICT"
+  | "UNKNOWN"
+  | "REMOVED";
+
+export type LabSpecField = "parameterName" | "unit" | "specMin" | "specMax";
+
+export type LabSpecFieldChange = {
+  field: LabSpecField;
+  before: string | null;
+  after: string | null;
+};
+
+export type LabSpecCheck = {
+  status: LabSpecCheckStatus;
+  changes: LabSpecFieldChange[];
+  current?: {
+    parameterName: string;
+    unit: string | null;
+    specMin: string | null;
+    specMax: string | null;
+  };
+  /** ผลตัดสินถ้าใช้เกณฑ์ปัจจุบันกับค่าผลตรวจเดิม */
+  judgementAfter?: string;
+  /** ลายนิ้วมือเกณฑ์ปัจจุบัน — ส่งกลับตอนยืนยันเพื่อให้ backend ตรวจว่า Spec ไม่เปลี่ยนระหว่างเปิด Modal */
+  fingerprint?: string;
+  reason?: string;
+};
+
+export type ApplyCurrentSpecBody = {
+  /** ไม่ส่ง = ทั้ง Sample */
+  resultIds?: string[];
+  /** resultId → fingerprint ที่ผู้ใช้เห็นใน Modal */
+  expected?: Record<string, string>;
+};
+
+export type ApplyCurrentSpecSnapshot = {
+  parameterName: string | null;
+  unit: string | null;
+  specMin: string | null;
+  specMax: string | null;
+  judgement: string | null;
+};
+
+export type ApplyCurrentSpecData = {
+  updated: Array<{
+    resultId: string;
+    parameterName: string;
+    before: ApplyCurrentSpecSnapshot;
+    after: ApplyCurrentSpecSnapshot;
+  }>;
+  skipped: Array<{ resultId: string; parameterName: string; reason: string }>;
+  sample: LabSample;
+};
+
+export type ApplyCurrentSpecApiResponse = {
+  statusCode: number;
+  message: string;
+  data: ApplyCurrentSpecData;
 };
 
 export type LabSample = {

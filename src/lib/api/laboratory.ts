@@ -1,6 +1,8 @@
 import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
 import type {
   AddLabResultLine,
+  ApplyCurrentSpecApiResponse,
+  ApplyCurrentSpecBody,
   CreateLabSampleBody,
   LabCoa,
   LabSampleImportAnalysis,
@@ -110,6 +112,18 @@ export function deleteLabResult(token: string, id: string, resultId: string) {
   return apiFetch<LabSampleApiResponse>(
     `/api/laboratory/samples/${id}/results/${resultId}`,
     { method: "DELETE", token },
+  );
+}
+
+/** ใช้เกณฑ์ปัจจุบันของ Spec กับผลตรวจ (ไม่เปลี่ยนค่าผล) — ไม่ส่ง resultIds = ทั้ง Sample */
+export function applyCurrentLabSpec(
+  token: string,
+  id: string,
+  body: ApplyCurrentSpecBody,
+) {
+  return apiFetch<ApplyCurrentSpecApiResponse>(
+    `/api/laboratory/samples/${id}/results/apply-current-spec`,
+    { method: "POST", token, body },
   );
 }
 

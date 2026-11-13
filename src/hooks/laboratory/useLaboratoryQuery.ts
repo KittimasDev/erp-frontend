@@ -7,6 +7,7 @@ import { canAccessBadgeScreen } from "@/hooks/badges/badge-access";
 import { ApiError } from "@/lib/api/client";
 import {
   addLabResults,
+  applyCurrentLabSpec,
   createLabSample,
   deleteLabResult,
   getLabCoaHistory,
@@ -29,6 +30,7 @@ import { getAccessToken } from "@/lib/auth/token";
 import { useT } from "@/lib/i18n/useT";
 import type {
   AddLabResultLine,
+  ApplyCurrentSpecBody,
   CreateLabSampleBody,
   LabCoaQueryParams,
   LabSampleQueryParams,
@@ -163,6 +165,19 @@ export function useUpdateLabResultMutation(sampleId: string) {
       message.success(t("แก้ผลตรวจแล้ว"));
     },
     onError: (e) => fail(e, t("แก้ผลตรวจไม่สำเร็จ")),
+  });
+}
+
+/**
+ * ใช้เกณฑ์ปัจจุบันของ Spec — ไม่แสดงข้อความเองและไม่รีเฟรชตอน error ให้ผู้เรียกจัดการ
+ * (409 LAB_SPEC_CHANGED ต้องโหลดเกณฑ์ล่าสุดมาให้ผู้ใช้ตรวจใหม่ ไม่ใช่ปิด Modal)
+ */
+export function useApplyCurrentSpecMutation(sampleId: string) {
+  const { refresh } = useLabMutationHelpers();
+  return useMutation({
+    mutationFn: (body: ApplyCurrentSpecBody) =>
+      applyCurrentLabSpec(getAccessToken(), sampleId, body),
+    onSuccess: () => refresh(),
   });
 }
 

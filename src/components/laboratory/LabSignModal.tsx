@@ -7,6 +7,12 @@ import { ApiError } from "@/lib/api/client";
 import { useReviewLabSampleMutation } from "@/hooks/laboratory/useLaboratoryQuery";
 import { useT } from "@/lib/i18n/useT";
 import type { LabSample } from "@/types/laboratory";
+import {
+  LAB_SPEC_FIELD_LABEL,
+  collectSpecNotices,
+  hasSpecNotices,
+  showCriterion,
+} from "./labSpecCheck";
 
 type Props = {
   sample: LabSample;
@@ -29,6 +35,9 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
   const fails = (sample.results ?? []).filter((r) => r.judgement === "FAIL");
   const needFailReason = approve && fails.length > 0;
   const ready = !needFailReason || failReason.trim().length > 0;
+  // Spec เปลี่ยนจากตอนบันทึกผล — แจ้งให้ผู้อนุมัติรับทราบเท่านั้น ไม่บล็อก (ตีกลับไม่ต้องแจ้ง)
+  const notices = collectSpecNotices(sample);
+  const showNotices = approve && hasSpecNotices(notices);
 
   const submit = () =>
     review.mutate(
@@ -70,6 +79,57 @@ export default function LabSignModal({ sample, action, onClose }: Props) {
           ? t(" — อนุมัติแล้วระบบออกเลขที่ COA และปล่อย Lot ที่รอ QC ให้อัตโนมัติ")
           : t(" — ตีกลับแล้ว Lot ที่รอ QC จะถูกปฏิเสธ (ยอดถูก Block)")}
       </Typography.Paragraph>
+
+      {showNotices ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 8 }}
+          title={t("Spec เปลี่ยนจากตอนบันทึกผล — โปรดรับทราบก่อนอนุมัติ (ไม่บล็อกการอนุมัติ)")}
+          description={
+            <div>
+              {notices.changed.map((r) => (
+                <div key={r.id}>
+                  <strong>{r.parameterName}</strong> ·{" "}
+                  {r.specCheck.changes
+                    .map(
+                      (c) =>
+                        `${t(LAB_SPEC_FIELD_LABEL[c.field])} ${showCriterion(c.before)} → ${showCriterion(c.after)}`,
+                    )
+                    .join(" · ")}
+                  {r.specCheck.status === "UNIT_CONFLICT"
+                    ? ` (${t("หน่วยเปลี่ยน")})`
+                    : ""}
+                </div>
+              ))}
+              {notices.unknown.length > 0 ? (
+                <div>
+                  {t("ไม่มีข้อมูลเกณฑ์เดิม (Snapshot) ให้เทียบ: {names}", {
+                    names: notices.unknown.map((r) => r.parameterName).join(", "),
+                  })}
+                </div>
+              ) : null}
+              {notices.removed.length > 0 ? (
+                <div>
+                  {t("ถูกนำออกจาก Spec แล้ว (ยังมีผลตรวจเดิม): {names}", {
+                    names: notices.removed.map((r) => r.parameterName).join(", "),
+                  })}
+                </div>
+              ) : null}
+              {notices.addedLater.length > 0 ? (
+                <div>
+                  {t("เพิ่มเข้า Spec ภายหลัง (ยังไม่มีผลตรวจ): {names}", {
+                    names: notices.addedLater.map((p) => p.parameterName).join(", "),
+                  })}
+                </div>
+              ) : null}
+              <div style={{ marginTop: 4, color: "#8a94a6" }}>
+                {t("ผลที่บันทึกไว้ใช้เกณฑ์เดิม ณ เวลาที่บันทึก และจะเป็นเกณฑ์ที่ออก COA — หากต้องการใช้เกณฑ์ปัจจุบันให้ยกเลิกแล้วกด “ใช้เกณฑ์ปัจจุบัน” ที่ตารางผลตรวจก่อน")}
+              </div>
+            </div>
+          }
+        />
+      ) : null}
 
       {needFailReason ? (
         <>
