@@ -2,22 +2,27 @@ import { redirectToLogin } from "@/lib/auth/redirect-to-login";
 import {
   ESignCancelledError,
   hasESignRequester,
-  invalidateESignGrant,
   obtainESignGrant,
+  releaseBatchGrant,
+  takeBatchGrant,
 } from "@/lib/esign/esign-gate";
-import type { ESignMode } from "@/types/esign";
+import type { ESignAction, ESignMode } from "@/types/esign";
 
 export class ApiError extends Error {
   /** รหัสข้อผิดพลาดจาก body.code (เช่น ESIGN_REQUIRED, ESIGN_INVALID) */
   public readonly code?: string;
+  /** true = ผู้ใช้กดยกเลิกหน้ายืนยันตัวตน (E-Signature) */
+  public readonly esignCancelled: boolean;
 
   constructor(
     message: string,
     public readonly status: number,
     public readonly body?: unknown,
+    esignCancelled = false,
   ) {
     super(message);
     this.name = "ApiError";
+    this.esignCancelled = esignCancelled;
     if (typeof body === "object" && body !== null && "code" in body) {
       const raw = (body as { code: unknown }).code;
       if (typeof raw === "string") this.code = raw;
@@ -25,17 +30,35 @@ export class ApiError extends Error {
   }
 }
 
-type ESignRequiredInfo = { screenCode: string; mode: ESignMode };
+type ESignRequiredInfo = {
+  screenCode: string;
+  mode: ESignMode;
+  action: ESignAction;
+  documentId: string;
+};
+
+const ESIGN_ACTIONS: readonly string[] = ["APPROVE", "REJECT", "RETURN"];
 
 /** อ่าน 428 ESIGN_REQUIRED จาก body — ไม่ครบ = ไม่ใช่เคส E-Signature */
 function readESignRequired(data: unknown): ESignRequiredInfo | null {
   if (typeof data !== "object" || data === null) return null;
   const body = data as Record<string, unknown>;
-  if (body.code !== "ESIGN_REQUIRED" || typeof body.screenCode !== "string") {
+  if (
+    body.code !== "ESIGN_REQUIRED" ||
+    typeof body.screenCode !== "string" ||
+    typeof body.documentId !== "string" ||
+    typeof body.action !== "string" ||
+    !ESIGN_ACTIONS.includes(body.action)
+  ) {
     return null;
   }
   const mode: ESignMode = body.mode === "LOGIN" ? "LOGIN" : "PASSWORD";
-  return { screenCode: body.screenCode, mode };
+  return {
+    screenCode: body.screenCode,
+    mode,
+    action: body.action as ESignAction,
+    documentId: body.documentId,
+  };
 }
 
 /**
@@ -106,26 +129,53 @@ export async function apiFetch<T>(
   let { response, data } = await send();
 
   /**
-   * E-Signature: backend ตอบ 428 โดยยังไม่ทำอะไร → ขอ grant (modal กลาง / cache) แล้วยิงซ้ำ
-   * ถ้า grant ที่ใช้ซ้ำถูกปฏิเสธ (หมดอายุฝั่ง server) ขอใหม่อีกหนึ่งรอบ
+   * E-Signature: backend ตอบ 428 โดยยังไม่ทำอะไร → หา grant แล้วยิงซ้ำ (grant ใช้ได้เอกสารละครั้ง ไม่ cache ข้ามเอกสาร)
+   * 1) grant ของ batch (withESignBatch) ที่ครอบคลุมเอกสารนี้และยังไม่ถูกใช้ → แนบเลยไม่ถาม
+   * 2) ไม่งั้นเปิด modal ขอ grant เฉพาะ [documentId] + action — ถ้ายังโดนปฏิเสธ ถามอีกรอบเดียวแล้วจบ
    */
   const accessKey = token ?? "";
-  for (
-    let attempt = 0;
-    attempt < 2 && response.status === 428 && hasESignRequester();
-    attempt += 1
-  ) {
+  let prompts = 0;
+  let batchTried = false;
+  while (response.status === 428 && hasESignRequester()) {
     const info = readESignRequired(data);
     if (!info) break;
     try {
-      const grant = await obtainESignGrant(accessKey, info, attempt > 0);
+      let grant: string | null = null;
+      let fromBatch = false;
+      if (!batchTried) {
+        batchTried = true;
+        grant = takeBatchGrant(
+          accessKey,
+          info.screenCode,
+          info.action,
+          info.documentId,
+        );
+        fromBatch = grant !== null;
+      }
+      if (!grant) {
+        if (prompts >= 2) break;
+        prompts += 1;
+        grant = await obtainESignGrant(accessKey, {
+          screenCode: info.screenCode,
+          mode: info.mode,
+          action: info.action,
+          documentIds: [info.documentId],
+        });
+      }
       ({ response, data } = await send(grant));
-      if (response.status === 428) {
-        invalidateESignGrant(accessKey, info.screenCode);
+      if (fromBatch && !response.ok && response.status !== 428) {
+        // backend ปล่อย grant คืนเมื่อล้มด้วย business error → ลองเอกสารเดิมซ้ำได้
+        releaseBatchGrant(
+          accessKey,
+          info.screenCode,
+          info.action,
+          info.documentId,
+          grant,
+        );
       }
     } catch (error) {
       if (error instanceof ESignCancelledError) {
-        throw new ApiError(error.message, 428, data);
+        throw new ApiError(error.message, 428, data, true);
       }
       throw error;
     }

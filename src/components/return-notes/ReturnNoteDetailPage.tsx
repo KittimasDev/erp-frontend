@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Spin } from "antd";
@@ -234,6 +235,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
               <p className={styles.textBlock}>{data.rejectReason ?? "—"}</p>
             </div>
           ) : null}
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

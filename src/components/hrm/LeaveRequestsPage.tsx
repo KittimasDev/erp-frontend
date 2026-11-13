@@ -40,6 +40,8 @@ import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useReviewLeaveRequestMutation } from "@/hooks/leave/useLeaveMutations";
 import { getLeaveStaffingCheck } from "@/lib/api/leave";
+import { withESignBatch } from "@/lib/esign/esign-batch";
+import { isESignCancelled } from "@/lib/esign/esign-gate";
 import { getAccessToken } from "@/lib/auth/token";
 import MinStaffingModal from "./MinStaffingModal";
 import {
@@ -165,8 +167,23 @@ export default function LeaveRequestsPage() {
     remark?: string,
     acknowledgeShortage?: boolean,
   ) => {
-    for (const id of ids) {
-      await reviewMutation.mutateAsync({ id, action, remark, acknowledgeShortage });
+    try {
+      // ยืนยันตัวตน (E-Signature) ครั้งเดียวครอบคลุมทุกใบที่เลือก
+      await withESignBatch(
+        {
+          screenCode: "HRM_LEAVE",
+          action: action === "approve" ? "APPROVE" : "REJECT",
+          documentIds: ids,
+        },
+        async () => {
+          for (const id of ids) {
+            await reviewMutation.mutateAsync({ id, action, remark, acknowledgeShortage });
+          }
+        },
+      );
+    } catch (error) {
+      if (isESignCancelled(error)) return; // ยกเลิกยืนยันตัวตน — หยุดเงียบ ๆ ไม่ล้างรายการที่เลือก
+      throw error;
     }
     setSelectedIds([]);
   };

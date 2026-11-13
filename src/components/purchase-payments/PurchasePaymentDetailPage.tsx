@@ -1,5 +1,6 @@
 "use client";
 import { Tag } from "antd";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -502,6 +503,7 @@ function PurchasePaymentDetailView({
               </p>
             ) : null}
           </div>
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

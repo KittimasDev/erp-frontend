@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { eSignatureHistoryQueryKey } from "@/hooks/esign/useESignatureHistory";
 import { App } from "antd";
 
 import { useT } from "@/lib/i18n/useT";
@@ -140,6 +141,7 @@ export function useApprovePurchaseOrderMutation() {
     mutationKey: [...purchaseOrdersQueryKey, "approve"],
     mutationFn: (id: string) => approvePurchaseOrder(getAccessToken(), id),
     onSuccess: async (response) => {
+      void queryClient.invalidateQueries({ queryKey: eSignatureHistoryQueryKey });
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || t("อนุมัติใบสั่งซื้อสำเร็จแล้ว"));
     },
@@ -161,6 +163,7 @@ export function useRejectPurchaseOrderMutation() {
     mutationFn: ({ id, body }: { id: string; body: RejectPurchaseOrderBody }) =>
       rejectPurchaseOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
+      void queryClient.invalidateQueries({ queryKey: eSignatureHistoryQueryKey });
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || t("ปฏิเสธใบสั่งซื้อแล้ว"));
     },
@@ -183,6 +186,7 @@ export function useReturnPurchaseOrderToDraftMutation() {
     mutationFn: ({ id, body }: { id: string; body: RejectPurchaseOrderBody }) =>
       returnPurchaseOrderToDraft(getAccessToken(), id, body),
     onSuccess: async (response) => {
+      void queryClient.invalidateQueries({ queryKey: eSignatureHistoryQueryKey });
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || t("ส่งกลับให้แก้ไขแล้ว"));
     },

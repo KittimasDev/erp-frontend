@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -2363,6 +2364,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             }
           />
         ) : null}
+
+        <ESignatureHistoryCard documentId={orderId} style={{ marginTop: 16 }} />
       </section>
     </MasterPageGate>
   );

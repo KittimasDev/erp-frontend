@@ -1,6 +1,8 @@
 import { apiFetch } from "./client";
 import type {
+  ESignatureHistoryApiResponse,
   ESignMode,
+  ESignRequirementApiResponse,
   ESignSettingsApiResponse,
   ESignVerifyApiResponse,
   ESignVerifyBody,
@@ -32,5 +34,21 @@ export function updateESignSetting(
   return apiFetch<UpdateESignSettingApiResponse>(
     `/api/esign/settings/${encodeURIComponent(screenCode)}`,
     { method: "PUT", token, body: { mode } },
+  );
+}
+
+/** โหมด E-Signature ของหน้าจอ (ผู้ใช้ที่ล็อกอินทุกคนเรียกได้) */
+export function getESignRequirement(token: string, screenCode: string) {
+  return apiFetch<ESignRequirementApiResponse>(
+    `/api/esign/requirement/${encodeURIComponent(screenCode)}`,
+    { method: "GET", token },
+  );
+}
+
+/** ประวัติ E-Signature ของเอกสารหนึ่งใบ (ใหม่สุดก่อน) */
+export function getESignatureHistory(token: string, documentId: string) {
+  return apiFetch<ESignatureHistoryApiResponse>(
+    `/api/documents/signatures?documentId=${encodeURIComponent(documentId)}`,
+    { method: "GET", token },
   );
 }

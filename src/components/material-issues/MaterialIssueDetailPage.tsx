@@ -1,5 +1,6 @@
 "use client";
 import { Tag } from "antd";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -202,6 +203,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
           ) : null}
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

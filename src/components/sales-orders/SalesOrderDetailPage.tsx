@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -2762,6 +2763,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <DocumentAuditTrail documentId={data.id} />
           </div>
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

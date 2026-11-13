@@ -1,5 +1,6 @@
 "use client";
 import { Tag } from "antd";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -279,6 +280,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
               </Upload>
             ) : null}
           </div>
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

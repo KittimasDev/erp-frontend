@@ -210,3 +210,8 @@ body {
     padding: 6px 14px 14px;
   }
 }
+
+/* E-Signature: ระหว่างขอยืนยันตัวตน ซ่อน modal ใบอื่นที่เปิดค้าง (confirm อนุมัติ / ฟอร์มเหตุผล) ไม่ให้ซ้อนทับ */
+body.esign-active .ant-modal-root:not(.esign-modal-root) {
+  visibility: hidden;
+}

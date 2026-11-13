@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { Button, Spin, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -142,6 +143,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
               {data.deliveryOrderNo ? t(" · ใบส่ง {deliveryOrderNo}", { deliveryOrderNo: data.deliveryOrderNo }) : ""}
             </div>
           </div>
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
         <aside className={styles.sideCard}>
           <div className={styles.sideRows}>

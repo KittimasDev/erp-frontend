@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -125,6 +126,7 @@ export default function SalesCreditNoteDetailPage({ id }: { id: string }) {
         files={attachments.data ?? []}
         canUpload={note.status !== "COMPLETED" && note.status !== "CANCELLED"}
       />
+      <ESignatureHistoryCard documentId={id} />
       <ActionBar
         note={note}
         onDone={(text) => {

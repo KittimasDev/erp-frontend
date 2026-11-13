@@ -35,6 +35,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { withESignBatch } from "@/lib/esign/esign-batch";
+import { isESignCancelled } from "@/lib/esign/esign-gate";
 import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
@@ -138,8 +140,23 @@ export default function OvertimeRequestsPage() {
     remark?: string,
     dayType?: string,
   ) => {
-    for (const id of ids) {
-      await reviewMutation.mutateAsync({ id, action, remark, dayType });
+    try {
+      // ยืนยันตัวตน (E-Signature) ครั้งเดียวครอบคลุมทุกใบที่เลือก
+      await withESignBatch(
+        {
+          screenCode: "HRM_OVERTIME",
+          action: action === "approve" ? "APPROVE" : "REJECT",
+          documentIds: ids,
+        },
+        async () => {
+          for (const id of ids) {
+            await reviewMutation.mutateAsync({ id, action, remark, dayType });
+          }
+        },
+      );
+    } catch (error) {
+      if (isESignCancelled(error)) return; // ยกเลิกยืนยันตัวตน — หยุดเงียบ ๆ ไม่ล้างรายการที่เลือก
+      throw error;
     }
     setSelectedIds([]);
   };

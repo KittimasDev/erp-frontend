@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Input, Modal, Spin, Tag } from "antd";
@@ -315,6 +316,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
               <DocumentHtmlView html={data.remark} />
             </div>
           )}
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

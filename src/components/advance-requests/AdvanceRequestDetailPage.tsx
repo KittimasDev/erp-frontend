@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Card, Descriptions, Input, Modal, Space, Spin, Tag, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
@@ -134,6 +135,7 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
         <DocumentAttachmentsPanel documentType={ADVANCE_DOCUMENT_TYPE} documentId={r.id} canEdit={false} emptyText={t("ไม่มีเอกสารแนบ")} />
       </Card>
 
+      <ESignatureHistoryCard documentId={r.id} />
       <Modal
         open={cancelling}
         title={t("ยกเลิกรายการ {no}", { no: r.requestNo })}

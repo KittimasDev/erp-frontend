@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Spin } from "antd";
@@ -384,6 +385,7 @@ export default function QuotationDetailPage({ id }: Props) {
               <DocumentHtmlView html={data.remark} />
             </div>
           )}
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

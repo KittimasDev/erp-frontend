@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -693,6 +694,8 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               </div>
             </div>
           ) : null}
+
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
       </div>
 

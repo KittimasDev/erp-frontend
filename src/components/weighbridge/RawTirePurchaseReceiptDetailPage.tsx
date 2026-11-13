@@ -1,6 +1,7 @@
 "use client";
 
 import { formatErpDate } from "@/lib/datetime/erp-timezone";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { useState } from "react";
 import {
   Button,
@@ -646,6 +647,8 @@ export default function RawTirePurchaseReceiptDetailPage({
             </div>
           </>
         ) : null}
+
+        <ESignatureHistoryCard documentId={receiptId} style={{ marginTop: 16 }} />
       </section>
 
       <Modal

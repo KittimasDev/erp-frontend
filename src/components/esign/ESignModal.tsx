@@ -39,6 +39,15 @@ export default function ESignModal({
   const [error, setError] = useState<string | null>(null);
   const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
 
+  const batchTitle = t(
+    request.action === "APPROVE"
+      ? "ยืนยันตัวตนเพื่ออนุมัติ {n} รายการ"
+      : request.action === "REJECT"
+        ? "ยืนยันตัวตนเพื่อปฏิเสธ {n} รายการ"
+        : "ยืนยันตัวตนเพื่อส่งกลับ {n} รายการ",
+    { n: request.documentIds.length },
+  );
+
   const ready = password.length > 0 && (!isLogin || username.trim().length > 0);
 
   const submit = async () => {
@@ -48,6 +57,8 @@ export default function ESignModal({
     try {
       const res = await verifyESign(getAccessToken(), {
         screenCode: request.screenCode,
+        action: request.action,
+        documentIds: request.documentIds,
         password,
         ...(isLogin ? { username: username.trim() } : {}),
       });
@@ -80,6 +91,9 @@ export default function ESignModal({
   return (
     <Modal
       open
+      // อยู่เหนือ modal อื่นเสมอ และถูกยกเว้นจาก CSS ที่ซ่อน modal ใบอื่นระหว่างยืนยันตัวตน (ดู globals.css)
+      rootClassName="esign-modal-root"
+      zIndex={1100}
       title={t("ยืนยันตัวตน (E-Signature)")}
       okText={t("ยืนยัน")}
       cancelText={t("ยกเลิก")}
@@ -90,6 +104,9 @@ export default function ESignModal({
       onOk={() => void submit()}
       destroyOnHidden
     >
+      {request.documentIds.length > 1 ? (
+        <Typography.Paragraph strong>{batchTitle}</Typography.Paragraph>
+      ) : null}
       <Typography.Paragraph type="secondary">
         {isLogin
           ? t("กรอก Username และรหัสผ่านเพื่อยืนยันการทำรายการ — Username ต้องเป็นของผู้ที่เข้าสู่ระบบอยู่เท่านั้น")

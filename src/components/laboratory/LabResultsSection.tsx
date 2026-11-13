@@ -12,6 +12,7 @@ import {
 } from "@/hooks/laboratory/useLaboratoryQuery";
 import { useLabSpecsQuery } from "@/hooks/laboratory/useLabSpecs";
 import { useT } from "@/lib/i18n/useT";
+import { labResultSnapshot } from "./labResultSnapshot";
 import {
   LAB_JUDGEMENT_COLOR,
   LAB_JUDGEMENT_LABEL,
@@ -248,9 +249,10 @@ function SpecResultsTable({
     {
       title: t("พารามิเตอร์"),
       key: "name",
+      // มีผลแล้ว = ชื่อ ณ เวลาที่บันทึก (Snapshot) · ยังไม่มีผล = ชื่อใน Spec ปัจจุบัน (แถวสำหรับกรอก)
       render: (_v, p) => (
         <span>
-          {p.parameterName}
+          {byParam.get(p.id)?.parameterName ?? p.parameterName}
           {p.isRequired ? (
             <Tag color="red" style={{ marginLeft: 6 }}>
               {t("จำเป็น")}
@@ -283,9 +285,35 @@ function SpecResultsTable({
         );
       },
     },
-    { title: t("หน่วย"), dataIndex: "unit", width: 90, render: dash },
-    { title: "Min", dataIndex: "specMin", width: 80, render: dash },
-    { title: "Max", dataIndex: "specMax", width: 80, render: dash },
+    // หน่วย/Min/Max: ผลที่บันทึกแล้วใช้ค่า Snapshot ของผลนั้น (ตรงกับผลตัดสินและ COA)
+    // เฉพาะแถวที่ยังไม่มีผลถึงจะแสดงเกณฑ์ของ Spec ปัจจุบัน
+    {
+      title: t("หน่วย"),
+      key: "unit",
+      width: 90,
+      render: (_v, p) => {
+        const r = byParam.get(p.id);
+        return r ? labResultSnapshot(r).unit : dash(p.unit);
+      },
+    },
+    {
+      title: "Min",
+      key: "specMin",
+      width: 80,
+      render: (_v, p) => {
+        const r = byParam.get(p.id);
+        return r ? labResultSnapshot(r).specMin : dash(p.specMin);
+      },
+    },
+    {
+      title: "Max",
+      key: "specMax",
+      width: 80,
+      render: (_v, p) => {
+        const r = byParam.get(p.id);
+        return r ? labResultSnapshot(r).specMax : dash(p.specMax);
+      },
+    },
     {
       title: t("ผลตัดสิน"),
       key: "judgement",

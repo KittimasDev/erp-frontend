@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { App, Button, Input, Modal, Spin, Table, Tag } from "antd";
+import { Alert, App, Button, Input, Modal, Spin, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   ArrowLeftOutlined,
@@ -32,6 +32,7 @@ import {
   LOT_QC_LABEL,
 } from "@/types/laboratory";
 import LabResultsSection from "./LabResultsSection";
+import { labResultSnapshot } from "./labResultSnapshot";
 import LabSignModal from "./LabSignModal";
 import styles from "./LabSampleDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -87,6 +88,23 @@ export default function LabSampleDetailPage({ id }: Props) {
   const editable = canEdit && !decided;
   const coas = data.coas ?? [];
   const currentCoa = coas.find((c) => c.status === "ISSUED");
+  // พารามิเตอร์ที่ Spec บังคับแต่ยังไม่มีผลตรวจ (ค่าว่างถือว่าไม่มี) — backend ตรวจซ้ำและปฏิเสธเช่นกัน
+  const filledResults = (data.results ?? []).filter(
+    (r) => (r.resultValue ?? "").trim() !== "",
+  );
+  const missingRequired = (data.spec?.parameters ?? []).filter(
+    (p) =>
+      p.isRequired &&
+      p.isActive !== false &&
+      !filledResults.some(
+        (r) =>
+          r.specParameterId === p.id ||
+          (!r.specParameterId &&
+            r.parameterName.trim().toLowerCase() ===
+              p.parameterName.trim().toLowerCase()),
+      ),
+  );
+  const missingNames = missingRequired.map((p) => p.parameterName).join(", ");
 
   const coaColumns: ColumnsType<LabCoa> = [
     {
@@ -160,14 +178,8 @@ export default function LabSampleDetailPage({ id }: Props) {
         signatureNote: coa.signature
           ? `ลงนามอิเล็กทรอนิกส์ ${formatDateTime(coa.signature.signedAt)}`
           : undefined,
-        results: (coa.sample.results ?? []).map((r) => ({
-          parameterName: r.parameterName,
-          resultValue: r.resultValue,
-          unit: r.unit ?? "—",
-          specMin: r.specMin ?? "—",
-          specMax: r.specMax ?? "—",
-          judgement: r.judgement,
-        })),
+        // Snapshot ณ เวลาบันทึกผล — ตัวเดียวกับที่หน้ารายละเอียดใช้ (ไม่ดึง Spec ปัจจุบัน)
+        results: (coa.sample.results ?? []).map(labResultSnapshot),
       });
       message.success(t("เปิด PDF COA แล้ว"));
     } catch (error) {
@@ -198,9 +210,23 @@ export default function LabSampleDetailPage({ id }: Props) {
               <Button danger onClick={() => setSignAction("reject")}>
                 {t("ตีกลับผลตรวจ")}
               </Button>
-              <Button type="primary" onClick={() => setSignAction("approve")}>
-                {t("อนุมัติผลตรวจ")}
-              </Button>
+              <Tooltip
+                title={
+                  missingRequired.length > 0
+                    ? t("ยังไม่มีผลตรวจของพารามิเตอร์ที่บังคับ: {names}", {
+                        names: missingNames,
+                      })
+                    : undefined
+                }
+              >
+                <Button
+                  type="primary"
+                  disabled={missingRequired.length > 0}
+                  onClick={() => setSignAction("approve")}
+                >
+                  {t("อนุมัติผลตรวจ")}
+                </Button>
+              </Tooltip>
             </>
           ) : null}
           {data.status === "APPROVED" ? (
@@ -215,6 +241,18 @@ export default function LabSampleDetailPage({ id }: Props) {
           </>
         }
       />
+
+      {canApprove && data.status === "TESTING" && missingRequired.length > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t(
+            "ยังอนุมัติไม่ได้ — ยังไม่มีผลตรวจของพารามิเตอร์ที่บังคับ: {names}",
+            { names: missingNames },
+          )}
+        />
+      ) : null}
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { useRouter } from "next/navigation";
 import {
   App,
@@ -601,6 +602,8 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
             placeholder={t("เช่น ตำแหน่งจัดเก็บไม่ถูกต้อง")}
           />
         </Modal>
+
+        <ESignatureHistoryCard documentId={requestId} style={{ marginTop: 16 }} />
       </section>
     </MasterPageGate>
   );

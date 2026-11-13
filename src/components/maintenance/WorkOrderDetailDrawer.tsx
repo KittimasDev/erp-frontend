@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { Button, Descriptions, Drawer, Popconfirm, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
@@ -134,6 +135,8 @@ export default function WorkOrderDetailDrawer({ workOrderId, onClose }: Props) {
 
           <h4>{t("อะไหล่ที่ใช้ · ต้นทุนสุทธิ")} {fmtMoney(wo.partsCost)} {t("บาท")}</h4>
           <Table rowKey="id" size="small" pagination={false} columns={partColumns} dataSource={wo.partUsages} locale={{ emptyText: t("ยังไม่มีการใช้อะไหล่") }} />
+
+          <ESignatureHistoryCard documentId={wo.id} style={{ marginTop: 16 }} />
 
           {modal === "assign" ? <AssignModal workOrder={wo} onClose={() => setModal(null)} /> : null}
           {modal === "complete" ? <CompleteModal workOrder={wo} onClose={() => setModal(null)} /> : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { isESignCancelled } from "@/lib/esign/esign-gate";
 import { App } from "antd";
 
 import { useT } from "@/lib/i18n/useT";
@@ -87,6 +88,7 @@ export function useReviewLeaveRequestMutation() {
       invalidate();
     },
     onError: (error: Error) => {
+      if (isESignCancelled(error)) return; // ผู้ใช้ยกเลิกการยืนยันตัวตน — ไม่ต้องแจ้ง error
       message.error(errorMessage(error, t("พิจารณาคำขอไม่สำเร็จ")));
     },
   });

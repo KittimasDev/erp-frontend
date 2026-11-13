@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { Descriptions, Drawer, Tag } from "antd";
 
 import type { ScheduleDisplayStatus, ScheduleRound } from "@/types/production-schedule";
@@ -37,6 +38,7 @@ export default function ProductionRoundDetailDrawer({ round, onClose }: Props) {
       onClose={onClose}
     >
       {round ? (
+        <>
         <Descriptions column={1} bordered size="small">
           <Descriptions.Item label={t("ลำดับ")}>{round.sequence}</Descriptions.Item>
           <Descriptions.Item label={t("รหัสรอบ")}>{round.roundNo}</Descriptions.Item>
@@ -82,6 +84,8 @@ export default function ProductionRoundDetailDrawer({ round, onClose }: Props) {
             </Descriptions.Item>
           ) : null}
         </Descriptions>
+        <ESignatureHistoryCard documentId={round.id} style={{ marginTop: 16 }} />
+        </>
       ) : null}
     </Drawer>
   );

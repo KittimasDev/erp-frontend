@@ -1,6 +1,7 @@
 "use client";
 
 import { vatAmountLabelT, tStatus } from "@/types/purchase-orders";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { tNow, useT, type TFunction } from "@/lib/i18n/useT";
 import { useMemo, useRef, useState } from "react";
@@ -940,6 +941,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </p>
             ) : null}
           </div>
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 
         <aside className={styles.sideCard}>

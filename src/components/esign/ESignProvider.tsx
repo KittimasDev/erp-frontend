@@ -48,6 +48,15 @@ export default function ESignProvider() {
 
   const current = queue[0];
 
+  // ระหว่างขอยืนยันตัวตน ซ่อน modal ใบอื่น (เช่น "ยืนยันอนุมัติ?" ที่รอ API อยู่) ไม่ให้ซ้อนทับกัน
+  // กดยกเลิก/ยืนยันเสร็จแล้ว modal ใบเดิมกลับมาตามสถานะของมันเอง
+  const hasCurrent = Boolean(current);
+  useEffect(() => {
+    if (!hasCurrent) return;
+    document.body.classList.add("esign-active");
+    return () => document.body.classList.remove("esign-active");
+  }, [hasCurrent]);
+
   const finish = (id: number) =>
     setQueue((prev) => prev.filter((item) => item.id !== id));
 

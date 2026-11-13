@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Card, Descriptions, Form, Input, Modal, Space, Spin, Table, Tag, Typography } from "antd";
@@ -319,6 +320,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
         <EventsTimeline events={d.events} />
       </Card>
 
+      <ESignatureHistoryCard documentId={id} />
       {status === "PAID" ? (
         <Card title={t("10. ข้อมูลการจ่ายเงินจริง")} size="small">
           <Table

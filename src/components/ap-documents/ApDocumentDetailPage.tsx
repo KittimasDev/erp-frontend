@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -694,6 +695,8 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           />
         </Card>
       ) : null}
+
+      <ESignatureHistoryCard documentId={doc.id} />
 
       {!isInvoice ? (
         <Card title={t("ประวัติการดำเนินการ")}>

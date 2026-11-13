@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -892,6 +893,8 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           scroll={{ x: 860 }}
         />
       </section>
+
+      <ESignatureHistoryCard documentId={id} style={{ marginTop: 16 }} />
     </div>
   );
 }

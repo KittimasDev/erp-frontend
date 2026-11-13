@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import CancelReasonModal from "@/components/common/CancelReasonModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -549,6 +550,7 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
         <DocumentAttachmentsPanel documentType="AP_INVOICE" documentId={d.id} canEdit={editable} emptyText={t("ไม่มีเอกสารแนบ")} />
       </Card>
 
+      <ESignatureHistoryCard documentId={d.id} />
       <Card title={t("11. ผู้ดำเนินการและประวัติการอนุมัติ")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }} style={{ marginBottom: 12 }}>
           <Descriptions.Item label={t("ผู้จัดทำ / วันที่สร้าง")}>{d.createdByName ?? "—"} · {dt(d.createdAt)}</Descriptions.Item>
