@@ -72,6 +72,7 @@ export type DeliveryOrderItem = {
   roundNo?: number;
   unitId: string;
   unitCode?: string;
+  unitNameTh?: string;
   remark?: string;
   sortOrder: number;
 };
@@ -107,6 +108,9 @@ export type DeliveryOrder = {
   vehicleWeightBeforeKg?: string;
   vehicleWeightAfterKg?: string;
   cargoNetWeightKg?: string;
+  weighTicketNo?: string;
+  weighBeforeAt?: string;
+  weighAfterAt?: string;
   status: DeliveryOrderStatus | string;
   remark?: string;
   confirmedAt?: string;

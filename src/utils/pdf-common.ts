@@ -813,6 +813,8 @@ export type SalesCommercialPdfData = {
   infoRows: SalesCommercialPdfInfoRow[];
   infoSections?: Array<{
     title?: string;
+    /** สองคู่ป้าย-ค่าต่อแถว */
+    pairs?: boolean;
     rows: SalesCommercialPdfInfoRow[];
   }>;
   items: SalesLinePdfItem[];
@@ -829,6 +831,10 @@ export type SalesCommercialPdfData = {
   /** หมายเหตุเป็น HTML (ใบสั่งขาย) — เอกสารอื่นยังเป็นข้อความธรรมดา */
   remarkIsHtml?: boolean;
   signatures?: [SalesSignatureSlot, SalesSignatureSlot, SalesSignatureSlot];
+  /** รหัสกับชื่ออยู่คอลัมน์เดียว เรียง ลำดับ ชื่อ จำนวน หน่วย */
+  codeWithName?: boolean;
+  /** ก้อนใต้ตาราง ก่อนหมายเหตุ — วัดทั้งก้อนก่อนตัดหน้า */
+  afterTableHtml?: string;
 };
 
 /* ---------- เอกสารกลุ่มขาย — ใช้ design เดียวกับใบสั่งซื้อ ---------- */
@@ -1083,6 +1089,11 @@ function salesStyles() {
         row-gap: 6px;
       }
 
+      .info-grid.pairs {
+        grid-template-columns: 118px 1fr 132px 1fr;
+        column-gap: 10px;
+      }
+
       /*
         label/value เป็นลูกของกริดตรง ๆ — ห้ามห่อ display:contents
         html2canvas 1.4 ไม่วาดลูกของ contents จึงเหลือกรอบการ์ดแต่ค่าในช่องหาย
@@ -1136,6 +1147,35 @@ function salesStyles() {
 
       .tr.c5 {
         grid-template-columns: 34px 80px 1fr 60px 70px;
+      }
+
+      .tr.c4 {
+        grid-template-columns: 34px 1fr 70px 56px;
+      }
+
+      .after-table {
+        margin-top: 14px;
+      }
+
+      .weight-lines {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .weight-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 7.5px;
+        color: #343434;
+        line-height: 1.35;
+      }
+
+      .weight-row .wv {
+        text-align: right;
+        font-weight: 700;
       }
 
       .cell-name {
@@ -1448,6 +1488,7 @@ type SalesParts = {
   /** หัวข้อกลุ่มกับแถวเรียงตามลำดับที่ต้องพิมพ์ */
   flow: Array<{ kind: "heading" | "row"; html: string }>;
   totals: string;
+  afterTable: string;
   noteHead: string;
   /** ชิ้นหมายเหตุ — ข้อความธรรมดาแตกตามบรรทัด, rich text แตกตาม element ชั้นบน */
   noteChunks: string[];
@@ -1571,7 +1612,8 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   const hasExtra = groups.some((group) =>
     group.items.some((item) => item.extra != null),
   );
-  const colClass = priceCols ? "c8" : hasExtra ? "c6" : "c5";
+  const codeWithName = Boolean(data.codeWithName) && !priceCols && !hasExtra;
+  const colClass = priceCols ? "c8" : hasExtra ? "c6" : codeWithName ? "c4" : "c5";
 
   const thead = priceCols
     ? `
@@ -1595,6 +1637,14 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           <div class="cell right">${escapeHtml(labels.qty)}</div>
           <div class="cell center">${escapeHtml(labels.extra)}</div>
         </div>`
+      : codeWithName
+        ? `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">${escapeHtml(labels.no)}</div>
+          <div class="cell cell-name">${escapeHtml(labels.name)}</div>
+          <div class="cell right">${escapeHtml(labels.qty)}</div>
+          <div class="cell center">${escapeHtml(labels.unit)}</div>
+        </div>`
       : `
         <div class="tr thead ${colClass}">
           <div class="cell center">${escapeHtml(labels.no)}</div>
@@ -1616,6 +1666,14 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           <div class="cell right">${formatMoney(item.unitPrice ?? 0)}</div>
           <div class="cell right">${formatMoney(item.discountAmount ?? 0)}</div>
           <div class="cell right">${formatMoney(item.amount ?? 0)}</div>
+        </div>`
+      : codeWithName
+        ? `
+        <div class="tr tbody ${colClass}">
+          <div class="cell center">${item.no}</div>
+          <div class="cell cell-name">${salesNameHtml(item.itemName)}</div>
+          <div class="cell right">${formatQty(item.qty)}</div>
+          <div class="cell center">${escapeHtml(item.unit)}</div>
         </div>`
       : `
         <div class="tr tbody ${colClass}">
@@ -1668,7 +1726,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
       (section) => `
         <section class="info-card">
           ${section.title ? `<div class="card-title">${escapeHtml(section.title)}</div>` : ""}
-          <div class="info-grid">${renderInfoRows(section.rows)}</div>
+          <div class="info-grid${section.pairs ? " pairs" : ""}">${renderInfoRows(section.rows)}</div>
         </section>`,
     )
     .join("");
@@ -1790,6 +1848,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
     thead,
     flow,
     totals,
+    afterTable: data.afterTableHtml ?? "",
     noteHead,
     noteChunks,
     noteIsHtml,
@@ -1824,6 +1883,7 @@ type SalesMetrics = {
   thead: number;
   flow: number[];
   totals: number;
+  afterTable: number;
   noteHead: number;
   notes: number[];
   bank: number;
@@ -1861,11 +1921,12 @@ function buildSalesProbe(parts: SalesParts): SalesProbe {
       ${mark(1)}${parts.first}
       ${mark(2)}${parts.cont}
       ${mark(3)}${parts.totals}
-      ${mark(4)}${parts.noteHead}
-      ${mark(5)}${parts.bank}
-      ${mark(6)}${parts.pageEnd}
-      ${mark(7)}${salesFootBarHtml(0, 1, false)}
-      ${mark(8)}
+      ${mark(4)}${parts.afterTable}
+      ${mark(5)}${parts.noteHead}
+      ${mark(6)}${parts.bank}
+      ${mark(7)}${parts.pageEnd}
+      ${mark(8)}${salesFootBarHtml(0, 1, false)}
+      ${mark(9)}
       <div class="table" id="sales-probe-table">${parts.thead}</div>
       <div id="sales-probe-flow">
         ${parts.flow
@@ -1912,10 +1973,11 @@ function buildSalesProbe(parts: SalesParts): SalesProbe {
       first: span(1, 2),
       cont: span(2, 3),
       totals: span(3, 4),
-      noteHead: span(4, 5),
-      bank: span(5, 6),
-      pageEnd: span(6, 7),
-      foot: span(7, 8),
+      afterTable: span(4, 5),
+      noteHead: span(5, 6),
+      bank: span(6, 7),
+      pageEnd: span(7, 8),
+      foot: span(8, 9),
       thead: height(table.querySelector(".tr.thead")!),
       flow,
       notes: Array.from(notes.children).map(height),
@@ -2023,6 +2085,12 @@ function buildSalesPages(
     if (page.used > 0 && m.totals > free()) nextPage();
     page.tail.push(parts.totals);
     page.used += m.totals;
+  }
+
+  if (parts.afterTable) {
+    if (page.used > 0 && m.afterTable > free()) nextPage();
+    page.tail.push(parts.afterTable);
+    page.used += m.afterTable;
   }
 
   // 3) หมายเหตุ — หัวข้อต้องมีอย่างน้อยหนึ่งบรรทัดตามหลัง ไม่งั้นยกไปหน้าใหม่
