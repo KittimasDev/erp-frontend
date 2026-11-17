@@ -1,6 +1,10 @@
 import dayjs from "dayjs";
 import { vatAmountLabel } from "@/lib/money/vat-totals";
-import { AP_SETTLEMENT_METHOD_LABEL, type ApDocument } from "@/types/ap-documents";
+import {
+  AP_DOCUMENT_STATUS_LABEL,
+  AP_SETTLEMENT_METHOD_LABEL,
+  type ApDocument,
+} from "@/types/ap-documents";
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 
 import { numberToThaiBahtText } from "./numberToThaiBahtText";
@@ -35,15 +39,14 @@ function draftBannerOf(doc: ApDocument): string | undefined {
   return "ร่าง — ยังไม่อนุมัติ";
 }
 
-/** เพิ่มแถวเฉพาะที่มีค่า — ข้อมูลที่ระบบไม่มีไม่พิมพ์ทั้งแถว (ไม่ใส่ "—" หรือ placeholder) */
-function pushIf(
+/** เพิ่มแถวเสมอ — ช่องที่ระบบไม่มีข้อมูลพิมพ์เป็น "—" เพื่อให้แบบฟอร์มครบทุกช่องตามแบบของบริษัท */
+function pushRow(
   rows: SalesCommercialPdfInfoRow[],
   label: string,
   value: string | null | undefined,
   options?: Pick<SalesCommercialPdfInfoRow, "emphasis" | "full">,
 ) {
-  const text = (value ?? "").trim();
-  if (text) rows.push({ label, value: text, ...options });
+  rows.push({ label, value: (value ?? "").trim(), ...options });
 }
 
 /**
@@ -54,36 +57,52 @@ function pushIf(
  */
 function buildCreditNotePdfData(doc: ApDocument): SalesCommercialPdfData {
   const creditorRows: SalesCommercialPdfInfoRow[] = [];
-  pushIf(creditorRows, "เจ้าหนี้", `${doc.creditorCode} ${doc.creditorName}`, {
-    emphasis: true,
-  });
-  pushIf(creditorRows, "ที่อยู่", doc.creditorAddress);
-  pushIf(creditorRows, "เลขประจำตัวผู้เสียภาษี", doc.creditorTaxId);
+  pushRow(creditorRows, "รหัสเจ้าหนี้", doc.creditorCode);
+  pushRow(creditorRows, "ชื่อเจ้าหนี้", doc.creditorName, { emphasis: true });
+  pushRow(creditorRows, "ที่อยู่", doc.creditorAddress);
+  pushRow(creditorRows, "เลขประจำตัวผู้เสียภาษี", doc.creditorTaxId);
+  // ระบบยังไม่เก็บผู้ติดต่อ/โทรของเจ้าหนี้ใน payload ใบลดหนี้ — ช่องคงไว้ตามแบบฟอร์ม
+  pushRow(creditorRows, "ผู้ติดต่อ / โทร.", "");
 
   const refRows: SalesCommercialPdfInfoRow[] = [];
-  pushIf(
+  pushRow(refRows, "ใบลดหนี้ผู้ขายเลขที่", doc.supplierDocNo);
+  pushRow(
     refRows,
-    "ใบลดหนี้ผู้ขายเลขที่",
-    doc.supplierDocNo
-      ? `${doc.supplierDocNo}${doc.supplierDocDate ? ` (${thaiDate(doc.supplierDocDate)})` : ""}`
-      : null,
+    "วันที่ใบลดหนี้ผู้ขาย",
+    doc.supplierDocDate ? thaiDate(doc.supplierDocDate) : "",
   );
-  pushIf(refRows, "AP Invoice", doc.referenceDocumentNo);
-  pushIf(refRows, "ใบสั่งซื้อ (PO)", doc.purchaseOrderNo);
-  pushIf(refRows, "ใบรับสินค้า (GRN)", doc.goodsReceiptNo);
-  pushIf(refRows, "การคิด VAT", VAT_MODE_TEXT[doc.vatMode] ?? doc.vatMode);
-  pushIf(
+  pushRow(refRows, "AP Invoice", doc.referenceDocumentNo);
+  // ใบกำกับภาษีเดิม: ระบบยังไม่ส่งเลขที่/วันที่มากับใบลดหนี้ — ช่องคงไว้ตามแบบฟอร์ม
+  pushRow(refRows, "ใบกำกับภาษีเดิม", "");
+  pushRow(refRows, "วันที่ใบกำกับภาษีเดิม", "");
+  pushRow(
+    refRows,
+    "PO / GRN",
+    `${doc.purchaseOrderNo || "—"} / ${doc.goodsReceiptNo || "—"}`,
+  );
+  pushRow(refRows, "การคิด VAT", VAT_MODE_TEXT[doc.vatMode] ?? doc.vatMode);
+  pushRow(
     refRows,
     "วิธีจัดการยอด",
     AP_SETTLEMENT_METHOD_LABEL[doc.settlementMethod ?? "OFFSET_AP"] ??
       doc.settlementMethod,
   );
-  pushIf(refRows, "สาเหตุการลดหนี้", doc.reason, { full: true });
+  pushRow(
+    refRows,
+    "สถานะ",
+    AP_DOCUMENT_STATUS_LABEL[doc.status] ?? doc.status,
+  );
+
+  // สาเหตุ + ประเภทเหตุผล (ระบบเก็บเฉพาะข้อความสาเหตุ ยังไม่มีประเภทเหตุผลแยก)
+  const reasonRows: SalesCommercialPdfInfoRow[] = [];
+  pushRow(reasonRows, "สาเหตุการลดหนี้", doc.reason, { full: true });
+  pushRow(reasonRows, "ประเภทเหตุผล", "", { full: true });
 
   const infoSections = [
     { title: "ข้อมูลเจ้าหนี้ / ผู้ขาย", rows: creditorRows },
     { title: "เอกสารอ้างอิง", rows: refRows },
-  ].filter((section) => section.rows.length > 0);
+    { title: "สาเหตุการลดหนี้", rows: reasonRows },
+  ];
 
   const vatRatePart =
     typeof doc.vatRate === "number" && doc.vatRate > 0 ? ` ${doc.vatRate}%` : "";
