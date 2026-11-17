@@ -52,6 +52,8 @@ import {
   useSubmitApDocumentMutation,
 } from "@/hooks/ap-documents/useApDocuments";
 import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyBankAccountsQuery";
+import { getApInvoiceDetail } from "@/lib/api/ap-documents";
+import { getAccessToken } from "@/lib/auth/token";
 import {
   AP_DOCUMENT_STATUS_COLOR,
   AP_DOCUMENT_STATUS_LABEL,
@@ -205,7 +207,17 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
   const handlePrint = async () => {
     const { generateApDocumentPdf } = await import("@/utils/generateApDocumentPdf");
-    void generateApDocumentPdf(doc);
+    // ใบลดหนี้: ดึงใบตั้งหนี้ที่อ้างถึงมาหา "มูลค่าเดิม" ต่อบรรทัด — ดึงไม่ได้ก็พิมพ์ต่อ (ช่องมูลค่าเดิม/ที่ถูกต้องเป็น "—")
+    let referenceInvoice: ApDocument | null = null;
+    if (doc.docType === "CREDIT_NOTE" && doc.referenceDocumentId) {
+      try {
+        const res = await getApInvoiceDetail(getAccessToken(), doc.referenceDocumentId);
+        referenceInvoice = res.data;
+      } catch {
+        referenceInvoice = null;
+      }
+    }
+    void generateApDocumentPdf(doc, referenceInvoice);
   };
 
   const handleRefund = async (values: RefundForm) => {

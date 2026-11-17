@@ -753,6 +753,9 @@ export type SalesLinePdfItem = {
   discountAmount?: number;
   amount?: number;
   extra?: string;
+  /** โหมด valueColumns — มูลค่าเดิม / ที่ถูกต้อง (null = ไม่มีข้อมูล พิมพ์ "—") */
+  originalAmount?: number | null;
+  correctAmount?: number | null;
 };
 
 /**
@@ -798,6 +801,10 @@ export type SalesCommercialPdfColumnLabels = {
   disc?: string;
   amount?: string;
   extra?: string;
+  /** โหมด valueColumns */
+  original?: string;
+  correct?: string;
+  reduced?: string;
 };
 
 export type SalesCommercialPdfData = {
@@ -816,6 +823,8 @@ export type SalesCommercialPdfData = {
     /** สองคู่ป้าย-ค่าต่อแถว */
     pairs?: boolean;
     rows: SalesCommercialPdfInfoRow[];
+    /** การ์ดกินเต็มความกว้างทั้งแถว (ไม่ต้องแบ่งครึ่งกับการ์ดข้างเคียง) */
+    wide?: boolean;
   }>;
   items: SalesLinePdfItem[];
   itemGroups?: SalesCommercialPdfItemGroup[];
@@ -837,6 +846,11 @@ export type SalesCommercialPdfData = {
   lineAmountTable?: boolean;
   /** ก้อนใต้ตาราง ก่อนหมายเหตุ — วัดทั้งก้อนก่อนตัดหน้า */
   afterTableHtml?: string;
+  /**
+   * ห้าคอลัมน์ ลำดับ รายการ มูลค่าเดิม มูลค่าที่ถูกต้อง มูลค่าที่ลดลง (ใบลดหนี้เจ้าหนี้)
+   * ใช้คู่กับ withPrices เพื่อให้ยอดรวมยังแสดง · ไม่มีคอลัมน์รหัส/จำนวน/หน่วย/ราคา
+   */
+  valueColumns?: boolean;
 };
 
 /* ---------- เอกสารกลุ่มขาย — ใช้ design เดียวกับใบสั่งซื้อ ---------- */
@@ -1157,6 +1171,14 @@ function salesStyles() {
 
       .tr.c4amt {
         grid-template-columns: 34px 1.4fr 110px 90px;
+      }
+
+      .tr.c5v {
+        grid-template-columns: 34px 1fr 84px 92px 84px;
+      }
+
+      .info-card.wide {
+        grid-column: 1 / -1;
       }
 
       .after-table {
@@ -1610,7 +1632,11 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
     disc: data.columnLabels?.disc ?? "ส่วนลด",
     amount: data.columnLabels?.amount ?? "จำนวนเงิน",
     extra: data.columnLabels?.extra ?? "หมายเหตุ",
+    original: data.columnLabels?.original ?? "มูลค่าเดิม",
+    correct: data.columnLabels?.correct ?? "มูลค่าที่ถูกต้อง",
+    reduced: data.columnLabels?.reduced ?? "มูลค่าที่ลดลง",
   };
+  const valueCols = Boolean(data.valueColumns) && priceCols;
 
   const groups: SalesCommercialPdfItemGroup[] =
     data.itemGroups && data.itemGroups.length > 0
@@ -1621,7 +1647,9 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   );
   const codeWithName =
     Boolean(data.codeWithName) && !priceCols && !lineAmount && !hasExtra;
-  const colClass = priceCols
+  const colClass = valueCols
+    ? "c5v"
+    : priceCols
     ? "c8"
     : lineAmount
       ? "c4amt"
@@ -1631,7 +1659,16 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           ? "c4"
           : "c5";
 
-  const thead = priceCols
+  const thead = valueCols
+    ? `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">${escapeHtml(labels.no)}</div>
+          <div class="cell cell-name">${escapeHtml(labels.name)}</div>
+          <div class="cell right">${escapeHtml(labels.original)}</div>
+          <div class="cell right">${escapeHtml(labels.correct)}</div>
+          <div class="cell right">${escapeHtml(labels.reduced)}</div>
+        </div>`
+    : priceCols
     ? `
         <div class="tr thead ${colClass}">
           <div class="cell center">${escapeHtml(labels.no)}</div>
@@ -1678,8 +1715,19 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           <div class="cell right">${escapeHtml(labels.qty)}</div>
         </div>`;
 
+  const moneyOrDash = (value?: number | null) =>
+    value == null ? "—" : formatMoney(value);
   const rowHtml = (item: SalesLinePdfItem) =>
-    priceCols
+    valueCols
+      ? `
+        <div class="tr tbody ${colClass}">
+          <div class="cell center">${item.no}</div>
+          <div class="cell cell-name">${salesNameHtml(item.itemName)}</div>
+          <div class="cell right">${moneyOrDash(item.originalAmount)}</div>
+          <div class="cell right">${moneyOrDash(item.correctAmount)}</div>
+          <div class="cell right">${formatMoney(item.amount ?? 0)}</div>
+        </div>`
+      : priceCols
       ? `
         <div class="tr tbody ${colClass}">
           <div class="cell center">${item.no}</div>
@@ -1756,7 +1804,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   const infoCardsHtml = infoSections
     .map(
       (section) => `
-        <section class="info-card">
+        <section class="info-card${section.wide ? " wide" : ""}">
           ${section.title ? `<div class="card-title">${escapeHtml(section.title)}</div>` : ""}
           <div class="info-grid${section.pairs ? " pairs" : ""}">${renderInfoRows(section.rows)}</div>
         </section>`,

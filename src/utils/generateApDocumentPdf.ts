@@ -1,10 +1,6 @@
 import dayjs from "dayjs";
 import { vatAmountLabel } from "@/lib/money/vat-totals";
-import {
-  AP_DOCUMENT_STATUS_LABEL,
-  AP_SETTLEMENT_METHOD_LABEL,
-  type ApDocument,
-} from "@/types/ap-documents";
+import type { ApDocument, ApDocumentItem } from "@/types/ap-documents";
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 
 import { numberToThaiBahtText } from "./numberToThaiBahtText";
@@ -49,13 +45,56 @@ function pushRow(
   rows.push({ label, value: (value ?? "").trim(), ...options });
 }
 
+const round2 = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * จับคู่บรรทัดใบลดหนี้กับบรรทัดของใบตั้งหนี้ที่อ้างถึง เพื่อหามูลค่าเดิม
+ * ลำดับ: บรรทัด GRN เดียวกัน → สินค้า (itemId) เดียวกัน → ชื่อรายการตรงกัน → ใบละบรรทัดเดียวทั้งคู่
+ * จับคู่ไม่ได้ = undefined (พิมพ์ "—" ไม่เดามูลค่า)
+ */
+function findReferenceLine(
+  line: ApDocumentItem,
+  creditItems: ApDocumentItem[],
+  referenceItems: ApDocumentItem[],
+): ApDocumentItem | undefined {
+  const norm = (v: string) => v.trim().toLowerCase();
+  const unique = (matches: ApDocumentItem[]) =>
+    matches.length === 1 ? matches[0] : undefined;
+  if (line.goodsReceiptItemId) {
+    const hit = unique(
+      referenceItems.filter(
+        (ref) => ref.goodsReceiptItemId === line.goodsReceiptItemId,
+      ),
+    );
+    if (hit) return hit;
+  }
+  if (line.itemId) {
+    const hit = unique(referenceItems.filter((ref) => ref.itemId === line.itemId));
+    if (hit) return hit;
+  }
+  const byName = unique(
+    referenceItems.filter(
+      (ref) => norm(ref.description) === norm(line.description),
+    ),
+  );
+  if (byName) return byName;
+  if (creditItems.length === 1 && referenceItems.length === 1) {
+    return referenceItems[0];
+  }
+  return undefined;
+}
+
 /**
  * ใบลดหนี้เจ้าหนี้ (AP Credit Note) — จัดเนื้อหาตามแบบฟอร์มบริษัท แต่ใช้ดีไซน์/ตัวแบ่งหน้าของ template เอกสารกลาง
  *
- * ตารางใช้คอลัมน์ที่ระบบเก็บจริง (จำนวน × ราคา = มูลค่าที่ลดลง) — ระบบไม่ได้เก็บ "มูลค่าเดิม/ที่ถูกต้อง" ต่อบรรทัด
- * จึงไม่พิมพ์สองคอลัมน์นั้น · ฟิลด์ที่ไม่มีข้อมูลไม่พิมพ์ (ประเภทเหตุผล ผู้ติดต่อ ใบกำกับภาษีเดิม ฯลฯ)
+ * ตาราง: ลำดับ / รายการ / มูลค่าเดิม / มูลค่าที่ถูกต้อง / มูลค่าที่ลดลง (ก่อน VAT)
+ * - มูลค่าที่ลดลง = ยอดบรรทัดของใบลดหนี้ · มูลค่าเดิม = ยอดบรรทัดที่ตรงกันในใบตั้งหนี้ที่อ้างถึง
+ *   มูลค่าที่ถูกต้อง = เดิม − ที่ลดลง · ใบลดหนี้ที่ไม่ผูกใบตั้งหนี้/จับคู่ไม่ได้/คนละโหมด VAT พิมพ์ "—"
  */
-function buildCreditNotePdfData(doc: ApDocument): SalesCommercialPdfData {
+function buildCreditNotePdfData(
+  doc: ApDocument,
+  referenceInvoice?: ApDocument | null,
+): SalesCommercialPdfData {
   const creditorRows: SalesCommercialPdfInfoRow[] = [];
   pushRow(creditorRows, "รหัสเจ้าหนี้", doc.creditorCode);
   pushRow(creditorRows, "ชื่อเจ้าหนี้", doc.creditorName, { emphasis: true });
@@ -80,33 +119,28 @@ function buildCreditNotePdfData(doc: ApDocument): SalesCommercialPdfData {
     "PO / GRN",
     `${doc.purchaseOrderNo || "—"} / ${doc.goodsReceiptNo || "—"}`,
   );
-  pushRow(refRows, "การคิด VAT", VAT_MODE_TEXT[doc.vatMode] ?? doc.vatMode);
-  pushRow(
-    refRows,
-    "วิธีจัดการยอด",
-    AP_SETTLEMENT_METHOD_LABEL[doc.settlementMethod ?? "OFFSET_AP"] ??
-      doc.settlementMethod,
-  );
-  pushRow(
-    refRows,
-    "สถานะ",
-    AP_DOCUMENT_STATUS_LABEL[doc.status] ?? doc.status,
-  );
 
-  // สาเหตุ + ประเภทเหตุผล (ระบบเก็บเฉพาะข้อความสาเหตุ ยังไม่มีประเภทเหตุผลแยก)
+  // สาเหตุ: ป้ายกับค่าอยู่บรรทัดเดียวกัน (แถวปกติของกริด ไม่ใช่แถว full) การ์ดกว้างเต็มแถว
   const reasonRows: SalesCommercialPdfInfoRow[] = [];
-  pushRow(reasonRows, "สาเหตุการลดหนี้", doc.reason, { full: true });
-  pushRow(reasonRows, "ประเภทเหตุผล", "", { full: true });
+  pushRow(reasonRows, "สาเหตุการลดหนี้", doc.reason);
 
   const infoSections = [
     { title: "ข้อมูลเจ้าหนี้ / ผู้ขาย", rows: creditorRows },
     { title: "เอกสารอ้างอิง", rows: refRows },
-    { title: "สาเหตุการลดหนี้", rows: reasonRows },
+    { rows: reasonRows, wide: true },
   ];
 
   const vatRatePart =
     typeof doc.vatRate === "number" && doc.vatRate > 0 ? ` ${doc.vatRate}%` : "";
   const bahtText = numberToThaiBahtText(doc.totalAmount);
+
+  // มูลค่าเดิม/ที่ถูกต้อง เทียบได้เมื่อสองใบคิดมูลค่าบรรทัดด้วยโหมดเดียวกัน และไม่ใช่โหมดรวม VAT
+  // (โหมดรวม VAT ยอดบรรทัดรวมภาษีอยู่ ไม่ใช่ "ก่อน VAT" ตามหัวคอลัมน์)
+  const comparable =
+    referenceInvoice != null &&
+    referenceInvoice.vatMode === doc.vatMode &&
+    doc.vatMode !== "INCLUSIVE";
+  const invoiceNo = doc.referenceDocumentNo?.trim();
 
   return {
     pageId: "ap-credit-note-pdf",
@@ -117,19 +151,32 @@ function buildCreditNotePdfData(doc: ApDocument): SalesCommercialPdfData {
     draftBanner: draftBannerOf(doc),
     infoRows: [],
     infoSections,
-    items: doc.items.map((item, index) => ({
-      no: index + 1,
-      itemCode: item.itemCode ?? "—",
-      itemName: item.description,
-      unit: item.unitLabel ?? "—",
-      qty: item.quantity,
-      unitPrice: item.unitPrice,
-      // amount ใน payload หักส่วนลดบรรทัดแล้ว (calcLineAmount) — คอลัมน์ส่วนลดแสดงเพื่อข้อมูลเท่านั้น
-      discountAmount: item.discountAmount ?? 0,
-      amount: item.amount,
-    })),
-    columnLabels: { price: "ราคา/หน่วย", amount: "มูลค่าที่ลดลง" },
+    items: doc.items.map((item, index) => {
+      const ref = comparable
+        ? findReferenceLine(item, doc.items, referenceInvoice.items)
+        : undefined;
+      return {
+        no: index + 1,
+        itemCode: "",
+        itemName: invoiceNo
+          ? `ลดราคาจากใบแจ้งหนี้ ${invoiceNo}`
+          : "ลดราคาจากใบแจ้งหนี้",
+        unit: "",
+        qty: item.quantity,
+        amount: item.amount,
+        originalAmount: ref ? round2(ref.amount) : null,
+        correctAmount: ref ? round2(ref.amount - item.amount) : null,
+      };
+    }),
+    columnLabels: {
+      no: "ลำดับ",
+      name: "รายการ",
+      original: "มูลค่าเดิม (ก่อน VAT)",
+      correct: "มูลค่าที่ถูกต้อง (ก่อน VAT)",
+      reduced: "มูลค่าที่ลดลง (ก่อน VAT)",
+    },
     withPrices: true,
+    valueColumns: true,
     subtotalAmount: doc.subtotalAmount,
     vatAmount: doc.vatAmount,
     totalAmount: doc.totalAmount,
@@ -160,9 +207,15 @@ function buildCreditNotePdfData(doc: ApDocument): SalesCommercialPdfData {
  *
  * ใบที่ยังไม่อนุมัติหรือถูกยกเลิก พิมพ์ป้ายเตือนไว้หัวกระดาษ กันเอาใบร่างไปใช้เป็นใบจริง
  */
-export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData {
+export function buildApDocumentPdfData(
+  doc: ApDocument,
+  /** ใบตั้งหนี้ที่ใบลดหนี้อ้างถึง — ใช้หามูลค่าเดิมของใบลดหนี้เท่านั้น */
+  referenceInvoice?: ApDocument | null,
+): SalesCommercialPdfData {
   // ใบลดหนี้ใช้เนื้อหาตามแบบฟอร์มของบริษัท — ใบตั้งหนี้/ใบเพิ่มหนี้ยังใช้ชุดเดิมด้านล่าง
-  if (doc.docType === "CREDIT_NOTE") return buildCreditNotePdfData(doc);
+  if (doc.docType === "CREDIT_NOTE") {
+    return buildCreditNotePdfData(doc, referenceInvoice);
+  }
   const isInvoice = doc.docType === "AP_INVOICE";
   const infoRows: SalesCommercialPdfInfoRow[] = [
     {
@@ -254,6 +307,9 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
   };
 }
 
-export async function generateApDocumentPdf(doc: ApDocument) {
-  await generateSalesCommercialPdf(buildApDocumentPdfData(doc));
+export async function generateApDocumentPdf(
+  doc: ApDocument,
+  referenceInvoice?: ApDocument | null,
+) {
+  await generateSalesCommercialPdf(buildApDocumentPdfData(doc, referenceInvoice));
 }
