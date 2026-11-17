@@ -61,16 +61,14 @@ export async function generatePickingPdf(data: PickingPdfData) {
     infoSections: [
       {
         rows: [
-          { label: "ลูกค้า", value: data.customerName },
-          { label: "อ้างอิง SO", value: data.salesOrderNo },
+          { label: "คลังต้นทาง", value: sourceWarehouses.join(", ") },
+          { label: "ผู้รับสินค้า", value: data.contactName },
         ],
       },
       {
         rows: [
-          { label: "คลังต้นทาง", value: sourceWarehouses.join(", ") },
           { label: "ประเภทการจ่าย", value: paymentMethodLabel(data.paymentMethod) },
-          { label: "ผู้รับสินค้า", value: data.contactName },
-          { label: "เอกสารอ้างอิง", value: data.customerPoNo },
+          { label: "เอกสารอ้างอิง", value: data.salesOrderNo },
         ],
       },
     ],
