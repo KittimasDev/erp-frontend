@@ -7,7 +7,10 @@ import {
   openMultiPagePdfFromHtml,
 } from "./pdf-common";
 
-import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
+import type {
+  SupplierPaymentUserSummary,
+  SupplierPaymentVoucher,
+} from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
   SUPPLIER_PAYMENT_STATUS_LABEL,
@@ -24,19 +27,25 @@ export type SupplierPaymentVoucherPdfData = {
   paymentMethod: string;
   paymentTerm: string;
   totalAmount: string;
-  totalAmountRaw: number;
-  remark: string;
+  vatAmount: string;
+  whtAmount: string;
+  netAmount: string;
+  netAmountRaw: number;
   paidBy: string;
-  payments: Array<{
+  payLine: string;
+  bankAccount: string;
+  paidDate: string;
+  documents: Array<{
     no: number;
-    paymentDate: string;
-    method: string;
-    transactionRef: string;
+    apDocumentNo: string;
+    invoiceNo: string;
+    creditNoteNo: string;
     amount: string;
   }>;
+  attachmentNote: string;
 };
 
-type PaymentRow = SupplierPaymentVoucherPdfData["payments"][number];
+type DocumentRow = SupplierPaymentVoucherPdfData["documents"][number];
 
 const PAGE_ID = "supplier-payment-voucher-pdf";
 
@@ -77,38 +86,80 @@ function formatDate(value?: string) {
   return date.toLocaleDateString("th-TH");
 }
 
+function personLine(user?: SupplierPaymentUserSummary) {
+  if (!user) return "";
+  return [user.displayName, user.position, user.departmentName]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" / ");
+}
+
 export function mapSupplierPaymentVoucherToPdfData(
   voucher: SupplierPaymentVoucher,
 ): SupplierPaymentVoucherPdfData {
-  const payments = (voucher.payments ?? []).map((payment, index) => ({
+  const sourceNo = voucher.sourceNo || voucher.purchaseOrder?.poNo || "";
+  const mapped = (voucher.paidDocuments ?? []).map((doc, index) => ({
     no: index + 1,
-    paymentDate: formatDate(payment.paymentDate),
-    method:
-      SUPPLIER_PAYMENT_METHOD_LABEL[payment.paymentMethod ?? ""] ??
-      payment.paymentMethod ??
-      SUPPLIER_PAYMENT_METHOD_LABEL[voucher.paymentMethod] ??
-      voucher.paymentMethod,
-    transactionRef: payment.transactionRef || "-",
-    amount: formatMoney(payment.amount),
+    apDocumentNo: doc.apDocumentNo || sourceNo || "-",
+    invoiceNo: doc.invoiceNo || "-",
+    creditNoteNo: doc.creditNoteNo || "-",
+    amount: formatMoney(doc.amount),
   }));
+  const documents =
+    mapped.length > 0
+      ? mapped
+      : [
+          {
+            no: 1,
+            apDocumentNo: sourceNo || "-",
+            invoiceNo: "-",
+            creditNoteNo: "-",
+            amount: formatMoney(voucher.totalAmount),
+          },
+        ];
+  const attached = [
+    ...new Set(
+      documents.flatMap((row) =>
+        [row.apDocumentNo, row.invoiceNo, row.creditNoteNo].filter(
+          (value) => value && value !== "-",
+        ),
+      ),
+    ),
+  ];
+  const remark = voucher.remark?.trim() || "";
+  const attachmentNote = [...attached, remark].filter(Boolean).join("\n");
+  const paymentMethod =
+    SUPPLIER_PAYMENT_METHOD_LABEL[voucher.paymentMethod] ??
+    voucher.paymentMethod;
+  const paymentTerm = voucher.paymentTerm?.name || "ไม่ระบุ";
+  const paidDate =
+    formatDate(voucher.paidAt) !== "-"
+      ? formatDate(voucher.paidAt)
+      : formatDate(voucher.payments?.[0]?.paymentDate);
 
   return {
     voucherNo: voucher.voucherNo,
     voucherDate: formatDate(voucher.voucherDate),
     statusLabel:
       SUPPLIER_PAYMENT_STATUS_LABEL[voucher.status] ?? voucher.status,
-    poNo: voucher.purchaseOrder?.poNo || "-",
+    poNo: voucher.purchaseOrder?.poNo || sourceNo || "-",
     creditorCode: voucher.creditor?.creditorCode || "-",
     creditorName: voucher.creditor?.nameTh || "-",
-    paymentMethod:
-      SUPPLIER_PAYMENT_METHOD_LABEL[voucher.paymentMethod] ??
-      voucher.paymentMethod,
-    paymentTerm: voucher.paymentTerm?.name || "ไม่ระบุ",
+    paymentMethod,
+    paymentTerm,
     totalAmount: formatMoney(voucher.totalAmount),
-    totalAmountRaw: Number(voucher.totalAmount) || 0,
-    remark: voucher.remark?.trim() || "",
-    paidBy: voucher.paidBy?.displayName || "",
-    payments,
+    vatAmount: formatMoney(voucher.vatAmount ?? 0),
+    whtAmount: formatMoney(voucher.whtAmount ?? 0),
+    netAmount: formatMoney(voucher.netAmount ?? voucher.totalAmount),
+    netAmountRaw: Number(voucher.netAmount ?? voucher.totalAmount) || 0,
+    paidBy: personLine(voucher.paidBy),
+    payLine: `${paymentMethod} / ${paymentTerm}`,
+    bankAccount: voucher.companyBankAccount
+      ? `${voucher.companyBankAccount.bankName} ${voucher.companyBankAccount.accountNumber}`.trim()
+      : "",
+    paidDate: paidDate === "-" ? formatDate(voucher.voucherDate) : paidDate,
+    documents,
+    attachmentNote,
   };
 }
 
@@ -159,7 +210,7 @@ function firstBlockHtml(data: SupplierPaymentVoucherPdfData) {
         <section class="info-card">
           <div class="card-title">ผู้รับเงิน</div>
           <div class="info-grid">
-            ${infoRow("รหัสผู้ขาย :", data.creditorCode)}
+            ${infoRow("รหัสผู้รับเงิน :", data.creditorCode)}
             ${infoRow("ชื่อผู้ขาย :", data.creditorName)}
             ${infoRow("อ้างอิง PO :", data.poNo)}
           </div>
@@ -168,9 +219,10 @@ function firstBlockHtml(data: SupplierPaymentVoucherPdfData) {
         <section class="info-card">
           <div class="card-title">รายละเอียดการจ่าย</div>
           <div class="info-grid">
-            ${infoRow("วิธีจ่าย :", data.paymentMethod)}
-            ${infoRow("เงื่อนไข :", data.paymentTerm)}
             ${infoRow("ผู้จ่าย :", data.paidBy)}
+            ${infoRow("วิธีจ่าย :", data.payLine)}
+            ${infoRow("บัญชีที่โอน :", data.bankAccount)}
+            ${infoRow("วันที่จ่าย :", data.paidDate)}
           </div>
         </section>
       </div>`;
@@ -186,12 +238,22 @@ function contStripHtml(data: SupplierPaymentVoucherPdfData) {
 }
 
 /** กล่องยอดเงินเด่น พร้อมตัวหนังสือสื่อไทย — จัดสีตาม PO แล้ว */
+function summaryRow(label: string, value: string, net = false) {
+  return `
+        <div class="sum-row${net ? " net" : ""}">
+          <span>${escapeHtml(label)}</span>
+          <span>${escapeHtml(value)} บาท</span>
+        </div>`;
+}
+
 function heroHtml(data: SupplierPaymentVoucherPdfData) {
   return `
       <div class="hero">
-        <div class="hero-label">จำนวนเงินที่จ่าย</div>
-        <div class="hero-value">${escapeHtml(data.totalAmount)} <span>บาท</span></div>
-        <div class="hero-baht">( ${escapeHtml(numberToThaiBahtText(data.totalAmountRaw))} )</div>
+        ${summaryRow("จากรายการ", data.totalAmount)}
+        ${summaryRow("ภาษี", data.vatAmount)}
+        ${summaryRow("หัก ณ ที่จ่าย", data.whtAmount)}
+        ${summaryRow("ยอดจ่ายสุทธิ", data.netAmount, true)}
+        <div class="hero-baht">( ${escapeHtml(numberToThaiBahtText(data.netAmountRaw))} )</div>
       </div>`;
 }
 
@@ -199,45 +261,32 @@ function theadHtml() {
   return `
         <div class="tr thead">
           <div class="cell center">ลำดับ</div>
-          <div class="cell center">วันที่จ่าย</div>
-          <div class="cell center">วิธีจ่าย</div>
-          <div class="cell cell-name">อ้างอิง / รายละเอียด</div>
+          <div class="cell cell-name">เลขที่ AP</div>
+          <div class="cell cell-name">เลขที่ใบแจ้งหนี้</div>
+          <div class="cell cell-name">ใบลดหนี้</div>
           <div class="cell right">จำนวนเงิน</div>
         </div>`;
 }
 
-function rowHtml(row: PaymentRow) {
+function rowHtml(row: DocumentRow) {
   return `
         <div class="tr tbody">
           <div class="cell center">${row.no}</div>
-          <div class="cell center">${escapeHtml(row.paymentDate)}</div>
-          <div class="cell center">${escapeHtml(row.method)}</div>
-          <div class="cell cell-name">${escapeHtml(row.transactionRef)}</div>
+          <div class="cell cell-name">${escapeHtml(row.apDocumentNo)}</div>
+          <div class="cell cell-name">${escapeHtml(row.invoiceNo)}</div>
+          <div class="cell cell-name">${escapeHtml(row.creditNoteNo)}</div>
           <div class="cell right">${escapeHtml(row.amount)}</div>
         </div>`;
 }
 
-/** ไม่มีงวดจ่ายบันทึกไว้ ให้แสดงแถวสรุปจากหัวเอกสารแทน — พฤติกรรมเดิมของใบนี้ */
-function fallbackRows(data: SupplierPaymentVoucherPdfData): PaymentRow[] {
-  return [
-    {
-      no: 1,
-      paymentDate: data.voucherDate,
-      method: data.paymentMethod,
-      transactionRef: `จ่ายตามใบสั่งซื้อ ${data.poNo}`,
-      amount: data.totalAmount,
-    },
-  ];
-}
-
 function paymentRows(data: SupplierPaymentVoucherPdfData) {
-  return data.payments.length > 0 ? data.payments : fallbackRows(data);
+  return data.documents;
 }
 
 function noteHeadHtml() {
   return `
       <div class="note-rule"></div>
-      <div class="note-title">หมายเหตุ :</div>`;
+      <div class="note-title">เอกสารที่แนบ</div>`;
 }
 
 function noteChunkHtml(text: string) {
@@ -406,8 +455,8 @@ function createStyle() {
 
       .docbox {
         width: 233px;
-        border: 1px solid #D8DCE0;
-        border-radius: 5px;
+        border: none;
+        border-radius: 0;
         overflow: hidden;
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -488,7 +537,7 @@ function createStyle() {
 
       .info-grid {
         display: grid;
-        grid-template-columns: 70px 1fr;
+        grid-template-columns: 78px 1fr;
         row-gap: 6px;
       }
 
@@ -510,41 +559,33 @@ function createStyle() {
         border: 1px solid #D8DCE0;
         border-radius: 5px;
         background: #f2f8ec;
-        padding: 10px 14px 14px;
-        text-align: center;
+        padding: 8px 14px 10px;
         flex-shrink: 0;
-        line-height: 1;
       }
 
-      .hero-label {
+      .sum-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
         font-size: 8px;
         color: #343434;
-        font-weight: 700;
-        margin-bottom: 5px;
-        line-height: 1;
-        transform: translateY(-2px);
+        line-height: 1.5;
       }
 
-      .hero-value {
-        font-size: 21px;
+      .sum-row.net {
+        margin-top: 2px;
+        font-size: 11px;
+        font-weight: 700;
         color: #73b645;
-        font-weight: 700;
-        line-height: 1;
-        transform: translateY(-2px);
-      }
-
-      .hero-value span {
-        font-size: 10px;
-        font-weight: 700;
       }
 
       .hero-baht {
-        margin-top: 6px;
+        margin-top: 4px;
         font-size: 7.5px;
         font-weight: 700;
         color: #343434;
-        line-height: 1;
-        transform: translateY(-2px);
+        line-height: 1.3;
+        text-align: right;
       }
 
       .table {
@@ -559,7 +600,7 @@ function createStyle() {
       .tr {
         display: grid;
         width: 100%;
-        grid-template-columns: 34px 76px 76px 1fr 90px;
+        grid-template-columns: 34px 1.1fr 1.2fr 1fr 78px;
         align-items: center;
       }
 
@@ -589,7 +630,7 @@ function createStyle() {
 
       .thead .cell {
         padding: 10px 4px 9px;
-        white-space: nowrap;
+        white-space: normal;
       }
 
       .center { text-align: center; }
@@ -1002,7 +1043,7 @@ export async function buildSupplierPaymentVoucherPagesHtml(
   // ต้องรอฟอนต์ก่อนวัด — Sarabun สูงกว่า fallback ถ้าวัดก่อนโหลดเสร็จหน้าจะล้น
   await waitForSarabun();
 
-  const paragraphs = splitParagraphs(dash(data.remark));
+  const paragraphs = splitParagraphs(dash(data.attachmentNote));
   const probe = buildProbe(data, paragraphs);
 
   try {

@@ -54,6 +54,21 @@ export type SupplierPaymentUserSummary = {
   id: string;
   username: string;
   displayName: string;
+  position?: string;
+  departmentName?: string;
+};
+
+export type SupplierPaymentBankAccount = {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+};
+
+export type SupplierPaymentPaidDocument = {
+  apDocumentNo: string;
+  invoiceNo?: string;
+  creditNoteNo?: string;
+  amount: string;
 };
 
 export type SupplierPaymentLine = {
@@ -88,6 +103,7 @@ export type SupplierPaymentVoucher = {
   approvedAt?: string;
   paymentKind?: string;
   whtAmount: string;
+  vatAmount?: string;
   /** ยอดสุทธิหลังหัก ณ ที่จ่าย */
   netAmount: string;
   purchaseOrder?: SupplierPaymentPoSummary;
@@ -104,6 +120,8 @@ export type SupplierPaymentVoucher = {
   createdById?: string;
   createdBy?: SupplierPaymentUserSummary;
   remark?: string;
+  companyBankAccount?: SupplierPaymentBankAccount;
+  paidDocuments?: SupplierPaymentPaidDocument[];
   payments: SupplierPaymentLine[];
   createdAt: string;
   updatedAt: string;
