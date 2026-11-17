@@ -39,6 +39,9 @@ export type PackingItem = {
   packedQty: string;
   unitId: string;
   unitCode?: string;
+  unitNameTh?: string;
+  lotNo?: string;
+  warehouseName?: string;
   packageNo?: string;
   remark?: string;
   sortOrder: number;
@@ -53,6 +56,7 @@ export type Packing = {
   salesOrderNo?: string;
   customerId?: string;
   customerName?: string;
+  customerAddress?: string;
   packingDate: string;
   packageType?: string;
   /** Tank Loading: ใบจ่ายน้ำมันจากถังที่ผูกไว้ */

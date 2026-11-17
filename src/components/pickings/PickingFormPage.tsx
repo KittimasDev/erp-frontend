@@ -461,6 +461,9 @@ export default function PickingFormPage({ id, mode }: Props) {
                 pickingDate: dayjs(data.pickingDate).format("DD/MM/BBBB"),
                 salesOrderNo: data.salesOrderNo ?? "—",
                 customerName: data.customerName ?? "—",
+                contactName: data.contactName ?? "",
+                paymentMethod: data.paymentMethod ?? "",
+                customerPoNo: data.customerPoNo ?? "",
                 remark: data.remark?.trim() || "",
                 items: (data.items ?? []).map((item, index) => ({
                   no: index + 1,
@@ -468,8 +471,10 @@ export default function PickingFormPage({ id, mode }: Props) {
                   itemName: item.itemNameTh ?? "—",
                   unit: item.unitCode ?? "—",
                   qty: Number(item.pickedQty) || 0,
-                  warehouse: item.warehouseCode ?? item.locationCode,
+                  warehouse: item.warehouseCode,
+                  location: item.locationCode,
                   lotNo: item.lotNo,
+                  lineRemark: item.remark,
                 })),
               });
             }}

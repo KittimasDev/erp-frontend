@@ -1546,6 +1546,10 @@ function salesFitTextChunk(
   return [chunk, text.slice(cut).replace(/^ +/, "")];
 }
 
+function salesNameHtml(name: string) {
+  return escapeHtml(name).replaceAll("\n", "<br>");
+}
+
 function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   const priceCols = data.withPrices;
   const labels: Required<SalesCommercialPdfColumnLabels> = {
@@ -1606,7 +1610,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
         <div class="tr tbody ${colClass}">
           <div class="cell center">${item.no}</div>
           <div class="cell center">${escapeHtml(item.itemCode)}</div>
-          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell cell-name">${salesNameHtml(item.itemName)}</div>
           <div class="cell center">${escapeHtml(item.unit)}</div>
           <div class="cell right">${formatQty(item.qty)}</div>
           <div class="cell right">${formatMoney(item.unitPrice ?? 0)}</div>
@@ -1617,7 +1621,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
         <div class="tr tbody ${colClass}">
           <div class="cell center">${item.no}</div>
           <div class="cell center">${escapeHtml(item.itemCode)}</div>
-          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell cell-name">${salesNameHtml(item.itemName)}</div>
           <div class="cell center">${escapeHtml(item.unit)}</div>
           <div class="cell right">${formatQty(item.qty)}</div>
           ${hasExtra ? `<div class="cell center">${escapeHtml(item.extra ?? "—")}</div>` : ""}

@@ -57,6 +57,9 @@ export type Picking = {
   salesOrderNo?: string;
   customerId?: string;
   customerName?: string;
+  contactName?: string;
+  paymentMethod?: string;
+  customerPoNo?: string;
   pickingDate: string;
   status: PickingStatus | string;
   remark?: string;

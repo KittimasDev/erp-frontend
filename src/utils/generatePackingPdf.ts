@@ -3,19 +3,35 @@ import {
   type SalesLinePdfItem,
 } from "./pdf-common";
 
+export type PackingPdfLine = SalesLinePdfItem & {
+  lotNo?: string;
+  warehouseName?: string;
+};
+
 export type PackingPdfData = {
   packingNo: string;
   packingDate: string;
-  pickingNo: string;
   salesOrderNo: string;
   customerName: string;
-  packageType: string;
-  packageCount: string;
+  customerAddress: string;
   remark: string;
-  items: SalesLinePdfItem[];
+  items: PackingPdfLine[];
 };
 
+function productLot(name: string, lotNo?: string) {
+  const lot = lotNo?.trim();
+  return lot && lot !== "—" ? `${name} / ${lot}` : name;
+}
+
 export async function generatePackingPdf(data: PackingPdfData) {
+  const warehouses = [
+    ...new Set(
+      data.items
+        .map((item) => item.warehouseName?.trim())
+        .filter((name): name is string => Boolean(name) && name !== "—"),
+    ),
+  ];
+
   await generateSalesCommercialPdf({
     pageId: "packing-pdf",
     titleTh: "ใบบรรจุสินค้า",
@@ -24,14 +40,23 @@ export async function generatePackingPdf(data: PackingPdfData) {
     docDate: data.packingDate,
     infoRows: [
       { label: "ลูกค้า", value: data.customerName },
-      { label: "อ้างอิง SO", value: data.salesOrderNo },
-      { label: "อ้างอิง Picking", value: data.pickingNo },
-      { label: "ประเภทบรรจุ", value: data.packageType },
-      { label: "จำนวนหีบห่อ", value: data.packageCount },
+      { label: "ใบสั่งขายอ้างอิง", value: data.salesOrderNo },
+      { label: "คลังสินค้า", value: warehouses.join(", ") },
+      { label: "สถานที่จัดส่ง", value: data.customerAddress },
     ],
+    columnLabels: {
+      no: "ลำดับ",
+      code: "รหัสสินค้า",
+      name: "สินค้า / Lot",
+      qty: "จำนวนบรรจุ",
+      unit: "หน่วย",
+    },
     items: data.items.map((item) => ({
-      ...item,
-      extra: item.extra ?? "—",
+      no: item.no,
+      itemCode: item.itemCode,
+      itemName: productLot(item.itemName, item.lotNo),
+      unit: item.unit,
+      qty: item.qty,
     })),
     withPrices: false,
     remark: data.remark,

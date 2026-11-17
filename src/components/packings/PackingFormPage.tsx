@@ -376,20 +376,18 @@ export default function PackingFormPage({ id, mode }: Props) {
               void generatePackingPdf({
                 packingNo: data.packingNo,
                 packingDate: dayjs(data.packingDate).format("DD/MM/BBBB"),
-                pickingNo: data.pickingNo ?? "—",
                 salesOrderNo: data.salesOrderNo ?? "—",
                 customerName: data.customerName ?? "—",
-                packageType: packageTypeLabel(data.packageType),
-                packageCount:
-                  data.packageCount != null ? String(data.packageCount) : "—",
+                customerAddress: data.customerAddress ?? "",
                 remark: data.remark?.trim() || "",
                 items: (data.items ?? []).map((item, index) => ({
                   no: index + 1,
                   itemCode: item.itemCode ?? "—",
                   itemName: item.itemNameTh ?? "—",
-                  unit: item.unitCode ?? "—",
+                  unit: item.unitNameTh ?? item.unitCode ?? "—",
                   qty: Number(item.packedQty) || 0,
-                  extra: item.packageNo ?? "—",
+                  lotNo: item.lotNo,
+                  warehouseName: item.warehouseName,
                 })),
               });
             }}
