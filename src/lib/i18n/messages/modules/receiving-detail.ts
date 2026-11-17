@@ -56,6 +56,7 @@ export const EN_RECEIVING_DETAIL: Record<string, string> = {
   "กก.": "kg",
   "น้ำหนักออก": "Weight out",
   "รูปจากกล้องเครื่องชั่ง": "Scale camera photos",
+  "แนบไฟล์ประกอบตั๋วใบนี้ เช่น สำเนาบัตรประชาชน ใบกำกับภาษี สลิป หรือเอกสารอื่น ๆ": "Attach supporting files for this ticket, e.g. ID card copy, tax invoice, slip or other documents",
   "ไฟล์ที่ส่งมากับบัตร T2900 (เข้า/ออก · กล้อง 1–2) — คลิกดูขยาย":
     "Files sent with the T2900 card (in/out · cameras 1–2) — click to enlarge",
   "ขั้นตอนดำเนินการ (คัดแยก · จ่ายเงิน · เข้าคลัง)": "Process steps (sorting · payment · warehouse intake)",

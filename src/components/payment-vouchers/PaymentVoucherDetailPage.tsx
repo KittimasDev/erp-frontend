@@ -89,6 +89,11 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   if (!d || !v) return <Alert type="error" showIcon title={t("ไม่พบใบสำคัญจ่าย")} />;
 
   const status = v.status;
+  // PO ต้นทางถูกยกเลิก → backend ปฏิเสธส่งอนุมัติ/ตรวจ/อนุมัติ/จ่าย — ปิดปุ่มและเตือนให้ยกเลิก PV (เอกสารที่ยังไม่จบ)
+  const cancelledPos = (d.purchaseOrders ?? []).filter((po) => po.isCancelled);
+  const poBlocked =
+    cancelledPos.length > 0 &&
+    ["DRAFT", "PENDING_APPROVAL", "REJECTED", "APPROVED"].includes(status);
   const run = (a: "submit" | "review" | "approve") => action.mutate({ id, action: a });
   const handlePrintPdf = async () => {
     setPdfLoading(true);
@@ -179,19 +184,19 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
                 <Button loading={update.isPending} onClick={() => void saveEdit(false)}>
                   {status === "REJECTED" ? t("บันทึกการแก้ไข") : t("แก้ไข (บันทึกร่าง)")}
                 </Button>
-                <Button type="primary" loading={action.isPending || update.isPending} onClick={() => void saveEdit(true)}>
+                <Button type="primary" disabled={poBlocked} loading={action.isPending || update.isPending} onClick={() => void saveEdit(true)}>
                   {status === "REJECTED" ? t("ส่งอนุมัติใหม่") : t("ส่งอนุมัติ")}
                 </Button>
               </>
             ) : null}
             {status === "PENDING_APPROVAL" && perms.canEdit && !legacy ? (
-              <Button loading={action.isPending} onClick={() => run("review")}>
+              <Button disabled={poBlocked} loading={action.isPending} onClick={() => run("review")}>
                 {t("บันทึกการตรวจสอบ")}
               </Button>
             ) : null}
             {status === "PENDING_APPROVAL" && perms.canApprove && !legacy ? (
               <>
-                <Button type="primary" loading={action.isPending} onClick={() => run("approve")}>
+                <Button type="primary" disabled={poBlocked} loading={action.isPending} onClick={() => run("approve")}>
                   {t("อนุมัติ")}
                 </Button>
                 <Button danger onClick={() => setReasonFor("reject")}>
@@ -200,9 +205,15 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
               </>
             ) : null}
             {status === "APPROVED" && !legacy ? (
-              <Link href={PV_PAYMENT_RECORDS_PATH}>
-                <Button type="primary">{t("ไปบันทึกจ่ายเงิน")}</Button>
-              </Link>
+              poBlocked ? (
+                <Button type="primary" disabled>
+                  {t("ไปบันทึกจ่ายเงิน")}
+                </Button>
+              ) : (
+                <Link href={PV_PAYMENT_RECORDS_PATH}>
+                  <Button type="primary">{t("ไปบันทึกจ่ายเงิน")}</Button>
+                </Link>
+              )
             ) : null}
             {["DRAFT", "PENDING_APPROVAL", "REJECTED", "APPROVED"].includes(status) && perms.canEdit && !legacy ? (
               <Button danger onClick={() => setReasonFor("cancel")}>
@@ -245,7 +256,17 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
       {status === "CANCELLED" ? (
         <Alert type="warning" showIcon title={t("ยกเลิกใบสำคัญจ่ายแล้ว")} description={d.cancelReason} />
       ) : null}
-      {status === "APPROVED" ? (
+      {poBlocked ? (
+        <Alert
+          type="error"
+          showIcon
+          title={t("PO {poNo} ถูกยกเลิกแล้ว — ส่งอนุมัติ อนุมัติ และบันทึกจ่ายเงินไม่ได้", {
+            poNo: cancelledPos.map((po) => po.poNo).join(", "),
+          })}
+          description={t("กรุณายกเลิกใบสำคัญจ่ายนี้ (ปุ่ม ยกเลิก ยังใช้ได้) — ห้ามจ่ายเงินให้ผู้ขายของ PO ที่ยกเลิกแล้ว")}
+        />
+      ) : null}
+      {status === "APPROVED" && !poBlocked ? (
         <Alert
           type="info"
           showIcon

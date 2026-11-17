@@ -39,3 +39,6 @@ export const DOCUMENT_TYPE_SUPPLIER_PAYMENT = "SUPPLIER_PAYMENT";
 /** ตั๋วชั่ง — รูป OCR / กล้อง T2900 */
 export const DOCUMENT_TYPE_WEIGHBRIDGE_TICKET = "WEIGHBRIDGE_TICKET";
 export const ATTACHMENT_GROUP_T2900_CAMERA = "T2900_CAMERA";
+
+/** เอกสารแนบของตั๋วรับซื้อยางที่ผู้ใช้แนบเอง — แยกจากรูป OCR/กล้อง T2900 (ใช้ WEIGHBRIDGE_TICKET) */
+export const DOCUMENT_TYPE_RECEIVING_TICKET = "RECEIVING_TICKET";

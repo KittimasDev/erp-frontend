@@ -34,6 +34,9 @@ import { appLocale, tLabel } from "./receiving-i18n";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
 
+import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPanel";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { DOCUMENT_TYPE_RECEIVING_TICKET } from "@/types/document-attachments";
 import ReceivingDocumentsCard, {
   type ReceivingDocumentRow,
 } from "./ReceivingDocumentsCard";
@@ -215,6 +218,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
   const ticketQuery = useWeighbridgeTicketQuery(ticketId);
   const ticket = ticketQuery.data?.data;
+  const receivingPerms = useScreenActionPermissions("RECEIVING");
   const receiptQuery = useRawTirePurchaseReceiptQuery(ticket?.receiptId ?? "");
   const receipt = receiptQuery.data?.data ?? null;
   const stockQuery = useStockPostingRequestByReceiptQuery(ticket?.receiptId);
@@ -816,6 +820,21 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
             )}
 
             <ReceivingDocumentsCard rows={documentRows} />
+
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h3>{t("เอกสารแนบ")}</h3>
+                <p>{t("แนบไฟล์ประกอบตั๋วใบนี้ เช่น สำเนาบัตรประชาชน ใบกำกับภาษี สลิป หรือเอกสารอื่น ๆ")}</p>
+              </div>
+              <div className={styles.cardBody}>
+                <DocumentAttachmentsPanel
+                  documentType={DOCUMENT_TYPE_RECEIVING_TICKET}
+                  documentId={ticket.id}
+                  canEdit={receivingPerms.canEdit || receivingPerms.canAdd}
+                  emptyText={t("ยังไม่มีเอกสารแนบ")}
+                />
+              </div>
+            </div>
 
             <div className={styles.card}>
               <div className={styles.cardHeader}>

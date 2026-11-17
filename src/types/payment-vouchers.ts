@@ -143,7 +143,12 @@ export type VoucherApDocument = {
   purchaseOrderId?: string;
   poNo?: string;
 };
-export type VoucherPurchaseOrderRef = { id: string; poNo: string };
+export type VoucherPurchaseOrderRef = {
+  id: string;
+  poNo: string;
+  /** PO ต้นทางถูกยกเลิกแล้ว — ส่งอนุมัติ/อนุมัติ/บันทึกจ่ายไม่ได้ (ยกเลิก PV ได้) */
+  isCancelled?: boolean;
+};
 export type VoucherSupplier = { id: string; creditorCode?: string; nameTh: string; taxId?: string };
 export type VoucherBankAccount = {
   id: string;

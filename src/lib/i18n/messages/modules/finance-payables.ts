@@ -165,6 +165,10 @@ export const EN_FINANCE_PAYABLES: Record<string, string> = {
   "จ่ายเงินสำเร็จ": "Payment completed",
   "จ่ายเงินไม่สำเร็จ": "Payment failed",
   "ยกเลิกใบสำคัญจ่ายแล้ว": "Payment voucher cancelled",
+  "PO {poNo} ถูกยกเลิกแล้ว — ส่งอนุมัติ อนุมัติ และบันทึกจ่ายเงินไม่ได้":
+    "PO {poNo} is cancelled — this voucher cannot be submitted, approved or paid",
+  "กรุณายกเลิกใบสำคัญจ่ายนี้ (ปุ่ม ยกเลิก ยังใช้ได้) — ห้ามจ่ายเงินให้ผู้ขายของ PO ที่ยกเลิกแล้ว":
+    "Please cancel this payment voucher (the Cancel button still works) — do not pay the supplier of a cancelled PO",
   "ยกเลิกใบสำคัญจ่ายไม่สำเร็จ": "Failed to cancel payment voucher",
   "อัปโหลดหลักฐานการจ่ายเงินสำเร็จ": "Payment evidence uploaded",
 
