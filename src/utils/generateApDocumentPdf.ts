@@ -3,7 +3,9 @@ import { vatAmountLabel } from "@/lib/money/vat-totals";
 import { AP_SETTLEMENT_METHOD_LABEL, type ApDocument } from "@/types/ap-documents";
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 
+import { numberToThaiBahtText } from "./numberToThaiBahtText";
 import {
+  escapeHtml,
   generateSalesCommercialPdf,
   type SalesCommercialPdfData,
   type SalesCommercialPdfInfoRow,
@@ -22,14 +24,127 @@ const VAT_MODE_TEXT: Record<string, string> = {
   NONE: "ไม่มี VAT",
 };
 
+/** ป้ายสถานะบนหัวกระดาษ — ใบที่อนุมัติแล้วไม่มีป้าย (ใช้ร่วมทุกประเภทเอกสาร) */
+function draftBannerOf(doc: ApDocument): string | undefined {
+  if (doc.status === "APPROVED") return undefined;
+  if (doc.status === "CANCELLED") {
+    return `ยกเลิกแล้ว${doc.cancelReason ? ` — ${doc.cancelReason}` : ""}`;
+  }
+  if (doc.status === "PENDING_APPROVAL") return "รออนุมัติ — ยังไม่อนุมัติ";
+  if (doc.status === "REJECTED") return "ไม่อนุมัติ";
+  return "ร่าง — ยังไม่อนุมัติ";
+}
+
+/** เพิ่มแถวเฉพาะที่มีค่า — ข้อมูลที่ระบบไม่มีไม่พิมพ์ทั้งแถว (ไม่ใส่ "—" หรือ placeholder) */
+function pushIf(
+  rows: SalesCommercialPdfInfoRow[],
+  label: string,
+  value: string | null | undefined,
+  options?: Pick<SalesCommercialPdfInfoRow, "emphasis" | "full">,
+) {
+  const text = (value ?? "").trim();
+  if (text) rows.push({ label, value: text, ...options });
+}
+
+/**
+ * ใบลดหนี้เจ้าหนี้ (AP Credit Note) — จัดเนื้อหาตามแบบฟอร์มบริษัท แต่ใช้ดีไซน์/ตัวแบ่งหน้าของ template เอกสารกลาง
+ *
+ * ตารางใช้คอลัมน์ที่ระบบเก็บจริง (จำนวน × ราคา = มูลค่าที่ลดลง) — ระบบไม่ได้เก็บ "มูลค่าเดิม/ที่ถูกต้อง" ต่อบรรทัด
+ * จึงไม่พิมพ์สองคอลัมน์นั้น · ฟิลด์ที่ไม่มีข้อมูลไม่พิมพ์ (ประเภทเหตุผล ผู้ติดต่อ ใบกำกับภาษีเดิม ฯลฯ)
+ */
+function buildCreditNotePdfData(doc: ApDocument): SalesCommercialPdfData {
+  const creditorRows: SalesCommercialPdfInfoRow[] = [];
+  pushIf(creditorRows, "เจ้าหนี้", `${doc.creditorCode} ${doc.creditorName}`, {
+    emphasis: true,
+  });
+  pushIf(creditorRows, "ที่อยู่", doc.creditorAddress);
+  pushIf(creditorRows, "เลขประจำตัวผู้เสียภาษี", doc.creditorTaxId);
+
+  const refRows: SalesCommercialPdfInfoRow[] = [];
+  pushIf(
+    refRows,
+    "ใบลดหนี้ผู้ขายเลขที่",
+    doc.supplierDocNo
+      ? `${doc.supplierDocNo}${doc.supplierDocDate ? ` (${thaiDate(doc.supplierDocDate)})` : ""}`
+      : null,
+  );
+  pushIf(refRows, "AP Invoice", doc.referenceDocumentNo);
+  pushIf(refRows, "ใบสั่งซื้อ (PO)", doc.purchaseOrderNo);
+  pushIf(refRows, "ใบรับสินค้า (GRN)", doc.goodsReceiptNo);
+  pushIf(refRows, "การคิด VAT", VAT_MODE_TEXT[doc.vatMode] ?? doc.vatMode);
+  pushIf(
+    refRows,
+    "วิธีจัดการยอด",
+    AP_SETTLEMENT_METHOD_LABEL[doc.settlementMethod ?? "OFFSET_AP"] ??
+      doc.settlementMethod,
+  );
+  pushIf(refRows, "สาเหตุการลดหนี้", doc.reason, { full: true });
+
+  const infoSections = [
+    { title: "ข้อมูลเจ้าหนี้ / ผู้ขาย", rows: creditorRows },
+    { title: "เอกสารอ้างอิง", rows: refRows },
+  ].filter((section) => section.rows.length > 0);
+
+  const vatRatePart =
+    typeof doc.vatRate === "number" && doc.vatRate > 0 ? ` ${doc.vatRate}%` : "";
+  const bahtText = numberToThaiBahtText(doc.totalAmount);
+
+  return {
+    pageId: "ap-credit-note-pdf",
+    titleTh: "ใบลดหนี้เจ้าหนี้",
+    titleEn: "AP CREDIT NOTE",
+    docNo: doc.docNo,
+    docDate: thaiDate(doc.docDate),
+    draftBanner: draftBannerOf(doc),
+    infoRows: [],
+    infoSections,
+    items: doc.items.map((item, index) => ({
+      no: index + 1,
+      itemCode: item.itemCode ?? "—",
+      itemName: item.description,
+      unit: item.unitLabel ?? "—",
+      qty: item.quantity,
+      unitPrice: item.unitPrice,
+      // amount ใน payload หักส่วนลดบรรทัดแล้ว (calcLineAmount) — คอลัมน์ส่วนลดแสดงเพื่อข้อมูลเท่านั้น
+      discountAmount: item.discountAmount ?? 0,
+      amount: item.amount,
+    })),
+    columnLabels: { price: "ราคา/หน่วย", amount: "มูลค่าที่ลดลง" },
+    withPrices: true,
+    subtotalAmount: doc.subtotalAmount,
+    vatAmount: doc.vatAmount,
+    totalAmount: doc.totalAmount,
+    totalsLines: [
+      { label: "มูลค่าลดหนี้ก่อน VAT", value: doc.subtotalAmount },
+      { label: `VAT ที่ลดลง${vatRatePart}`, value: doc.vatAmount },
+      { label: "รวมยอดลดหนี้", value: doc.totalAmount, grand: true },
+    ],
+    afterTableHtml: bahtText
+      ? `<div style="text-align:right;font-size:11px;color:#5b6b63;margin-top:4px;">( ${escapeHtml(bahtText)} )</div>`
+      : undefined,
+    remark: [
+      doc.remark ?? "",
+      "เอกสารนี้เป็นแบบฟอร์มบันทึกใบลดหนี้เจ้าหนี้ภายใน ERP ไม่ใช่ใบลดหนี้ภาษีที่บริษัทออกแทนผู้ขาย",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    signatures: [
+      { title: "ผู้จัดทำ", name: doc.createdByName ?? undefined },
+      "ผู้ตรวจสอบ",
+      { title: "ผู้อนุมัติ", name: doc.approvedByName ?? undefined },
+    ],
+  };
+}
+
 /**
  * ใบตั้งหนี้ / ใบเพิ่มหนี้ เจ้าหนี้ (TOR Phase 1 ข้อ 4.4) — ใช้ template เอกสารขายตัวเดียวกับใบลดหนี้
  *
  * ใบที่ยังไม่อนุมัติหรือถูกยกเลิก พิมพ์ป้ายเตือนไว้หัวกระดาษ กันเอาใบร่างไปใช้เป็นใบจริง
  */
 export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData {
+  // ใบลดหนี้ใช้เนื้อหาตามแบบฟอร์มของบริษัท — ใบตั้งหนี้/ใบเพิ่มหนี้ยังใช้ชุดเดิมด้านล่าง
+  if (doc.docType === "CREDIT_NOTE") return buildCreditNotePdfData(doc);
   const isInvoice = doc.docType === "AP_INVOICE";
-  const isCredit = doc.docType === "CREDIT_NOTE";
   const infoRows: SalesCommercialPdfInfoRow[] = [
     {
       label: "เจ้าหนี้",
@@ -38,7 +153,7 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
     },
     { label: "เลขประจำตัวผู้เสียภาษี", value: doc.creditorTaxId || "—" },
     {
-      label: isInvoice ? "เลขที่ใบแจ้งหนี้ผู้ขาย" : isCredit ? "เลขที่ใบลดหนี้ผู้ขาย" : "เลขที่ใบเพิ่มหนี้ผู้ขาย",
+      label: isInvoice ? "เลขที่ใบแจ้งหนี้ผู้ขาย" : "เลขที่ใบเพิ่มหนี้ผู้ขาย",
       value: doc.supplierDocNo
         ? `${doc.supplierDocNo}${doc.supplierDocDate ? ` (${thaiDate(doc.supplierDocDate)})` : ""}`
         : "—",
@@ -56,35 +171,20 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
   if (doc.creditorAddress) {
     infoRows.push({ label: "ที่อยู่", value: doc.creditorAddress, full: true });
   }
-  if (isCredit) {
-    infoRows.push({
-      label: "วิธีจัดการยอด",
-      value: AP_SETTLEMENT_METHOD_LABEL[doc.settlementMethod ?? "OFFSET_AP"] ?? doc.settlementMethod ?? "—",
-    });
-  }
   if (!isInvoice && doc.reason) {
     infoRows.push({
-      label: isCredit ? "สาเหตุที่ลดหนี้" : "เหตุผลที่เพิ่มหนี้",
+      label: "เหตุผลที่เพิ่มหนี้",
       value: doc.reason,
       full: true,
     });
   }
 
-  const draftBanner =
-    doc.status === "APPROVED"
-      ? undefined
-      : doc.status === "CANCELLED"
-        ? `ยกเลิกแล้ว${doc.cancelReason ? ` — ${doc.cancelReason}` : ""}`
-        : doc.status === "PENDING_APPROVAL"
-          ? "รออนุมัติ — ยังไม่อนุมัติ"
-          : doc.status === "REJECTED"
-            ? "ไม่อนุมัติ"
-            : "ร่าง — ยังไม่อนุมัติ";
+  const draftBanner = draftBannerOf(doc);
 
   return {
-    pageId: isInvoice ? "ap-invoice-pdf" : isCredit ? "ap-credit-note-pdf" : "ap-debit-note-pdf",
-    titleTh: isInvoice ? "ใบตั้งหนี้" : isCredit ? "ใบลดหนี้" : "ใบเพิ่มหนี้",
-    titleEn: isInvoice ? "ACCOUNTS PAYABLE INVOICE" : isCredit ? "CREDIT NOTE" : "DEBIT NOTE",
+    pageId: isInvoice ? "ap-invoice-pdf" : "ap-debit-note-pdf",
+    titleTh: isInvoice ? "ใบตั้งหนี้" : "ใบเพิ่มหนี้",
+    titleEn: isInvoice ? "ACCOUNTS PAYABLE INVOICE" : "DEBIT NOTE",
     docNo: doc.docNo,
     docDate: thaiDate(doc.docDate),
     draftBanner,
@@ -121,7 +221,7 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
         value: doc.vatAmount,
       },
       {
-        label: isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้",
+        label: isInvoice ? "ยอดตั้งหนี้" : "ยอดเพิ่มหนี้",
         value: doc.totalAmount,
         grand: true,
       },
