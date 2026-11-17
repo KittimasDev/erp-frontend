@@ -833,6 +833,8 @@ export type SalesCommercialPdfData = {
   signatures?: [SalesSignatureSlot, SalesSignatureSlot, SalesSignatureSlot];
   /** รหัสกับชื่ออยู่คอลัมน์เดียว เรียง ลำดับ ชื่อ จำนวน หน่วย */
   codeWithName?: boolean;
+  /** สี่คอลัมน์ ลำดับ รหัส วันที่ ยอด และแสดง totalsLines ได้โดยไม่เปิดตารางราคา */
+  lineAmountTable?: boolean;
   /** ก้อนใต้ตาราง ก่อนหมายเหตุ — วัดทั้งก้อนก่อนตัดหน้า */
   afterTableHtml?: string;
 };
@@ -1151,6 +1153,10 @@ function salesStyles() {
 
       .tr.c4 {
         grid-template-columns: 34px 1fr 70px 56px;
+      }
+
+      .tr.c4amt {
+        grid-template-columns: 34px 1.4fr 110px 90px;
       }
 
       .after-table {
@@ -1593,6 +1599,7 @@ function salesNameHtml(name: string) {
 
 function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   const priceCols = data.withPrices;
+  const lineAmount = Boolean(data.lineAmountTable) && !priceCols;
   const labels: Required<SalesCommercialPdfColumnLabels> = {
     no: data.columnLabels?.no ?? "#",
     code: data.columnLabels?.code ?? "รหัส",
@@ -1612,8 +1619,17 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   const hasExtra = groups.some((group) =>
     group.items.some((item) => item.extra != null),
   );
-  const codeWithName = Boolean(data.codeWithName) && !priceCols && !hasExtra;
-  const colClass = priceCols ? "c8" : hasExtra ? "c6" : codeWithName ? "c4" : "c5";
+  const codeWithName =
+    Boolean(data.codeWithName) && !priceCols && !lineAmount && !hasExtra;
+  const colClass = priceCols
+    ? "c8"
+    : lineAmount
+      ? "c4amt"
+      : hasExtra
+        ? "c6"
+        : codeWithName
+          ? "c4"
+          : "c5";
 
   const thead = priceCols
     ? `
@@ -1625,6 +1641,14 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           <div class="cell right">${escapeHtml(labels.qty)}</div>
           <div class="cell right">${escapeHtml(labels.price)}</div>
           <div class="cell right">${escapeHtml(labels.disc)}</div>
+          <div class="cell right">${escapeHtml(labels.amount)}</div>
+        </div>`
+    : lineAmount
+      ? `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">${escapeHtml(labels.no)}</div>
+          <div class="cell center">${escapeHtml(labels.code)}</div>
+          <div class="cell center">${escapeHtml(labels.name)}</div>
           <div class="cell right">${escapeHtml(labels.amount)}</div>
         </div>`
     : hasExtra
@@ -1665,6 +1689,14 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           <div class="cell right">${formatQty(item.qty)}</div>
           <div class="cell right">${formatMoney(item.unitPrice ?? 0)}</div>
           <div class="cell right">${formatMoney(item.discountAmount ?? 0)}</div>
+          <div class="cell right">${formatMoney(item.amount ?? 0)}</div>
+        </div>`
+      : lineAmount
+        ? `
+        <div class="tr tbody ${colClass}">
+          <div class="cell center">${item.no}</div>
+          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell center">${escapeHtml(salesDash(item.itemName))}</div>
           <div class="cell right">${formatMoney(item.amount ?? 0)}</div>
         </div>`
       : codeWithName
@@ -1780,7 +1812,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
     { label: "ยอดสุทธิ", value: data.totalAmount ?? 0, grand: true },
   ];
   const totalsLines = data.totalsLines ?? defaultTotals;
-  const totals = priceCols
+  const totals = priceCols || lineAmount
     ? `
       <div class="totals">
         ${totalsLines

@@ -290,11 +290,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/hrm/leave-requests", screenCodes: ["HRM_LEAVE"] },
   {
     prefix: "/purchase-payments",
-    screenCodes: [
-      "FINANCE_PAYABLE_PAYMENT_HISTORY",
-      "PURCHASE_PAYMENTS",
-      "PURCHASE_PAYMENTS_PENDING",
-    ],
+    screenCodes: ["FINANCE_PAYABLE_PAYMENT_HISTORY"],
   },
   { prefix: "/finance/dashboard", screenCodes: ["FINANCE_DASHBOARD"] },
   { prefix: "/finance/payables/creditors", screenCodes: ["FINANCE_PAYABLE_CREDITORS"] },
@@ -327,11 +323,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   {
     prefix: "/finance/payables/payment-history",
-    screenCodes: [
-      "FINANCE_PAYABLE_PAYMENT_HISTORY",
-      "PURCHASE_PAYMENTS",
-      "PURCHASE_PAYMENTS_PENDING",
-    ],
+    screenCodes: ["FINANCE_PAYABLE_PAYMENT_HISTORY"],
   },
   {
     prefix: "/finance/payables/creditor-balances",
@@ -545,6 +537,18 @@ export function resolveScreenCodesForPath(
   if (/^\/goods-receipts\/create-from-po\/[^/]+$/.test(pathname)) {
     return ["GOODS_RECEIPTS"];
   }
+  if (
+    /^\/finance\/payables\/payment-vouchers\/[^/]+$/.test(pathname) &&
+    !pathname.endsWith("/create")
+  ) {
+    return [
+      "FINANCE_PAYMENT_VOUCHERS",
+      "FINANCE_PAYMENT_RECORDS",
+      "FINANCE_PAYABLE_PAYMENT_HISTORY",
+      "PURCHASE_PAYMENTS",
+      "PURCHASE_PAYMENTS_PENDING",
+    ];
+  }
 
   if (
     !pathname ||
@@ -674,8 +678,6 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   HRM_ATTENDANCE_DEVICES: "/hrm/attendance-devices",
   HRM_OVERTIME: "/hrm/overtime-requests",
   HRM_LEAVE: "/hrm/leave-requests",
-  PURCHASE_PAYMENTS_PENDING: "/finance/payables/payment-history",
-  PURCHASE_PAYMENTS: "/finance/payables/payment-history",
   FINANCE_HOME: "/finance",
   FINANCE_DASHBOARD: "/finance/dashboard",
   FINANCE_PAYABLES: "/finance/payables",

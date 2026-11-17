@@ -147,12 +147,12 @@ export function TaxCard({
   return (
     <Card title={t("ข้อมูลภาษี (VAT / หัก ณ ที่จ่าย)")} size="small">
       <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>
-        <Descriptions.Item label="VAT">{fmtMoney(vat)}</Descriptions.Item>
+        <Descriptions.Item label="VAT">{Number(vat) > 0 ? fmtMoney(vat) : "—"}</Descriptions.Item>
         <Descriptions.Item label={t("ฐานภาษีหัก ณ ที่จ่าย")}>{hasWht ? fmtMoney(whtBase) : "—"}</Descriptions.Item>
         <Descriptions.Item label={t("อัตรา WHT")}>
           {!hasWht ? t("ไม่มี") : multi ? t("หลายอัตรา") : `${Number(whtRate)}%`}
         </Descriptions.Item>
-        <Descriptions.Item label={t("ยอด WHT")}>{fmtMoney(whtAmount)}</Descriptions.Item>
+        <Descriptions.Item label={t("ยอด WHT")}>{hasWht ? fmtMoney(whtAmount) : "—"}</Descriptions.Item>
         <Descriptions.Item label={t("ยอดสุทธิจ่าย")} span="filled">
           <Typography.Text strong>{fmtMoney(net)}</Typography.Text>
         </Descriptions.Item>
@@ -171,11 +171,14 @@ export function SummaryCard({
   amount,
   wht,
   net,
+  deposit,
 }: {
   info: Pick<VoucherSourceInfo, "sourceDocumentAmount" | "issuedPvAmount" | "remainingIssuable">;
   amount: number | string;
   wht: number | string;
   net: number | string;
+  /** มัดจำของ AP ที่ใบนี้ชำระเต็มยอด — ไม่แสดงเมื่อไม่มี */
+  deposit?: string;
 }) {
   const t = useT();
   return (
@@ -185,7 +188,10 @@ export function SummaryCard({
         <Descriptions.Item label={t("ยอดที่ออก PV ไปแล้ว")}>{fmtMoney(info.issuedPvAmount)}</Descriptions.Item>
         <Descriptions.Item label={t("ยอดคงเหลือที่ออก PV ได้")}>{fmtMoney(info.remainingIssuable)}</Descriptions.Item>
         <Descriptions.Item label={t("ยอดที่ต้องการจ่าย")}>{fmtMoney(amount)}</Descriptions.Item>
-        <Descriptions.Item label={t("ภาษีหัก ณ ที่จ่าย")}>{fmtMoney(wht)}</Descriptions.Item>
+        <Descriptions.Item label={t("ภาษีหัก ณ ที่จ่าย")}>{Number(wht) > 0 ? fmtMoney(wht) : "—"}</Descriptions.Item>
+        {Number(deposit) > 0 ? (
+          <Descriptions.Item label={t("ยอดหักมัดจำ")}>{fmtMoney(deposit)}</Descriptions.Item>
+        ) : null}
         <Descriptions.Item label={t("ยอดสุทธิที่ต้องจ่าย (โอนจริง)")}>
           <Typography.Text strong style={{ fontSize: 16 }}>
             {fmtMoney(net)}
@@ -216,6 +222,9 @@ export function ApAllocationTable({
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     { title: t("เลขที่ AP"), dataIndex: "docNo" },
+    ...(rows.some((row) => row.invoiceNo)
+      ? [{ title: t("เลขที่ใบแจ้งหนี้"), dataIndex: "invoiceNo", render: (v?: string) => v || "—" }]
+      : []),
     { title: t("เลขที่ PO"), dataIndex: "poNo", render: (v?: string) => v ?? "—" },
     {
       title: t("ยอดที่ PV ใบนี้นำไปชำระ"),
@@ -224,7 +233,16 @@ export function ApAllocationTable({
       width: 220,
       render: (v: string, row) => (amountCell ? amountCell(row) : fmtMoney(v)),
     },
-    { title: t("WHT ของยอดนี้"), dataIndex: "whtAmount", align: "right", width: 140, render: (v: string) => fmtMoney(v) },
+    ...(rows.some((row) => Number(row.depositDeductAmount) > 0)
+      ? [{
+          title: t("หักมัดจำ"),
+          dataIndex: "depositDeductAmount",
+          align: "right" as const,
+          width: 140,
+          render: (v?: string) => (Number(v) > 0 ? fmtMoney(v) : "—"),
+        }]
+      : []),
+    { title: t("WHT ของยอดนี้"), dataIndex: "whtAmount", align: "right" as const, width: 140, render: (v: string) => (Number(v) > 0 ? fmtMoney(v) : "—") },
   ];
   return (
     <Table size="small" rowKey="id" columns={columns} dataSource={rows} pagination={false} style={{ marginTop: 12 }} />

@@ -136,6 +136,10 @@ export type VoucherApDocument = {
   docNo: string;
   allocatedAmount: string;
   whtAmount: string;
+  /** เลขที่ใบแจ้งหนี้ผู้ขายหรือใบกำกับ — ไม่มีเมื่อต้นทางไม่ได้บันทึก */
+  invoiceNo?: string;
+  /** ยอดหักมัดจำบนใบตั้งหนี้ — ไม่มีเมื่อไม่ได้หัก */
+  depositDeductAmount?: string;
   purchaseOrderId?: string;
   poNo?: string;
 };
@@ -178,6 +182,8 @@ export type PaymentVoucherDetail = VoucherSourceInfo & {
   voucher: import("@/types/purchase-payments").SupplierPaymentVoucher;
   desiredPayDate?: string;
   bankAccount?: VoucherBankAccount;
+  /** รวมมัดจำของ AP ที่ใบนี้ชำระเต็มยอด — ไม่มีเมื่อจ่ายบางส่วนหรือไม่ได้หัก */
+  depositDeductAmount?: string;
   vatAmount: string;
   whtBaseAmount: string;
   whtRate: string;

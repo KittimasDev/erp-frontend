@@ -169,6 +169,10 @@ export type BillingNoteDetail = {
   creditorId: string;
   creditorCode: string;
   creditorName: string;
+  contactName?: string;
+  contactPhone?: string;
+  creditorAddress?: string;
+  paymentTerm?: string;
   remark?: string;
   totalAmount: number;
   issuedPvAmount: number;

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Card, Descriptions, Form, Input, Modal, Space, Spin, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, Descriptions, Form, Input, Modal, Space, Spin, Table, Tag, Typography } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, FilePdfOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -21,7 +22,8 @@ import {
   VOUCHER_STATUS_COLOR,
   VOUCHER_STATUS_LABEL,
 } from "@/types/payment-vouchers";
-import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
+import { SUPPLIER_PAYMENT_METHOD_LABEL, type SupplierPaymentLine } from "@/types/purchase-payments";
+import { getAccessToken } from "@/lib/auth/token";
 import { useT } from "@/lib/i18n/useT";
 import PaymentMethodFields, { bankLabel, paymentMethodLabel } from "./PaymentMethodFields";
 import PvAttachmentsPanel from "./PvAttachmentsPanel";
@@ -40,6 +42,7 @@ import { tFin, PV_BASE_PATH,
   kindLabel,
   referenceLine, } from "./paymentVoucherUtils";
 import PageHeader from "@/components/common/PageHeader";
+import TransferEvidenceCard from "./TransferEvidenceCard";
 
 type EditValues = {
   voucherDate: Dayjs;
@@ -54,6 +57,7 @@ const EDITABLE = ["DRAFT", "REJECTED"];
 /** รายละเอียด/แก้ไขใบสำคัญจ่าย — Layout เดียวกับหน้าสร้าง เปลี่ยนเป็น read-only ตามสถานะ */
 export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   const t = useT();
+  const { message } = App.useApp();
   const router = useRouter();
   const perms = useScreenActionPermissions("FINANCE_PAYMENT_VOUCHERS");
   const query = usePaymentVoucherDetailQuery(id);
@@ -66,7 +70,9 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   const [pdfLoading, setPdfLoading] = useState(false);
   const d = query.data?.data;
   const v = d?.voucher;
-  const editable = Boolean(v && EDITABLE.includes(v.status) && perms.canEdit);
+  const legacy = Boolean(v && !v.queueItemId);
+  const editable = Boolean(v && !legacy && EDITABLE.includes(v.status) && perms.canEdit);
+  const activePayments = (v?.payments ?? []).filter((payment) => payment.status !== "CANCELLED");
 
   useEffect(() => {
     if (!d || !v || !editable) return;
@@ -87,8 +93,12 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   const handlePrintPdf = async () => {
     setPdfLoading(true);
     try {
+      const { getPaymentVoucherDetail } = await import("@/lib/api/payment-vouchers");
       const { generatePaymentVoucherPdf } = await import("@/utils/generatePaymentVoucherPdf");
-      await generatePaymentVoucherPdf(d);
+      const res = await getPaymentVoucherDetail(getAccessToken(), id);
+      await generatePaymentVoucherPdf(res.data);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : t("พิมพ์ใบสำคัญจ่ายไม่สำเร็จ"));
     } finally {
       setPdfLoading(false);
     }
@@ -174,12 +184,12 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
                 </Button>
               </>
             ) : null}
-            {status === "PENDING_APPROVAL" && perms.canEdit ? (
+            {status === "PENDING_APPROVAL" && perms.canEdit && !legacy ? (
               <Button loading={action.isPending} onClick={() => run("review")}>
                 {t("บันทึกการตรวจสอบ")}
               </Button>
             ) : null}
-            {status === "PENDING_APPROVAL" && perms.canApprove ? (
+            {status === "PENDING_APPROVAL" && perms.canApprove && !legacy ? (
               <>
                 <Button type="primary" loading={action.isPending} onClick={() => run("approve")}>
                   {t("อนุมัติ")}
@@ -189,12 +199,12 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
                 </Button>
               </>
             ) : null}
-            {status === "APPROVED" ? (
+            {status === "APPROVED" && !legacy ? (
               <Link href={PV_PAYMENT_RECORDS_PATH}>
                 <Button type="primary">{t("ไปบันทึกจ่ายเงิน")}</Button>
               </Link>
             ) : null}
-            {["DRAFT", "PENDING_APPROVAL", "REJECTED", "APPROVED"].includes(status) && perms.canEdit ? (
+            {["DRAFT", "PENDING_APPROVAL", "REJECTED", "APPROVED"].includes(status) && perms.canEdit && !legacy ? (
               <Button danger onClick={() => setReasonFor("cancel")}>
                 {t("ยกเลิก")}
               </Button>
@@ -276,7 +286,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
       </Card>
 
       <TaxCard vat={d.vatAmount} whtBase={d.whtBaseAmount} whtRate={d.whtRate} whtAmount={v.whtAmount} net={v.netAmount} whtLines={d.whtLines} />
-      <SummaryCard info={d} amount={v.totalAmount} wht={v.whtAmount} net={v.netAmount} />
+      <SummaryCard info={d} amount={v.totalAmount} wht={v.whtAmount} net={v.netAmount} deposit={d.depositDeductAmount} />
 
       <Card title={t("7. วิธีชำระเงินและบัญชีที่ใช้จ่าย")} size="small">
         {editable ? (
@@ -321,30 +331,43 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
       </Card>
 
       <ESignatureHistoryCard documentId={id} />
-      {status === "PAID" ? (
+      {activePayments.length > 0 ? (
         <Card title={t("10. ข้อมูลการจ่ายเงินจริง")} size="small">
           <Table
             size="small"
             rowKey="id"
             pagination={false}
-            dataSource={v.payments}
+            dataSource={activePayments}
             columns={[
-    {
-      title: t("ลำดับ"),
-      key: "seq",
-      width: 64,
-      align: "center",
-      render: (_: unknown, __: unknown, index: number) => index + 1,
-    },
-    { title: t("วันที่จ่าย"), dataIndex: "paymentDate", render: (x: string) => dayjs(x).format("DD/MM/BBBB") },
+              {
+                title: t("ลำดับ"),
+                key: "seq",
+                width: 64,
+                align: "center",
+                render: (_: unknown, __: SupplierPaymentLine, index: number) => index + 1,
+              },
+              { title: t("วันที่จ่าย"), dataIndex: "paymentDate", render: (x: string) => dayjs(x).format("DD/MM/BBBB") },
               { title: t("วิธีจ่าย"), dataIndex: "paymentMethod", render: (x: string) => SUPPLIER_PAYMENT_METHOD_LABEL[x] ? tFin(SUPPLIER_PAYMENT_METHOD_LABEL[x]) : x },
               { title: t("ยอดจ่ายจริง"), dataIndex: "amount", align: "right" as const, render: (x: string) => fmtMoney(x) },
-              { title: t("เลขอ้างอิงการโอน"), dataIndex: "transactionRef", render: (x?: string) => x ?? "—" },
-              { title: t("ผู้บันทึก"), key: "by", render: (_x: unknown, r: { paidBy?: { displayName: string } }) => r.paidBy?.displayName ?? "—" },
-            ]}
+              { title: t("เลขอ้างอิงการโอน"), dataIndex: "transactionRef", render: (x?: string) => x || "—" },
+              {
+                title: t("บัญชีที่จ่าย"),
+                key: "bank",
+                render: (_x: unknown, row: SupplierPaymentLine) =>
+                  row.bankAccount
+                    ? `${row.bankAccount.bankName} ${row.bankAccount.accountNumber}`
+                    : "—",
+              },
+              { title: t("ผู้บันทึก"), key: "by", render: (_x: unknown, row: SupplierPaymentLine) => row.paidBy?.displayName ?? "—" },
+            ] as ColumnsType<SupplierPaymentLine>}
           />
         </Card>
       ) : null}
+      <TransferEvidenceCard
+        voucherId={id}
+        legacy={legacy}
+        paymentIds={activePayments.map((payment) => payment.id)}
+      />
 
       <Modal
         open={reasonFor !== null}

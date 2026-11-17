@@ -79,6 +79,9 @@ export type SupplierPaymentLine = {
   paymentMethod: string;
   amount: string;
   transactionRef?: string;
+  status?: string;
+  companyBankAccountId?: string;
+  bankAccount?: SupplierPaymentBankAccount;
   paidById?: string;
   paidBy?: SupplierPaymentUserSummary;
   remark?: string;

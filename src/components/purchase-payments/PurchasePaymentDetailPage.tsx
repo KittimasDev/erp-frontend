@@ -245,13 +245,10 @@ function PurchasePaymentDetailView({
   const handlePrintPdf = async () => {
     setIsPrinting(true);
     try {
-      const {
-        generateSupplierPaymentVoucherPdf,
-        mapSupplierPaymentVoucherToPdfData,
-      } = await import("@/utils/generateSupplierPaymentVoucherPdf");
-      await generateSupplierPaymentVoucherPdf(
-        mapSupplierPaymentVoucherToPdfData(data),
-      );
+      const { getPaymentVoucherDetail } = await import("@/lib/api/payment-vouchers");
+      const { generatePaymentVoucherPdf } = await import("@/utils/generatePaymentVoucherPdf");
+      const res = await getPaymentVoucherDetail(getAccessToken(), data.id);
+      await generatePaymentVoucherPdf(res.data);
     } catch (error) {
       message.error(
         error instanceof Error ? error.message : t("พิมพ์ใบสำคัญจ่ายไม่สำเร็จ"),
@@ -266,7 +263,11 @@ function PurchasePaymentDetailView({
       <PageHeader
         eyebrow="Purchase Payments"
         icon={<DollarOutlined />}
-        title={data.voucherNo}
+        title={
+          <Link href={`/finance/payables/payment-vouchers/${data.id}`}>
+            {data.voucherNo}
+          </Link>
+        }
         subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.voucherDate)} ·{" "}
             {formatMoney(data.totalAmount)} {t("บาท")}</>}
         actions={
@@ -298,7 +299,11 @@ function PurchasePaymentDetailView({
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("เลขที่")}</span>
-                <div className={styles.metaValue}>{data.voucherNo}</div>
+                <div className={styles.metaValue}>
+                  <Link href={`/finance/payables/payment-vouchers/${data.id}`}>
+                    {data.voucherNo}
+                  </Link>
+                </div>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("วันที่")}</span>

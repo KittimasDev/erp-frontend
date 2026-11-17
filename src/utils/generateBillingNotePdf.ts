@@ -1,14 +1,9 @@
 import dayjs from "dayjs";
-import {
-  BILLING_NOTE_STATUS_LABEL,
-  BILLING_PV_STATUS_LABEL,
-  type BillingNoteDetail,
-} from "@/types/billing-notes";
+import type { BillingNoteDetail } from "@/types/billing-notes";
 
 import {
   generateSalesCommercialPdf,
   type SalesCommercialPdfData,
-  type SalesCommercialPdfInfoRow,
 } from "./pdf-common";
 
 function thaiDate(value?: string | null) {
@@ -20,19 +15,21 @@ function thaiDate(value?: string | null) {
 
 /** ใบวางบิล (เจ้าหนี้) — ใช้ template เอกสารกลุ่มเดียวกับใบตั้งหนี้ */
 export function buildBillingNotePdfData(n: BillingNoteDetail): SalesCommercialPdfData {
-  const infoRows: SalesCommercialPdfInfoRow[] = [
-    { label: "เจ้าหนี้", value: `${n.creditorCode} ${n.creditorName}`.trim(), emphasis: true },
-    { label: "วันที่นัดชำระ", value: thaiDate(n.appointmentDate) },
-    { label: "สถานะ", value: BILLING_NOTE_STATUS_LABEL[n.status] ?? n.status },
-    { label: "สถานะใบสำคัญจ่าย", value: BILLING_PV_STATUS_LABEL[n.pvStatus] ?? n.pvStatus },
-  ];
-
   const draftBanner =
     n.status === "CONFIRMED"
       ? undefined
       : n.status === "CANCELLED"
         ? `ยกเลิกแล้ว${n.cancelReason ? ` — ${n.cancelReason}` : ""}`
         : "ร่าง — ยังไม่ยืนยัน";
+
+  const lines = n.items.map((item, index) => ({
+    no: index + 1,
+    itemCode: item.docNo,
+    itemName: thaiDate(item.dueDate),
+    unit: "",
+    qty: 0,
+    amount: item.amount,
+  }));
 
   return {
     pageId: "billing-note-pdf",
@@ -41,31 +38,34 @@ export function buildBillingNotePdfData(n: BillingNoteDetail): SalesCommercialPd
     docNo: n.billingNo,
     docDate: thaiDate(n.billingDate),
     draftBanner,
-    infoRows,
-    items: n.items.map((item, index) => ({
-      no: index + 1,
-      itemCode: item.docNo,
-      itemName: `ใบตั้งหนี้ ${item.docNo}${item.poNo ? ` (PO ${item.poNo})` : ""}${item.dueDate ? ` · ครบกำหนด ${thaiDate(item.dueDate)}` : ""}`,
-      unit: "ใบ",
-      qty: 1,
-      unitPrice: item.amount,
-      amount: item.amount,
-    })),
-    columnLabels: {
-      code: "เลขที่ AP",
-      name: "รายการ",
-      unit: "หน่วย",
-      qty: "จำนวน",
-      price: "ยอดวางบิล",
-      amount: "จำนวนเงิน",
-    },
-    withPrices: true,
-    totalAmount: n.totalAmount,
-    totalsLines: [
-      { label: "ยอดวางบิลรวม", value: n.totalAmount, grand: true },
-      { label: "ออกใบสำคัญจ่ายแล้ว", value: n.issuedPvAmount },
-      { label: "คงเหลือที่ออกได้", value: n.remainingAmount },
+    infoRows: [],
+    infoSections: [
+      {
+        title: "ข้อมูลเจ้าหนี้",
+        pairs: true,
+        rows: [
+          { label: "ชื่อเจ้าหนี้", value: n.creditorName },
+          { label: "รหัสเจ้าหนี้", value: n.creditorCode },
+          { label: "ผู้ติดต่อ", value: n.contactName ?? "" },
+          { label: "เบอร์โทรศัพท์", value: n.contactPhone ?? "" },
+          { label: "ที่อยู่", value: n.creditorAddress ?? "" },
+          { label: "วันที่นัดชำระ", value: thaiDate(n.appointmentDate) },
+          { label: "เงื่อนไขการชำระเงิน", value: n.paymentTerm ?? "" },
+        ],
+      },
     ],
+    items: [],
+    itemGroups: [{ heading: "รายการเอกสารที่วางบิล", items: lines }],
+    columnLabels: {
+      no: "ลำดับ",
+      code: "เลขที่ใบแจ้งหนี้",
+      name: "กำหนดชำระ",
+      amount: "ยอดวางบิล",
+    },
+    withPrices: false,
+    lineAmountTable: true,
+    totalAmount: n.totalAmount,
+    totalsLines: [{ label: "รวมยอดวางบิลทั้งสิ้น", value: n.totalAmount, grand: true }],
     remark: n.remark ?? "",
     signatures: [
       { title: "ผู้จัดทำ", name: n.createdByName },

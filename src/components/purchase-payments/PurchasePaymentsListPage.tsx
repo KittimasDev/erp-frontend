@@ -128,7 +128,15 @@ export default function PurchasePaymentsListPage({
         dataIndex: "voucherNo",
         render: (value: string, row) => (
           <DocNoWithFlowBadge
-            no={<span className={styles.voucherNo}>{value}</span>}
+            no={
+              <Link
+                href={`/finance/payables/payment-vouchers/${row.id}`}
+                className={styles.voucherNo}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {value}
+              </Link>
+            }
             source={{ kind: "payment", status: row.status }}
           />
         ),
