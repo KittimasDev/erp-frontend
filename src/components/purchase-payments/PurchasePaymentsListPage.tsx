@@ -41,7 +41,7 @@ function formatMoney(value?: string | number) {
 }
 
 type Props = {
-  /** path รายการ — ค่าเริ่มต้น /purchase-payments */
+  /** path รายการ — ค่าเริ่มต้นหน้าประวัติในหมวดการเงิน */
   basePath?: string;
   /** ปุ่มด้านขวาบน (เช่น ใบสำคัญจ่าย / PO รอจ่าย) */
   secondaryHref?: string;
@@ -49,7 +49,7 @@ type Props = {
 };
 
 export default function PurchasePaymentsListPage({
-  basePath = "/purchase-payments",
+  basePath = "/finance/payables/payment-history",
   secondaryHref = "/finance/payables/payment-vouchers",
   secondaryLabel = "ใบสำคัญจ่าย",
 }: Props) {

@@ -131,8 +131,6 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/laboratory/specs", title: "Spec การตรวจ (LIMS)" },
   { href: "/laboratory/dashboard", title: "แดชบอร์ดห้องแล็บ" },
   { href: "/goods-receipts", title: "รับสินค้าเข้าคลัง (PO)" },
-  { href: "/purchase-payments/pending", title: "รอจ่ายเงิน Supplier" },
-  { href: "/purchase-payments", title: "ประวัติการจ่ายเงิน" },
   { href: "/finance/payables/adjustment-documents", title: "เอกสารปรับหนี้" },
   { href: "/finance/payables/billing-and-vouchers", title: "วางบิลและใบสำคัญจ่าย" },
   { href: "/finance/payables/ap-invoices", title: "ใบตั้งหนี้เจ้าหนี้" },

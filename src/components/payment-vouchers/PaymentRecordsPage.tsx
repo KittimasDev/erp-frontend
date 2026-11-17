@@ -212,7 +212,7 @@ export default function PaymentRecordsPage() {
       width: 130,
       render: (_v, r) => (
         // PV จากคิว → หน้ารายละเอียดรายการจ่ายใหม่ (id = รายการจ่าย) · PV เดิมจากใบสั่งซื้อ → หน้า PV เดิม
-        <Link href={r.viaQueue ? `${PAYMENT_RECORDS_PATH}/${r.id}` : `/purchase-payments/${r.voucherId}`}>
+        <Link href={r.viaQueue ? `${PAYMENT_RECORDS_PATH}/${r.id}` : `/finance/payables/payment-history/${r.voucherId}`}>
           <Button size="small">{t("ดูรายละเอียด")}</Button>
         </Link>
       ),

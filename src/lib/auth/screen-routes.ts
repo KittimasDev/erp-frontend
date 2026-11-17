@@ -289,10 +289,13 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/hrm/overtime-requests", screenCodes: ["HRM_OVERTIME"] },
   { prefix: "/hrm/leave-requests", screenCodes: ["HRM_LEAVE"] },
   {
-    prefix: "/purchase-payments/pending",
-    screenCodes: ["PURCHASE_PAYMENTS_PENDING"],
+    prefix: "/purchase-payments",
+    screenCodes: [
+      "FINANCE_PAYABLE_PAYMENT_HISTORY",
+      "PURCHASE_PAYMENTS",
+      "PURCHASE_PAYMENTS_PENDING",
+    ],
   },
-  { prefix: "/purchase-payments", screenCodes: ["PURCHASE_PAYMENTS"] },
   { prefix: "/finance/dashboard", screenCodes: ["FINANCE_DASHBOARD"] },
   { prefix: "/finance/payables/creditors", screenCodes: ["FINANCE_PAYABLE_CREDITORS"] },
   { prefix: "/finance/payables/advance-requests", screenCodes: ["FINANCE_ADVANCE_REQUESTS"] },
@@ -324,7 +327,11 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   {
     prefix: "/finance/payables/payment-history",
-    screenCodes: ["FINANCE_PAYABLE_PAYMENT_HISTORY"],
+    screenCodes: [
+      "FINANCE_PAYABLE_PAYMENT_HISTORY",
+      "PURCHASE_PAYMENTS",
+      "PURCHASE_PAYMENTS_PENDING",
+    ],
   },
   {
     prefix: "/finance/payables/creditor-balances",
@@ -667,8 +674,8 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   HRM_ATTENDANCE_DEVICES: "/hrm/attendance-devices",
   HRM_OVERTIME: "/hrm/overtime-requests",
   HRM_LEAVE: "/hrm/leave-requests",
-  PURCHASE_PAYMENTS_PENDING: "/purchase-payments/pending",
-  PURCHASE_PAYMENTS: "/purchase-payments",
+  PURCHASE_PAYMENTS_PENDING: "/finance/payables/payment-history",
+  PURCHASE_PAYMENTS: "/finance/payables/payment-history",
   FINANCE_HOME: "/finance",
   FINANCE_DASHBOARD: "/finance/dashboard",
   FINANCE_PAYABLES: "/finance/payables",

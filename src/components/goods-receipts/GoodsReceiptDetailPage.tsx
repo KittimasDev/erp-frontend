@@ -412,7 +412,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 className={styles.secondaryBtn}
                 icon={<HistoryOutlined />}
                 onClick={() =>
-                  router.push(`/purchase-payments/${linkedPayment.id}`)
+                  router.push(`/finance/payables/payment-history/${linkedPayment.id}`)
                 }
               >
                 {t("ดูประวัติการจ่ายเงิน")}
@@ -430,7 +430,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 type="primary"
                 icon={<DollarOutlined />}
                 onClick={() =>
-                  router.push(`/purchase-payments/create-from-po/${poId}`)
+                  router.push("/finance/payables/payment-vouchers")
                 }
               >
                 {t("จ่ายเงิน")}
@@ -447,7 +447,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 type="primary"
                 icon={<DollarOutlined />}
                 onClick={() =>
-                  router.push(`/purchase-payments/${linkedPayment.id}`)
+                  router.push(`/finance/payables/payment-history/${linkedPayment.id}`)
                 }
               >
                 {t("ดูใบสำคัญจ่าย (DRAFT)")}
@@ -466,7 +466,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 onClick={() =>
                   router.push(
                     linkedPayment
-                      ? `/purchase-payments/${linkedPayment.id}`
+                      ? `/finance/payables/payment-history/${linkedPayment.id}`
                       : `/purchase-orders/${poId}`,
                   )
                 }

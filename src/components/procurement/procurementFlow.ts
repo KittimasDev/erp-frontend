@@ -282,7 +282,7 @@ export function resolveProcurementFlow(
       id: payment.id,
       no: payment.voucherNo,
       status: payment.status,
-      href: `/purchase-payments/${payment.id}`,
+      href: `/finance/payables/payment-history/${payment.id}`,
     };
   }
 

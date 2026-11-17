@@ -247,7 +247,7 @@ export default function PaymentVouchersPage() {
       width: 150,
       render: (_v, r) => (
         // PV จากคิวใช้ฟอร์มกลาง · PV แบบเดิมจากใบสั่งซื้อใช้หน้ารายละเอียดเดิม
-        <Link href={r.queueItemId ? `${PV_BASE_PATH}/${r.id}` : `/purchase-payments/${r.id}`}>
+        <Link href={r.queueItemId ? `${PV_BASE_PATH}/${r.id}` : `/finance/payables/payment-history/${r.id}`}>
           <Button size="small">{r.status === "DRAFT" || r.status === "REJECTED" ? t("ดู / แก้ไข") : t("ดูรายละเอียด")}</Button>
         </Link>
       ),

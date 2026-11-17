@@ -1,14 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { use } from "react";
-
-import PurchasePaymentDetailPage from "@/components/purchase-payments/PurchasePaymentDetailPage";
-
-export default function Page({
+export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  return <PurchasePaymentDetailPage id={id} />;
+  const { id } = await params;
+  redirect(`/finance/payables/payment-history/${id}`);
 }

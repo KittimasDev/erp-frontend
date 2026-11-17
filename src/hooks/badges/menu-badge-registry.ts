@@ -19,7 +19,6 @@ import {
   pendingProductionRequestsCountOptions,
 } from "@/hooks/production-requests/useProductionRequestQueries";
 import { pendingPurchaseOrderApprovalsCountOptions } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
-import { pendingPurchasePaymentsCountOptions } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import {
   pendingPurchaseRequestApprovalsCountOptions,
   purchaseOrdersPendingFromPrCountOptions,
@@ -257,20 +256,6 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
     hidden: true,
     options: (ctx) =>
       pendingSalesInvoicesCountOptions(ctx) as UseQueryOptions<
-        unknown,
-        Error,
-        number
-      >,
-  },
-
-  // ─── การเงิน ─────────────────────────────────────────────────────────────
-  {
-    menuKey: "purchase-payments-pending",
-    screenCode: "PURCHASE_PAYMENTS_PENDING",
-    kind: "action",
-    label: "รอจ่ายเงิน Supplier",
-    options: (ctx) =>
-      pendingPurchasePaymentsCountOptions(ctx) as UseQueryOptions<
         unknown,
         Error,
         number

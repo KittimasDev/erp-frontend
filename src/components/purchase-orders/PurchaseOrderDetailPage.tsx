@@ -325,7 +325,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const paymentHref = linkedPayment
     ? linkedPayment.queueItemId
       ? `/finance/payables/payment-vouchers/${linkedPayment.id}`
-      : `/purchase-payments/${linkedPayment.id}`
+      : `/finance/payables/payment-history/${linkedPayment.id}`
     : null;
   const schedules = schedulesQuery.data?.data ?? [];
   const canShowReceive =

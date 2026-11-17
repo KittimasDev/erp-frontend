@@ -5,11 +5,10 @@ import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, DatePicker, Form, Input, Modal, Spin, Upload } from "antd";
+import { App, Button, Modal, Spin, Upload } from "antd";
 import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
-  CheckOutlined,
   DeleteOutlined,
   DollarOutlined,
   DownloadOutlined,
@@ -21,7 +20,6 @@ import dayjs from "dayjs";
 
 import {
   useCancelPurchasePaymentMutation,
-  useConfirmPurchasePaymentMutation,
   useDeletePurchasePaymentAttachmentMutation,
   useUploadPurchasePaymentAttachmentMutation,
 } from "@/hooks/purchase-payments/usePurchasePaymentMutations";
@@ -34,7 +32,6 @@ import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceip
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
-import { useLanguage } from "@/lib/i18n/language";
 import { useT, tNow } from "@/lib/i18n/useT";
 import { tStatus } from "@/types/purchase-orders";
 import type { DocumentAttachment } from "@/types/document-attachments";
@@ -100,7 +97,7 @@ function formatFileSize(value?: string | number) {
 
 export default function PurchasePaymentDetailPage({
   id,
-  listHref = "/purchase-payments",
+  listHref = "/finance/payables/payment-history",
 }: Props) {
   const t = useT();
   const query = usePurchasePaymentQuery(id);
@@ -137,33 +134,24 @@ function PurchasePaymentDetailView({
 }) {
   const router = useRouter();
   const t = useT();
-  const lang = useLanguage();
   const { modal, message } = App.useApp();
-  const confirmMutation = useConfirmPurchasePaymentMutation();
   const cancelMutation = useCancelPurchasePaymentMutation();
   const attachmentsQuery = usePurchasePaymentAttachmentsQuery(data.id);
   const uploadMutation = useUploadPurchasePaymentAttachmentMutation();
   const deleteAttachmentMutation = useDeletePurchasePaymentAttachmentMutation();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
-  const [confirmForm] = Form.useForm<{
-    paymentDate: dayjs.Dayjs;
-    transactionRef?: string;
-    remark?: string;
-  }>();
 
   /**
-   * ตรงกับ guard ฝั่ง backend ของ purchase-payments.controller
-   * confirm จ่ายเงิน = PURCHASE_PAYMENTS_PENDING.APPROVE · ยกเลิกเอกสาร = .EDIT
+   * ยกเลิกเอกสาร DRAFT ที่ไม่มีคิว = PURCHASE_PAYMENTS_PENDING.EDIT
+   * ปุ่ม Confirm จ่ายเงินถูกปิดเพราะ endpoint เดิมไม่รับแล้ว
    */
   const pendingActions = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING");
   const paymentActions = useScreenActionPermissions("PURCHASE_PAYMENTS");
-  const canConfirmPayment = pendingActions.canApprove;
   const canCancelPayment = pendingActions.canEdit;
   const canManageAttachment =
     (pendingActions.canEdit || paymentActions.canEdit) &&
@@ -177,7 +165,6 @@ function PurchasePaymentDetailView({
   const attachments = attachmentsQuery.data?.data ?? [];
 
   const busy =
-    confirmMutation.isPending ||
     cancelMutation.isPending ||
     uploadMutation.isPending ||
     deleteAttachmentMutation.isPending;
@@ -537,22 +524,6 @@ function PurchasePaymentDetailView({
           </div>
 
           <div className={styles.actionStack}>
-            {data.status === "DRAFT" && canConfirmPayment ? (
-              <Button
-                className={styles.primaryBtn}
-                type="primary"
-                icon={<CheckOutlined />}
-                loading={busy}
-                onClick={() => {
-                  confirmForm.setFieldsValue({
-                    paymentDate: dayjs(data.voucherDate),
-                  });
-                  setConfirmOpen(true);
-                }}
-              >
-                {t("Confirm จ่ายเงิน")}
-              </Button>
-            ) : null}
             {data.status === "DRAFT" && canCancelPayment ? (
               <Button
                 className={styles.secondaryBtn}
@@ -608,52 +579,6 @@ function PurchasePaymentDetailView({
           />
         </aside>
       </div>
-
-      <Modal
-        title={t("Confirm จ่ายเงิน")}
-        open={confirmOpen}
-        onCancel={() => setConfirmOpen(false)}
-        confirmLoading={confirmMutation.isPending}
-        okText={lang === "en" ? "Pay" : "จ่ายเงิน"}
-        destroyOnHidden={false}
-        forceRender
-        onOk={async () => {
-          const values = await confirmForm.validateFields();
-          await confirmMutation.mutateAsync({
-            id: data.id,
-            body: {
-              paymentDate: values.paymentDate.format("YYYY-MM-DD"),
-              transactionRef: values.transactionRef?.trim() || undefined,
-              remark: values.remark?.trim() || undefined,
-            },
-          });
-          setConfirmOpen(false);
-        }}
-      >
-        <Form form={confirmForm} layout="vertical" preserve={false}>
-          <Form.Item
-            label={t("วันที่จ่าย")}
-            name="paymentDate"
-            rules={[{ required: true }]}
-          >
-            <DatePicker style={{ width: "100%" }} format="DD/MM/BBBB" />
-          </Form.Item>
-          <Form.Item
-            label={t("เลขอ้างอิงการโอน")}
-            name="transactionRef"
-            rules={
-              data.paymentMethod === "TRANSFER"
-                ? [{ required: true, message: t("กรณีโอนต้องระบุเลขอ้างอิง") }]
-                : undefined
-            }
-          >
-            <Input placeholder="TRX-..." />
-          </Form.Item>
-          <Form.Item label={t("หมายเหตุ")} name="remark">
-            <Input.TextArea rows={2} />
-          </Form.Item>
-        </Form>
-      </Modal>
 
       <Modal
         open={previewOpen}

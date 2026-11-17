@@ -1799,26 +1799,6 @@ const financeMenus: MenuItem[] = [
       },
     ],
   },
-  {
-    key: "purchase-payments-pending",
-    screenCode: "PURCHASE_PAYMENTS_PENDING",
-    label: "รอจ่ายเงิน Supplier",
-    href: "/purchase-payments/pending",
-    icon: <IconPayment />,
-    roles: [ROLE.ACCOUNTING_OFFICER],
-  },
-  {
-    key: "purchase-payments",
-    screenCode: "PURCHASE_PAYMENTS",
-    label: "ประวัติการจ่ายเงิน",
-    href: "/purchase-payments",
-    icon: <IconPayment />,
-    roles: [
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
 ];
 
 const JOURNAL_REPORT_ROLES = [ROLE.ACCOUNTING_OFFICER, ROLE.EXECUTIVE];
