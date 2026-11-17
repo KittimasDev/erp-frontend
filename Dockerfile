@@ -3,7 +3,8 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 
 FROM node:20-alpine AS builder
@@ -12,13 +13,17 @@ WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
+ARG API_URL=http://erp-backend:8080
+ENV API_URL=$API_URL
+
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npm run build
+RUN --mount=type=cache,target=/app/.next/cache \
+    npm run build
 
 
 FROM node:20-alpine AS runner

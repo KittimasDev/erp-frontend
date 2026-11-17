@@ -15,7 +15,7 @@ function resolveApiUrl(raw?: string): string {
   }
 }
 
-const apiUrl = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
+const apiUrl = resolveApiUrl(process.env.API_URL);
 
 const nextConfig: NextConfig = {
   output: "standalone",
