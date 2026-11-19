@@ -321,12 +321,12 @@ export default function PackingFormPage({ id, mode }: Props) {
                 href={`/pickings/${data.pickingId}`}
                 className={styles.docLink}
               >
-                {t("ใบจ่าย")} {data.pickingNo ?? data.pickingId}
+                {t("ใบเบิก")} {data.pickingNo ?? data.pickingId}
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ) : (
               <span className={styles.metaChip}>
-                {t("ใบจ่าย")}{" "}
+                {t("ใบเบิก")}{" "}
                 <span className={styles.metaChipMuted}>—</span>
               </span>
             )}
@@ -413,7 +413,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                   onClick={() =>
                     modal.confirm({
                       title: t("ยืนยันใบบรรจุนี้?"),
-                      content: t("จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า"),
+                      content: t("จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบเบิกสินค้า"),
                       onOk: async () => {
                         await handleSave();
                         await confirmMutation.mutateAsync(id);
@@ -524,11 +524,11 @@ export default function PackingFormPage({ id, mode }: Props) {
                 <ShoppingCartOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>{t("ใบจ่ายสินค้า")}</p>
+                <p className={styles.relatedLabel}>{t("ใบเบิกสินค้า")}</p>
                 <p className={styles.relatedValue}>
                   {data.pickingNo ?? data.pickingId}
                 </p>
-                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบจ่าย")}</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบเบิก")}</p>
               </div>
             </Link>
           ) : null}
@@ -678,7 +678,7 @@ export default function PackingFormPage({ id, mode }: Props) {
           <div className={styles.toolbarLeft}>
             <p className={styles.toolbarTitle}>{t("รายการสินค้าที่บรรจุ")}</p>
             <p className={styles.toolbarHint}>
-              {t("จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า")}
+              {t("จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบเบิกสินค้า")}
             </p>
           </div>
         </div>

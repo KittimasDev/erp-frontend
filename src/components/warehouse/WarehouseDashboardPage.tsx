@@ -223,7 +223,7 @@ const SECTIONS: WarehouseHubSection[] = [
       {
         key: "sd-stock-verification",
         title: "ตรวจสอบสต๊อกขาย",
-        description: "ตรวจของก่อนเปิดใบจ่ายสินค้าให้ใบสั่งขาย",
+        description: "ตรวจของก่อนเปิดใบเบิกสินค้าให้ใบสั่งขาย",
         href: "/sales-orders/stock-verification",
         icon: <ProfileOutlined />,
         screenCodes: ["SALES_STOCK_VERIFICATION"],
@@ -231,7 +231,7 @@ const SECTIONS: WarehouseHubSection[] = [
       },
       {
         key: "pickings",
-        title: "ใบจ่ายสินค้า / Picking",
+        title: "ใบเบิกสินค้า / Picking",
         description: "จ่ายของออกจากคลังตามใบสั่งขาย",
         href: "/pickings",
         icon: <ShoppingOutlined />,

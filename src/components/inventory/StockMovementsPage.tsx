@@ -498,7 +498,7 @@ export default function StockMovementsPage() {
           <div className={styles.toolbarLeft}>
             <p className={styles.toolbarTitle}>{t("รายการเคลื่อนไหว")}</p>
             <p className={styles.toolbarHint}>
-              {t("สีเขียว = เข้าคลัง / รายรับ · สีแดง = ออกคลัง / รายจ่าย · สีฟ้า = ขายออกจากใบจ่าย (มูลค่าจากราคาใบสั่งขาย)")}
+              {t("สีเขียว = เข้าคลัง / รายรับ · สีแดง = ออกคลัง / รายจ่าย · สีฟ้า = ขายออกจากใบเบิก (มูลค่าจากราคาใบสั่งขาย)")}
             </p>
           </div>
         </div>

@@ -25,14 +25,14 @@ export function canAccessSalesOrderDetail(
   );
 }
 
-/** เปิดหน้าตรวจสต๊อกได้เมื่อมีสิทธิ์ดูผลตรวจ หรือมีสิทธิ์สร้างใบจ่าย */
+/** เปิดหน้าตรวจสต๊อกได้เมื่อมีสิทธิ์ดูผลตรวจ หรือมีสิทธิ์สร้างใบเบิก */
 export function canOpenStockVerification(
   perms: Pick<SalesFulfillmentNavPermissions, "stockVerification" | "picking">,
 ): boolean {
   return perms.stockVerification.canView || perms.picking.canAdd;
 }
 
-/** ยืนยันผลตรวจสต๊อกได้เมื่อมี APPROVE ของหน้าตรวจ หรือมีสิทธิ์สร้างใบจ่าย */
+/** ยืนยันผลตรวจสต๊อกได้เมื่อมี APPROVE ของหน้าตรวจ หรือมีสิทธิ์สร้างใบเบิก */
 export function canApproveStockVerification(
   perms: Pick<SalesFulfillmentNavPermissions, "stockVerification" | "picking">,
 ): boolean {

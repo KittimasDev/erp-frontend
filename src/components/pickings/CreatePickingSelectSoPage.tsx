@@ -50,13 +50,13 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
         <Alert
           type="success"
           showIcon
-          title={t("ของครบทั้งรอบ — เปิดใบจ่ายได้เลย")}
+          title={t("ของครบทั้งรอบ — เปิดใบเบิกได้เลย")}
         />
       ) : (
         <Alert
           type="warning"
           showIcon
-          title={t("ของไม่ครบ เปิดใบจ่ายไม่ได้")}
+          title={t("ของไม่ครบ เปิดใบเบิกไม่ได้")}
           description={t("กฎคือ 1 รอบต้องจ่ายให้ครบ ไม่จ่ายบางส่วน — ต้องเปิดใบขอผลิตสำหรับส่วนที่ขาดแล้วรอของก่อน")}
         />
       )}
@@ -210,7 +210,7 @@ export default function CreatePickingSelectSoPage() {
             router.push(`/pickings/${res.data.id}/edit`);
           }}
         >
-          {t("สร้างใบจ่าย")}
+          {t("สร้างใบเบิก")}
         </Button>
       ),
     },
@@ -221,7 +221,7 @@ export default function CreatePickingSelectSoPage() {
       <PageHeader
         eyebrow="Picking · Create"
         title={t("เลือกรอบจัดส่งที่พร้อมจ่าย")}
-        subtitle={t("1 รอบ = 1 ใบจ่าย · ใบสั่งขายใบเดียวแบ่งส่งได้หลายรอบ จึงโผล่ได้หลายแถว — กางแถวเพื่อดูว่าของครบไหมก่อนกดสร้าง")}
+        subtitle={t("1 รอบ = 1 ใบเบิก · ใบสั่งขายใบเดียวแบ่งส่งได้หลายรอบ จึงโผล่ได้หลายแถว — กางแถวเพื่อดูว่าของครบไหมก่อนกดสร้าง")}
         back={
           <>
 <Link href="/pickings" className={styles.backLink ?? undefined}>
@@ -236,7 +236,7 @@ export default function CreatePickingSelectSoPage() {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          title={t("สต๊อกถูกจองตอนกดสร้างใบจ่าย ไม่ใช่ตอนยืนยันใบสั่งขาย")}
+          title={t("สต๊อกถูกจองตอนกดสร้างใบเบิก ไม่ใช่ตอนยืนยันใบสั่งขาย")}
           description={t("ของอาจถูกใบอื่นเอาไปหลังจากที่หน้านี้โหลดมา ถ้ากดสร้างแล้วขึ้นว่าของไม่พอ ให้กางแถวดูยอดล่าสุดอีกครั้ง")}
         />
         <Table
@@ -245,7 +245,7 @@ export default function CreatePickingSelectSoPage() {
           dataSource={rows}
           loading={query.isLoading}
           pagination={false}
-          locale={{ emptyText: t("ไม่มีรอบจัดส่งที่พร้อมสร้างใบจ่าย") }}
+          locale={{ emptyText: t("ไม่มีรอบจัดส่งที่พร้อมสร้างใบเบิก") }}
           expandable={{
             expandedRowKeys: expandedKeys as string[],
             onExpandedRowsChange: (keys) =>

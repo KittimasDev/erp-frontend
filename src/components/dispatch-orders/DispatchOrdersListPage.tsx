@@ -125,7 +125,7 @@ export default function DispatchOrdersListPage() {
       <PageHeader
         eyebrow="Sales · Dispatch Order"
         icon={<CarOutlined />}
-        title={t("ใบจ่ายสินค้า")}
+        title={t("ใบเบิกสินค้า")}
         subtitle={t("ติดตามขั้นตอน Picking → Packing → Dispatch ของสินค้าสำเร็จรูป")}
       />
 
@@ -184,7 +184,7 @@ export default function DispatchOrdersListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/dispatch-orders/${row.id}`),
           })}
-          locale={{ emptyText: t("ยังไม่มีใบจ่ายสินค้า") }}
+          locale={{ emptyText: t("ยังไม่มีใบเบิกสินค้า") }}
         />
       </section>
     </div>

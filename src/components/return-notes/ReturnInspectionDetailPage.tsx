@@ -139,7 +139,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
             <div>
               <Link href={`/return-notes/${data.id}`}>{data.returnNoteNo}</Link>
               {data.salesOrderNo ? ` · SO ${data.salesOrderNo}` : ""}
-              {data.pickingNo ? t(" · ใบจ่าย {pickingNo}", { pickingNo: data.pickingNo }) : ""}
+              {data.pickingNo ? t(" · ใบเบิก {pickingNo}", { pickingNo: data.pickingNo }) : ""}
               {data.deliveryOrderNo ? t(" · ใบส่ง {deliveryOrderNo}", { deliveryOrderNo: data.deliveryOrderNo }) : ""}
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
               <strong>{data.salesOrderNo ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>{t("ใบจ่ายสินค้า")}</span>
+              <span>{t("ใบเบิกสินค้า")}</span>
               <strong>{data.pickingNo ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>

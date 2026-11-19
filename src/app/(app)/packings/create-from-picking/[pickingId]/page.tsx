@@ -70,7 +70,7 @@ export default function Page({
         subTitle={errorMessage}
         extra={
           <Link href={`/pickings/${pickingId}`}>
-            <Button type="primary">{t("กลับใบจ่ายสินค้า")}</Button>
+            <Button type="primary">{t("กลับใบเบิกสินค้า")}</Button>
           </Link>
         }
       />

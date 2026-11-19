@@ -53,7 +53,7 @@ export function buildReturnNotePdfData(
       { label: "ลูกค้า", value: data.customerName, emphasis: true },
       { label: "อ้างอิง SO", value: data.salesOrderNo },
       { label: "ใบส่งสินค้า", value: data.deliveryOrderNo },
-      { label: "ใบจ่ายสินค้า", value: data.pickingNo },
+      { label: "ใบเบิกสินค้า", value: data.pickingNo },
       { label: "รับคืนเข้าคลัง", value: data.warehouse },
       { label: "สถานะ", value: data.statusLabel },
       { label: "ผู้จัดทำ", value: data.createdBy },

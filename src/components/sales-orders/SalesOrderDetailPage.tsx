@@ -686,7 +686,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
    *
    * ตอนนี้ยืนยันได้แม้สต๊อกเป็น 0 ขอแค่ **จัดรอบจัดส่งครบทุกบรรทัด**
    * (backend เช็คด้วย assertFullyScheduled) เพราะด่านเช็คของย้ายไปตอน
-   * คลังเปิดใบจ่ายของแต่ละรอบแล้ว
+   * คลังเปิดใบเบิกของแต่ละรอบแล้ว
    *
    * **ต้องอยู่เหนือ early return ทุกตัว** — วางไว้ล่างกว่านั้นจะกลายเป็น hook
    * ที่เรียกแบบมีเงื่อนไข แล้ว React พังทั้งหน้า ("Rendered more hooks than
@@ -967,15 +967,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
   let flowHint: string | null = null;
   if (data.status === "STOCK_CHECKED" && pickingStep?.status === "DRAFT") {
     flowHint =
-      t("มีใบจ่ายสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ");
+      t("มีใบเบิกสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ");
   } else if (
     (data.status === "PICKING" || data.status === "PARTIALLY_ISSUED") &&
     !packingStep?.documentId
   ) {
     flowHint =
       pickingStep?.status !== "CONFIRMED"
-        ? t("ต้องยืนยันใบจ่ายสินค้าก่อนจึงจะสร้างใบบรรจุได้")
-        : t("ใบจ่ายสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป");
+        ? t("ต้องยืนยันใบเบิกสินค้าก่อนจึงจะสร้างใบบรรจุได้")
+        : t("ใบเบิกสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป");
   } else if (data.status === "PACKED" && packingStep?.status === "DRAFT") {
     flowHint =
       t("มีใบบรรจุร่างแล้ว — ต้องยืนยันใบบรรจุก่อนสร้างใบส่งสินค้า");
@@ -1158,7 +1158,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
      *
      * เดิมชี้ "ยืนยันผลตรวจสอบสต๊อก" ซึ่งไม่มีผลอะไรแล้ว · แก้รอบแรกให้ชี้
      * "ไปเลือกรอบจัดส่ง" ซึ่งก็ยังผิดเมื่อรอบนั้นเลยขั้นจ่ายไปแล้ว — หน้าเลือกรอบ
-     * จะไม่มีรอบนั้นให้เลือก (ถูกต้อง เพราะมีใบจ่ายแล้ว) คนจึงเจอหน้าที่ทำอะไร
+     * จะไม่มีรอบนั้นให้เลือก (ถูกต้อง เพราะมีใบเบิกแล้ว) คนจึงเจอหน้าที่ทำอะไร
      * ไม่ได้ · ต้องดูสถานะรอบแล้วพาไปเอกสารที่ค้างอยู่จริง
      */
     const roundInFlight = (tracking?.rounds ?? []).find(
@@ -1177,7 +1177,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       data.deliveryStatus === "DELIVERED" ||
       !roundInFlight
     ) {
-      // ส่งครบทุกรอบแล้ว (หรือไม่มีรอบค้าง) — อย่าโชว์ปุ่มไปสร้างใบจ่าย
+      // ส่งครบทุกรอบแล้ว (หรือไม่มีรอบค้าง) — อย่าโชว์ปุ่มไปสร้างใบเบิก
       roundAction = null;
     } else if (roundInFlight.roundStatus === "PACKED") {
       const canCreateDo = deliveryActions.canAdd;
@@ -1222,7 +1222,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         waitProcessHint
       );
     } else if (pickingActions.canAdd) {
-      // ยังไม่จ่าย — ถ้ามีใบจ่ายร่างอยู่แล้วให้เปิดใบนั้น ไม่ใช่ไปสร้างใหม่
+      // ยังไม่จ่าย — ถ้ามีใบเบิกร่างอยู่แล้วให้เปิดใบนั้น ไม่ใช่ไปสร้างใหม่
       roundAction = pickingDoc?.documentId ? (
         <Button
           className={styles.primaryBtn}
@@ -1230,7 +1230,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<ShoppingOutlined />}
           onClick={() => router.push(`/pickings/${pickingDoc.documentId}/edit`)}
         >
-          {t("เปิดใบจ่ายสินค้า (ร่าง)")}
+          {t("เปิดใบเบิกสินค้า (ร่าง)")}
         </Button>
       ) : (
         <Button
@@ -1239,7 +1239,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<ShoppingOutlined />}
           onClick={() => router.push("/pickings/create-from-sales-order")}
         >
-          {t("ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย")}
+          {t("ไปเลือกรอบจัดส่งเพื่อสร้างใบเบิก")}
         </Button>
       );
     } else {
@@ -1275,7 +1275,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(`${picking.href}/edit`)}
           >
-            {t("ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)")}
+            {t("ยืนยันใบเบิกสินค้า (ตัดสต๊อก)")}
           </Button>
         );
       } else {
@@ -1287,7 +1287,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(picking.href as string)}
           >
-            {t("เปิดใบจ่ายสินค้า")}
+            {t("เปิดใบเบิกสินค้า")}
           </Button>,
         );
       }
@@ -1302,7 +1302,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             router.push(`/pickings/create-from-sales-order/${data.id}`)
           }
         >
-          {t("สร้างใบจ่ายสินค้า")}
+          {t("สร้างใบเบิกสินค้า")}
         </Button>,
       );
     }
@@ -1362,7 +1362,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(`${picking.href}/edit`)}
           >
-            {t("ยืนยันใบจ่ายสินค้าก่อนบรรจุ")}
+            {t("ยืนยันใบเบิกสินค้าก่อนบรรจุ")}
           </Button>
         );
       } else {
@@ -1374,7 +1374,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(picking.href as string)}
           >
-            {t("ยืนยันใบจ่ายสินค้าก่อนบรรจุ")}
+            {t("ยืนยันใบเบิกสินค้าก่อนบรรจุ")}
           </Button>,
         );
       }
@@ -2107,7 +2107,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         ? t("มีใบขอผลิตอยู่แล้ว เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด")
                         : t("เปิดใบขอผลิตไว้ได้")}{" "}
                       · <strong>{t("ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ")}</strong>{" "}
-                      {t("ด่านเช็คของอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ")}
+                      {t("ด่านเช็คของอยู่ตอนคลังเปิดใบเบิกของแต่ละรอบ")}
                     </p>
                   ) : null}
                 </>
@@ -2119,7 +2119,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 {data.status === "CONFIRMED" &&
                 stockVerification?.isAllAvailable ? (
                   <p className={styles.stockReadyNote}>
-                    {t("สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว · ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด")}{" "}
+                    {t("สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว · ขั้นถัดไปคือคลังเปิดใบเบิกสินค้าของรอบที่ถึงกำหนด")}{" "}
                     {t("(ใช้ของที่จองไว้ตอนสร้างใบ ไม่จองซ้ำ)")}
                   </p>
                 ) : null}

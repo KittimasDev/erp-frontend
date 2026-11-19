@@ -156,7 +156,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ใบจ่ายสินค้า")}</span>
+                <span className={styles.metaLabel}>{t("ใบเบิกสินค้า")}</span>
                 <div className={styles.metaValue}>
                   <Link href={`/pickings/${data.pickingId}`}>
                     {data.pickingNo ?? "—"}

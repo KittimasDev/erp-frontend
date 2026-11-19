@@ -51,7 +51,7 @@ export const REFERENCE_DOC_TYPE_LABEL: Record<string, string> = {
   STOCK_ADJUSTMENT: "ใบปรับปรุงสต๊อก",
   PHYSICAL_INVENTORY_COUNT: "ใบตรวจนับสต๊อก",
   PICKING: "ใบจัดสินค้า",
-  DISPATCH_ORDER: "ใบจ่ายสินค้า",
+  DISPATCH_ORDER: "ใบเบิกสินค้า",
   RETURN_NOTE: "ใบรับคืนสินค้า",
   WORK_ORDER: "ใบสั่งซ่อม",
   WORK_ORDER_RETURN: "ใบสั่งซ่อม (คืนอะไหล่)",
@@ -107,9 +107,9 @@ const SPECIFIC_NAME: Record<string, string> = {
   "ISSUE|WORK_ORDER": "เบิกอะไหล่ซ่อมบำรุง",
   "ISSUE|OIL_DISPATCH": "จ่ายน้ำมัน",
   "ISSUE|PICKING": "ขายออก (ตามใบจัดสินค้า)",
-  "ISSUE|DISPATCH_ORDER": "ขายออก (ตามใบจ่ายสินค้า)",
+  "ISSUE|DISPATCH_ORDER": "ขายออก (ตามใบเบิกสินค้า)",
   "SALES_OUT|PICKING": "ขายออก (ตามใบจัดสินค้า)",
-  "SALES_OUT|DISPATCH_ORDER": "ขายออก (ตามใบจ่ายสินค้า)",
+  "SALES_OUT|DISPATCH_ORDER": "ขายออก (ตามใบเบิกสินค้า)",
   "ADJUST_IN|PICKING": "คืนสต๊อก (ยกเลิกการจัดสินค้า)",
   "ADJUST_IN|STOCK_ADJUSTMENT": "ปรับเพิ่มยอด",
   "ADJUST_OUT|STOCK_ADJUSTMENT": "ปรับลดยอด",
@@ -137,7 +137,7 @@ export type StockMovementDescription = {
   tagColor: "success" | "error" | "blue" | "default";
 };
 
-/** ขายออก = SALES_OUT หรือ ISSUE จากใบจัด/ใบจ่ายสินค้า (ตรวจจากค่าจริง) */
+/** ขายออก = SALES_OUT หรือ ISSUE จากใบจัด/ใบเบิกสินค้า (ตรวจจากค่าจริง) */
 export function isSalesOutMovement(row: MovementLike): boolean {
   const type = upper(row.movementType);
   const ref = upper(row.referenceDocType);

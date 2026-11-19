@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { App, Button, DatePicker, Dropdown, Input, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { FileExcelOutlined, FileTextOutlined, HistoryOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
+import { DownOutlined, FileExcelOutlined, FileTextOutlined, HistoryOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -113,6 +113,10 @@ export default function PurchaseJournalPage() {
   const [exportMode, setExportMode] = useState<"range" | "selected" | null>(null);
   // รูปแบบไฟล์ Express: csv (เดิม) หรือ xlsx — ใช้ pipeline/เงื่อนไข/ประวัติเดียวกัน
   const [exportFormat, setExportFormat] = useState<"csv" | "xlsx">("csv");
+  const expressFormatItems = [
+    { key: "csv", icon: <FileTextOutlined />, label: t("ไฟล์ CSV") },
+    { key: "xlsx", icon: <FileExcelOutlined />, label: t("ไฟล์ Excel (.xlsx)") },
+  ];
   const openExport = (mode: "range" | "selected", format: "csv" | "xlsx") => {
     setExportFormat(format);
     setExportMode(mode);
@@ -550,30 +554,35 @@ export default function PurchaseJournalPage() {
                 <Tooltip title={expressDisabledReason}>
                   <span>
                     <Button icon={<SendOutlined />} disabled>
-                      {t("ส่งออกไป Express ({pending})", { pending })}
-                    </Button>
-                    <Button icon={<FileExcelOutlined />} disabled style={{ marginLeft: 8 }}>
-                      {t("ส่งออก Express (Excel)")}
+                      {t("รายการที่ยังไม่ได้ส่งออก Express ({pending})", { pending })}
                     </Button>
                   </span>
                 </Tooltip>
               ) : (
                 <>
-                  {selectedKeys.length > 0 ? (
-                    <Button icon={<SendOutlined />} onClick={() => openExport("selected", "csv")}>
-                      {t("ส่งออกที่เลือก ({n})", { n: selectedKeys.length })}
+                  {/* รายการที่ยังไม่ได้ส่งออก Express (ตามช่วงวันที่/ตัวกรอง) — เลือกไฟล์ CSV หรือ Excel */}
+                  <Dropdown
+                    menu={{
+                      items: expressFormatItems,
+                      onClick: ({ key }) => openExport("range", key as "csv" | "xlsx"),
+                    }}
+                  >
+                    <Button icon={<SendOutlined />} loading={sendingExpress}>
+                      {t("รายการที่ยังไม่ได้ส่งออก Express ({pending})", { pending })} <DownOutlined />
                     </Button>
-                  ) : null}
-                  <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => openExport("range", "csv")}>
-                    {t("ส่งออกไป Express ({pending})", { pending })}
-                  </Button>
-                  <Button icon={<FileExcelOutlined />} loading={sendingExpress} onClick={() => openExport("range", "xlsx")}>
-                    {t("ส่งออก Express (Excel)")}
-                  </Button>
+                  </Dropdown>
+                  {/* หลังเลือกรายการในตาราง — รายการที่จะส่งออก Express เลือกไฟล์ CSV หรือ Excel */}
                   {selectedKeys.length > 0 ? (
-                    <Button icon={<FileExcelOutlined />} onClick={() => openExport("selected", "xlsx")}>
-                      {t("ส่งออกที่เลือก Excel ({n})", { n: selectedKeys.length })}
-                    </Button>
+                    <Dropdown
+                      menu={{
+                        items: expressFormatItems,
+                        onClick: ({ key }) => openExport("selected", key as "csv" | "xlsx"),
+                      }}
+                    >
+                      <Button icon={<SendOutlined />}>
+                        {t("รายการที่จะส่งออก Express ({n})", { n: selectedKeys.length })} <DownOutlined />
+                      </Button>
+                    </Dropdown>
                   ) : null}
                 </>
               )}

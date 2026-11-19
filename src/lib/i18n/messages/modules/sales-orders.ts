@@ -141,47 +141,47 @@ export const EN_SALES_ORDERS: Record<string, string> = {
   "ไม่มีตำแหน่งพร้อมใช้": "No available locations",
   "…อีก {n} Lot": "…and {n} more lots",
   "…อีก {n} ตำแหน่ง": "…and {n} more locations",
-  "เปิดใบจ่ายสินค้า (ร่าง)": "Open picking list (draft)",
-  "เปิดใบจ่ายสินค้า": "Open picking list",
-  "ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย": "Go choose a delivery round to create a picking list",
+  "เปิดใบเบิกสินค้า (ร่าง)": "Open picking list (draft)",
+  "เปิดใบเบิกสินค้า": "Open picking list",
+  "ไปเลือกรอบจัดส่งเพื่อสร้างใบเบิก": "Go choose a delivery round to create a picking list",
   "ไปใบสั่งขายเพื่อออกใบขอผลิต": "Go to the sales order to issue a production request",
   "ไปใบสั่งขายเพื่อติดตามใบขอผลิต": "Go to the sales order to follow the production request",
-  "สร้างใบจ่ายสินค้า": "Create picking list",
+  "สร้างใบเบิกสินค้า": "Create picking list",
   "ขั้นตอนตรวจสต๊อกเสร็จแล้ว": "Stock verification step completed",
   "ยืนยันผลตรวจสอบสต๊อกแล้ว": "Stock verification confirmed",
   "สต๊อกพอทุกรายการ": "Stock is sufficient for all items",
   "รอผลผลิตเข้าคลัง": "Awaiting production output into the warehouse",
   "สต๊อกไม่พอบางรายการ": "Stock is insufficient for some items",
-  "ใบสั่งขายไปขั้นถัดไปแล้ว — หน้านี้ดูผลตรวจย้อนหลังได้อย่างเดียว ไม่สร้างใบจ่ายใหม่จากที่นี่":
+  "ใบสั่งขายไปขั้นถัดไปแล้ว — หน้านี้ดูผลตรวจย้อนหลังได้อย่างเดียว ไม่สร้างใบเบิกใหม่จากที่นี่":
     "The sales order has moved on — this page is a read-only history of the check and cannot create new picking lists.",
-  "มีใบจ่ายสินค้าแล้ว — กดเปิดใบจ่ายเพื่อดำเนินการต่อ": "A picking list exists — open it to continue",
-  "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป":
+  "มีใบเบิกสินค้าแล้ว — กดเปิดใบเบิกเพื่อดำเนินการต่อ": "A picking list exists — open it to continue",
+  "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบเบิกสินค้าเพื่อไปขั้นถัดไป":
     "Stock verification is done — create a picking list to move to the next step",
-  "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ใช้ของที่จองไว้แล้ว ไม่จองซ้ำ)":
+  "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบเบิกสินค้าของรอบที่ถึงกำหนด (ใช้ของที่จองไว้แล้ว ไม่จองซ้ำ)":
     "This page is a read-only report — next, the warehouse opens the picking list for the round that is due (it uses stock already reserved, with no double reservation)",
-  "มีใบขอผลิตคุมยอดที่ขาดอยู่แล้ว — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง":
+  "มีใบขอผลิตคุมยอดที่ขาดอยู่แล้ว — เปิดใบเบิกไม่ได้จนกว่าของจะเข้าคลัง":
     "A production request already covers the shortage — the picking list cannot be opened until stock arrives",
-  "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต":
+  "ของไม่พอ — สร้างใบเบิกไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต":
     "Not enough stock — a picking list cannot be created until stock arrives. Go to this sales order to issue a production request.",
-  "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง":
+  "ของไม่พอ — สร้างใบเบิกไม่ได้จนกว่าของจะเข้าคลัง":
     "Not enough stock — a picking list cannot be created until stock arrives",
-  "มีใบจ่ายแล้ว": "Picking list exists",
+  "มีใบเบิกแล้ว": "Picking list exists",
   "พร้อมจ่ายสินค้า": "Ready to issue",
   "ของพอ": "Enough stock",
   "ขาด {n} รายการ": "{n} items short",
   "ดูผลตรวจได้อย่างเดียว — ไปทำต่อที่": "View-only — continue at the",
   "หรือใบสั่งขาย": "or the sales order",
-  "มีใบจ่ายแล้ว — กด": "A picking list exists — click",
+  "มีใบเบิกแล้ว — กด": "A picking list exists — click",
   "เพื่อไปขั้นถัดไป": "to go to the next step",
   "ตรวจสต๊อกเสร็จแล้ว — กด": "Stock verification is done — click",
   "ขั้นถัดไป: กด": "Next step: click",
-  "— ของจะถูกจองตอนสร้างใบจ่าย ไม่ใช่ตอนนี้": "— stock is reserved when the picking list is created, not now",
-  "ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)":
+  "— ของจะถูกจองตอนสร้างใบเบิก ไม่ใช่ตอนนี้": "— stock is reserved when the picking list is created, not now",
+  "ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบเบิกสินค้าของรอบที่ถึงกำหนด)":
     "Stock is sufficient — the next step is the warehouse's job (opening the picking list for the round that is due)",
   "รอผลผลิตเข้าคลัง — กด": "Awaiting production output — click",
   "ไปใบสั่งขาย": "Go to sales order",
   "เพื่อติดตามใบขอผลิต": "to follow the production request",
-  "รอผลผลิตเข้าคลัง — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง":
+  "รอผลผลิตเข้าคลัง — เปิดใบเบิกไม่ได้จนกว่าของจะเข้าคลัง":
     "Awaiting production output — the picking list cannot be opened until stock arrives",
   "ของไม่พอ — กด": "Not enough stock — click",
   "(ใบ {soNo}) แล้วออกใบขอผลิตจากหน้านั้น": "(order {soNo}) and issue a production request from that page",
@@ -254,7 +254,7 @@ export const EN_SALES_ORDERS: Record<string, string> = {
     "All items must be fully scheduled first (sum of all rounds = agreed quantity)",
   "ยังไม่จัดรอบอีก": "still to schedule",
   "จัดรอบครบทุกรายการแล้ว": "All items are scheduled",
-  "ยืนยันใบสั่งขายได้ แม้สต๊อกยังไม่พอ — ของจะถูกตรวจตอนคลังเปิดใบจ่ายของแต่ละรอบ":
+  "ยืนยันใบสั่งขายได้ แม้สต๊อกยังไม่พอ — ของจะถูกตรวจตอนคลังเปิดใบเบิกของแต่ละรอบ":
     "You can confirm the sales order even if stock is short — stock is checked when the warehouse opens the picking list for each round",
   "กำลังโหลดรอบจัดส่ง…": "Loading delivery rounds…",
   "ยังไม่มีรอบจัดส่ง": "No delivery rounds yet",
@@ -288,7 +288,7 @@ export const EN_SALES_ORDERS: Record<string, string> = {
   "เปลี่ยนแค่วันส่ง — จำนวนและยอดเงินไม่เปลี่ยน": "Only the delivery date changes — quantities and amounts stay the same",
   "รอบนี้คลังเริ่มทำงานไปแล้ว ระบบจะแจ้งเตือนคลังให้ทราบ · วันบนเอกสารที่ยืนยันแล้วจะไม่ถูกแก้":
     "The warehouse has already started this round, so the system will notify them · dates on confirmed documents are not changed",
-  "ถ้ามีใบจ่าย/ใบบรรจุ/ใบส่งที่ยังเป็นร่างของรอบนี้ วันบนใบนั้นจะขยับตามให้":
+  "ถ้ามีใบเบิก/ใบบรรจุ/ใบส่งที่ยังเป็นร่างของรอบนี้ วันบนใบนั้นจะขยับตามให้":
     "If this round has draft picking, packing or delivery documents, their dates will move accordingly",
   "วันส่งเดิม": "Original delivery date",
   "วันส่งใหม่": "New delivery date",
@@ -340,11 +340,11 @@ export const EN_SALES_ORDERS: Record<string, string> = {
   "สร้างใบส่งสินค้า (รอบ {no})": "Create delivery order (round {no})",
   "สร้างใบบรรจุสินค้า (รอบ {no})": "Create packing list (round {no})",
   "ดูผลตรวจสต๊อก": "View stock check",
-  "ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)": "Confirm picking list (deduct stock)",
+  "ยืนยันใบเบิกสินค้า (ตัดสต๊อก)": "Confirm picking list (deduct stock)",
   "แก้ไข/ยืนยันใบบรรจุ": "Edit / confirm packing list",
   "เปิดใบบรรจุสินค้า": "Open packing list",
   "สร้างใบบรรจุสินค้า": "Create packing list",
-  "ยืนยันใบจ่ายสินค้าก่อนบรรจุ": "Confirm the picking list before packing",
+  "ยืนยันใบเบิกสินค้าก่อนบรรจุ": "Confirm the picking list before packing",
   "ดูใบส่งสินค้า": "View delivery order",
   "สร้างใบส่งสินค้า": "Create delivery order",
   "ยืนยันใบบรรจุก่อนส่งสินค้า": "Confirm the packing list before delivery",
@@ -401,9 +401,9 @@ export const EN_SALES_ORDERS: Record<string, string> = {
     "A production request already exists; open another if production must be split into batches",
   "เปิดใบขอผลิตไว้ได้": "you may open a production request",
   "ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ": "you can confirm the sales order without waiting for stock",
-  "ด่านเช็คของอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ": "The stock check happens when the warehouse opens the picking list for each round.",
+  "ด่านเช็คของอยู่ตอนคลังเปิดใบเบิกของแต่ละรอบ": "The stock check happens when the warehouse opens the picking list for each round.",
   "ไม่สามารถโหลดสถานะการจองได้": "Unable to load the reservation status",
-  "สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว · ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด":
+  "สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว · ขั้นถัดไปคือคลังเปิดใบเบิกสินค้าของรอบที่ถึงกำหนด":
     "Stock is sufficient for all items right now — this page is a read-only report · next, the warehouse opens the picking list for the round that is due",
   "(ใช้ของที่จองไว้ตอนสร้างใบ ไม่จองซ้ำ)": "(uses stock reserved when the order was created, with no double reservation)",
   "ต้องการ {qty}": "Needed {qty}",
@@ -514,9 +514,9 @@ export const EN_SALES_ORDERS: Record<string, string> = {
   "วันที่ต้องการผลผลิตต้องไม่ย้อนหลังจากวันปัจจุบัน": "The required output date must not be in the past",
   "ออกใบขอผลิต {no} แล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต": "Production request {no} issued — awaiting production to open a production order",
   "ออกใบขอผลิตแล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต": "Production request issued — awaiting production to open a production order",
-  "มีใบจ่ายสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ": "A draft picking list exists — confirm it (deducting stock) before creating a packing list",
-  "ต้องยืนยันใบจ่ายสินค้าก่อนจึงจะสร้างใบบรรจุได้": "The picking list must be confirmed before a packing list can be created",
-  "ใบจ่ายสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป": "The picking list is confirmed — create a packing list to move to the next step",
+  "มีใบเบิกสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ": "A draft picking list exists — confirm it (deducting stock) before creating a packing list",
+  "ต้องยืนยันใบเบิกสินค้าก่อนจึงจะสร้างใบบรรจุได้": "The picking list must be confirmed before a packing list can be created",
+  "ใบเบิกสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป": "The picking list is confirmed — create a packing list to move to the next step",
   "มีใบบรรจุร่างแล้ว — ต้องยืนยันใบบรรจุก่อนสร้างใบส่งสินค้า": "A draft packing list exists — confirm it before creating a delivery order",
   "รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP": "Only PDF and JPG/PNG/WEBP images are supported",
   "ขนาดไฟล์ต้องไม่เกิน 20MB": "File size must not exceed 20MB",

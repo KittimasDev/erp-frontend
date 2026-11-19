@@ -112,9 +112,12 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
     infoRows.push({ label: "เลขอ้างอิงธุรกรรม", value: refs.join(", "), full: true });
   }
 
+  // อนุมัติแล้วรอจ่าย = "ยังไม่ชำระเงิน" · จ่ายแล้ว = "จ่ายแล้ว" — กันเอาใบที่ยังไม่จ่ายไปใช้เป็นหลักฐานการจ่าย
   const draftBanner =
-    v.status === "APPROVED" || v.status === "PAID"
-      ? undefined
+    v.status === "APPROVED"
+      ? "ยังไม่ชำระเงิน"
+      : v.status === "PAID"
+        ? "จ่ายแล้ว"
       : v.status === "CANCELLED"
         ? "ยกเลิกแล้ว"
         : v.status === "PENDING_APPROVAL"
@@ -196,6 +199,7 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
     docNo: v.voucherNo,
     docDate: thaiDate(v.voucherDate) || "—",
     draftBanner,
+    draftBannerTone: v.status === "PAID" ? "success" : undefined,
     infoRows,
     items,
     columnLabels: {

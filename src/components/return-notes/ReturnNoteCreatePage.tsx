@@ -54,7 +54,7 @@ export default function ReturnNoteCreatePage() {
   const [submitted, setSubmitted] = useState(false);
 
   const prefilled = Boolean(fromDeliveryOrderId);
-  // ใบส่งที่รวมหลายใบบรรจุ = หลายใบจ่าย · ใบคืนผูกกับใบจ่ายทีละใบ ต้องให้เลือก
+  // ใบส่งที่รวมหลายใบบรรจุ = หลายใบเบิก · ใบคืนผูกกับใบเบิกทีละใบ ต้องให้เลือก
   const [prefilledPickingId, setPrefilledPickingId] = useState<string>();
   const doPickings = (fromDeliveryOrder?.packings ?? []).filter(
     (ref, index, all) =>
@@ -219,7 +219,7 @@ export default function ReturnNoteCreatePage() {
         eyebrow="Return Note"
         icon={<RollbackOutlined />}
         title={t("สร้างใบคืนสินค้า")}
-        subtitle={prefilled ? t("ดึงข้อมูลจากใบส่งสินค้าที่ถูกตีกลับ — ตรวจจำนวนแล้วบันทึก") : t("เลือกใบสั่งขาย → ใบจ่ายสินค้า แล้วระบุจำนวนที่คืน")}
+        subtitle={prefilled ? t("ดึงข้อมูลจากใบส่งสินค้าที่ถูกตีกลับ — ตรวจจำนวนแล้วบันทึก") : t("เลือกใบสั่งขาย → ใบเบิกสินค้า แล้วระบุจำนวนที่คืน")}
         actions={
           <>
 <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/return-notes")}>
@@ -245,11 +245,11 @@ export default function ReturnNoteCreatePage() {
                 <div className={styles.metaGrid}>
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>
-                      {t("ใบจ่ายสินค้า (ใบส่ง {doNo} รวม {n} ใบจ่าย)", { doNo: fromDeliveryOrder.deliveryOrderNo ?? "", n: doPickings.length })}
+                      {t("ใบเบิกสินค้า (ใบส่ง {doNo} รวม {n} ใบเบิก)", { doNo: fromDeliveryOrder.deliveryOrderNo ?? "", n: doPickings.length })}
                     </span>
                     <Select
                       style={{ width: "100%" }}
-                      placeholder={t("เลือกใบจ่ายสินค้าที่จะคืน")}
+                      placeholder={t("เลือกใบเบิกสินค้าที่จะคืน")}
                       value={pickingId}
                       onChange={(value: string) => {
                         setPrefilledPickingId(value);
@@ -292,11 +292,11 @@ export default function ReturnNoteCreatePage() {
                   />
                 </div>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>{t("ใบจ่ายสินค้า")}</span>
+                  <span className={styles.metaLabel}>{t("ใบเบิกสินค้า")}</span>
                   <Select
                     allowClear
                     style={{ width: "100%" }}
-                    placeholder={salesOrderId ? t("เลือกใบจ่ายสินค้า") : t("เลือก SO ก่อน")}
+                    placeholder={salesOrderId ? t("เลือกใบเบิกสินค้า") : t("เลือก SO ก่อน")}
                     disabled={!salesOrderId}
                     loading={pickingsQuery.isFetching}
                     value={pickedPickingId}
@@ -335,7 +335,7 @@ export default function ReturnNoteCreatePage() {
                   <div className={styles.metaValue}>{source.customerName ?? "—"}</div>
                 </div>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>{t("ใบจ่ายสินค้า")}</span>
+                  <span className={styles.metaLabel}>{t("ใบเบิกสินค้า")}</span>
                   <div className={styles.metaValue}>{source.pickingNo}</div>
                 </div>
                 <div className={styles.metaItem}>
@@ -379,7 +379,7 @@ export default function ReturnNoteCreatePage() {
                   loading={sourceQuery.isLoading}
                   pagination={false}
                   scroll={{ x: 760 }}
-                  locale={{ emptyText: t("ใบจ่ายนี้ไม่มีรายการที่จ่ายออก") }}
+                  locale={{ emptyText: t("ใบเบิกนี้ไม่มีรายการที่จ่ายออก") }}
                 />
               )}
             </div>

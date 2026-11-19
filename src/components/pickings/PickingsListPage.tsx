@@ -142,7 +142,7 @@ export default function PickingsListPage() {
       <PageHeader
         eyebrow="Sales · Picking"
         icon={<ShoppingOutlined />}
-        title={t("ใบจ่ายสินค้า")}
+        title={t("ใบเบิกสินค้า")}
         subtitle={t("หยิบสินค้าจากคลังตามใบสั่งขายที่ตรวจสต๊อกแล้ว — ตัดสต๊อกตอนยืนยันเท่านั้น")}
         actions={
           <>
@@ -253,7 +253,7 @@ export default function PickingsListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/pickings/${row.id}`),
           })}
-          locale={{ emptyText: t("ยังไม่มีใบจ่ายสินค้า") }}
+          locale={{ emptyText: t("ยังไม่มีใบเบิกสินค้า") }}
         />
       </section>
     </div>

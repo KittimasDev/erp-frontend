@@ -190,7 +190,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
       <PageHeader
         eyebrow="Sales · Dispatch Order"
         icon={<CarOutlined />}
-        title={t("สร้างใบจ่ายสินค้า (Picking)")}
+        title={t("สร้างใบเบิกสินค้า (Picking)")}
         subtitle={t("จากใบสั่งขาย {soNo} — เลือก Lot ให้อัตโนมัติแบบ FIFO", { soNo: so.soNo })}
         actions={
           <>
@@ -293,7 +293,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
             loading={submitting || createMutation.isPending}
             onClick={handleSubmit}
           >
-            {t("สร้างใบจ่ายสินค้าและจองสต๊อก")}
+            {t("สร้างใบเบิกสินค้าและจองสต๊อก")}
           </Button>
         </aside>
       </div>

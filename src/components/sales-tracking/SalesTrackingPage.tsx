@@ -899,7 +899,7 @@ export default function SalesTrackingPage() {
                     ),
                   },
                   {
-                    title: t("ใบจ่าย"),
+                    title: t("ใบเบิก"),
                     dataIndex: "pickingNo",
                     render: (v?: string) => v ?? "—",
                   },

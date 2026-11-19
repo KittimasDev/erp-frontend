@@ -113,7 +113,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/sales-orders/approvals", title: "อนุมัติใบสั่งขาย" },
   { href: "/sales-orders", title: "ใบสั่งขาย" },
   { href: "/sales-orders/stock-verification", title: "ตรวจสอบสต๊อกขาย" },
-  { href: "/pickings", title: "ใบจ่ายสินค้า / Picking" },
+  { href: "/pickings", title: "ใบเบิกสินค้า / Picking" },
   { href: "/packings", title: "ใบบรรจุสินค้า / Packing" },
   {
     href: "/delivery-orders/create-from-packing",

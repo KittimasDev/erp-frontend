@@ -291,7 +291,7 @@ export const STOCK_MOVEMENT_TYPE_LABEL: Record<string, string> = {
   TRANSFER_OUT: "โอนออก",
 };
 
-/** แสดงประเภทบนหน้า Stock Movement — ISSUE จากใบจ่ายขายแสดงเป็นขายออก */
+/** แสดงประเภทบนหน้า Stock Movement — ISSUE จากใบเบิกขายแสดงเป็นขายออก */
 export function resolveStockMovementTypeLabel(row: {
   movementType: string;
   referenceDocType?: string;

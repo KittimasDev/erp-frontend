@@ -9,7 +9,7 @@ import {
 } from "@/lib/status/standard-status";
 
 const STATUS_EN_OVERRIDE: Record<string, string> = {
-  /* คำที่ในบริบทใบสั่งขายความหมายต่างจากพจนานุกรมกลาง (เช่น "ยกเลิก" = Cancelled ไม่ใช่ปุ่ม Cancel, "ใบจ่ายสินค้า" เอกพจน์) */
+  /* คำที่ในบริบทใบสั่งขายความหมายต่างจากพจนานุกรมกลาง (เช่น "ยกเลิก" = Cancelled ไม่ใช่ปุ่ม Cancel, "ใบเบิกสินค้า" เอกพจน์) */
   "ยกเลิก": "Cancelled",
   "ยืนยัน": "Confirmed",
   "จ่ายแล้ว": "Issued",
@@ -18,7 +18,7 @@ const STATUS_EN_OVERRIDE: Record<string, string> = {
   "เลื่อนกำหนดส่ง": "Reschedule delivery",
   "ข้อมูลลูกค้า": "Customer details",
   "ใบเสนอราคา": "Quotation",
-  "ใบจ่ายสินค้า": "Picking list",
+  "ใบเบิกสินค้า": "Picking list",
   "ใบส่งสินค้า": "Delivery order",
   "ใบขอผลิต (จากใบสั่งขาย)": "Production request (from sales order)",
   "จ่ายบางส่วน": "Partially issued",

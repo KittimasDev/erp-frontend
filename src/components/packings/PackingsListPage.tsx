@@ -70,7 +70,7 @@ export default function PackingsListPage() {
         render: (v: string) => <span className={styles.prNo}>{v}</span>,
       },
       {
-        title: t("ใบจ่ายสินค้า"),
+        title: t("ใบเบิกสินค้า"),
         dataIndex: "pickingNo",
         render: (v?: string) => v ?? "—",
       },
@@ -141,7 +141,7 @@ export default function PackingsListPage() {
         eyebrow="Sales · Packing"
         icon={<InboxOutlined />}
         title={t("ใบบรรจุสินค้า")}
-        subtitle={t("บรรจุสินค้าจากใบจ่ายสินค้าที่ยืนยันแล้ว — ไม่กระทบสต๊อก")}
+        subtitle={t("บรรจุสินค้าจากใบเบิกสินค้าที่ยืนยันแล้ว — ไม่กระทบสต๊อก")}
         actions={
           <>
 {canAdd ? (
@@ -152,7 +152,7 @@ export default function PackingsListPage() {
                   type="primary"
                   icon={<PlusOutlined />}
                 >
-                  {t("สร้างจากใบจ่ายสินค้า")}
+                  {t("สร้างจากใบเบิกสินค้า")}
                 </Button>
               </Badge>
             </Link>

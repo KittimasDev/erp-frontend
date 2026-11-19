@@ -249,7 +249,7 @@ export default function ReturnNotesListPage() {
         eyebrow="Finished Goods · Return Note"
         icon={<RollbackOutlined />}
         title={t("คืนสินค้า")}
-        subtitle={t("บันทึกสินค้าที่ลูกค้าตีกลับ อ้างอิงใบจ่ายสินค้า แล้วให้คลังอนุมัติรับเข้าคลังตรวจสอบ")}
+        subtitle={t("บันทึกสินค้าที่ลูกค้าตีกลับ อ้างอิงใบเบิกสินค้า แล้วให้คลังอนุมัติรับเข้าคลังตรวจสอบ")}
         actions={
           <>
 {canAdd ? (
@@ -288,7 +288,7 @@ export default function ReturnNotesListPage() {
             <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder={t("เลขที่ใบคืน / SO / ใบจ่าย / ใบส่ง / ลูกค้า")}
+              placeholder={t("เลขที่ใบคืน / SO / ใบเบิก / ใบส่ง / ลูกค้า")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onPressEnter={applySearch}

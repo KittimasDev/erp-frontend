@@ -232,7 +232,7 @@ export default function PickingFormPage({ id, mode }: Props) {
 
   const packingStep = (() => {
     const rounds = trackingQuery.data?.data?.rounds ?? [];
-    // ต้องใช้รอบของใบจ่ายนี้ — timeline ระดับ SO ชี้รอบถัดไป จะพาไปสร้างบรรจุซ้ำบนรอบที่จบแล้ว
+    // ต้องใช้รอบของใบเบิกนี้ — timeline ระดับ SO ชี้รอบถัดไป จะพาไปสร้างบรรจุซ้ำบนรอบที่จบแล้ว
     const thisRound = rounds.find((round) =>
       round.timeline?.some(
         (step) => step.step === "Picking" && step.documentId === data?.id,
@@ -391,7 +391,7 @@ export default function PickingFormPage({ id, mode }: Props) {
           <>
 <div className={styles.backRow}>
             <Link href="/pickings" className={styles.backLink}>
-              <ArrowLeftOutlined /> {t("กลับรายการใบจ่าย")}
+              <ArrowLeftOutlined /> {t("กลับรายการใบเบิก")}
             </Link>
             <Link
               href={
@@ -499,10 +499,10 @@ export default function PickingFormPage({ id, mode }: Props) {
                   loading={confirmMutation.isPending}
                   onClick={() =>
                     modal.confirm({
-                      title: t("ยืนยันตัดสต๊อกตามใบจ่ายนี้?"),
+                      title: t("ยืนยันตัดสต๊อกตามใบเบิกนี้?"),
                       content: reservationReady
-                        ? t("ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบจ่ายนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง")
-                        : t("ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบจ่ายนี้ และสร้าง stock movement"),
+                        ? t("ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบเบิกนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง")
+                        : t("ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบเบิกนี้ และสร้าง stock movement"),
                       onOk: async () => {
                         if (!(await handleSave())) return;
                         await confirmMutation.mutateAsync(id);
@@ -521,7 +521,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                 loading={cancelMutation.isPending}
                 onClick={() =>
                   modal.confirm({
-                    title: t("ยกเลิกใบจ่าย?"),
+                    title: t("ยกเลิกใบเบิก?"),
                     onOk: async () => {
                       await cancelMutation.mutateAsync(id);
                       router.push("/pickings");
@@ -581,7 +581,7 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Alert
           type="info"
           showIcon
-          title={t("ใบจ่ายอยู่สถานะแบบร่างเอกสาร")}
+          title={t("ใบเบิกอยู่สถานะแบบร่างเอกสาร")}
           description={
             canWrite
               ? reservationReady
@@ -610,9 +610,9 @@ export default function PickingFormPage({ id, mode }: Props) {
             packingHref
               ? t("ขั้นถัดไป: เปิดใบบรรจุสินค้าเพื่อดำเนินการต่อ")
               : canCreatePackingFromThis
-                ? t("ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบจ่ายนี้")
+                ? t("ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบเบิกนี้")
                 : packingRoundDone
-                  ? t("รอบจัดส่งนี้บรรจุหรือส่งของไปแล้ว — ไม่สร้างใบบรรจุซ้ำจากใบจ่ายนี้")
+                  ? t("รอบจัดส่งนี้บรรจุหรือส่งของไปแล้ว — ไม่สร้างใบบรรจุซ้ำจากใบเบิกนี้")
                   : t("ขั้นถัดไปของรอบนี้ดำเนินการไปแล้ว หรือรอเอกสารบรรจุจากรอบนี้")
           }
         />
@@ -650,7 +650,7 @@ export default function PickingFormPage({ id, mode }: Props) {
       ) : null}
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>{t("ข้อมูลใบจ่าย")}</h2>
+        <h2 className={styles.sectionTitle}>{t("ข้อมูลใบเบิก")}</h2>
         <div className={styles.formGrid}>
           <label className={styles.field}>
             <span>{t("วันที่จ่าย")}</span>
@@ -703,7 +703,7 @@ export default function PickingFormPage({ id, mode }: Props) {
             {data.status === "CONFIRMED"
               ? t("ดำเนินการต่อ — สร้างหรือเปิดใบบรรจุสินค้า")
               : data.status === "DRAFT" && canWrite
-                ? t("แก้ไขใบจ่ายแล้วยืนยันตัดสต๊อกจริงเพื่อไปขั้นบรรจุ")
+                ? t("แก้ไขใบเบิกแล้วยืนยันตัดสต๊อกจริงเพื่อไปขั้นบรรจุ")
                 : t("กลับไปรายการหรือใบสั่งขาย")}
           </div>
           <div className={styles.actionFooterButtons}>
@@ -711,7 +711,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               icon={<ArrowLeftOutlined />}
               onClick={() => router.push("/pickings")}
             >
-              {t("กลับรายการใบจ่าย")}
+              {t("กลับรายการใบเบิก")}
             </Button>
             {data.salesOrderId ? (
               <Button

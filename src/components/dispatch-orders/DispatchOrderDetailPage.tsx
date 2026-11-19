@@ -86,7 +86,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        {t("ไม่พบใบจ่ายสินค้า")}
+        {t("ไม่พบใบเบิกสินค้า")}
         <div style={{ marginTop: 12 }}>
           <Link href="/dispatch-orders">{t("กลับรายการ")}</Link>
         </div>
@@ -124,7 +124,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบจ่ายสินค้า")}</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบเบิกสินค้า")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
@@ -240,7 +240,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                     loading={busy}
                     onClick={() =>
                       modal.confirm({
-                        title: t("ยืนยันยกเลิกใบจ่ายสินค้า?"),
+                        title: t("ยืนยันยกเลิกใบเบิกสินค้า?"),
                         onOk: () => cancelMutation.mutateAsync(data.id),
                       })
                     }

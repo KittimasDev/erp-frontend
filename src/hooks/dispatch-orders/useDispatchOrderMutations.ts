@@ -40,11 +40,11 @@ export function useCreateDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || t("สร้างใบจ่ายสินค้าสำเร็จ"));
+      message.success(res.message || t("สร้างใบเบิกสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : t("สร้างใบจ่ายสินค้าไม่สำเร็จ"),
+        error instanceof ApiError ? error.message : t("สร้างใบเบิกสินค้าไม่สำเร็จ"),
       );
     },
   });
@@ -106,11 +106,11 @@ export function useCancelDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || t("ยกเลิกใบจ่ายสินค้าสำเร็จ"));
+      message.success(res.message || t("ยกเลิกใบเบิกสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : t("ยกเลิกใบจ่ายสินค้าไม่สำเร็จ"),
+        error instanceof ApiError ? error.message : t("ยกเลิกใบเบิกสินค้าไม่สำเร็จ"),
       );
     },
   });

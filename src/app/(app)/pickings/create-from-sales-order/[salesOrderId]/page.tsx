@@ -50,7 +50,7 @@ export default function Page({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : t("ไม่สามารถสร้างใบจ่ายสินค้าได้"),
+            : t("ไม่สามารถสร้างใบเบิกสินค้าได้"),
         );
       }
     })();
@@ -64,7 +64,7 @@ export default function Page({
     return (
       <Result
         status="403"
-        title={t("ไม่มีสิทธิ์สร้างใบจ่ายสินค้า")}
+        title={t("ไม่มีสิทธิ์สร้างใบเบิกสินค้า")}
         subTitle={t("ต้องเปิดสิทธิ์ PICKINGS · เพิ่มข้อมูล (ADD) ใน Permission Matrix สำหรับ role นี้ — ไม่ใช้สิทธิ์ตามรหัสคลังแบบเดิมแล้ว")}
         extra={
           <Link href={`/sales-orders/${salesOrderId}`}>
@@ -83,7 +83,7 @@ export default function Page({
     return (
       <Result
         status="error"
-        title={t("สร้างใบจ่ายสินค้าไม่สำเร็จ")}
+        title={t("สร้างใบเบิกสินค้าไม่สำเร็จ")}
         subTitle={errorMessage}
         extra={
           <Link href={`/sales-orders/${salesOrderId}`}>
@@ -99,7 +99,7 @@ export default function Page({
       <Spin
         description={
           started
-            ? t("กำลังเปิดใบจ่ายสินค้า...")
+            ? t("กำลังเปิดใบเบิกสินค้า...")
             : t("กำลังตรวจสอบสิทธิ์ Permission Matrix...")
         }
       />

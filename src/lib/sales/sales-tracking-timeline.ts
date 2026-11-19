@@ -24,7 +24,7 @@ export const SALES_TRACKING_STEP_LABEL: Record<string, string> = {
   "Sales Order": "ใบสั่งขาย",
   "Delivery Rounds": "รอบจัดส่ง",
   "Stock Verification": "ตรวจสอบสต๊อก",
-  Picking: "ใบจ่ายสินค้า",
+  Picking: "ใบเบิกสินค้า",
   Packing: "ใบบรรจุสินค้า",
   Delivery: "ใบส่งสินค้า",
   Invoice: "ใบแจ้งหนี้",
@@ -147,7 +147,7 @@ export function resolveTimelineStepHref(
 
   switch (step.step) {
     case "Stock Verification":
-      // ดูผลตรวจย้อนหลังได้เสมอ แต่ไม่ใช่จุดเริ่มสร้างใบจ่าย
+      // ดูผลตรวจย้อนหลังได้เสมอ แต่ไม่ใช่จุดเริ่มสร้างใบเบิก
       return `/sales-orders/${salesOrderId}/stock-verification`;
     case "Picking":
       if (picking?.documentId) {

@@ -53,7 +53,7 @@ export async function generatePickingPdf(data: PickingPdfData) {
 
   await generateSalesCommercialPdf({
     pageId: "picking-pdf",
-    titleTh: "ใบจ่ายสินค้า",
+    titleTh: "ใบเบิกสินค้า",
     titleEn: "PICKING LIST",
     docNo: data.pickingNo,
     docDate: data.pickingDate,

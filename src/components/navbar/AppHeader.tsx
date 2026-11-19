@@ -991,7 +991,7 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
       {
         key: "pickings",
         screenCode: "PICKINGS",
-        label: "ใบจ่ายสินค้า",
+        label: "ใบเบิกสินค้า",
         href: "/pickings",
         icon: <IconMaterialIssue />,
         roles: [

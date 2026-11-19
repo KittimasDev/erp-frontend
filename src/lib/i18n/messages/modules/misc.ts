@@ -309,4 +309,6 @@ export const EN_MISC: Record<string, string> = {
   "ยางดิบ / ยางก้อนถ้วย (Raw Natural Rubber)": "Raw rubber / cup lump (Raw Natural Rubber)",
   "ขี้ยาง / ยางเค้ก (Rubber Cake Slab)": "Rubber scrap / rubber cake (Rubber Cake Slab)",
   "TDAE Processing Oil / น้ำมันผสมยาง": "TDAE Processing Oil / rubber compounding oil",
+  "สร้างใบจ่าย": "Create dispatch",
+  "ใบจ่าย": "Dispatch",
 };

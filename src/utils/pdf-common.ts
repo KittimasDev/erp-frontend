@@ -817,6 +817,8 @@ export type SalesCommercialPdfData = {
   /** ป้ายใต้เลขที่ เช่น ฉบับแก้ไข วันที่ … */
   revisionLabel?: string;
   draftBanner?: string;
+  /** โทนแถบหัวกระดาษ — warn (ค่าเริ่มต้น เหลือง) / success (เขียว เช่น จ่ายแล้ว) */
+  draftBannerTone?: "warn" | "success";
   infoRows: SalesCommercialPdfInfoRow[];
   infoSections?: Array<{
     title?: string;
@@ -1065,6 +1067,13 @@ function salesStyles() {
         padding: 7px 10px;
         font-size: 7.5px;
         flex-shrink: 0;
+      }
+
+      .draft-banner.success {
+        border: 1px solid #a6d6b0;
+        background: #eaf7ee;
+        color: #2f7d44;
+        font-weight: 700;
       }
 
       .section-rule {
@@ -1837,7 +1846,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           </div>
         </div>
       </div>
-      ${data.draftBanner ? `<div class="draft-banner">${escapeHtml(data.draftBanner)}</div>` : ""}
+      ${data.draftBanner ? `<div class="draft-banner${data.draftBannerTone === "success" ? " success" : ""}">${escapeHtml(data.draftBanner)}</div>` : ""}
 
       <div class="section-rule"></div>
 

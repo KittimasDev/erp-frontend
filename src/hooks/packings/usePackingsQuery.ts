@@ -70,7 +70,7 @@ export const readyPickingsForPackingCountQueryKey = [
   "count",
 ] as const;
 
-/** จำนวนใบจ่ายที่พร้อมบรรจุ สำหรับ badge */
+/** จำนวนใบเบิกที่พร้อมบรรจุ สำหรับ badge */
 export function readyPickingsForPackingCountOptions(ctx?: {
   enabled?: boolean;
 }) {

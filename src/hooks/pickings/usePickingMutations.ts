@@ -46,7 +46,7 @@ export function useCreatePickingFromSalesOrderMutation() {
       createPickingFromSalesOrder(getAccessToken(), salesOrderId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || t("เปิดใบจ่ายสินค้าแล้ว"));
+      message.success(res.message || t("เปิดใบเบิกสินค้าแล้ว"));
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : t("สร้างไม่สำเร็จ")),
@@ -54,7 +54,7 @@ export function useCreatePickingFromSalesOrderMutation() {
 }
 
 /**
- * เปิดใบจ่ายของรอบจัดส่งหนึ่งรอบ
+ * เปิดใบเบิกของรอบจัดส่งหนึ่งรอบ
  *
  * error ที่เจอบ่อยคือ "สต๊อกไม่พอสำหรับรอบจัดส่งนี้" — โชว์ข้อความจาก backend
  * ตรง ๆ เพราะมันบอกจำนวนที่ยังขาดมาให้แล้ว คนจะเอาไปเปิดใบขอผลิตต่อได้
@@ -73,7 +73,7 @@ export function useCreatePickingFromScheduleMutation() {
     }) => createPickingFromDeliverySchedule(getAccessToken(), scheduleId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || t("เปิดใบจ่ายสินค้าแล้ว"));
+      message.success(res.message || t("เปิดใบเบิกสินค้าแล้ว"));
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : t("สร้างไม่สำเร็จ")),

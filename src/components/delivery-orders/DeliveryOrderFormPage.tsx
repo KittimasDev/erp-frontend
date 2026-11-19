@@ -362,7 +362,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 href={`/pickings/${ref.pickingId}`}
                 className={styles.docLink}
               >
-                {t("ใบจ่าย")} {ref.pickingNo ?? ref.pickingId}
+                {t("ใบเบิก")} {ref.pickingNo ?? ref.pickingId}
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ))}
@@ -670,12 +670,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 <ShoppingCartOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>{t("ใบจ่ายสินค้า")}</p>
+                <p className={styles.relatedLabel}>{t("ใบเบิกสินค้า")}</p>
                 <p className={styles.relatedValue}>
                   {ref.pickingNo ?? ref.pickingId}
                   {pickingRefs.length > 1 ? roundSuffix(ref.roundNo) : ""}
                 </p>
-                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบจ่าย")}</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบเบิก")}</p>
               </div>
             </Link>
           ))}

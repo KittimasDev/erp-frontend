@@ -39,7 +39,7 @@ export const readySalesOrdersForPickingCountQueryKey = [
   "count",
 ] as const;
 
-/** สิทธิ์เข้าหน้ารายการใบจ่ายสินค้า (เมนู / badge) — ตรงกับ canSeeMenu */
+/** สิทธิ์เข้าหน้ารายการใบเบิกสินค้า (เมนู / badge) — ตรงกับ canSeeMenu */
 export function canAccessPickings(): boolean {
   if (isAdministrator()) {
     return true;
@@ -82,7 +82,7 @@ export function useReadySalesOrdersForPickingQuery() {
   });
 }
 
-/** จำนวน SO ที่พร้อมสร้างใบจ่าย — ใช้ร่วมกันที่ปุ่มสร้างจาก SO / เมนู / หน้าแรก */
+/** จำนวน SO ที่พร้อมสร้างใบเบิก — ใช้ร่วมกันที่ปุ่มสร้างจาก SO / เมนู / หน้าแรก */
 export function readySalesOrdersForPickingCountOptions(ctx?: {
   enabled?: boolean;
 }) {

@@ -38,7 +38,7 @@ export default function CreatePackingSelectPickingPage() {
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: t("เลขที่ใบจ่ายสินค้า"),
+      title: t("เลขที่ใบเบิกสินค้า"),
       dataIndex: "pickingNo",
       render: (v: string) => <span className={styles.prNo}>{v}</span>,
     },
@@ -85,8 +85,8 @@ export default function CreatePackingSelectPickingPage() {
     <div className={styles.page}>
       <PageHeader
         eyebrow="Packing · Create"
-        title={t("เลือกใบจ่ายสินค้าที่พร้อมบรรจุ")}
-        subtitle={t("เฉพาะใบจ่ายสินค้าสถานะ CONFIRMED และยังไม่มีใบบรรจุที่ใช้งาน")}
+        title={t("เลือกใบเบิกสินค้าที่พร้อมบรรจุ")}
+        subtitle={t("เฉพาะใบเบิกสินค้าสถานะ CONFIRMED และยังไม่มีใบบรรจุที่ใช้งาน")}
         back={
           <>
 <Link href="/packings" className={styles.backLink}>
@@ -102,7 +102,7 @@ export default function CreatePackingSelectPickingPage() {
           columns={columns}
           dataSource={rows}
           pagination={false}
-          locale={{ emptyText: t("ไม่มีใบจ่ายสินค้าที่พร้อมสร้างใบบรรจุ") }}
+          locale={{ emptyText: t("ไม่มีใบเบิกสินค้าที่พร้อมสร้างใบบรรจุ") }}
         />
       </section>
     </div>
