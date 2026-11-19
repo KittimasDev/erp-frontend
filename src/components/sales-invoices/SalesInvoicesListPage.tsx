@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, DatePicker, Input, Pagination, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -58,7 +58,9 @@ export default function SalesInvoicesListPage() {
   const t = useT();
   const lang = useLanguage();
   const router = useRouter();
-  const [keyword, setKeyword] = useState("");
+  // ?keyword= จากหน้ารายการรับเงิน (กดไปใบตั้งลูกหนี้ของ SO นั้น)
+  const initialKeyword = useSearchParams().get("keyword")?.trim() ?? "";
+  const [keyword, setKeyword] = useState(initialKeyword);
   const [status, setStatus] = useState<string | undefined>();
   const [paymentStatus, setPaymentStatus] = useState<string | undefined>();
   const [invoiceDate, setInvoiceDate] = useState<dayjs.Dayjs | null>(null);
@@ -68,7 +70,7 @@ export default function SalesInvoicesListPage() {
     paymentStatus?: string;
     invoiceDateFrom?: string;
     invoiceDateTo?: string;
-  }>({});
+  }>({ keyword: initialKeyword || undefined });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 

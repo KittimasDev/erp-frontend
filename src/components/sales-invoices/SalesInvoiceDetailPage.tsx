@@ -432,6 +432,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             <ApplyCreditButton
               customerId={data.customerId}
               salesInvoiceId={data.id}
+              salesOrderId={data.salesOrderId}
               invoiceNo={data.invoiceNo}
               outstanding={outstandingAmount}
             />

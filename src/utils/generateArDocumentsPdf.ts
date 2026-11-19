@@ -127,6 +127,16 @@ export function buildArReceiptPdfData(r: ArReceipt): SalesCommercialPdfData {
           { label: "รหัสลูกค้า", value: r.customerCode ?? "" },
           { label: "วิธีรับชำระ", value: AR_PAYMENT_METHOD_LABEL[r.paymentMethod] ?? r.paymentMethod },
           { label: "เลขอ้างอิง", value: r.transactionRef ?? "—" },
+          // อ้างอิงเอกสารที่เกี่ยวข้อง (ไม่แสดงบรรทัดที่ไม่มีข้อมูล)
+          ...(
+            [
+              ["อ้างอิงใบสั่งขาย (SO)", r.salesOrders],
+              ["อ้างอิงใบส่งสินค้า (DN)", r.deliveryOrders],
+              ["อ้างอิงใบวางบิล", r.billingNotes],
+            ] as const
+          )
+            .filter(([, refs]) => (refs ?? []).length > 0)
+            .map(([label, refs]) => ({ label, value: (refs ?? []).map((x) => x.no).join(", ") })),
         ],
       },
     ],

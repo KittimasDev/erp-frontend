@@ -4,20 +4,26 @@ import { useState } from "react";
 import { Button, Form, Input, InputNumber, Modal } from "antd";
 
 import { money } from "@/components/ap-documents/apDocumentConfig";
-import { useApplyCreditMutation, useCustomerCreditQuery } from "@/hooks/ar-receipts/useArReceipts";
+import {
+  useApplyCreditMutation,
+  useCustomerCreditQuery,
+  useDepositStatusQuery,
+} from "@/hooks/ar-receipts/useArReceipts";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useT } from "@/lib/i18n/useT";
 
 type Props = {
   customerId: string;
   salesInvoiceId: string;
+  /** ใบสั่งขายของ AR — ใช้ดึงมัดจำของ SO นี้มาหัก และกันใช้มัดจำของ SO อื่น */
+  salesOrderId?: string;
   invoiceNo: string;
   /** ยอดค้างชำระของ AR */
   outstanding: number;
 };
 
 /** ปุ่ม "ใช้เครดิตลูกค้า" บนหน้ารายละเอียด AR — หักได้ไม่เกินเครดิตคงเหลือและยอดค้างของ AR */
-export default function ApplyCreditButton({ customerId, salesInvoiceId, invoiceNo, outstanding }: Props) {
+export default function ApplyCreditButton({ customerId, salesInvoiceId, salesOrderId, invoiceNo, outstanding }: Props) {
   const t = useT();
   const perms = useScreenActionPermissions("FINANCE_PAYMENT_RECEIPTS");
   const credit = useCustomerCreditQuery(perms.canAdd ? customerId : undefined);
@@ -25,19 +31,27 @@ export default function ApplyCreditButton({ customerId, salesInvoiceId, invoiceN
   const [open, setOpen] = useState(false);
   const [form] = Form.useForm<{ amount: number; remark?: string }>();
 
+  const deposit = useDepositStatusQuery(perms.canAdd ? salesOrderId : undefined);
   const balance = Number(credit.data?.balance ?? 0);
-  const max = Math.min(balance, outstanding);
-  if (!perms.canAdd || balance <= 0 || outstanding <= 0) return null;
+  // ใช้ได้จริง = เครดิตคงเหลือ − มัดจำที่ยังไม่ใช้ของ SO อื่น (backend บังคับกติกานี้ด้วย) · ไม่มีข้อมูล SO = ใช้เครดิตทั้งหมดตามเดิม
+  const usable = deposit.data?.usableCreditAmount !== undefined ? Number(deposit.data.usableCreditAmount) : balance;
+  const depositAvailable = Number(deposit.data?.availableAmount ?? 0);
+  const max = Math.min(balance, usable, outstanding);
+  if (!perms.canAdd || max <= 0) return null;
+  // มัดจำของ SO นี้ที่ยังไม่ได้หัก → เสนอเป็นค่าเริ่มต้น
+  const suggested = Math.min(depositAvailable > 0 ? depositAvailable : max, max);
 
   return (
     <>
       <Button
         onClick={() => {
-          form.setFieldsValue({ amount: max });
+          form.setFieldsValue({ amount: suggested });
           setOpen(true);
         }}
       >
-        {t("ใช้เครดิตลูกค้า ({amount})", { amount: money.format(balance) })}
+        {depositAvailable > 0
+          ? t("หักมัดจำของ SO นี้ ({amount})", { amount: money.format(depositAvailable) })
+          : t("ใช้เครดิตลูกค้า ({amount})", { amount: money.format(max) })}
       </Button>
       <Modal
         open={open}
@@ -56,6 +70,18 @@ export default function ApplyCreditButton({ customerId, salesInvoiceId, invoiceN
             due: money.format(outstanding),
           })}
         </p>
+        {depositAvailable > 0 ? (
+          <p style={{ marginTop: 0 }}>
+            {t("มัดจำของ SO นี้ที่ยังไม่ได้หัก {amount}", { amount: money.format(depositAvailable) })}
+          </p>
+        ) : null}
+        {usable < balance ? (
+          <p style={{ marginTop: 0, color: "#d46b08" }}>
+            {t("เครดิต {amount} เป็นมัดจำที่จองไว้กับใบสั่งขายอื่น — หักกับ AR นี้ไม่ได้", {
+              amount: money.format(balance - usable),
+            })}
+          </p>
+        ) : null}
         <Form
           form={form}
           layout="vertical"

@@ -13,6 +13,7 @@ import PageHeader from "@/components/common/PageHeader";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useArReceiptQuery, useCancelArReceiptMutation } from "@/hooks/ar-receipts/useArReceipts";
 import { useT } from "@/lib/i18n/useT";
+import { ArReceiptRelatedDocsCard } from "./ArReceiptRelatedDocs";
 import { arReceiptRoutes, arRoutes } from "@/lib/sales/ar-routes";
 import {
   AR_PAYMENT_METHOD_LABEL,
@@ -62,7 +63,14 @@ export default function ArReceiptDetailPage({ id }: { id: string }) {
   const columns: ColumnsType<ArReceiptAllocation> = [
     { title: t("ลำดับ"), key: "seq", width: 64, align: "center", render: (_v, _r, i) => i + 1 },
     { title: t("เลขที่ AR"), dataIndex: "invoiceNo", render: (v: string, a) => <Link href={arRoutes.detail(a.salesInvoiceId)}>{v}</Link> },
-    { title: t("ใบสั่งขาย"), dataIndex: "salesOrderNo", render: (v?: string) => v ?? "—" },
+    {
+      title: t("ใบสั่งขาย"),
+      dataIndex: "salesOrderNo",
+      render: (v?: string) => {
+        const so = v ? r.salesOrders?.find((o) => o.no === v) : undefined;
+        return so ? <Link href={`/sales-orders/${so.id}`}>{so.no}</Link> : (v ?? "—");
+      },
+    },
     { title: t("เงินสดที่ตัด"), dataIndex: "amount", align: "right", render: (v: string) => money.format(Number(v)) },
     { title: t("ภาษีที่ลูกค้าหัก (WHT)"), dataIndex: "whtAmount", align: "right", render: (v: string) => money.format(Number(v)) },
     {
@@ -126,6 +134,7 @@ export default function ArReceiptDetailPage({ id }: { id: string }) {
           ]}
         />
       </div>
+      <ArReceiptRelatedDocsCard receipt={r} />
       <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
         <h3 style={{ marginTop: 0 }}>{t("ใบตั้งลูกหนี้ที่ตัดยอด ({n})", { n: r.allocations.length })}</h3>
         <Table rowKey="id" size="middle" columns={columns} dataSource={r.allocations} pagination={false} scroll={{ x: 800 }} />

@@ -1,0 +1,31 @@
+.panelBody {
+  display: grid;
+  gap: 18px;
+  padding: 20px 22px 6px;
+}
+
+.table :global(.ant-table-thead > tr > th) {
+  padding: 16px 18px !important;
+}
+
+.table :global(.ant-table-tbody > tr > td) {
+  padding: 16px 18px !important;
+}
+
+.table :global(.ant-table-pagination) {
+  margin: 18px 4px 16px !important;
+}
+
+.index {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--brand-primary-soft, #f2f6e8);
+  color: var(--brand-primary-active, #536c10);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

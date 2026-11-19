@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Button, Checkbox, DatePicker, Input, InputNumber, Select, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -16,6 +16,7 @@ import {
   useCustomerCreditQuery,
   useOutstandingArInvoicesQuery,
 } from "@/hooks/ar-receipts/useArReceipts";
+import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyBankAccountsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useT } from "@/lib/i18n/useT";
@@ -38,23 +39,40 @@ export default function ArReceiptFormPage() {
   const perms = useScreenActionPermissions(SCREEN_CODE);
   const createMutation = useCreateArReceiptMutation();
   const customers = useCustomersQuery({ isActive: true });
+  // เติมล่วงหน้าจากหน้ารายการรับเงิน (/finance/receivables/customers): ?customerId=&salesOrderId=&deposit=1 — ผู้ใช้แก้ได้ทั้งหมด
+  const searchParams = useSearchParams();
 
-  const [customerId, setCustomerId] = useState<string | undefined>();
+  const [customerId, setCustomerId] = useState<string | undefined>(searchParams.get("customerId") ?? undefined);
   const [receiptDate, setReceiptDate] = useState(dayjs());
   const [method, setMethod] = useState("TRANSFER");
   const [ref, setRef] = useState("");
+  const [bankId, setBankId] = useState<string | undefined>();
+  const banks = useCompanyBankAccountsQuery();
   const [remark, setRemark] = useState("");
   const [received, setReceived] = useState<number | null>(null);
   const [lines, setLines] = useState<Record<string, Line>>({});
   const [overpayOk, setOverpayOk] = useState(false);
   // เงินมัดจำ/รับล่วงหน้า — ไม่ตัด AR เก็บทั้งก้อนเป็นเครดิตลูกค้า (อ้าง SO ได้)
-  const [isDeposit, setIsDeposit] = useState(false);
-  const [salesOrderId, setSalesOrderId] = useState<string | undefined>();
+  const [isDeposit, setIsDeposit] = useState(searchParams.get("deposit") === "1");
+  const [salesOrderId, setSalesOrderId] = useState<string | undefined>(
+    searchParams.get("deposit") === "1" ? (searchParams.get("salesOrderId") ?? undefined) : undefined,
+  );
 
   const salesOrders = useSalesOrdersQuery(isDeposit && customerId ? { customerId } : undefined);
   const outstanding = useOutstandingArInvoicesQuery(isDeposit ? undefined : customerId);
   const credit = useCustomerCreditQuery(customerId);
   const rows = useMemo(() => outstanding.data ?? [], [outstanding.data]);
+
+  // ใบวางบิลของ AR ที่ค้างอยู่ — เลือกทั้งใบแล้วเติมทุก AR ในใบนั้นให้ (ตัดเต็มยอดค้าง)
+  const [billingNoteNo, setBillingNoteNo] = useState<string | undefined>();
+  const billingGroups = useMemo(() => {
+    const map = new Map<string, OutstandingArInvoice[]>();
+    for (const r of rows) {
+      if (!r.billingNoteNo) continue;
+      map.set(r.billingNoteNo, [...(map.get(r.billingNoteNo) ?? []), r]);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [rows]);
 
   const picked = isDeposit
     ? []
@@ -81,6 +99,25 @@ export default function ArReceiptFormPage() {
     setLine(r.id, {
       amount: Math.max(0, (satang(Number(r.outstandingAmount)) - satang(lines[r.id]?.wht ?? 0)) / 100),
     });
+
+  // เลือกทั้งใบวางบิล: ตัดเต็มยอดค้างของทุก AR ในใบนั้น (คง WHT ที่กรอกไว้แล้ว) + ตั้งเงินที่รับให้เท่ายอดเงินสดรวมถ้ายังไม่กรอก
+  const pickBillingNote = (no: string) => {
+    const group = billingGroups.find(([n]) => n === no)?.[1] ?? [];
+    const next: Record<string, Line> = { ...lines };
+    for (const r of group) {
+      const wht = next[r.id]?.wht ?? 0;
+      next[r.id] = {
+        wht,
+        amount: Math.max(0, (satang(Number(r.outstandingAmount)) - satang(wht)) / 100),
+      };
+    }
+    setLines(next);
+    if (received === null) {
+      setReceived(
+        group.reduce((sum, r) => sum + satang(next[r.id].amount), 0) / 100,
+      );
+    }
+  };
 
   if (!perms.canAdd) return <AccessDenied screenCodes={[SCREEN_CODE]} />;
 
@@ -161,6 +198,7 @@ export default function ArReceiptFormPage() {
         receiptDate: receiptDate.format("YYYY-MM-DD"),
         paymentMethod: method,
         transactionRef: ref.trim() || undefined,
+        companyBankAccountId: method === "CASH" ? undefined : bankId,
         receivedAmount: receivedSatang / 100,
         allocations: picked.map((r) => ({
           salesInvoiceId: r.id,
@@ -224,6 +262,22 @@ export default function ArReceiptFormPage() {
             options={Object.entries(AR_PAYMENT_METHOD_LABEL).map(([value, label]) => ({ value, label: t(label) }))}
           />
         </div>
+        {method !== "CASH" ? (
+          <div>
+            <label>{t("บัญชีธนาคารที่รับเงิน")}</label>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              placeholder={t("เลือกบัญชีธนาคารของบริษัท")}
+              loading={banks.isLoading}
+              value={bankId}
+              onChange={setBankId}
+              options={(banks.data ?? [])
+                .filter((b) => b.isActive)
+                .map((b) => ({ value: b.id, label: `${b.bankName} ${b.accountNumber} (${b.accountName})` }))}
+            />
+          </div>
+        ) : null}
         <div>
           <label>{t("เลขอ้างอิง (สลิป/เลขที่เช็ค)")}</label>
           <Input value={ref} maxLength={255} onChange={(e) => setRef(e.target.value)} />
@@ -276,6 +330,36 @@ export default function ArReceiptFormPage() {
               {t("เครดิตลูกค้าคงเหลือ {amount}", { amount: money.format(Number(credit.data?.balance ?? 0)) })}
             </Typography.Text>
           </div>
+          {billingGroups.length > 0 ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+              <Typography.Text>{t("เลือกทั้งใบวางบิล")}:</Typography.Text>
+              <Select
+                allowClear
+                showSearch
+                style={{ minWidth: 300 }}
+                placeholder={t("เลือกใบวางบิล")}
+                value={billingNoteNo}
+                onChange={setBillingNoteNo}
+                optionFilterProp="label"
+                options={billingGroups.map(([no, list]) => ({
+                  value: no,
+                  label: t("{no} ({n} AR · ค้าง {amount})", {
+                    no,
+                    n: list.length,
+                    amount: money.format(list.reduce((sum, r) => sum + Number(r.outstandingAmount), 0)),
+                  }),
+                }))}
+              />
+              <Button
+                disabled={!billingNoteNo}
+                onClick={() => {
+                  if (billingNoteNo) pickBillingNote(billingNoteNo);
+                }}
+              >
+                {t("เติม AR ทั้งใบ (ตัดเต็มยอด)")}
+              </Button>
+            </div>
+          ) : null}
           <Table
             rowKey="id"
             size="middle"

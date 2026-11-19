@@ -14,6 +14,7 @@ import {
   getSalesOrderFinance,
   cancelArReceipt,
   createArReceipt,
+  getArAwaitingOrders,
   getArPaymentHistory,
   getArReceipt,
   getArReceipts,
@@ -24,7 +25,13 @@ import { getAccessToken } from "@/lib/auth/token";
 import { useT } from "@/lib/i18n/useT";
 import { salesInvoicesQueryKey } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { arBillingNotesQueryKey } from "@/hooks/ar-billing-notes/useArBillingNotes";
-import type { ApplyCreditBody, ArReceiptQuery, CreateArReceiptBody, CreateArRefundBody } from "@/types/ar-receipts";
+import type {
+  ApplyCreditBody,
+  ArReceiptQuery,
+  AwaitingOrdersQuery,
+  CreateArReceiptBody,
+  CreateArRefundBody,
+} from "@/types/ar-receipts";
 
 export const arReceiptsQueryKey = ["ar-receipts"] as const;
 
@@ -32,6 +39,15 @@ export function useArReceiptsQuery(params: ArReceiptQuery) {
   return useQuery({
     queryKey: [...arReceiptsQueryKey, "list", params],
     queryFn: async () => (await getArReceipts(getAccessToken(), params)).data,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** SO ที่รอรับเงิน — ข้อมูลเปลี่ยนเมื่อมีรับชำระ/ตั้ง AR จึงใช้ prefix เดียวกับ ar-receipts (invalidate ร่วมกันได้) */
+export function useArAwaitingOrdersQuery(params: AwaitingOrdersQuery) {
+  return useQuery({
+    queryKey: [...arReceiptsQueryKey, "awaiting-orders", params],
+    queryFn: async () => (await getArAwaitingOrders(getAccessToken(), params)).data,
     placeholderData: keepPreviousData,
   });
 }

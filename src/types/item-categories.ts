@@ -5,6 +5,8 @@ export type ItemCategory = {
   description?: string;
   /** บัญชีซื้อของหมวดนี้ในสมุดรายวันซื้อ (null = ใช้ค่าเริ่มต้น) */
   purchaseAccountId?: string | null;
+  /** บัญชีรายได้ของหมวดนี้ในสมุดรายวันขาย (null = ใช้ค่าเริ่มต้น) */
+  salesAccountId?: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -23,6 +25,7 @@ export type CreateItemCategoryRequest = {
   name: string;
   description?: string;
   purchaseAccountId?: string | null;
+  salesAccountId?: string | null;
   sortOrder?: number;
   isActive?: boolean;
 };

@@ -16,6 +16,7 @@ type ItemCategoryFormValues = {
   name: string;
   description?: string;
   purchaseAccountId?: string;
+  salesAccountId?: string;
   isActive: boolean;
 };
 
@@ -51,6 +52,7 @@ export default function ItemCategoryFormModal({
         name: initialItemCategory.nameTh,
         description: initialItemCategory.description,
         purchaseAccountId: initialItemCategory.purchaseAccountId ?? undefined,
+        salesAccountId: initialItemCategory.salesAccountId ?? undefined,
         isActive: initialItemCategory.isActive,
       });
       return;
@@ -61,6 +63,7 @@ export default function ItemCategoryFormModal({
       name: "",
       description: "",
       purchaseAccountId: undefined,
+      salesAccountId: undefined,
       isActive: true,
     });
   }, [open, mode, initialItemCategory, form]);
@@ -74,6 +77,7 @@ export default function ItemCategoryFormModal({
       description: values.description?.trim() || undefined,
       // null = ล้างการผูก (ใช้บัญชีซื้อสินค้าค่าเริ่มต้น)
       purchaseAccountId: values.purchaseAccountId ?? null,
+      salesAccountId: values.salesAccountId ?? null,
       isActive: values.isActive,
     });
   };
@@ -173,6 +177,24 @@ export default function ItemCategoryFormModal({
           label={t("บัญชีซื้อ (สมุดรายวันซื้อ)")}
           name="purchaseAccountId"
           extra={t("ไม่เลือก = ใช้บัญชีซื้อสินค้าค่าเริ่มต้นที่หน้า ผังบัญชีและการผูกบัญชี")}
+        >
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder={t("ใช้ค่าเริ่มต้น")}
+            loading={glAccountsQuery.isLoading}
+            options={(glAccountsQuery.data ?? []).map((account) => ({
+              value: account.id,
+              label: `${account.code} — ${account.nameTh}`,
+            }))}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label={t("บัญชีรายได้ (สมุดรายวันขาย)")}
+          name="salesAccountId"
+          extra={t("ไม่เลือก = ใช้บัญชีรายได้จากการขายค่าเริ่มต้นที่หน้า ผังบัญชีและการผูกบัญชี")}
         >
           <Select
             allowClear

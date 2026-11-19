@@ -59,6 +59,17 @@ const SETTING_GROUPS: Array<{ title: string; icon: ReactNode; keys: string[] }> 
   },
   { title: "เงินล่วงหน้า / มัดจำ", icon: <WalletOutlined />, keys: ["ADVANCE_PAID", "DEPOSIT_PAID"] },
   { title: "เงินสดและเช็คจ่าย", icon: <CreditCardOutlined />, keys: ["CASH_ON_HAND", "CHEQUE_PAYABLE"] },
+  // ฝั่งขาย (สมุดรายวันขาย / สมุดรายวันรับ)
+  {
+    title: "บัญชีหลัก (การขาย)",
+    icon: <AppstoreOutlined />,
+    keys: ["AR_TRADE", "SALES_REVENUE", "OUTPUT_VAT", "WHT_RECEIVABLE"],
+  },
+  {
+    title: "เงินรับล่วงหน้า / เช็ครับ (การรับเงิน)",
+    icon: <WalletOutlined />,
+    keys: ["CUSTOMER_DEPOSIT", "CHEQUE_RECEIVED"],
+  },
 ];
 
 /**

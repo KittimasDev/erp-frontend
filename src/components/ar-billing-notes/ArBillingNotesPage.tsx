@@ -22,6 +22,7 @@ import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfi
 import PageHeader from "@/components/common/PageHeader";
 import styles from "@/components/finance/shared/finance-list-page.module.css";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import pageStyles from "@/components/ar-billing-notes/ar-billing-notes-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useArBillingNotesQuery,
@@ -40,6 +41,10 @@ import {
 const SCREEN_CODE = "FINANCE_AR_BILLING_NOTES";
 const PENDING_PAGE_SIZE = 5;
 const CREATED_PAGE_SIZE = 20;
+
+function IndexCell({ n }: { n: number }) {
+  return <span className={pageStyles.index}>{n}</span>;
+}
 
 /**
  * ใบวางบิลฝั่งขาย — ส่วนบน: ใบตั้งลูกหนี้ (AR) ที่ยืนยันแล้วและมียอดค้าง รอวางบิล
@@ -90,9 +95,13 @@ export default function ArBillingNotesPage() {
     {
       title: t("ลำดับ"),
       key: "seq",
-      width: 64,
+      dataIndex: "id",
+      width: 84,
       align: "center",
-      render: (_v, _r, index) => (pPage - 1) * PENDING_PAGE_SIZE + index + 1,
+      fixed: "left",
+      render: (_v, _r, index) => (
+        <IndexCell n={(pPage - 1) * PENDING_PAGE_SIZE + index + 1} />
+      ),
     },
     {
       title: t("วันที่ AR"),
@@ -152,9 +161,13 @@ export default function ArBillingNotesPage() {
     {
       title: t("ลำดับ"),
       key: "seq",
-      width: 64,
+      dataIndex: "id",
+      width: 84,
       align: "center",
-      render: (_v, _r, index) => (cPage - 1) * CREATED_PAGE_SIZE + index + 1,
+      fixed: "left",
+      render: (_v, _r, index) => (
+        <IndexCell n={(cPage - 1) * CREATED_PAGE_SIZE + index + 1} />
+      ),
     },
     {
       title: t("เลขที่ใบวางบิล"),
@@ -219,7 +232,7 @@ export default function ArBillingNotesPage() {
   );
 
   return (
-    <section className={styles.page}>
+    <section className={styles.page} style={{ gap: 24 }}>
       <PageHeader
         eyebrow="FINANCE · RECEIVABLES"
         icon={<FileTextOutlined />}
@@ -253,10 +266,8 @@ export default function ArBillingNotesPage() {
               : ""}
           </span>
         </div>
-        <section
-          className={styles.filterCard}
-          style={{ marginBottom: 12, boxShadow: "none" }}
-        >
+        <div className={pageStyles.panelBody}>
+        <section className={styles.filterCard} style={{ boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
               <label>{t("ค้นหา")}</label>
@@ -295,11 +306,11 @@ export default function ArBillingNotesPage() {
             </div>
           </div>
         </section>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+        <p className={pageStyles.hint}>
           {t("เลือกได้หลายใบเฉพาะ AR ของลูกค้าเดียวกัน — วางบิลเต็มยอดค้างชำระของแต่ละ AR (ไม่แบ่ง AR)")}
-        </Typography.Paragraph>
+        </p>
         <Table
-          className={masterStyles.dataTable}
+          className={`${masterStyles.dataTable} ${pageStyles.table}`}
           size="middle"
           bordered={false}
           rowKey="id"
@@ -309,6 +320,8 @@ export default function ArBillingNotesPage() {
           rowSelection={
             perms.canAdd
               ? {
+                  fixed: true,
+                  columnWidth: 56,
                   selectedRowKeys: selected.map((s) => s.id),
                   preserveSelectedRowKeys: true,
                   onChange: (_keys, rows) => setSelected(rows),
@@ -328,9 +341,10 @@ export default function ArBillingNotesPage() {
             showSizeChanger: false,
             showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1280 }}
           locale={{ emptyText: t("ไม่มีรายการรอวางบิล") }}
         />
+        </div>
       </div>
 
       <div className={masterStyles.tableCard}>
@@ -343,10 +357,8 @@ export default function ArBillingNotesPage() {
             {(created.data?.total ?? 0).toLocaleString("th-TH")} {t("รายการ")}
           </span>
         </div>
-        <section
-          className={styles.filterCard}
-          style={{ marginBottom: 12, boxShadow: "none" }}
-        >
+        <div className={pageStyles.panelBody}>
+        <section className={styles.filterCard} style={{ boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
               <label>{t("ค้นหา")}</label>
@@ -400,7 +412,7 @@ export default function ArBillingNotesPage() {
           </div>
         </section>
         <Table
-          className={masterStyles.dataTable}
+          className={`${masterStyles.dataTable} ${pageStyles.table}`}
           size="middle"
           bordered={false}
           rowKey="id"
@@ -415,9 +427,10 @@ export default function ArBillingNotesPage() {
             showSizeChanger: false,
             showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 1180 }}
           locale={{ emptyText: t("ยังไม่มีใบวางบิล") }}
         />
+        </div>
       </div>
 
       <Modal
@@ -426,7 +439,7 @@ export default function ArBillingNotesPage() {
         okText={t("สร้างใบวางบิล (ร่าง)")}
         cancelText={t("ยกเลิก")}
         confirmLoading={createMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setModalOpen(false)}
         onOk={() => form.submit()}

@@ -88,7 +88,12 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
             onClick={() => {
               setType("OFFSET");
               form.resetFields();
-              form.setFieldsValue({ amount: remaining });
+              // AR ที่ตั้งจากใบส่งสินค้าใบเดียวกับใบลดหนี้ → เลือกให้ก่อน (ค้างน้อยกว่ายอดลด → ตัดเท่ายอดค้าง)
+              const linked = data.openInvoices.find((i) => i.sameDelivery);
+              form.setFieldsValue({
+                salesInvoiceId: linked?.id,
+                amount: linked ? Math.min(remaining, Number(linked.outstandingAmount)) : remaining,
+              });
               setOpen(true);
             }}
           >
@@ -97,6 +102,19 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
         ) : null
       }
     >
+      {remaining > 0 ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message={t("ใบลดหนี้นี้อนุมัติแล้วแต่ยังตัดยอดไม่ครบ — ยอด AR ของลูกค้ายังไม่ลดจนกว่าจะตัดยอด")}
+          description={
+            data.openInvoices.some((i) => i.sameDelivery)
+              ? t("พบ AR ที่ตั้งจากใบส่งสินค้าใบเดียวกัน — กด \"ตัดยอด\" เพื่อหักกับใบนั้น")
+              : undefined
+          }
+        />
+      ) : null}
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
         <span>{t("ยอดใบลดหนี้")}: <strong>{money.format(Number(data.totalAmount))}</strong></span>
         <span>{t("ตัดแล้ว")}: <strong>{money.format(Number(data.settledAmount))}</strong></span>

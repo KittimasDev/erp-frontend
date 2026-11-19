@@ -24,6 +24,7 @@ import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfi
 import AccessDenied from "@/components/auth/AccessDenied";
 import PageHeader from "@/components/common/PageHeader";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
+import pageStyles from "@/components/ar-billing-notes/ar-billing-notes-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useArBillingNoteQuery,
@@ -132,9 +133,12 @@ function DetailView({
     {
       title: t("ลำดับ"),
       key: "seq",
-      width: 64,
+      dataIndex: "id",
+      width: 84,
       align: "center",
-      render: (_v, _r, index) => index + 1,
+      render: (_v, _r, index) => (
+        <span className={pageStyles.index}>{index + 1}</span>
+      ),
     },
     {
       title: t("เลขที่ AR"),
@@ -223,7 +227,7 @@ function DetailView({
   );
 
   return (
-    <section style={{ display: "grid", gap: 16 }}>
+    <section className={pageStyles.detailPage}>
       <Breadcrumb
         items={[
           { title: <Link href={arBillingRoutes.list}>{t("ใบวางบิล (ลูกหนี้)")}</Link> },
@@ -313,10 +317,10 @@ function DetailView({
         />
       ) : null}
 
-      <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
+      <div className={pageStyles.detailCard}>
         <Descriptions
           column={{ xs: 1, md: 2, xl: 3 }}
-          size="small"
+          size="middle"
           items={[
             {
               key: "status",
@@ -368,17 +372,18 @@ function DetailView({
         />
       </div>
 
-      <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
-        <h3 style={{ marginTop: 0 }}>
+      <div className={pageStyles.detailCard}>
+        <h3>
           {t("ใบตั้งลูกหนี้ในใบวางบิล ({n})", { n: note.items.length })}
         </h3>
         <Table
+          className={pageStyles.table}
           rowKey="id"
           size="middle"
           columns={columns}
           dataSource={note.items}
           pagination={false}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1080 }}
           summary={() => (
             <Table.Summary.Row>
               <Table.Summary.Cell index={0} colSpan={5} align="right">
@@ -401,7 +406,7 @@ function DetailView({
         okText={t("บันทึก")}
         cancelText={t("ยกเลิก")}
         confirmLoading={updateMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setEditOpen(false)}
         onOk={() => editForm.submit()}
@@ -452,7 +457,7 @@ function DetailView({
           disabled: isConfirmed && cancelReason.trim().length < 5,
         }}
         confirmLoading={cancelMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         afterOpenChange={(visible) => {
           if (!visible) setCancelReason("");

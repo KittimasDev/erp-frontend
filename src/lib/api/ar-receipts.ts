@@ -11,6 +11,8 @@ import type {
   ArReceiptApiResponse,
   ArReceiptListApiResponse,
   ArReceiptQuery,
+  AwaitingOrdersApiResponse,
+  AwaitingOrdersQuery,
   CreateArReceiptBody,
   CustomerCreditApiResponse,
   OutstandingArInvoicesApiResponse,
@@ -97,4 +99,15 @@ export function cancelArRefund(token: string, id: string, reason: string) {
 
 export function getSalesOrderFinance(token: string, salesOrderId: string) {
   return apiFetch<SalesOrderFinanceApiResponse>(`/api/ar-receipts/sales-order-summary/${salesOrderId}`, { token });
+}
+
+export function getArAwaitingOrders(token: string, params: AwaitingOrdersQuery) {
+  return apiFetch<AwaitingOrdersApiResponse>(
+    `/api/ar-receipts/awaiting-orders${qs({
+      ...params,
+      keyword: params.keyword?.trim(),
+      overdueOnly: params.overdueOnly ? "true" : undefined,
+    })}`,
+    { token },
+  );
 }

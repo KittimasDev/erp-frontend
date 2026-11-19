@@ -18,6 +18,7 @@ import {
   useCreditLedgerQuery,
   useCustomerCreditQuery,
 } from "@/hooks/ar-receipts/useArReceipts";
+import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyBankAccountsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useT } from "@/lib/i18n/useT";
 import {
@@ -48,7 +49,8 @@ export default function ArRefundsPage() {
   const ledger = useCreditLedgerQuery(customerId);
   const createMutation = useCreateArRefundMutation();
   const cancelMutation = useCancelArRefundMutation();
-  const [form] = Form.useForm<{ refundDate: dayjs.Dayjs; paymentMethod: string; amount: number; transactionRef?: string; remark?: string }>();
+  const [form] = Form.useForm<{ refundDate: dayjs.Dayjs; paymentMethod: string; amount: number; transactionRef?: string; companyBankAccountId?: string; remark?: string }>();
+  const banks = useCompanyBankAccountsQuery();
   const [createOpen, setCreateOpen] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<ArRefund | null>(null);
   const [reason, setReason] = useState("");
@@ -207,6 +209,7 @@ export default function ArRefundsPage() {
                 paymentMethod: v.paymentMethod,
                 amount: v.amount,
                 transactionRef: v.transactionRef?.trim() || undefined,
+                companyBankAccountId: v.paymentMethod === "CASH" ? undefined : v.companyBankAccountId,
                 remark: v.remark?.trim() || undefined,
               });
               setCreateOpen(false);
@@ -230,6 +233,16 @@ export default function ArRefundsPage() {
             ]}
           >
             <InputNumber precision={2} min={0} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item name="companyBankAccountId" label={t("บัญชีธนาคารที่จ่ายคืน")}>
+            <Select
+              allowClear
+              placeholder={t("เลือกบัญชีธนาคารของบริษัท")}
+              loading={banks.isLoading}
+              options={(banks.data ?? [])
+                .filter((b) => b.isActive)
+                .map((b) => ({ value: b.id, label: `${b.bankName} ${b.accountNumber} (${b.accountName})` }))}
+            />
           </Form.Item>
           <Form.Item name="transactionRef" label={t("เลขอ้างอิง")}>
             <Input maxLength={255} />

@@ -28,6 +28,9 @@ export type ArReceiptAllocation = {
   isActive: boolean;
 };
 
+/** อ้างอิงเอกสารที่เกี่ยวข้องกับใบรับชำระ */
+export type ArReceiptRef = { id: string; no: string; status?: string };
+
 export type ArReceipt = {
   id: string;
   receiptNo: string;
@@ -52,6 +55,12 @@ export type ArReceipt = {
   cancelReason?: string | null;
   createdAt: string;
   allocations: ArReceiptAllocation[];
+  /** เอกสารที่เกี่ยวข้อง (อ่านอย่างเดียว) — SO เป็นหลัก พร้อมใบเสนอราคา / DN / AR / ใบวางบิล */
+  quotations: ArReceiptRef[];
+  salesOrders: ArReceiptRef[];
+  deliveryOrders: ArReceiptRef[];
+  invoices: ArReceiptRef[];
+  billingNotes: ArReceiptRef[];
 };
 
 export type OutstandingArInvoice = {
@@ -97,6 +106,8 @@ export type CreateArReceiptBody = {
   receiptDate: string;
   paymentMethod: string;
   transactionRef?: string;
+  /** บัญชีธนาคารบริษัทที่รับเงิน — ใช้ผูกบัญชีในสมุดรายวันรับ */
+  companyBankAccountId?: string;
   receivedAmount: number;
   allocations: Array<{ salesInvoiceId: string; amount: number; whtAmount?: number }>;
   overpayToCredit?: boolean;
@@ -132,6 +143,12 @@ export type DepositStatus = {
   requiredPercent: number;
   requiredAmount: string;
   receivedAmount: string;
+  /** มัดจำของ SO นี้ที่หักกับ AR ของ SO นี้แล้ว */
+  appliedAmount?: string;
+  /** มัดจำของ SO นี้ที่ยังไม่ได้หัก (รับแล้ว − หักแล้ว) */
+  availableAmount?: string;
+  /** เครดิตที่ใช้หัก AR ของ SO นี้ได้จริง (ไม่รวมมัดจำที่จองไว้ให้ SO อื่น) */
+  usableCreditAmount?: string;
   status: "NOT_REQUIRED" | "PENDING" | "PARTIAL" | "COMPLETE" | string;
 };
 
@@ -156,6 +173,8 @@ export type CreateArRefundBody = {
   paymentMethod: string;
   amount: number;
   transactionRef?: string;
+  /** บัญชีธนาคารบริษัทที่จ่ายคืน */
+  companyBankAccountId?: string;
   remark?: string;
 };
 
@@ -213,3 +232,64 @@ export type SalesOrderFinance = {
 };
 
 export type SalesOrderFinanceApiResponse = { success: boolean; message: string; data: SalesOrderFinance };
+
+/** SO ที่รอรับเงิน (หน้า /finance/receivables/customers) — ตรงกับ backend GET /api/ar-receipts/awaiting-orders */
+export const AWAITING_PAY_STATUS_LABEL: Record<string, string> = {
+  AWAITING_DEPOSIT: "รอมัดจำ",
+  NOT_BILLED: "ยังไม่ตั้ง AR",
+  AWAITING_PAYMENT: "รอรับเงิน",
+  PARTIALLY_PAID: "รับเงินบางส่วน",
+};
+
+export const AWAITING_PAY_STATUS_COLOR: Record<string, string> = {
+  AWAITING_DEPOSIT: "orange",
+  NOT_BILLED: "default",
+  AWAITING_PAYMENT: "blue",
+  PARTIALLY_PAID: "gold",
+};
+
+export type AwaitingOrder = {
+  salesOrderId: string;
+  soNo: string;
+  soDate: string;
+  customerId: string;
+  customerCode?: string;
+  customerName?: string;
+  termCode?: string;
+  termName?: string;
+  termType: string;
+  /** RECEIPT = ล่วงหน้า/มัดจำบางส่วน → หน้ารับชำระเงิน · AR = เมื่อรับสินค้า/เครดิต → ใบตั้งลูกหนี้ */
+  targetPage: "RECEIPT" | "AR";
+  /** PENDING = มี DN ส่งแล้วที่ยังไม่ตั้ง AR (ไปหน้ารอตั้งลูกหนี้) · LIST = ไปรายการ AR */
+  arTarget: "PENDING" | "LIST";
+  deliveryStatus?: string;
+  /** ยอดที่ใช้วัดคงค้าง: ยอดรวม SO หรือยอด AR (เมื่อส่งครบและตั้งหนี้ครบแล้ว) */
+  totalAmount: string;
+  receivedAmount: string;
+  outstandingAmount: string;
+  depositRequiredAmount?: string;
+  paymentDueDate?: string;
+  isOverdue: boolean;
+  payStatus: string;
+};
+
+export type AwaitingOrdersQuery = {
+  keyword?: string;
+  customerId?: string;
+  termGroup?: "PREPAY" | "ON_DELIVERY_OR_CREDIT";
+  payStatus?: string;
+  deliveryStatus?: string;
+  overdueOnly?: boolean;
+  page?: number;
+  limit?: number;
+};
+
+export type AwaitingOrdersData = {
+  items: AwaitingOrder[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: { count: number; outstandingTotal: string };
+};
+
+export type AwaitingOrdersApiResponse = { data: AwaitingOrdersData };

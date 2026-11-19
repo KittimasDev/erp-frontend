@@ -15,6 +15,7 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useArReceiptsQuery } from "@/hooks/ar-receipts/useArReceipts";
 import { useT } from "@/lib/i18n/useT";
+import { ArReceiptRelatedDocsInline } from "./ArReceiptRelatedDocs";
 import { arReceiptRoutes } from "@/lib/sales/ar-routes";
 import {
   AR_PAYMENT_METHOD_LABEL,
@@ -68,6 +69,12 @@ export default function ArReceiptsListPage({ variant }: Props) {
           <Typography.Text type="secondary">{r.customerCode}</Typography.Text> {r.customerName}
         </span>
       ),
+    },
+    {
+      title: t("อ้างอิง SO / เอกสารที่เกี่ยวข้อง"),
+      key: "related",
+      width: 220,
+      render: (_v, r) => <ArReceiptRelatedDocsInline receipt={r} />,
     },
     {
       title: t("วิธีรับชำระ"),
