@@ -1207,6 +1207,14 @@ const salesMenus: MenuItem[] = [
     roles: [ROLE.SALES_OFFICER, ROLE.SALES_MANAGER, ROLE.EXECUTIVE],
   },
   {
+    key: "quotation-approvals",
+    screenCode: "QUOTATION_APPROVALS",
+    label: "อนุมัติใบเสนอราคา",
+    href: "/quotations/approvals",
+    icon: <IconPrType />,
+    roles: [ROLE.SALES_MANAGER],
+  },
+  {
     key: "sales-orders",
     screenCode: "SALES_ORDERS",
     label: "ใบสั่งขาย",
@@ -1220,10 +1228,18 @@ const salesMenus: MenuItem[] = [
     ],
   },
   {
+    key: "sales-order-approvals",
+    screenCode: "SALES_ORDER_APPROVALS",
+    label: "อนุมัติใบสั่งขาย",
+    href: "/sales-orders/approvals",
+    icon: <IconPrType />,
+    roles: [ROLE.SALES_MANAGER],
+  },
+  {
     key: "sales-invoices-pending",
     screenCode: "SALES_INVOICES_PENDING",
     label: "รอออกใบแจ้งหนี้",
-    href: "/sales-invoices/pending",
+    href: "/finance/receivables/ar-invoices/pending",
     icon: <IconPayment />,
     roles: [
       ROLE.SALES_OFFICER,
@@ -1236,7 +1252,7 @@ const salesMenus: MenuItem[] = [
     key: "sales-invoices",
     screenCode: "SALES_INVOICES",
     label: "ใบแจ้งหนี้ขาย",
-    href: "/sales-invoices",
+    href: "/finance/receivables/ar-invoices",
     icon: <IconPayment />,
     roles: [
       ROLE.SALES_OFFICER,
@@ -1670,6 +1686,14 @@ const financeMenus: MenuItem[] = [
             roles: FINANCE_MENU_ROLES,
           },
         ],
+      },
+      {
+        key: "finance-ar-billing-notes",
+        screenCode: "FINANCE_AR_BILLING_NOTES",
+        label: "ใบวางบิล",
+        href: "/finance/receivables/billing-notes",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
       },
       {
         key: "finance-receivable-adjustments",

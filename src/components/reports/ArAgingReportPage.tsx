@@ -138,7 +138,7 @@ export default function ArAgingReportPage() {
       title: t("เลขที่ใบแจ้งหนี้"),
       dataIndex: "invoiceNo",
       render: (value: string, row) => (
-        <Link href={`/sales-invoices/${row.invoiceId}`}>{value}</Link>
+        <Link href={`/finance/receivables/ar-invoices/${row.invoiceId}`}>{value}</Link>
       ),
     },
     {

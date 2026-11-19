@@ -9,6 +9,10 @@ import {
   type ReactNode,
 } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
+import ApprovalReasonModal, {
+  type ApprovalReasonKind,
+} from "@/components/common/ApprovalReasonModal";
+import SalesApprovalHistoryCard from "@/components/sales/SalesApprovalHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -56,7 +60,8 @@ import DocumentAuditTrail from "@/components/common/DocumentAuditTrail";
 import SalesOrderTimeline from "@/components/sales/SalesOrderTimeline";
 import {
   useCancelSalesOrderMutation,
-  useConfirmSalesOrderMutation,
+  useSalesOrderApprovalDecisionMutation,
+  useSubmitSalesOrderMutation,
   useDeleteSalesOrderAttachmentMutation,
   useReleaseSalesOrderLineMutation,
   useReserveAllEligibleSalesOrderLinesMutation,
@@ -135,6 +140,8 @@ import {
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import SalesOrderDepositAlert from "@/components/ar-receipts/SalesOrderDepositAlert";
+import SalesOrderFinanceCard from "@/components/ar-receipts/SalesOrderFinanceCard";
 import { useT, tNow } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 
@@ -458,6 +465,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const query = useSalesOrderQuery(id);
   const data = query.data?.data;
   const isPreConfirm = isPreConfirmSalesOrderStatus(data?.status);
+  const isPendingApproval = data?.status === "PENDING_APPROVAL";
 
   const stockVerificationQuery = useSalesOrderStockVerificationQuery(
     data && !isPreConfirm ? id : undefined,
@@ -474,7 +482,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
   );
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const pdfSnapshotsQuery = useSalesOrderPdfSnapshotsQuery(id);
-  const confirmMutation = useConfirmSalesOrderMutation();
+  // ปุ่ม "ยืนยันใบสั่งขาย" เดิมกลายเป็น "ส่งอนุมัติ" — ยืนยันส่งคลังเกิดตอนผู้อนุมัติอนุมัติ
+  const confirmMutation = useSubmitSalesOrderMutation();
+  const approvalDecisionMutation = useSalesOrderApprovalDecisionMutation();
+  const [reviewKind, setReviewKind] = useState<ApprovalReasonKind | null>(null);
   const cancelMutation = useCancelSalesOrderMutation();
   const releaseReservationMutation = useReleaseSalesOrderLineMutation();
   const reserveLineMutation = useReserveSalesOrderLineMutation();
@@ -592,9 +603,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const tracking = trackingQuery.data?.data;
   const timeline = tracking?.timeline ?? [];
 
-  const canWrite = salesOrderActions.canEdit;
-  const canConfirm = salesOrderActions.canApprove;
-  const canOpenDetail = canAccessSalesOrderDetail({
+  // ระหว่างรออนุมัติแก้เอกสารไม่ได้ (ล็อกทุกจุดที่ผูกกับ canWrite) — ยกเลิกยังทำได้ด้วย canCancel
+  const canWrite = salesOrderActions.canEdit && !isPendingApproval;
+  const canCancel = salesOrderActions.canEdit;
+  // ส่งอนุมัติใช้สิทธิ์แก้ไข · อนุมัติ/ไม่อนุมัติ/ส่งกลับใช้สิทธิ์หน้าอนุมัติ (แยกจาก SALES_ORDERS.APPROVE เดิม)
+  const approvalActions = useScreenActionPermissions("SALES_ORDER_APPROVALS");
+  const canApproveInternal = approvalActions.canApprove;
+  const canConfirm = canWrite;
+  const canOpenDetail =
+    approvalActions.canView ||
+    canAccessSalesOrderDetail({
     salesOrder: salesOrderActions,
     stockVerification: stockVerificationActions,
     picking: pickingActions,
@@ -734,6 +752,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   const busy =
     confirmMutation.isPending ||
+    approvalDecisionMutation.isPending ||
     cancelMutation.isPending ||
     releaseReservationMutation.isPending ||
     reserveLineMutation.isPending ||
@@ -890,12 +909,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   const tryConfirmSalesOrder = () => {
     if (uploadAttachmentMutation.isPending) {
-      message.warning(t("รออัปโหลดไฟล์ให้สำเร็จก่อนยืนยันใบสั่งขาย"));
+      message.warning(t("รออัปโหลดไฟล์ให้สำเร็จก่อนส่งอนุมัติใบสั่งขาย"));
       return;
     }
     if (!evidenceReady) {
       message.warning(
-        t("ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย"),
+        t("ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนส่งอนุมัติใบสั่งขาย"),
       );
       return;
     }
@@ -1091,7 +1110,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   };
 
   const cancelButton =
-    canWrite &&
+    canCancel &&
     canCancelSalesOrder({
       status: data.status,
       deliveryStatus: data.deliveryStatus,
@@ -1441,6 +1460,57 @@ export default function SalesOrderDetailPage({ id }: Props) {
         : t("รายการที่เลือก")
       : t("ทุกรายการที่สต๊อกไม่พอ");
 
+  // ผู้อนุมัติ: อนุมัติ (= ยืนยันใบสั่งขายส่งคลัง) / ส่งกลับแก้ไข / ไม่อนุมัติ — เหตุผลบังคับสองอย่างหลัง
+  const approvalHeaderButtons: ReactNode =
+    isPendingApproval && canApproveInternal ? (
+      <>
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          htmlType="button"
+          icon={<CheckOutlined />}
+          loading={approvalDecisionMutation.isPending}
+          onClick={() =>
+            modal.confirm({
+              title: t("อนุมัติใบสั่งขาย {no}?", { no: data.soNo }),
+              content: t(
+                "อนุมัติ = ยืนยันใบสั่งขายส่งคลัง ระบบตรวจวงเงินเครดิต หลักฐานแนบ และงวดจัดส่งอีกครั้ง",
+              ),
+              okText: t("อนุมัติ"),
+              cancelText: t("ยกเลิก"),
+              onOk: () =>
+                approvalDecisionMutation
+                  .mutateAsync({
+                    id: data.id,
+                    expectedVersion: data.editVersion,
+                    action: "approve",
+                  })
+                  .catch((error: unknown) => {
+                    promptStaleDocument(error, reloadSalesOrder);
+                  }),
+            })
+          }
+        >
+          {t("อนุมัติ")}
+        </Button>
+        <Button
+          htmlType="button"
+          disabled={busy}
+          onClick={() => setReviewKind("return")}
+        >
+          {t("ส่งกลับแก้ไข")}
+        </Button>
+        <Button
+          danger
+          htmlType="button"
+          disabled={busy}
+          onClick={() => setReviewKind("reject")}
+        >
+          {t("ไม่อนุมัติ")}
+        </Button>
+      </>
+    ) : null;
+
   let preConfirmHeaderButton: ReactNode = null;
   if (showConfirmCta) {
     preConfirmHeaderButton = (
@@ -1453,7 +1523,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         disabled={confirmBlocked}
         onClick={tryConfirmSalesOrder}
       >
-        {tSoStatus("ยืนยันใบสั่งขาย")}
+        {t("ส่งอนุมัติ")}
       </Button>
     );
   }
@@ -1522,6 +1592,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           ) : null}
           {isPreConfirm ? (
             <>
+              {approvalHeaderButtons}
               {preConfirmHeaderButton}
               {cancelButton}
             </>
@@ -1571,6 +1642,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
           {t("จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ")}
         </div>
       ) : null}
+
+      <SalesOrderDepositAlert salesOrderId={data.id} />
+      <SalesOrderFinanceCard salesOrderId={data.id} />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
@@ -2287,7 +2361,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     disabled={confirmBlocked}
                     onClick={tryConfirmSalesOrder}
                   >
-                    {tSoStatus("ยืนยันใบสั่งขาย")}
+                    {t("ส่งอนุมัติ")}
                   </Button>
                   <span className={styles.sectionHint}>
                     {t("จัดรอบครบแล้ว — กดยืนยันได้")}
@@ -2886,12 +2960,30 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     disabled={confirmBlocked}
                     onClick={tryConfirmSalesOrder}
                   >
-                    {tSoStatus("ยืนยันใบสั่งขาย")}
+                    {t("ส่งอนุมัติ")}
                   </Button>
+                ) : null}
+                {approvalHeaderButtons}
+                {isPendingApproval && !canApproveInternal ? (
+                  <p className={styles.sectionHint}>
+                    {t("รออนุมัติ — แก้ไขเอกสารไม่ได้จนกว่าผู้อนุมัติจะตัดสิน (ต้องมีสิทธิ์ SALES_ORDER_APPROVALS · APPROVE จึงอนุมัติได้)")}
+                  </p>
+                ) : null}
+                {!isPendingApproval && data.approvalReason ? (
+                  <p className={styles.sectionHint}>
+                    {t("ถูกส่งกลับแก้ไข: {reason}", { reason: data.approvalReason })}
+                  </p>
                 ) : null}
                 {pdfPreviewBlock}
                 {cancelButton}
               </>
+            ) : null}
+
+            {data.status === "REJECTED" ? (
+              <p className={styles.sectionHint}>
+                {t("ไม่อนุมัติ")}
+                {data.approvalReason ? " — " + data.approvalReason : ""}
+              </p>
             ) : null}
 
             {!isPreConfirm ? (
@@ -2911,8 +3003,36 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </p>
             ) : null}
           </div>
+          <SalesApprovalHistoryCard events={data.approvalHistory} />
         </aside>
       </div>
+
+      <ApprovalReasonModal
+        open={reviewKind !== null}
+        kind={reviewKind ?? "reject"}
+        docNo={data.soNo}
+        titles={{
+          reject: t("ไม่อนุมัติใบสั่งขาย"),
+          return: t("ส่งกลับให้ฝ่ายขายแก้ไข"),
+        }}
+        loading={approvalDecisionMutation.isPending}
+        onCancel={() => setReviewKind(null)}
+        onConfirm={async (reason) => {
+          if (!reviewKind) return;
+          try {
+            await approvalDecisionMutation.mutateAsync({
+              id: data.id,
+              expectedVersion: data.editVersion,
+              action: reviewKind,
+              reason,
+            });
+            setReviewKind(null);
+          } catch (error: unknown) {
+            promptStaleDocument(error, reloadSalesOrder);
+            throw error;
+          }
+        }}
+      />
 
       <Modal
         title={t("เลือกวันที่ต้องการผลผลิต")}

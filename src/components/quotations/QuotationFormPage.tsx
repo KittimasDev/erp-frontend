@@ -641,10 +641,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   <Form.Item name="discountAmount" label={t("ส่วนลดท้ายบิล")}>
                     <InputNumber min={0} style={{ width: "100%" }} />
                   </Form.Item>
-                  <Form.Item label={t("ผู้เสนอราคา")}>
+                  <Form.Item label={t("ผู้จัดทำ")}>
                     <Input value={preparedByName} disabled />
                   </Form.Item>
-                  <Form.Item name="preparedByPhone" label={t("เบอร์โทรผู้เสนอราคา")}>
+                  <Form.Item name="preparedByPhone" label={t("เบอร์โทรผู้จัดทำ")}>
                     <Input placeholder={t("เช่น 0812345678")} />
                   </Form.Item>
                   <Form.Item

@@ -1,16 +1,12 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { use } from "react";
+import { arRoutes } from "@/lib/sales/ar-routes";
 
-import SalesInvoiceCreateFromDeliveryPage from "@/components/sales-invoices/SalesInvoiceCreateFromDeliveryPage";
-
-export default function Page({
+export default async function Page({
   params,
 }: {
   params: Promise<{ deliveryOrderId: string }>;
 }) {
-  const { deliveryOrderId } = use(params);
-  return (
-    <SalesInvoiceCreateFromDeliveryPage deliveryOrderId={deliveryOrderId} />
-  );
+  const { deliveryOrderId } = await params;
+  redirect(arRoutes.createFromDelivery(deliveryOrderId));
 }

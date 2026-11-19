@@ -23,6 +23,9 @@ export const SALES_INVOICE_PAYMENT_METHOD_LABEL: Record<string, string> = {
   CASH: "เงินสด",
   TRANSFER: "โอนเงิน",
   CHEQUE: "เช็ค",
+  CREDIT: "หักจากเครดิตลูกค้า",
+  CREDIT_NOTE: "หักด้วยใบลดหนี้",
+  DEBIT_NOTE: "เพิ่มยอดด้วยใบเพิ่มหนี้",
 };
 
 export type SalesInvoiceCustomerSummary = {
@@ -101,6 +104,8 @@ export type SalesInvoice = {
   invoiceDate: string;
   deliveryOrderId: string;
   deliveryOrder?: SalesInvoiceDeliveryOrderSummary;
+  /** DN ทั้งหมดที่รวมอยู่ใน AR นี้ (deliveryOrder = ใบแรก) */
+  deliveryOrders?: SalesInvoiceDeliveryOrderSummary[];
   salesOrderId: string;
   salesOrder?: SalesInvoiceSalesOrderSummary;
   customerId: string;
@@ -145,6 +150,15 @@ export type PendingSalesInvoiceDelivery = {
   customerName?: string;
   itemCount: number;
   salesOrderTotalAmount?: string;
+  /** ยอดที่เรียกเก็บได้ของ DN นี้ (จำนวนที่ลูกค้ารับจริง × ราคา ก่อน VAT) */
+  billableAmount?: string;
+};
+
+export type CreateSalesInvoiceFromDeliveriesBody = {
+  deliveryOrderIds: string[];
+  invoiceDate: string;
+  dueDate?: string;
+  remark?: string;
 };
 
 export type SalesInvoiceListData = {

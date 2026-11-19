@@ -1,8 +1,12 @@
 import { tNow } from "@/lib/i18n/useT";
 import { STANDARD_STATUS, standardStatusLabel } from "@/lib/status/standard-status";
+import type { SalesApprovalFields } from "./sales-approval";
 
 export type QuotationStatus =
   | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "APPROVED"
+  | "NOT_APPROVED"
   | "SENT"
   | "ACCEPTED"
   | "REJECTED"
@@ -10,6 +14,10 @@ export type QuotationStatus =
 
 export const QUOTATION_STATUS_LABEL: Record<QuotationStatus, string> = {
   DRAFT: STANDARD_STATUS.DRAFT.th,
+  // อนุมัติภายใน (ก่อนส่งลูกค้า) — คนละความหมายกับ REJECTED ที่ลูกค้าปฏิเสธ
+  PENDING_APPROVAL: STANDARD_STATUS.PENDING_APPROVAL.th,
+  APPROVED: "อนุมัติแล้ว รอส่งลูกค้า",
+  NOT_APPROVED: "ไม่อนุมัติ",
   SENT: "รอลูกค้าตอบรับ",
   ACCEPTED: "ลูกค้าตอบรับแล้ว",
   // ลูกค้าปฏิเสธใบเสนอราคา ไม่ใช่การไม่อนุมัติเอกสารภายใน — คงข้อความเดิม
@@ -61,7 +69,7 @@ export type QuotationItem = {
   sortOrder: number;
 };
 
-export type Quotation = {
+export type Quotation = SalesApprovalFields & {
   id: string;
   quotationNo: string;
   quotationDate: string;
@@ -163,8 +171,11 @@ export type QuotationItemAvailabilityListApiResponse = {
 export function quotationStatusLabel(status: string, lang: "th" | "en"): string {
   if (status === "DRAFT") return standardStatusLabel("DRAFT", lang);
   if (status === "CANCELLED") return standardStatusLabel("CANCELLED", lang);
+  if (status === "PENDING_APPROVAL") return standardStatusLabel("PENDING_APPROVAL", lang);
   if (lang === "en") {
     const en: Record<string, string> = {
+      APPROVED: "Approved — ready to send",
+      NOT_APPROVED: "Not approved",
       SENT: "Awaiting customer response",
       ACCEPTED: "Accepted by customer",
       REJECTED: "Rejected by customer",

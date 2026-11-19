@@ -25,7 +25,7 @@ import {
 import { salesOrderRevisionStamp } from "@/lib/datetime/thai-buddhist-date";
 import type { SalesOrder } from "@/types/sales-orders";
 import {
-  isPreConfirmSalesOrderStatus,
+  isSalesOrderEditableStatus,
   SALES_ORDER_STATUS_LABEL,
   salesOrderStatusColor,
   salesOrderStatusLabel,
@@ -48,7 +48,7 @@ const SUMMARY_BUCKETS = [
     label: "รอยืนยัน",
     hint: "อยู่ที่ฝ่ายขาย",
     tone: "warn",
-    statuses: ["DRAFT", "AWAITING_CONFIRM"],
+    statuses: ["DRAFT", "PENDING_APPROVAL", "AWAITING_CONFIRM"],
   },
   {
     key: "running",
@@ -359,7 +359,7 @@ export default function SalesOrdersListPage() {
                 label: t("ดูรายละเอียด"),
                 onClick: () => router.push(`/sales-orders/${row.id}`),
               },
-              isPreConfirmSalesOrderStatus(row.status) &&
+              isSalesOrderEditableStatus(row.status) &&
                 salesOrderActions.canEdit && {
                   key: "edit",
                   icon: <EditOutlined />,

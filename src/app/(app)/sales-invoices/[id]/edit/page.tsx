@@ -1,14 +1,12 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { use } from "react";
+import { arRoutes } from "@/lib/sales/ar-routes";
 
-import SalesInvoiceEditPage from "@/components/sales-invoices/SalesInvoiceEditPage";
-
-export default function Page({
+export default async function Page({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
-  return <SalesInvoiceEditPage id={id} />;
+  const { id } = await params;
+  redirect(arRoutes.edit(id));
 }

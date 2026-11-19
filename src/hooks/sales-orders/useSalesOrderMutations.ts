@@ -4,8 +4,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
 import {
+  approveSalesOrder,
   cancelSalesOrder,
   confirmSalesOrder,
+  rejectSalesOrderApproval,
+  returnSalesOrderToDraft,
+  submitSalesOrderForApproval,
   createSalesOrderFromQuotation,
   releaseSalesOrderLineReservation,
   reserveAllEligibleSalesOrderLines,
@@ -19,6 +23,7 @@ import {
   uploadDocumentAttachment,
 } from "@/lib/api/document-attachments";
 import { isStaleDocumentConflict } from "@/lib/api/conflict";
+import { isESignCancelled } from "@/lib/esign/esign-gate";
 import { ApiError } from "@/lib/api/client";
 import { useT } from "@/lib/i18n/useT";
 import { getAccessToken } from "@/lib/auth/token";
@@ -65,6 +70,76 @@ export function useCreateSalesOrderFromQuotationMutation() {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : t("สร้างใบสั่งขายไม่สำเร็จ"),
+      );
+    },
+  });
+}
+
+/** ส่งอนุมัติ (DRAFT / รอยืนยัน → รออนุมัติ) */
+export function useSubmitSalesOrderMutation() {
+  const { message } = App.useApp();
+  const t = useT();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "submit"],
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      submitSalesOrderForApproval(getAccessToken(), id, expectedVersion),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || t("ส่งอนุมัติใบสั่งขายสำเร็จ"));
+    },
+    onError: (error: Error) => {
+      if (isStaleDocumentConflict(error)) return;
+      message.error(
+        error instanceof ApiError ? error.message : t("ส่งอนุมัติใบสั่งขายไม่สำเร็จ"),
+      );
+    },
+  });
+}
+
+/**
+ * อนุมัติ (= ยืนยันใบสั่งขาย) / ไม่อนุมัติ / ส่งกลับแก้ไข
+ * ผู้ใช้ยกเลิกหน้ายืนยันตัวตน (E-Signature) ไม่ต้องแจ้ง error
+ */
+export function useSalesOrderApprovalDecisionMutation() {
+  const { message } = App.useApp();
+  const t = useT();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "approval-decision"],
+    mutationFn: ({
+      id,
+      expectedVersion,
+      action,
+      reason,
+    }: {
+      id: string;
+      expectedVersion: number;
+      action: "approve" | "reject" | "return";
+      reason?: string;
+    }) => {
+      const token = getAccessToken();
+      if (action === "approve") return approveSalesOrder(token, id, expectedVersion);
+      if (action === "reject") {
+        return rejectSalesOrderApproval(token, id, expectedVersion, {
+          reason: reason ?? "",
+        });
+      }
+      return returnSalesOrderToDraft(token, id, expectedVersion, {
+        reason: reason ?? "",
+      });
+    },
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || t("บันทึกผลอนุมัติแล้ว"));
+    },
+    onError: (error: Error) => {
+      if (isESignCancelled(error)) return;
+      if (isStaleDocumentConflict(error)) return;
+      message.error(
+        error instanceof ApiError ? error.message : t("ดำเนินการอนุมัติไม่สำเร็จ"),
       );
     },
   });

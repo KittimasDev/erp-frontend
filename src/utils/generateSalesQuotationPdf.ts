@@ -106,8 +106,8 @@ export async function generateSalesQuotationPdf(data: SalesQuotationPdfData) {
           { label: "อัตราภาษี", value: dash(taxRateLabel) },
           { label: "ภาษีหัก ณ ที่จ่าย", value: dash(withholdingLabel) },
           { label: "วันหมดอายุ", value: dash(data.validUntil) },
-          { label: "ผู้เสนอราคา", value: dash(data.preparedBy?.name) },
-          { label: "เบอร์โทรผู้เสนอราคา", value: dash(data.preparedByPhone) },
+          { label: "ผู้จัดทำ", value: dash(data.preparedBy?.name) },
+          { label: "เบอร์โทรผู้จัดทำ", value: dash(data.preparedByPhone) },
         ],
       },
     ],
@@ -123,7 +123,7 @@ export async function generateSalesQuotationPdf(data: SalesQuotationPdfData) {
     remarkIsHtml: true,
     signatures: [
       {
-        title: "ผู้เสนอราคา",
+        title: "ผู้จัดทำ",
         name: data.preparedBy?.name,
         signatureDataUrl: preparedSignature,
       },

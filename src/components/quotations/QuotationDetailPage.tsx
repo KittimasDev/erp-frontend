@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,10 +20,16 @@ import dayjs from "dayjs";
 import {
   useAcceptQuotationMutation,
   useCancelQuotationMutation,
+  useQuotationApprovalDecisionMutation,
   useRejectQuotationMutation,
   useSendQuotationMutation,
+  useSubmitQuotationMutation,
 } from "@/hooks/quotations/useQuotationMutations";
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
+import ApprovalReasonModal, {
+  type ApprovalReasonKind,
+} from "@/components/common/ApprovalReasonModal";
+import SalesApprovalHistoryCard from "@/components/sales/SalesApprovalHistoryCard";
 import { useCreateSalesOrderFromQuotationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
 import AccessDenied from "@/components/auth/AccessDenied";
 import DocumentHtmlView from "@/components/common/DocumentHtmlView";
@@ -130,10 +136,16 @@ export default function QuotationDetailPage({ id }: Props) {
   );
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
-  const canView = quotationActions.canView;
+  // อนุมัติภายในแยกสิทธิ์จาก QUOTATIONS.APPROVE ("บันทึกลูกค้าตอบรับ") — ผู้อนุมัติที่มีแต่สิทธิ์หน้าอนุมัติเปิดดูใบได้
+  const approvalActions = useScreenActionPermissions("QUOTATION_APPROVALS");
+  const canView = quotationActions.canView || approvalActions.canView;
   const canWrite = quotationActions.canEdit;
   const canConfirm = quotationActions.canApprove;
   const canCreateSalesOrder = salesOrderActions.canAdd;
+  const canApproveInternal = approvalActions.canApprove;
+  const submitMutation = useSubmitQuotationMutation();
+  const decisionMutation = useQuotationApprovalDecisionMutation();
+  const [reviewKind, setReviewKind] = useState<ApprovalReasonKind | null>(null);
 
   if (query.isLoading) {
     return (
@@ -159,6 +171,8 @@ export default function QuotationDetailPage({ id }: Props) {
   }
 
   const busy =
+    submitMutation.isPending ||
+    decisionMutation.isPending ||
     sendMutation.isPending ||
     acceptMutation.isPending ||
     rejectMutation.isPending ||
@@ -332,13 +346,13 @@ export default function QuotationDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ผู้เสนอราคา")}</span>
+                <span className={styles.metaLabel}>{t("ผู้จัดทำ")}</span>
                 <div className={styles.metaValue}>
                   {displayDash(data.createdBy?.displayName)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เบอร์โทรผู้เสนอราคา")}</span>
+                <span className={styles.metaLabel}>{t("เบอร์โทรผู้จัดทำ")}</span>
                 <div className={styles.metaValue}>
                   {displayDash(data.preparedByPhone)}
                 </div>
@@ -467,9 +481,17 @@ export default function QuotationDetailPage({ id }: Props) {
                   type="primary"
                   icon={<SendOutlined />}
                   loading={busy}
-                  onClick={() => sendMutation.mutate(data.id)}
+                  onClick={() =>
+                    modal.confirm({
+                      title: t("ส่งใบเสนอราคาเพื่ออนุมัติ?"),
+                      content: t("ส่งแล้วแก้ไขไม่ได้จนกว่าผู้อนุมัติจะส่งกลับ"),
+                      okText: t("ส่งอนุมัติ"),
+                      cancelText: t("ยกเลิก"),
+                      onOk: () => submitMutation.mutateAsync(data.id),
+                    })
+                  }
                 >
-                  {t("ส่งใบเสนอราคา")}
+                  {t("ส่งอนุมัติ")}
                 </Button>
                 <Button
                   danger
@@ -484,6 +506,114 @@ export default function QuotationDetailPage({ id }: Props) {
                   {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
+            ) : null}
+
+            {data.status === "DRAFT" && data.approvalReason ? (
+              <p className={styles.actionHint}>
+                {t("ถูกส่งกลับแก้ไข: {reason}", { reason: data.approvalReason })}
+              </p>
+            ) : null}
+
+            {data.status === "PENDING_APPROVAL" ? (
+              <>
+                <p className={styles.actionHint}>
+                  {canApproveInternal
+                    ? t("สถานะปัจจุบัน: รออนุมัติ — ตรวจสอบแล้วอนุมัติ ไม่อนุมัติ หรือส่งกลับแก้ไข")
+                    : t("สถานะปัจจุบัน: รออนุมัติ — ต้องมีสิทธิ์ QUOTATION_APPROVALS · APPROVE จึงอนุมัติได้")}
+                </p>
+                {canApproveInternal ? (
+                  <>
+                    <Button
+                      className={styles.primaryBtn}
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      loading={busy}
+                      onClick={() =>
+                        modal.confirm({
+                          title: t("อนุมัติใบเสนอราคา {no}?", { no: data.quotationNo }),
+                          content: t("อนุมัติแล้วฝ่ายขายส่งใบเสนอราคาให้ลูกค้าได้"),
+                          okText: t("อนุมัติ"),
+                          cancelText: t("ยกเลิก"),
+                          onOk: () =>
+                            decisionMutation
+                              .mutateAsync({ id: data.id, action: "approve" })
+                              .catch(() => undefined),
+                        })
+                      }
+                    >
+                      {t("อนุมัติ")}
+                    </Button>
+                    <Button
+                      loading={busy}
+                      onClick={() => setReviewKind("return")}
+                    >
+                      {t("ส่งกลับแก้ไข")}
+                    </Button>
+                    <Button
+                      danger
+                      icon={<CloseOutlined />}
+                      loading={busy}
+                      onClick={() => setReviewKind("reject")}
+                    >
+                      {t("ไม่อนุมัติ")}
+                    </Button>
+                  </>
+                ) : null}
+                {canWrite ? (
+                  <Button
+                    danger
+                    loading={busy}
+                    onClick={() =>
+                      modal.confirm({
+                        title: t("ยืนยันยกเลิกใบเสนอราคา?"),
+                        onOk: () => cancelMutation.mutateAsync(data.id),
+                      })
+                    }
+                  >
+                    {t("ยกเลิกเอกสาร")}
+                  </Button>
+                ) : null}
+              </>
+            ) : null}
+
+            {data.status === "APPROVED" ? (
+              <>
+                <p className={styles.actionHint}>
+                  {t("สถานะปัจจุบัน: อนุมัติแล้ว — ส่งใบเสนอราคาให้ลูกค้าได้")}
+                </p>
+                {canWrite ? (
+                  <>
+                    <Button
+                      className={styles.primaryBtn}
+                      type="primary"
+                      icon={<SendOutlined />}
+                      loading={busy}
+                      onClick={() => sendMutation.mutate(data.id)}
+                    >
+                      {t("ส่งใบเสนอราคาให้ลูกค้า")}
+                    </Button>
+                    <Button
+                      danger
+                      loading={busy}
+                      onClick={() =>
+                        modal.confirm({
+                          title: t("ยืนยันยกเลิกใบเสนอราคา?"),
+                          onOk: () => cancelMutation.mutateAsync(data.id),
+                        })
+                      }
+                    >
+                      {t("ยกเลิกเอกสาร")}
+                    </Button>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+
+            {data.status === "NOT_APPROVED" ? (
+              <p className={styles.actionHint}>
+                {t("ไม่อนุมัติ")}
+                {data.approvalReason ? " — " + data.approvalReason : ""}
+              </p>
             ) : null}
 
             {data.status === "SENT" ? (
@@ -600,8 +730,31 @@ export default function QuotationDetailPage({ id }: Props) {
               </Button>
             ) : null}
           </div>
+
+          <SalesApprovalHistoryCard events={data.approvalHistory} />
         </aside>
       </div>
+
+      <ApprovalReasonModal
+        open={reviewKind !== null}
+        kind={reviewKind ?? "reject"}
+        docNo={data.quotationNo}
+        titles={{
+          reject: t("ไม่อนุมัติใบเสนอราคา"),
+          return: t("ส่งกลับให้ฝ่ายขายแก้ไข"),
+        }}
+        loading={decisionMutation.isPending}
+        onCancel={() => setReviewKind(null)}
+        onConfirm={async (reason) => {
+          if (!reviewKind) return;
+          await decisionMutation.mutateAsync({
+            id: data.id,
+            action: reviewKind,
+            reason,
+          });
+          setReviewKind(null);
+        }}
+      />
     </div>
   );
 }

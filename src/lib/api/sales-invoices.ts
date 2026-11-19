@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  CreateSalesInvoiceFromDeliveriesBody,
   CreateSalesInvoiceFromDeliveryBody,
   PendingSalesInvoiceListApiResponse,
   ReceiveSalesInvoicePaymentBody,
@@ -80,6 +81,39 @@ export function createSalesInvoiceFromDelivery(
   return apiFetch<SalesInvoiceApiResponse>(
     `/api/sales-invoices/from-delivery/${deliveryOrderId}`,
     { method: "POST", token, body },
+  );
+}
+
+/** รวมหลายใบส่งสินค้า (ลูกค้า + ใบสั่งขายเดียวกัน) เป็น AR ร่างใบเดียว */
+export function createSalesInvoiceFromDeliveries(
+  token: string,
+  body: CreateSalesInvoiceFromDeliveriesBody,
+) {
+  return apiFetch<SalesInvoiceApiResponse>(
+    `/api/sales-invoices/from-deliveries`,
+    { method: "POST", token, body },
+  );
+}
+
+export function addSalesInvoiceDeliveries(
+  token: string,
+  id: string,
+  deliveryOrderIds: string[],
+) {
+  return apiFetch<SalesInvoiceApiResponse>(
+    `/api/sales-invoices/${id}/add-deliveries`,
+    { method: "POST", token, body: { deliveryOrderIds } },
+  );
+}
+
+export function removeSalesInvoiceDelivery(
+  token: string,
+  id: string,
+  deliveryOrderId: string,
+) {
+  return apiFetch<SalesInvoiceApiResponse>(
+    `/api/sales-invoices/${id}/remove-delivery/${deliveryOrderId}`,
+    { method: "POST", token },
   );
 }
 

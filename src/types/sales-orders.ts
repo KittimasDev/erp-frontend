@@ -1,5 +1,6 @@
 import { getStoredLanguage, type Language } from "@/lib/i18n/language";
 import { translate } from "@/lib/i18n/translate";
+import type { SalesApprovalFields } from "./sales-approval";
 import {
   STANDARD_STATUS,
   standardStatusColor,
@@ -44,6 +45,8 @@ export function tSoStatus(label: string, lang?: Language): string {
 
 export type SalesOrderStatus =
   | "DRAFT"
+  | "PENDING_APPROVAL"
+  | "REJECTED"
   | "AWAITING_CONFIRM"
   | "CONFIRMED"
   | "STOCK_CHECKED"
@@ -54,12 +57,27 @@ export type SalesOrderStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+/**
+ * ยังไม่ยืนยัน (ยังไม่ส่งคลัง) — รวม PENDING_APPROVAL ซึ่งอ่านเหมือนใบที่ยังไม่ยืนยันทุกจุด
+ * (ไม่มีรอบจัดส่งจริง ไม่มีผลตรวจสต๊อก เลขฉบับยังเป็น 0) แต่ **แก้ไขไม่ได้** — ใช้ isSalesOrderEditableStatus ตัดสินสิทธิ์แก้
+ */
 export function isPreConfirmSalesOrderStatus(status?: string): boolean {
+  return (
+    status === "DRAFT" ||
+    status === "AWAITING_CONFIRM" ||
+    status === "PENDING_APPROVAL"
+  );
+}
+
+/** แก้ไขเอกสารได้ (ก่อนส่งอนุมัติ) — ระหว่างรออนุมัติผู้อนุมัติต้องเห็นของที่นิ่ง backend ปฏิเสธการแก้ด้วย */
+export function isSalesOrderEditableStatus(status?: string): boolean {
   return status === "DRAFT" || status === "AWAITING_CONFIRM";
 }
 
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
   DRAFT: STANDARD_STATUS.DRAFT.th,
+  PENDING_APPROVAL: STANDARD_STATUS.PENDING_APPROVAL.th,
+  REJECTED: STANDARD_STATUS.REJECTED.th,
   AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
   CONFIRMED: "ยืนยันแล้ว",
   STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
@@ -74,6 +92,8 @@ export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
 /** รหัสสถานะ SO ที่ความหมายตรงกับสถานะมาตรฐาน (ชื่อ+สีมาจาก lib/status/standard-status.ts) */
 const SALES_ORDER_STANDARD: Partial<Record<string, StandardStatus>> = {
   DRAFT: "DRAFT",
+  PENDING_APPROVAL: "PENDING_APPROVAL",
+  REJECTED: "REJECTED",
   DELIVERED: "DELIVERED",
   COMPLETED: "COMPLETED",
   CANCELLED: "CANCELLED",
@@ -170,7 +190,7 @@ export type SalesOrderItem = {
   sortOrder: number;
 };
 
-export type SalesOrder = {
+export type SalesOrder = SalesApprovalFields & {
   id: string;
   soNo: string;
   soDate: string;

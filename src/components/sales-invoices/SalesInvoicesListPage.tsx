@@ -19,6 +19,7 @@ import {
 } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
+import { arRoutes } from "@/lib/sales/ar-routes";
 import type { SalesInvoice } from "@/types/sales-invoices";
 import {
   salesInvoicePaymentStatusLabel,
@@ -215,7 +216,7 @@ export default function SalesInvoicesListPage() {
             title={t("ดูรายละเอียด")}
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/sales-invoices/${row.id}`);
+              router.push(arRoutes.detail(row.id));
             }}
           >
             <EyeOutlined />
@@ -235,7 +236,7 @@ export default function SalesInvoicesListPage() {
         subtitle={t("ออกบิลจากใบส่งสินค้าที่ส่งมอบแล้ว — ยืนยันโพสต์ และรับชำระเต็มจำนวน")}
         actions={
           <>
-<Link href="/sales-invoices/pending">
+<Link href={arRoutes.pending}>
             <Button
               className={styles.primaryBtn}
               type="primary"
@@ -385,7 +386,7 @@ export default function SalesInvoicesListPage() {
           pagination={false}
           className={styles.table}
           onRow={(row) => ({
-            onClick: () => router.push(`/sales-invoices/${row.id}`),
+            onClick: () => router.push(arRoutes.detail(row.id)),
           })}
           locale={{
             emptyText: (

@@ -107,8 +107,10 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
   { href: "/purchase-requests/create", title: "สร้างใบขอซื้อ" },
   { href: "/purchase-requests", title: "ใบขอซื้อ PR" },
+  { href: "/quotations/approvals", title: "อนุมัติใบเสนอราคา" },
   { href: "/quotations/create", title: "สร้างใบเสนอราคา" },
   { href: "/quotations", title: "ใบเสนอราคา" },
+  { href: "/sales-orders/approvals", title: "อนุมัติใบสั่งขาย" },
   { href: "/sales-orders", title: "ใบสั่งขาย" },
   { href: "/sales-orders/stock-verification", title: "ตรวจสอบสต๊อกขาย" },
   { href: "/pickings", title: "ใบจ่ายสินค้า / Picking" },
@@ -146,7 +148,9 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/finance/receivables/sales-tax-documents", title: "เอกสารขายและภาษี" },
   { href: "/finance/receivables/adjustment-documents", title: "เอกสารปรับหนี้" },
   { href: "/finance/receivables/collections-and-receipts", title: "รับชำระและใบเสร็จ" },
+  { href: "/finance/receivables/ar-invoices/pending", title: "รอตั้งลูกหนี้" },
   { href: "/finance/receivables/ar-invoices", title: "ใบตั้งลูกหนี้" },
+  { href: "/finance/receivables/billing-notes", title: "ใบวางบิล (ลูกหนี้)" },
   { href: "/finance/receivables/tax-invoices", title: "ใบกำกับภาษี" },
   { href: "/finance/receivables/debit-notes", title: "ใบเพิ่มหนี้" },
   { href: "/finance/receivables/credit-notes", title: "ใบลดหนี้" },
@@ -303,7 +307,8 @@ function resolvePageTitle(
 
   if (
     pathname.startsWith("/quotations/") &&
-    pathname !== "/quotations/create"
+    pathname !== "/quotations/create" &&
+    pathname !== "/quotations/approvals"
   ) {
     return "รายละเอียดใบเสนอราคา";
   }
@@ -318,7 +323,8 @@ function resolvePageTitle(
 
   if (
     pathname.startsWith("/sales-orders/") &&
-    pathname !== "/sales-orders"
+    pathname !== "/sales-orders" &&
+    pathname !== "/sales-orders/approvals"
   ) {
     return "รายละเอียดใบสั่งขาย";
   }

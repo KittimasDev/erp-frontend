@@ -46,10 +46,11 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
-import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
+import { arRoutes } from "@/lib/sales/ar-routes";
 import type { SalesInvoice, SalesInvoiceItem } from "@/types/sales-invoices";
 import {
   salesInvoicePaymentMethodLabel,
@@ -58,6 +59,8 @@ import {
 } from "@/types/sales-invoices";
 import { vatAmountLabelT } from "@/types/purchase-orders";
 import { resolveVatMode, VAT_MODE_LABEL } from "@/lib/money/vat-totals";
+import ApplyCreditButton from "@/components/ar-receipts/ApplyCreditButton";
+import ArInvoiceDeliveriesCard from "./ArInvoiceDeliveriesCard";
 import styles from "./SalesInvoiceDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -124,7 +127,7 @@ export default function SalesInvoiceDetailPage({ id }: Props) {
       <div className={styles.emptyCard}>
         {t("ไม่พบใบแจ้งหนี้")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-invoices">{t("กลับรายการ")}</Link>
+          <Link href={arRoutes.list}>{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -176,9 +179,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     (Number(data.totalAmount) || 0) - paidAmount,
   );
 
-  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
-  const canEdit = invoiceActions.canEdit;
-  const canApprove = invoiceActions.canApprove;
+  const { canEdit, canApprove } = useArInvoicePermissions();
   const canWrite = canEdit || canApprove;
 
   const busy =
@@ -198,7 +199,10 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       customerName: data.customer?.nameTh ?? "—",
       customerCode: data.customer?.customerCode ?? "—",
       salesOrderNo: data.salesOrder?.soNo ?? "—",
-      deliveryOrderNo: data.deliveryOrder?.deliveryOrderNo ?? "—",
+      deliveryOrderNo:
+        (data.deliveryOrders?.length ?? 0) > 0
+          ? data.deliveryOrders!.map((d) => d.deliveryOrderNo).join(", ")
+          : (data.deliveryOrder?.deliveryOrderNo ?? "—"),
       paymentTerm: data.paymentTerm?.name ?? "—",
       vatModeLabel: VAT_MODE_LABEL[resolveVatMode(data.vatMode)],
       remark: data.remark?.trim() || "",
@@ -367,7 +371,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           <>
 <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/sales-invoices")}
+            onClick={() => router.push(arRoutes.list)}
           >
             {t("กลับ")}
           </Button>
@@ -378,7 +382,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             <>
               <Button
                 icon={<EditOutlined />}
-                onClick={() => router.push(`/sales-invoices/${data.id}/edit`)}
+                onClick={() => router.push(arRoutes.edit(data.id))}
               >
                 {t("แก้ไข")}
               </Button>
@@ -416,13 +420,21 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                   cancelText: t("ปิด"),
                   onOk: async () => {
                     await cancelMutation.mutateAsync(data.id);
-                    router.push("/sales-invoices");
+                    router.push(arRoutes.list);
                   },
                 });
               }}
             >
               Cancel
             </Button>
+          ) : null}
+          {data.status === "POSTED" && outstandingAmount > 0 ? (
+            <ApplyCreditButton
+              customerId={data.customerId}
+              salesInvoiceId={data.id}
+              invoiceNo={data.invoiceNo}
+              outstanding={outstandingAmount}
+            />
           ) : null}
           {canWrite &&
           data.status === "POSTED" &&
@@ -489,13 +501,22 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>
                 <div className={styles.metaValue}>
-                  {data.deliveryOrderId ? (
-                    <Link href={`/delivery-orders/${data.deliveryOrderId}`}>
-                      {data.deliveryOrder?.deliveryOrderNo ?? data.deliveryOrderId}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
+                  {(data.deliveryOrders?.length ?? 0) > 0
+                    ? data.deliveryOrders!.map((d, i) => (
+                        <span key={d.id}>
+                          {i > 0 ? ", " : null}
+                          <Link href={`/delivery-orders/${d.id}`}>
+                            {d.deliveryOrderNo}
+                          </Link>
+                        </span>
+                      ))
+                    : data.deliveryOrderId ? (
+                        <Link href={`/delivery-orders/${data.deliveryOrderId}`}>
+                          {data.deliveryOrder?.deliveryOrderNo ?? data.deliveryOrderId}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -694,6 +715,8 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               </div>
             </div>
           ) : null}
+
+          <ArInvoiceDeliveriesCard invoice={data} canEdit={canEdit} />
 
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>

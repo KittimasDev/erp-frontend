@@ -8,6 +8,7 @@ import { ArrowLeftOutlined, FileTextOutlined, SaveOutlined } from "@ant-design/i
 import dayjs from "dayjs";
 
 import { useT } from "@/lib/i18n/useT";
+import { arRoutes } from "@/lib/sales/ar-routes";
 
 import { useUpdateSalesInvoiceMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useSalesInvoiceQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
@@ -33,7 +34,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
   useEffect(() => {
     if (!data) return;
     if (data.status !== "DRAFT") {
-      router.replace(`/sales-invoices/${data.id}`);
+      router.replace(arRoutes.detail(data.id));
       return;
     }
     form.setFieldsValue({
@@ -56,7 +57,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
       <div className={styles.page}>
         {t("ไม่พบใบแจ้งหนี้")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-invoices">{t("กลับ")}</Link>
+          <Link href={arRoutes.list}>{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -71,7 +72,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
         remark: values.remark?.trim() || undefined,
       },
     });
-    router.push(`/sales-invoices/${id}`);
+    router.push(arRoutes.detail(id));
   };
 
   return (
@@ -85,7 +86,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
           <>
 <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push(`/sales-invoices/${id}`)}
+            onClick={() => router.push(arRoutes.detail(id))}
           >
             {t("กลับ")}
           </Button>
@@ -109,7 +110,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
             <Input.TextArea rows={3} />
           </Form.Item>
           <div className={styles.formActions}>
-            <Button onClick={() => router.push(`/sales-invoices/${id}`)}>
+            <Button onClick={() => router.push(arRoutes.detail(id))}>
               {t("ยกเลิก")}
             </Button>
             <Button

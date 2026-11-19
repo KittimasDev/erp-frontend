@@ -1,7 +1,8 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import SalesInvoicesListPage from "@/components/sales-invoices/SalesInvoicesListPage";
+import { arRoutes } from "@/lib/sales/ar-routes";
 
+/** เส้นทางเดิม — ใบตั้งลูกหนี้ย้ายไปอยู่ใต้เมนูการเงิน › การรับเงิน */
 export default function Page() {
-  return <SalesInvoicesListPage />;
+  redirect(arRoutes.list);
 }

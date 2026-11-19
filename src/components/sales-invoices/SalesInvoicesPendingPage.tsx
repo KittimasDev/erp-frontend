@@ -3,7 +3,17 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Input, Pagination, Select, Table } from "antd";
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Form,
+  Input,
+  Modal,
+  Pagination,
+  Select,
+  Table,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   FileAddOutlined,
@@ -14,9 +24,11 @@ import {
 import dayjs from "dayjs";
 
 import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
-import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useCreateSalesInvoiceFromDeliveriesMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
+import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
 import type { PendingSalesInvoiceDelivery } from "@/types/sales-invoices";
 import { useT } from "@/lib/i18n/useT";
+import { arRoutes } from "@/lib/sales/ar-routes";
 import styles from "./SalesInvoicesPendingPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -42,9 +54,21 @@ export default function SalesInvoicesPendingPage() {
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
 
-  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
-  const pendingActions = useScreenActionPermissions("SALES_INVOICES_PENDING");
-  const canWrite = invoiceActions.canAdd || pendingActions.canEdit;
+  const { canCreate: canWrite } = useArInvoicePermissions();
+  const createMutation = useCreateSalesInvoiceFromDeliveriesMutation();
+  const [form] = Form.useForm<{
+    invoiceDate: dayjs.Dayjs;
+    dueDate?: dayjs.Dayjs;
+    remark?: string;
+  }>();
+  // DN ที่เลือกรวมเป็น AR ใบเดียว — เก็บทั้งแถว (ข้ามหน้าได้) เพื่อตรวจ "ใบสั่งขายเดียวกัน" และรวมยอด
+  const [selected, setSelected] = useState<PendingSalesInvoiceDelivery[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const lockedSalesOrderId = selected[0]?.salesOrderId;
+  const selectedBillable = selected.reduce(
+    (sum, row) => sum + (Number(row.billableAmount) || 0),
+    0,
+  );
 
   const query = usePendingSalesInvoicesQuery({ page, limit });
   const rows = query.data?.data.items ?? [];
@@ -105,6 +129,12 @@ export default function SalesInvoicesPendingPage() {
         render: (value?: string) => formatMoney(value),
       },
       {
+        title: t("ยอดเรียกเก็บ (ก่อน VAT)"),
+        dataIndex: "billableAmount",
+        align: "right",
+        render: (value?: string) => formatMoney(value),
+      },
+      {
         title: "",
         key: "actions",
         width: 140,
@@ -117,7 +147,7 @@ export default function SalesInvoicesPendingPage() {
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(
-                  `/sales-invoices/create-from-delivery/${row.id}`,
+                  arRoutes.createFromDelivery(row.id),
                 );
               }}
             >
@@ -148,7 +178,7 @@ export default function SalesInvoicesPendingPage() {
         subtitle={t("Delivery Order สถานะส่งมอบแล้ว ที่ยังไม่มีใบแจ้งหนี้ใช้งาน")}
         actions={
           <>
-<Link href="/sales-invoices">
+<Link href={arRoutes.list}>
             <Button icon={<HistoryOutlined />}>{t("ประวัติใบแจ้งหนี้")}</Button>
           </Link>
           </>
@@ -188,15 +218,59 @@ export default function SalesInvoicesPendingPage() {
       </section>
 
       <section className={styles.tableCard}>
+        {canWrite ? (
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+            <Alert
+              type="info"
+              showIcon
+              style={{ flex: 1, minWidth: 260 }}
+              message={t("ติ๊กเลือกหลายใบส่งสินค้า (ใบสั่งขายเดียวกัน) เพื่อรวมเป็นใบตั้งลูกหนี้ใบเดียว")}
+            />
+            <span style={{ color: "#8a9199" }}>
+              {t("เลือกแล้ว {n} ใบ · ยอดเรียกเก็บ {amount}", {
+                n: selected.length,
+                amount: formatMoney(selectedBillable),
+              })}
+            </span>
+            <Button
+              type="primary"
+              icon={<FileAddOutlined />}
+              disabled={selected.length === 0}
+              onClick={() => setModalOpen(true)}
+            >
+              {t("สร้างใบตั้งลูกหนี้จากที่เลือก")}
+            </Button>
+          </div>
+        ) : null}
         <Table
           rowKey="id"
           loading={query.isLoading}
           columns={columns}
           dataSource={filteredRows}
           pagination={false}
+          rowSelection={
+            canWrite
+              ? {
+                  selectedRowKeys: selected.map((r) => r.id),
+                  preserveSelectedRowKeys: true,
+                  onChange: (_keys, rows) => setSelected(rows),
+                  // ล็อกใบสั่งขายตามใบแรกที่เลือก — คนละใบสั่งขายรวมกันไม่ได้
+                  getCheckboxProps: (row) => ({
+                    disabled:
+                      lockedSalesOrderId != null &&
+                      row.salesOrderId !== lockedSalesOrderId,
+                  }),
+                }
+              : undefined
+          }
           onRow={(row) => ({
-            onClick: () => router.push(`/delivery-orders/${row.id}`),
+            onClick: (e) => {
+              // กดช่องติ๊กเลือก ไม่ใช่การเปิดใบส่งสินค้า
+              if ((e.target as HTMLElement).closest(".ant-table-selection-column")) return;
+              router.push(`/delivery-orders/${row.id}`);
+            },
           })}
+          scroll={{ x: "max-content" }}
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
@@ -236,6 +310,60 @@ export default function SalesInvoicesPendingPage() {
           </div>
         </div>
       </section>
+
+      <Modal
+        open={modalOpen}
+        title={t("สร้างใบตั้งลูกหนี้จาก {n} ใบส่งสินค้า", { n: selected.length })}
+        okText={t("สร้างใบตั้งลูกหนี้ (DRAFT)")}
+        cancelText={t("ยกเลิก")}
+        confirmLoading={createMutation.isPending}
+        maskClosable={false}
+        destroyOnHidden
+        onCancel={() => setModalOpen(false)}
+        onOk={() => form.submit()}
+      >
+        <p style={{ color: "#8a9199", marginTop: 0 }}>
+          {selected.map((r) => r.deliveryOrderNo).join(", ")} · SO{" "}
+          {selected[0]?.salesOrderNo ?? "—"} · {selected[0]?.customerName ?? "—"}
+        </p>
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{ invoiceDate: dayjs() }}
+          onFinish={async (values) => {
+            try {
+              const res = await createMutation.mutateAsync({
+                deliveryOrderIds: selected.map((r) => r.id),
+                invoiceDate: values.invoiceDate.format("YYYY-MM-DD"),
+                dueDate: values.dueDate?.format("YYYY-MM-DD"),
+                remark: values.remark?.trim() || undefined,
+              });
+              setModalOpen(false);
+              setSelected([]);
+              router.push(arRoutes.detail(res.data.id));
+            } catch {
+              // hook แจ้ง error แล้ว — เปิด modal ค้างไว้ (รายการที่เลือกอาจถูกคนอื่นใช้ไปแล้ว ให้รีเฟรช)
+            }
+          }}
+        >
+          <Form.Item
+            name="invoiceDate"
+            label={t("วันที่ใบแจ้งหนี้")}
+            rules={[{ required: true, message: t("ระบุวันที่") }]}
+          >
+            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item name="dueDate" label={t("วันครบกำหนดชำระ")}>
+            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item name="remark" label={t("หมายเหตุ")}>
+            <Input.TextArea rows={3} />
+          </Form.Item>
+        </Form>
+        <p style={{ color: "#8a9199", fontSize: 13, marginBottom: 0 }}>
+          {t("ยอดคิดจากจำนวนที่ลูกค้ารับจริง (ของตีกลับไม่เก็บเงิน) ส่วนลด/VAT ตามสัดส่วนของใบสั่งขาย")}
+        </p>
+      </Modal>
     </div>
   );
 }

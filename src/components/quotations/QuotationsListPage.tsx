@@ -78,6 +78,12 @@ function resolveStatusBadge(
     return { label: t("เปิด SO แล้ว"), tone: styles.statusDone };
   }
   switch (row.status) {
+    case "PENDING_APPROVAL":
+      return { label: t("รออนุมัติ"), tone: styles.statusSent };
+    case "APPROVED":
+      return { label: t("อนุมัติแล้ว รอส่งลูกค้า"), tone: styles.statusAccepted };
+    case "NOT_APPROVED":
+      return { label: t("ไม่อนุมัติ"), tone: styles.statusRejected };
     case "ACCEPTED":
       return { label: t("ลูกค้าตอบรับแล้ว"), tone: styles.statusAccepted };
     case "SENT":

@@ -238,10 +238,19 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/customers/sales-orders-in-production",
     screenCodes: ["SALES_ORDERS_IN_PRODUCTION"],
   },
-  { prefix: "/quotations", screenCodes: ["QUOTATIONS"] },
+  // หน้าอนุมัติก่อน prefix /quotations (ยาวสุดชนะ) · รายละเอียดใบเสนอราคาเปิดได้ด้วยสิทธิ์อนุมัติ
+  {
+    prefix: "/quotations/approvals",
+    screenCodes: ["QUOTATION_APPROVALS"],
+  },
+  { prefix: "/quotations", screenCodes: ["QUOTATIONS", "QUOTATION_APPROVALS"] },
   {
     prefix: "/sales-orders/stock-verification",
     screenCodes: ["SALES_STOCK_VERIFICATION", "PICKINGS"],
+  },
+  {
+    prefix: "/sales-orders/approvals",
+    screenCodes: ["SALES_ORDER_APPROVALS"],
   },
   { prefix: "/sales-orders", screenCodes: ["SALES_ORDERS"] },
   { prefix: "/delivery-orders", screenCodes: ["DELIVERY_ORDERS"] },
@@ -252,9 +261,9 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/return-notes", screenCodes: ["RETURN_NOTES"] },
   {
     prefix: "/sales-invoices/pending",
-    screenCodes: ["SALES_INVOICES_PENDING"],
+    screenCodes: ["SALES_INVOICES_PENDING", "FINANCE_AR_INVOICES"],
   },
-  { prefix: "/sales-invoices", screenCodes: ["SALES_INVOICES"] },
+  { prefix: "/sales-invoices", screenCodes: ["SALES_INVOICES", "FINANCE_AR_INVOICES"] },
   // legacy bookmark/notification → redirect pages under /sales-credit-notes
   {
     prefix: "/sales-credit-notes",
@@ -338,7 +347,30 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/finance/receivables/sales-tax-documents",
     screenCodes: ["FINANCE_RECEIVABLE_SALES_TAX"],
   },
-  { prefix: "/finance/receivables/ar-invoices", screenCodes: ["FINANCE_AR_INVOICES"] },
+  // ใบตั้งลูกหนี้ (AR) — สิทธิ์หน้าเดิม SALES_INVOICES* ยังเปิดได้ (backend รับสิทธิ์รหัสใดรหัสหนึ่ง) · prefix ยาวก่อน
+  {
+    prefix: "/finance/receivables/ar-invoices/create-from-delivery",
+    screenCodes: [
+      "FINANCE_AR_INVOICES",
+      "SALES_INVOICES",
+      "SALES_INVOICES_PENDING",
+      "DELIVERY_ORDERS",
+      "SALES_ORDERS",
+    ],
+  },
+  {
+    prefix: "/finance/receivables/ar-invoices/pending",
+    screenCodes: ["FINANCE_AR_INVOICES", "SALES_INVOICES_PENDING"],
+  },
+  {
+    prefix: "/finance/receivables/ar-invoices",
+    screenCodes: ["FINANCE_AR_INVOICES", "SALES_INVOICES"],
+  },
+  // ใบวางบิลฝั่งขาย
+  {
+    prefix: "/finance/receivables/billing-notes",
+    screenCodes: ["FINANCE_AR_BILLING_NOTES"],
+  },
   { prefix: "/finance/receivables/tax-invoices", screenCodes: ["FINANCE_TAX_INVOICES"] },
   {
     prefix: "/finance/receivables/adjustment-documents",
@@ -358,7 +390,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   {
     prefix: "/finance/receivables/payment-receipts",
-    screenCodes: ["FINANCE_PAYMENT_RECEIPTS"],
+    screenCodes: ["FINANCE_PAYMENT_RECEIPTS", "FINANCE_RECEIPTS"],
   },
   { prefix: "/finance/receivables/receipts", screenCodes: ["FINANCE_RECEIPTS"] },
   { prefix: "/finance/receivables/refunds", screenCodes: ["FINANCE_REFUNDS"] },
@@ -525,9 +557,14 @@ export function resolveScreenCodesForPath(
   if (/^\/sales-orders\/[^/]+\/stock-verification$/.test(pathname)) {
     return ["SALES_STOCK_VERIFICATION", "PICKINGS"];
   }
+  // ต้องมาก่อน regex รายละเอียด SO ด้านล่าง ไม่งั้น /sales-orders/approvals ถูกมองเป็น id
+  if (pathname === "/sales-orders/approvals") {
+    return ["SALES_ORDER_APPROVALS"];
+  }
   if (/^\/sales-orders\/[^/]+$/.test(pathname)) {
     return [
       "SALES_ORDERS",
+      "SALES_ORDER_APPROVALS",
       "SALES_STOCK_VERIFICATION",
       "PICKINGS",
       "PACKINGS",
@@ -646,7 +683,9 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   PROCUREMENT_TRACKING: "/procurement/tracking",
   MASTERS_CUSTOMERS: "/customers",
   QUOTATIONS: "/quotations",
+  QUOTATION_APPROVALS: "/quotations/approvals",
   SALES_ORDERS: "/sales-orders",
+  SALES_ORDER_APPROVALS: "/sales-orders/approvals",
   SALES_ORDERS_IN_PRODUCTION: "/customers/sales-orders-in-production",
   SALES_STOCK_VERIFICATION: "/sales-orders/stock-verification",
   DELIVERY_ORDERS: "/delivery-orders",
@@ -697,6 +736,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   FINANCE_RECEIVABLE_CUSTOMERS: "/finance/receivables/customers",
   FINANCE_RECEIVABLE_SALES_TAX: "/finance/receivables/sales-tax-documents",
   FINANCE_AR_INVOICES: "/finance/receivables/ar-invoices",
+  FINANCE_AR_BILLING_NOTES: "/finance/receivables/billing-notes",
   FINANCE_TAX_INVOICES: "/finance/receivables/tax-invoices",
   FINANCE_RECEIVABLE_ADJUSTMENTS: "/finance/receivables/adjustment-documents",
   FINANCE_RECEIVABLE_DEBIT_NOTES: "/finance/receivables/debit-notes",

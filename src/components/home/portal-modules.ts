@@ -190,13 +190,15 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     key: "sales",
     code: "SD",
     label: "ขาย",
-    description: "เสนอราคา · SO · ส่ง · แจ้งหนี้",
+    description: "เสนอราคา · อนุมัติ QT/SO · SO · ส่ง · แจ้งหนี้",
     href: "/sales-orders",
     tone: "indigo",
     screenCodes: [
       "MASTERS_CUSTOMERS",
       "QUOTATIONS",
+      "QUOTATION_APPROVALS",
       "SALES_ORDERS",
+      "SALES_ORDER_APPROVALS",
       // เมนูนี้อยู่ในกลุ่มขายของ sidebar แต่เดิมตกจากลิสต์นี้ — ทำให้คนที่มีสิทธิ์
       // ขายเฉพาะหน้านี้มองไม่เห็นกล่องขายเลย และ badge ก็ไม่ถูกรวมเข้ากล่อง
       "SALES_ORDERS_IN_PRODUCTION",
@@ -311,6 +313,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "FINANCE_RECEIVABLE_CUSTOMERS",
       "FINANCE_RECEIVABLE_SALES_TAX",
       "FINANCE_AR_INVOICES",
+      "FINANCE_AR_BILLING_NOTES",
       "FINANCE_TAX_INVOICES",
       "FINANCE_RECEIVABLE_ADJUSTMENTS",
       "FINANCE_RECEIVABLE_DEBIT_NOTES",

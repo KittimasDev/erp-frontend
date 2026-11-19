@@ -17,6 +17,7 @@ import { EN_PRODUCTION_OUTPUT } from "./modules/production-output";
 import { EN_FINANCE_AP_DOCS } from "./modules/finance-ap-docs";
 import { EN_FINANCE_VOUCHERS } from "./modules/finance-vouchers";
 import { EN_FINANCE_PAYABLES } from "./modules/finance-payables";
+import { EN_FINANCE_RECEIVABLES } from "./modules/finance-receivables";
 import { EN_MASTERS_ITEMS } from "./modules/masters-items";
 import { EN_MASTERS_PARTIES } from "./modules/masters-parties";
 import { EN_MASTERS_PRODUCTION } from "./modules/masters-production";
@@ -60,6 +61,7 @@ export const EN_MESSAGES: Record<string, string> = {
   ...EN_FINANCE_AP_DOCS,
   ...EN_FINANCE_VOUCHERS,
   ...EN_FINANCE_PAYABLES,
+  ...EN_FINANCE_RECEIVABLES,
   ...EN_MASTERS_ITEMS,
   ...EN_MASTERS_PARTIES,
   ...EN_MASTERS_PRODUCTION,

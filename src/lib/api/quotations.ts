@@ -8,6 +8,7 @@ import type {
   QuotationQueryParams,
   UpdateQuotationBody,
 } from "@/types/quotations";
+import type { SalesApprovalReasonBody } from "@/types/sales-approval";
 
 function buildQuotationsQuery(params?: QuotationQueryParams) {
   if (!params) {
@@ -94,6 +95,56 @@ export function updateQuotation(
     token,
     body,
   });
+}
+
+/** รายการรออนุมัติ — ไม่ส่ง status = รออนุมัติ */
+export function getPendingQuotationApprovals(
+  token: string,
+  params?: QuotationQueryParams,
+) {
+  return apiFetch<QuotationListApiResponse>(
+    `/api/quotations/approvals/pending${buildQuotationsQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+/** DRAFT → รออนุมัติ */
+export function submitQuotationForApproval(token: string, id: string) {
+  return apiFetch<QuotationApiResponse>(`/api/quotations/${id}/submit`, {
+    method: "POST",
+    token,
+  });
+}
+
+/** อนุมัติภายใน (ไม่ใช่ลูกค้าตอบรับ) */
+export function approveQuotation(token: string, id: string) {
+  return apiFetch<QuotationApiResponse>(`/api/quotations/${id}/approve`, {
+    method: "POST",
+    token,
+  });
+}
+
+/** ไม่อนุมัติภายใน — เหตุผลบังคับ (คนละอย่างกับ rejectQuotation ที่ลูกค้าปฏิเสธ) */
+export function rejectQuotationApproval(
+  token: string,
+  id: string,
+  body: SalesApprovalReasonBody,
+) {
+  return apiFetch<QuotationApiResponse>(
+    `/api/quotations/${id}/reject-approval`,
+    { method: "POST", token, body },
+  );
+}
+
+export function returnQuotationToDraft(
+  token: string,
+  id: string,
+  body: SalesApprovalReasonBody,
+) {
+  return apiFetch<QuotationApiResponse>(
+    `/api/quotations/${id}/return-to-draft`,
+    { method: "POST", token, body },
+  );
 }
 
 export function sendQuotation(token: string, id: string) {

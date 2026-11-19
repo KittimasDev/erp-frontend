@@ -248,6 +248,10 @@ export function inferPortalModuleFromPathname(
     return "sales";
   }
   if (pathname === "/sales-orders" || pathname.startsWith("/sales-orders/")) {
+    // หน้าอนุมัติเป็นของโมดูลขาย (ต่างจากรายละเอียด SO ที่คลังก็เปิดได้)
+    if (pathname === "/sales-orders/approvals") {
+      return "sales";
+    }
     // รายละเอียด SO ไม่บังคับโมดูลขาย — คลังเปิดจาก FG แล้ว sidebar ยังเป็นคลัง
     if (/^\/sales-orders\/[^/]+$/.test(pathname)) {
       return null;

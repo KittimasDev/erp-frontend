@@ -7,9 +7,12 @@ import { useT } from "@/lib/i18n/useT";
 import { ApiError } from "@/lib/api/client";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
+  addSalesInvoiceDeliveries,
   cancelSalesInvoice,
   confirmSalesInvoice,
+  createSalesInvoiceFromDeliveries,
   createSalesInvoiceFromDelivery,
+  removeSalesInvoiceDelivery,
   receiveSalesInvoicePayment,
   updateSalesInvoice,
 } from "@/lib/api/sales-invoices";
@@ -19,6 +22,7 @@ import {
   DOCUMENT_TYPE_SALES_INVOICE,
 } from "@/types/document-attachments";
 import type {
+  CreateSalesInvoiceFromDeliveriesBody,
   CreateSalesInvoiceFromDeliveryBody,
   ReceiveSalesInvoicePaymentBody,
   UpdateSalesInvoiceBody,
@@ -58,6 +62,86 @@ export function useCreateSalesInvoiceFromDeliveryMutation() {
         error instanceof ApiError
           ? error.message
           : t("สร้างใบแจ้งหนี้ไม่สำเร็จ"),
+      );
+    },
+  });
+}
+
+/** รวมหลาย DN เป็น AR ร่างใบเดียว */
+export function useCreateSalesInvoiceFromDeliveriesMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const t = useT();
+
+  return useMutation({
+    mutationFn: (body: CreateSalesInvoiceFromDeliveriesBody) =>
+      createSalesInvoiceFromDeliveries(getAccessToken(), body),
+    onSuccess: async (res) => {
+      await invalidateSalesInvoiceFlow(queryClient);
+      await queryClient.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
+      message.success(res.message || t("สร้างใบแจ้งหนี้สำเร็จ"));
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : t("สร้างใบแจ้งหนี้ไม่สำเร็จ"),
+      );
+    },
+  });
+}
+
+/** เพิ่ม DN เข้า AR ร่าง */
+export function useAddSalesInvoiceDeliveriesMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const t = useT();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      deliveryOrderIds,
+    }: {
+      id: string;
+      deliveryOrderIds: string[];
+    }) => addSalesInvoiceDeliveries(getAccessToken(), id, deliveryOrderIds),
+    onSuccess: async (res) => {
+      await invalidateSalesInvoiceFlow(queryClient);
+      message.success(res.message || t("เพิ่มใบส่งสินค้าสำเร็จ"));
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : t("เพิ่มใบส่งสินค้าไม่สำเร็จ"),
+      );
+    },
+  });
+}
+
+/** เอา DN ออกจาก AR ร่าง */
+export function useRemoveSalesInvoiceDeliveryMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const t = useT();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      deliveryOrderId,
+    }: {
+      id: string;
+      deliveryOrderId: string;
+    }) => removeSalesInvoiceDelivery(getAccessToken(), id, deliveryOrderId),
+    onSuccess: async (res) => {
+      await invalidateSalesInvoiceFlow(queryClient);
+      message.success(res.message || t("เอาใบส่งสินค้าออกสำเร็จ"));
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : t("เอาใบส่งสินค้าออกไม่สำเร็จ"),
       );
     },
   });

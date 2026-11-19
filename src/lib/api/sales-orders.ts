@@ -13,6 +13,7 @@ import type {
   UpdateSalesOrderItemsBody,
   SalesOrderPdfSnapshotListApiResponse,
 } from "@/types/sales-orders";
+import type { SalesApprovalReasonBody } from "@/types/sales-approval";
 
 function buildSalesOrdersQuery(params?: SalesOrderQueryParams) {
   if (!params) {
@@ -92,6 +93,69 @@ export function getSalesOrderAvailableWarehouses(token: string, id: string) {
   return apiFetch<SalesOrderAvailableWarehouseListApiResponse>(
     `/api/sales-orders/${id}/available-warehouses`,
     { method: "GET", token },
+  );
+}
+
+/** รายการรออนุมัติ — ไม่ส่ง status = รออนุมัติ */
+export function getPendingSalesOrderApprovals(
+  token: string,
+  params?: SalesOrderQueryParams,
+) {
+  return apiFetch<SalesOrderListApiResponse>(
+    `/api/sales-orders/approvals/pending${buildSalesOrdersQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+/** DRAFT / รอยืนยัน → รออนุมัติ */
+export function submitSalesOrderForApproval(
+  token: string,
+  id: string,
+  expectedVersion: number,
+) {
+  return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/submit`, {
+    method: "POST",
+    token,
+    ifMatch: expectedVersion,
+  });
+}
+
+/** อนุมัติ = ยืนยันใบสั่งขายส่งคลัง (รออนุมัติ → CONFIRMED) */
+export function approveSalesOrder(
+  token: string,
+  id: string,
+  expectedVersion: number,
+) {
+  return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/approve`, {
+    method: "POST",
+    token,
+    ifMatch: expectedVersion,
+  });
+}
+
+export function rejectSalesOrderApproval(
+  token: string,
+  id: string,
+  expectedVersion: number,
+  body: SalesApprovalReasonBody,
+) {
+  return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/reject`, {
+    method: "POST",
+    token,
+    ifMatch: expectedVersion,
+    body,
+  });
+}
+
+export function returnSalesOrderToDraft(
+  token: string,
+  id: string,
+  expectedVersion: number,
+  body: SalesApprovalReasonBody,
+) {
+  return apiFetch<SalesOrderApiResponse>(
+    `/api/sales-orders/${id}/return-to-draft`,
+    { method: "POST", token, ifMatch: expectedVersion, body },
   );
 }
 

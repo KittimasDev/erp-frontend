@@ -8,12 +8,13 @@ import { ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { useT } from "@/lib/i18n/useT";
+import { arRoutes } from "@/lib/sales/ar-routes";
 
 import { useCreateSalesInvoiceFromDeliveryMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import AccessDenied from "@/components/auth/AccessDenied";
-import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
 import styles from "./SalesInvoiceFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -34,21 +35,19 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   const deliveryQuery = useDeliveryOrderQuery(deliveryOrderId);
   const existingQuery = useSalesInvoiceByDeliveryQuery(deliveryOrderId);
   const createMutation = useCreateSalesInvoiceFromDeliveryMutation();
-  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
-  const pendingActions = useScreenActionPermissions("SALES_INVOICES_PENDING");
-  const canAdd = invoiceActions.canAdd || pendingActions.canEdit;
+  const { canCreate: canAdd } = useArInvoicePermissions();
 
   const delivery = deliveryQuery.data?.data;
   const existing = existingQuery.data?.data;
 
   useEffect(() => {
     if (existing?.id) {
-      router.replace(`/sales-invoices/${existing.id}`);
+      router.replace(arRoutes.detail(existing.id));
     }
   }, [existing, router]);
 
   if (!canAdd) {
-    return <AccessDenied screenCodes={["SALES_INVOICES"]} />;
+    return <AccessDenied screenCodes={["FINANCE_AR_INVOICES", "SALES_INVOICES"]} />;
   }
   if (deliveryQuery.isLoading || existingQuery.isLoading) {
     return (
@@ -63,7 +62,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
       <div className={styles.page}>
         {t("ไม่พบใบส่งสินค้า")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-invoices/pending">{t("กลับ")}</Link>
+          <Link href={arRoutes.pending}>{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -89,7 +88,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
         remark: values.remark?.trim() || undefined,
       },
     });
-    router.push(`/sales-invoices/${response.data.id}`);
+    router.push(arRoutes.detail(response.data.id));
   };
 
   return (
@@ -104,7 +103,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
           <>
 <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/sales-invoices/pending")}
+            onClick={() => router.push(arRoutes.pending)}
           >
             {t("กลับ")}
           </Button>
@@ -153,7 +152,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
             <Input.TextArea rows={3} placeholder={t("หมายเหตุ (ถ้ามี)")} />
           </Form.Item>
           <div className={styles.formActions}>
-            <Button onClick={() => router.push("/sales-invoices/pending")}>
+            <Button onClick={() => router.push(arRoutes.pending)}>
               {t("ยกเลิก")}
             </Button>
             <Button

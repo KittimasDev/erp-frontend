@@ -202,8 +202,14 @@ export function resolveSalesOrderProgress(
     AWAITING_CONFIRM: {
       current: 1,
       inProgress: 1,
-      label: tNow("รอจัดรอบให้ครบแล้วยืนยันใบสั่งขาย"),
+      label: tNow("รอจัดรอบให้ครบแล้วส่งอนุมัติใบสั่งขาย"),
       currentStepLabel: tNow("รอยืนยันใบสั่งขาย"),
+    },
+    PENDING_APPROVAL: {
+      current: 1,
+      inProgress: 1,
+      label: tNow("รอผู้อนุมัติอนุมัติใบสั่งขาย"),
+      currentStepLabel: tNow("รออนุมัติ"),
     },
     // ── สถานะเก่าของใบที่ค้างมาก่อนเปลี่ยนระบบ (2026-08-26) ─────────────────
     // ระบบไม่เขียนค่าพวกนี้อีกแล้ว แต่ใบเก่ายังมีอยู่ใน DB จึงต้องแปลได้
@@ -281,7 +287,11 @@ export function canCancelSalesOrder({
   items = [],
   rounds = [],
 }: CanCancelSalesOrderInput): boolean {
-  if (status === "DRAFT" || status === "AWAITING_CONFIRM") {
+  if (
+    status === "DRAFT" ||
+    status === "AWAITING_CONFIRM" ||
+    status === "PENDING_APPROVAL"
+  ) {
     return true;
   }
   if (status !== "CONFIRMED") {

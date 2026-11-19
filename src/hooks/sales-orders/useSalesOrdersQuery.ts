@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
+  getPendingSalesOrderApprovals,
   getPendingStockVerification,
   getSalesOrder,
   getSalesOrderAvailableWarehouses,
@@ -30,6 +31,44 @@ import type { SalesOrderQueryParams } from "@/types/sales-orders";
 import { SALES_ORDER_LIVE_QUERY_OPTIONS } from "./invalidate-sales-order-flow";
 
 export const salesOrdersQueryKey = ["sales-orders"] as const;
+
+export const pendingSalesOrderApprovalsCountQueryKey = [
+  ...salesOrdersQueryKey,
+  "approvals-pending-count",
+] as const;
+
+/** สิทธิ์เข้าหน้าอนุมัติใบสั่งขาย (เมนู / badge) — ตรงกับ canSeeMenu */
+export function canAccessSalesOrderApprovals(): boolean {
+  if (isAdministrator()) {
+    return true;
+  }
+  if (isMatrixPermissionMode()) {
+    return (
+      canAccessScreen("SALES_ORDER_APPROVALS") ||
+      hasPermission("SALES_ORDER_APPROVALS.VIEW", "SALES_ORDER_APPROVALS.APPROVE")
+    );
+  }
+  return userHasRole(RoleCode.SALES_MANAGER);
+}
+
+/** รายการใบสั่งขายที่ผู้อนุมัติเห็น — ไม่ส่ง status = รออนุมัติ */
+export function usePendingSalesOrderApprovalsQuery(params?: SalesOrderQueryParams) {
+  return useQuery({
+    queryKey: [...salesOrdersQueryKey, "approvals-pending", params ?? {}],
+    queryFn: () => getPendingSalesOrderApprovals(getAccessToken(), params),
+  });
+}
+
+/** จำนวนใบสั่งขายรออนุมัติสำหรับ badge (เมนู / หน้าแรก) */
+export function pendingSalesOrderApprovalsCountOptions(ctx?: { enabled?: boolean }) {
+  return pendingCountQueryOptions({
+    queryKey: pendingSalesOrderApprovalsCountQueryKey,
+    queryFn: () => getPendingSalesOrderApprovals(getAccessToken()),
+    select: selectDataLength,
+    canAccess: canAccessSalesOrderApprovals,
+    enabled: ctx?.enabled,
+  });
+}
 
 export function useSalesOrdersQuery(params?: SalesOrderQueryParams) {
   return useQuery({

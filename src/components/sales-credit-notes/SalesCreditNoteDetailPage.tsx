@@ -42,6 +42,7 @@ import {
   type SalesCreditNote,
 } from "@/types/sales-credit-notes";
 import PageHeader from "@/components/common/PageHeader";
+import CreditNoteSettlementCard from "./CreditNoteSettlementCard";
 
 function useMoney() {
   const lang = useLanguage();
@@ -413,6 +414,7 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         <Descriptions.Item label={t("ยอดรวมที่ลด")}>{money.format(note.totalAmount)}</Descriptions.Item>
       </Descriptions>
           </Card>
+      {note.status === "COMPLETED" ? <CreditNoteSettlementCard creditNoteId={note.id} /> : null}
     </>
   );
 }

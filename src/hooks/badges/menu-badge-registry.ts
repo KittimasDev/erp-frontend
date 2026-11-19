@@ -25,7 +25,11 @@ import {
 } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { pendingReturnNotesCountOptions } from "@/hooks/return-notes/useReturnNotesQuery";
 import { pendingSalesInvoicesCountOptions } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
-import { pendingStockVerificationCountOptions } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { pendingQuotationApprovalsCountOptions } from "@/hooks/quotations/useQuotationsQuery";
+import {
+  pendingSalesOrderApprovalsCountOptions,
+  pendingStockVerificationCountOptions,
+} from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { pendingStockControlCountOptions } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
 import { pendingStockIssuesCountOptions } from "@/hooks/stock-issues/useStockIssuesQuery";
 import { pendingStockPostingApprovalsCountOptions } from "@/hooks/stock-posting/useStockPostingQueries";
@@ -339,6 +343,32 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
     label: "คำขอลางานรออนุมัติ",
     options: (ctx) =>
       pendingLeaveApprovalsCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+
+  // ─── ขาย: อนุมัติ QT / SO (ต่อท้าย — ลำดับใน registry เป็นส่วนหนึ่งของสัญญา) ───
+  {
+    menuKey: "quotation-approvals",
+    screenCode: "QUOTATION_APPROVALS",
+    kind: "approval",
+    label: "อนุมัติใบเสนอราคา",
+    options: (ctx) =>
+      pendingQuotationApprovalsCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
+    menuKey: "sales-order-approvals",
+    screenCode: "SALES_ORDER_APPROVALS",
+    kind: "approval",
+    label: "อนุมัติใบสั่งขาย",
+    options: (ctx) =>
+      pendingSalesOrderApprovalsCountOptions(ctx) as UseQueryOptions<
         unknown,
         Error,
         number
