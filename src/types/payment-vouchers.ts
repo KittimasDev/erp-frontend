@@ -135,6 +135,8 @@ export type VoucherApDocument = {
   id: string;
   docNo: string;
   allocatedAmount: string;
+  /** ยอดเจ้าหนี้ของใบ AP ทั้งใบ — ไม่มีเมื่อหาใบ AP ไม่เจอ */
+  payableAmount?: string;
   whtAmount: string;
   /** เลขที่ใบแจ้งหนี้ผู้ขายหรือใบกำกับ — ไม่มีเมื่อต้นทางไม่ได้บันทึก */
   invoiceNo?: string;

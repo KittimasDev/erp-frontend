@@ -70,6 +70,7 @@ import {
   type ApSupplierCreditUsage,
 } from "@/types/ap-documents";
 
+import ApDebitNoteSheet from "./ApDebitNoteSheet";
 import { AP_DOCUMENT_CONFIG, apEventLabel, apShortLabel, formatThaiDate, money } from "./apDocumentConfig";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -97,6 +98,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
   const config = AP_DOCUMENT_CONFIG[kind];
   const isInvoice = kind === "invoice";
   const isCredit = kind === "creditNote";
+  const isDebit = kind === "debitNote";
   const t = useT();
   const router = useRouter();
   const { message, modal } = App.useApp();
@@ -398,6 +400,11 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
     method === "OFFSET_AP" &&
     !doc.appliedToApId &&
     Boolean(doc.referenceDocumentId);
+  const showDebitAlertCard =
+    isDebit &&
+    (doc.status === "CANCELLED" ||
+      doc.status === "REJECTED" ||
+      (isApproved && Boolean(doc.usageStatus) && outstanding > 0));
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
@@ -488,6 +495,9 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         }
       />
 
+      {isDebit ? <ApDebitNoteSheet doc={doc} /> : null}
+
+      {!isDebit || showDebitAlertCard ? (
       <Card>
         {doc.status === "CANCELLED" ? (
           <Alert
@@ -522,6 +532,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             }
           />
         ) : null}
+        {isDebit ? null : (
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
           <Descriptions.Item label={t("เจ้าหนี้")}>
             {doc.creditorCode} {doc.creditorName}
@@ -606,8 +617,11 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
             </Descriptions.Item>
           ) : null}
         </Descriptions>
+        )}
       </Card>
+      ) : null}
 
+      {isDebit ? null : (
       <Card title={t("รายการ")}>
         <Table
           rowKey="id"
@@ -630,6 +644,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
           </Descriptions.Item>
         </Descriptions>
       </Card>
+      )}
 
       {isCredit && method === "REFUND" ? (
         <Card

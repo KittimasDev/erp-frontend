@@ -92,6 +92,15 @@ export const AP_VAT_MODE_LABEL: Record<string, string> = {
   NONE: "ไม่มี VAT",
 };
 
+/** บรรทัดของใบตั้งหนี้ที่ใบเพิ่มหนี้อ้างถึง — ใช้เทียบมูลค่าเดิมบนเอกสาร */
+export type ApReferenceLine = {
+  id: string;
+  itemId: string | null;
+  description: string;
+  amount: number;
+  goodsReceiptItemId: string | null;
+};
+
 export type ApDocumentItem = {
   id: string;
   itemId: string | null;
@@ -134,6 +143,12 @@ export type ApDocument = {
   purchaseOrderStatus?: string | null;
   referenceDocumentId: string | null;
   referenceDocumentNo: string | null;
+  /** เฉพาะรายละเอียดใบเพิ่มหนี้ — ใบกำกับภาษีของใบตั้งหนี้ที่อ้างถึง */
+  referenceTaxInvoiceNo?: string | null;
+  referenceTaxInvoiceDate?: string | null;
+  /** โหมด VAT ของใบตั้งหนี้ที่อ้างถึง — คนละโหมดหรือราคารวม VAT จะไม่เทียบมูลค่าเดิม */
+  referenceVatMode?: string | null;
+  referenceItems?: ApReferenceLine[];
   reason: string | null;
   remark: string | null;
   /** โน้ตภายในบริษัท — ไม่ออกในเอกสารที่ส่งผู้ขาย */

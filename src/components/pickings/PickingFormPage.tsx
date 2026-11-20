@@ -461,7 +461,6 @@ export default function PickingFormPage({ id, mode }: Props) {
                 pickingDate: dayjs(data.pickingDate).format("DD/MM/BBBB"),
                 salesOrderNo: data.salesOrderNo ?? "—",
                 customerName: data.customerName ?? "—",
-                contactName: data.contactName ?? "",
                 paymentMethod: data.paymentMethod ?? "",
                 customerPoNo: data.customerPoNo ?? "",
                 remark: data.remark?.trim() || "",

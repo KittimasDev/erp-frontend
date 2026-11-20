@@ -11,6 +11,7 @@ import {
   Tag,
   Upload,
 } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   CalendarOutlined,
   StopOutlined,
@@ -40,6 +41,7 @@ import {
   RECEIVE_TIMING_LABEL,
   receiveTiming,
   type PoDeliverySchedule,
+  type PoDeliveryScheduleItem,
 } from "@/types/po-delivery-schedules";
 import styles from "./PurchaseOrderDetailPage.module.css";
 
@@ -54,6 +56,24 @@ type Props = {
   /** PO ถูกยกเลิกแล้ว — รอบที่ยังไม่รับไม่ใช่ "ยังไม่รับสินค้า" อีกต่อไป และไม่มีการจัดการรอบใดๆ */
   purchaseOrderCancelled?: boolean;
 };
+
+type ScheduleRow = {
+  key: string;
+  schedule: PoDeliverySchedule;
+  item: PoDeliveryScheduleItem | null;
+  span: number;
+};
+
+function deliveryDateText(schedule: PoDeliverySchedule) {
+  const current = dayjs(schedule.effectiveDeliveryDate).format("DD/MM/BBBB");
+  const original = schedule.originalDeliveryDate
+    ? dayjs(schedule.originalDeliveryDate).format("DD/MM/BBBB")
+    : "";
+  const postponed =
+    !!schedule.originalDeliveryDate &&
+    schedule.originalDeliveryDate !== schedule.deliveryDate;
+  return postponed ? `${original} เลื่อนเป็น ${current}` : current;
+}
 
 export default function PoDeliverySchedulesSection({
   purchaseOrderId,
@@ -80,158 +100,201 @@ export default function PoDeliverySchedulesSection({
     setFile(null);
   };
 
+  const rows: ScheduleRow[] = schedules.flatMap((schedule) => {
+    const items = schedule.items.length > 0 ? schedule.items : [null];
+    return items.map((item, index) => ({
+      key: item?.id ?? `${schedule.id}-empty`,
+      schedule,
+      item,
+      span: index === 0 ? items.length : 0,
+    }));
+  });
+
+  const columns: ColumnsType<ScheduleRow> = [
+    {
+      title: t("รอบ"),
+      width: 64,
+      align: "center",
+      onCell: (row) => ({ rowSpan: row.span }),
+      render: (_, row) => row.schedule.roundNo,
+    },
+    {
+      title: t("กำหนดส่ง"),
+      width: 180,
+      onCell: (row) => ({ rowSpan: row.span }),
+      render: (_, row) => {
+        const schedule = row.schedule;
+        const poDead =
+          purchaseOrderCancelled && isPoScheduleOpen(schedule.status);
+        const timing = receiveTiming(
+          schedule.latestActualReceiveDate,
+          schedule.effectiveDeliveryDate,
+        );
+        return (
+          <div>
+            <div>{deliveryDateText(schedule)}</div>
+            {schedule.latestActualReceiveDate ? (
+              <div className={styles.paperSub}>
+                {t("รับจริงล่าสุด {date}", {
+                  date: dayjs(schedule.latestActualReceiveDate).format("DD/MM/BBBB"),
+                })}
+                {timing ? (
+                  <>
+                    {" "}
+                    <Tag color={RECEIVE_TIMING_COLOR[timing]} style={{ marginInlineEnd: 0 }}>
+                      {t(RECEIVE_TIMING_LABEL[timing])}
+                    </Tag>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+            {schedule.isLate && !poDead ? <Tag color="red">{t("ล่าช้า")}</Tag> : null}
+          </div>
+        );
+      },
+    },
+    {
+      title: t("รหัสสินค้า"),
+      width: 110,
+      render: (_, row) => row.item?.itemCode ?? "—",
+    },
+    {
+      title: t("รายการสินค้า"),
+      render: (_, row) => row.item?.itemNameTh ?? "—",
+    },
+    {
+      title: t("จำนวน"),
+      width: 90,
+      align: "right",
+      render: (_, row) => row.item?.quantity ?? "—",
+    },
+    {
+      title: t("หน่วย"),
+      width: 72,
+      align: "center",
+      render: (_, row) => row.item?.unitCode ?? "—",
+    },
+    {
+      title: t("รับแล้ว"),
+      width: 80,
+      align: "right",
+      render: (_, row) => row.item?.receivedQuantity ?? "—",
+    },
+    {
+      title: t("ยกเลิกการรับ"),
+      width: 100,
+      align: "right",
+      render: (_, row) => row.item?.cancelledQuantity ?? "—",
+    },
+    {
+      title: t("คงเหลือ"),
+      width: 80,
+      align: "right",
+      render: (_, row) => row.item?.remainingQuantity ?? "—",
+    },
+    {
+      title: t("สถานะ"),
+      width: 130,
+      onCell: (row) => ({ rowSpan: row.span }),
+      render: (_, row) => {
+        const schedule = row.schedule;
+        const poDead =
+          purchaseOrderCancelled && isPoScheduleOpen(schedule.status);
+        const statusLabel = poDead
+          ? t("PO ยกเลิกแล้ว")
+          : t(PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status);
+        return (
+          <Tag
+            color={
+              poDead
+                ? "default"
+                : (PO_DELIVERY_RECEIVE_STATUS_COLOR[schedule.status] ?? "default")
+            }
+          >
+            {statusLabel}
+          </Tag>
+        );
+      },
+    },
+    {
+      title: t("จัดการ"),
+      width: 220,
+      onCell: (row) => ({ rowSpan: row.span }),
+      render: (_, row) => {
+        const schedule = row.schedule;
+        const poDead =
+          purchaseOrderCancelled && isPoScheduleOpen(schedule.status);
+        return (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {schedule.reschedules.length ? (
+              <Button
+                icon={<HistoryOutlined />}
+                onClick={() => {
+                  setActive(schedule);
+                  setMode("history");
+                }}
+              >
+                {t("ประวัติเลื่อนวัน")}
+              </Button>
+            ) : null}
+            {canManage && !poDead && isPoScheduleOpen(schedule.status) ? (
+              <Button
+                icon={<CalendarOutlined />}
+                onClick={() => {
+                  setActive(schedule);
+                  setMode("reschedule");
+                }}
+              >
+                {t("เลื่อนวันส่ง")}
+              </Button>
+            ) : null}
+            {canManage && !poDead && canCancelPoRoundReceiving(schedule) ? (
+              <Button
+                danger
+                icon={<StopOutlined />}
+                onClick={() => {
+                  setActive(schedule);
+                  setMode("cancel");
+                }}
+              >
+                {t("ยกเลิกการรับทั้งรอบ")}
+              </Button>
+            ) : null}
+            {(canManage || showCloseOnReceiving) &&
+            !poDead &&
+            canClosePoRoundRemaining(schedule) ? (
+              <Button
+                danger
+                onClick={() => {
+                  setActive(schedule);
+                  setMode("close");
+                }}
+              >
+                {t("ยุติการรับสินค้าคงเหลือ")}
+              </Button>
+            ) : null}
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <div className={styles.section}>
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>{t("รอบจัดส่ง")}</h2>
+        <h2 className={styles.sectionTitle}>{t("กำหนดการจัดส่งสินค้า")}</h2>
       </div>
       {schedules.length === 0 ? (
         <p>{t("ยังไม่มีรอบจัดส่ง")}</p>
       ) : (
-        schedules.map((schedule) => {
-          // PO ยกเลิกแล้ว: รอบที่ยังเปิดอยู่ไม่แสดง "ยังไม่รับสินค้า" (ไม่มีการรับอีกแล้ว)
-          const poDead =
-            purchaseOrderCancelled && isPoScheduleOpen(schedule.status);
-          const statusLabel = poDead
-            ? t("PO ยกเลิกแล้ว")
-            : t(PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status);
-          const timing = receiveTiming(
-            schedule.latestActualReceiveDate,
-            schedule.effectiveDeliveryDate,
-          );
-          return (
-            <div key={schedule.id} className={styles.section} style={{ marginTop: 16 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
-                  <strong>{t("รอบที่ {n}", { n: schedule.roundNo })}</strong>
-                  <div>
-                    {t("กำหนดส่ง {date}", {
-                      date: dayjs(schedule.effectiveDeliveryDate).format("DD/MM/BBBB"),
-                    })}
-                    {schedule.originalDeliveryDate &&
-                    schedule.originalDeliveryDate !== schedule.deliveryDate
-                      ? ` ${t("(เลื่อนจาก {date})", {
-                          date: dayjs(schedule.originalDeliveryDate).format("DD/MM/BBBB"),
-                        })}`
-                      : null}
-                  </div>
-                  {schedule.latestActualReceiveDate ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        flexWrap: "wrap",
-                        marginTop: 2,
-                      }}
-                    >
-                      <span>
-                        {t("รับจริงล่าสุด {date}", {
-                          date: dayjs(schedule.latestActualReceiveDate).format("DD/MM/BBBB"),
-                        })}
-                      </span>
-                      {timing ? (
-                        <Tag
-                          color={RECEIVE_TIMING_COLOR[timing]}
-                          style={{ fontWeight: 600, marginInlineEnd: 0 }}
-                        >
-                          {t(RECEIVE_TIMING_LABEL[timing])}
-                        </Tag>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <Tag
-                    color={
-                      poDead
-                        ? "default"
-                        : (PO_DELIVERY_RECEIVE_STATUS_COLOR[schedule.status] ?? "default")
-                    }
-                  >
-                    {statusLabel}
-                  </Tag>
-                  {schedule.isLate && !poDead ? <Tag color="red">{t("ล่าช้า")}</Tag> : null}
-                </div>
-              </div>
-              <Table
-                size="small"
-                pagination={false}
-                rowKey="id"
-                style={{ marginTop: 12 }}
-                dataSource={schedule.items}
-                columns={[
-                  {
-                    title: t("สินค้า"),
-                    render: (_, item) =>
-                      `${item.itemCode ?? ""} ${item.itemNameTh ?? ""}`.trim(),
-                  },
-                  { title: t("Qty ตามรอบ"), dataIndex: "quantity" },
-                  { title: t("รับแล้ว"), dataIndex: "receivedQuantity" },
-                  { title: t("ยกเลิกการรับ"), dataIndex: "cancelledQuantity" },
-                  { title: t("คงเหลือ"), dataIndex: "remainingQuantity" },
-                  { title: t("หน่วย"), dataIndex: "unitCode" },
-                ]}
-              />
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                {schedule.reschedules.length ? (
-                  <Button
-                    icon={<HistoryOutlined />}
-                    onClick={() => {
-                      setActive(schedule);
-                      setMode("history");
-                    }}
-                  >
-                    {t("ประวัติเลื่อนวัน")}
-                  </Button>
-                ) : null}
-                {canManage && !poDead && isPoScheduleOpen(schedule.status) ? (
-                  <Button
-                    icon={<CalendarOutlined />}
-                    onClick={() => {
-                      setActive(schedule);
-                      setMode("reschedule");
-                    }}
-                  >
-                    {t("เลื่อนวันส่ง")}
-                  </Button>
-                ) : null}
-                {canManage && !poDead && canCancelPoRoundReceiving(schedule) ? (
-                  <Button
-                    danger
-                    icon={<StopOutlined />}
-                    onClick={() => {
-                      setActive(schedule);
-                      setMode("cancel");
-                    }}
-                  >
-                    {t("ยกเลิกการรับทั้งรอบ")}
-                  </Button>
-                ) : null}
-                {(canManage || showCloseOnReceiving) &&
-                !poDead &&
-                canClosePoRoundRemaining(schedule) ? (
-                  <Button
-                    danger
-                    onClick={() => {
-                      setActive(schedule);
-                      setMode("close");
-                    }}
-                  >
-                    {t("ยุติการรับสินค้าคงเหลือ")}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          );
-        })
+        <Table<ScheduleRow>
+          size="small"
+          pagination={false}
+          rowKey="key"
+          scroll={{ x: 1180 }}
+          dataSource={rows}
+          columns={columns}
+        />
       )}
 
       <Modal

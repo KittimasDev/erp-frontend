@@ -20,7 +20,6 @@ export type PickingPdfData = {
   pickingDate: string;
   salesOrderNo: string;
   customerName: string;
-  contactName: string;
   paymentMethod: string;
   customerPoNo: string;
   remark: string;
@@ -62,7 +61,7 @@ export async function generatePickingPdf(data: PickingPdfData) {
       {
         rows: [
           { label: "คลังต้นทาง", value: sourceWarehouses.join(", ") },
-          { label: "ผู้รับสินค้า", value: data.contactName },
+          { label: "ผู้รับสินค้า", value: data.customerName },
         ],
       },
       {

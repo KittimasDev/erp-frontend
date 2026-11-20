@@ -461,6 +461,224 @@
   line-height: 1.45;
 }
 
+.sheetStage {
+  background: #e8ebea;
+  padding: 18px 12px 22px;
+  border-radius: 16px;
+  overflow-x: auto;
+}
+
+.sheet {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  padding: 36px 40px 28px;
+  background: #fff;
+  color: #242b29;
+  box-shadow: 0 4px 24px rgba(17, 17, 17, 0.07);
+}
+
+.sheetHead {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.8fr;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e4e7eb;
+}
+
+.sheetLabel {
+  color: #8a9199;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sheetHeadValue {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.sheetStatus,
+.sheetStatusPaid,
+.sheetStatusMuted {
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.sheetStatusPaid {
+  color: #2c641b;
+}
+
+.sheetStatusMuted {
+  color: #8a9199;
+}
+
+.sheetCols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 18px;
+}
+
+.sheetSection {
+  margin-top: 22px;
+}
+
+.sheetTitle {
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e4e7eb;
+  color: #242b29;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.partyName {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.field {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.fieldLabel {
+  color: #5c675f;
+}
+
+.sheetTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sheetTable th {
+  background: #f3f5f4;
+  padding: 8px 10px;
+  color: #3a4641;
+  font-weight: 600;
+  text-align: left;
+}
+
+.sheetTable td {
+  padding: 10px;
+  border-bottom: 1px solid #e8ecea;
+  vertical-align: top;
+}
+
+.sheetNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lineNo {
+  font-weight: 600;
+}
+
+.lineSub {
+  color: #66716d;
+  font-size: 12px;
+}
+
+.totals {
+  width: min(360px, 100%);
+  margin-top: 14px;
+  margin-left: auto;
+}
+
+.totalLine {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.totalLine span:last-child {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.netBox {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 6px;
+  padding: 12px 14px;
+  background: #eef6e8;
+  color: #2c641b;
+  font-weight: 700;
+}
+
+.netBox strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bahtWords {
+  margin-top: 6px;
+  color: #66716d;
+  font-size: 12px;
+  text-align: right;
+}
+
+.noteBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.sigs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 36px;
+  text-align: center;
+}
+
+.sigRole {
+  margin-bottom: 28px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sigLine {
+  margin: 0 12px 6px;
+  border-bottom: 1px solid #7b8781;
+}
+
+.sigName,
+.sigDate {
+  color: #66716d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sheetFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid #e4e7eb;
+  color: #8a9199;
+  font-size: 11px;
+}
+
+.tools {
+  display: grid;
+  gap: 16px;
+}
+
 .stateCard,
 .emptyCard {
   border: 1px solid var(--pr-border);
@@ -501,5 +719,19 @@
   .itemQty {
     grid-column: 2;
     text-align: left;
+  }
+
+  .sheet {
+    padding: 22px 16px 18px;
+  }
+
+  .sheetHead,
+  .sheetCols,
+  .sigs {
+    grid-template-columns: 1fr;
+  }
+
+  .sigRole {
+    margin-bottom: 16px;
   }
 }

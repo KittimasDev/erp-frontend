@@ -168,6 +168,7 @@ export type SalesOrderUserSummary = {
   id: string;
   username: string;
   displayName: string;
+  phone?: string;
 };
 
 export type SalesOrderItem = {
@@ -179,6 +180,8 @@ export type SalesOrderItem = {
   quantity: string;
   unitId: string;
   unitCode?: string;
+  unitNameTh?: string;
+  enteredUnitNameTh?: string;
   unitPrice: string;
   discountAmount: string;
   amount: string;

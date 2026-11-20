@@ -103,72 +103,81 @@ function dash(value?: string) {
   return text ? text : "—";
 }
 
-function infoRow(label: string, value?: string, valueClass = "") {
-  const extra = valueClass ? ` ${valueClass}` : "";
-  return `<div class="label">${escapeHtml(label)}</div><div class="value${extra}">${escapeHtml(dash(value))}</div>`;
+function infoRow(label: string, value?: string) {
+  return `<div class="k">${escapeHtml(label)}</div><div class="v">${escapeHtml(dash(value))}</div>`;
 }
 
 /* ---------- ชิ้นส่วน HTML — แยกเป็นก้อนเพราะตัวจัดหน้าต้องวัดทีละก้อน ---------- */
 
 function headHtml() {
+  const logo = companyLogoUrl();
   return `
-      <div class="topbar">
-        <img src="${companyLogoUrl()}" class="logo" alt="" crossorigin="anonymous" />
-        <div class="company">${companyIdentityLinesHtml({
-          phoneLabel: "เบอร์ติดต่อ",
-          taxIdStyle: "grouped",
-        })}
+      <header class="header">
+        <div class="brand">
+          ${
+            logo
+              ? `<img src="${logo}" class="logo" alt="" crossorigin="anonymous" />`
+              : `<div class="symbol" aria-hidden="true">◈</div>`
+          }
+          <div>
+            <div class="company">${companyIdentityLinesHtml({
+              phoneLabel: "โทร.",
+              taxIdStyle: "grouped",
+              separator: " • ",
+            })}
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="rule"></div>`;
+        <div class="doc-title">
+          <strong>ใบสั่งซื้อ</strong>
+          <small>PURCHASE ORDER</small>
+        </div>
+      </header>`;
 }
 
 function firstBlockHtml(data: PurchaseOrderPdfData) {
   return `
-      <div class="headrow">
-        <div class="titlebox">
-          <div class="title-th">ใบสั่งซื้อ</div>
-          <div class="title-en">Purchase Order</div>
+      <div class="doc-meta">
+        <div class="meta-cell">
+          <span class="label">เลขที่ใบสั่งซื้อ / PO No.</span>
+          <span class="value">${escapeHtml(data.poNo)}</span>
         </div>
-        <div class="docbox">
-          <div>
-            <div class="doclabel">เลขที่เอกสาร</div>
-            <div class="docval">${escapeHtml(data.poNo)}</div>
-          </div>
-          <div>
-            <div class="doclabel">วันที่ออกเอกสาร</div>
-            <div class="docval">${escapeHtml(data.poDate)}</div>
-          </div>
+        <div class="meta-cell">
+          <span class="label">วันที่เอกสาร</span>
+          <span class="value">${escapeHtml(data.poDate)}</span>
+        </div>
+        <div class="meta-cell">
+          <span class="label">กำหนดส่งครั้งแรก</span>
+          <span class="value">${escapeHtml(dash(data.expectedDeliveryDate))}</span>
         </div>
       </div>
-
-      <div class="section-rule"></div>
-
-      <div class="info-wrap">
-        <section class="info-card">
-          <div class="card-title">ข้อมูลผู้ขาย</div>
-          <div class="info-grid">
-            ${infoRow("ลูกค้า :", data.vendorName)}
-            ${infoRow("รหัสลูกค้า:", data.vendorCode)}
-            ${infoRow("เลขผู้เสียภาษี :", data.vendorTaxId)}
-            ${infoRow("ที่อยู่ :", data.vendorAddress)}
-            ${infoRow("เบอร์โทร :", data.vendorPhone)}
-            ${infoRow("ผู้ติดต่อ :", data.vendorContact)}
+      <div class="info">
+        <section class="info-panel">
+          <h2>ข้อมูลผู้ขาย</h2>
+          <div class="kv">
+            ${infoRow("ผู้ขาย", data.vendorName)}
+            ${infoRow("รหัสผู้ขาย", data.vendorCode)}
+            ${infoRow("เลขผู้เสียภาษี", data.vendorTaxId)}
+            ${infoRow("ที่อยู่", data.vendorAddress)}
+            ${infoRow("โทรศัพท์", data.vendorPhone)}
+            ${infoRow("ผู้ติดต่อ", data.vendorContact)}
           </div>
         </section>
-
-        <section class="info-card">
-          <div class="card-title">ข้อมูลการสั่งซื้อ</div>
-          <div class="info-grid">
-            ${infoRow("เงื่อนไขการชำระเงิน:", data.paymentTerm)}
-            ${infoRow("วิธีชำระเงิน / Payment:", data.paymentMethodLabel)}
-            ${infoRow("รูปแบบ VAT:", data.taxRateLabel)}
-            ${infoRow("ภาษีหัก ณ ที่จ่าย:", data.withholdingTaxLabel)}
-            ${infoRow("ผู้ติดต่อ / Contact:", data.createdBy)}
-            ${infoRow("เบอร์โทร / Phone:", data.createdByPhone)}
-            ${infoRow("วันที่ส่งมอบ:", data.expectedDeliveryDate)}
+        <section class="info-panel">
+          <h2>ข้อมูลการสั่งซื้อ</h2>
+          <div class="kv">
+            ${infoRow("เงื่อนไขชำระเงิน", data.paymentTerm)}
+            ${infoRow("วิธีชำระเงิน", data.paymentMethodLabel)}
+            ${infoRow("รูปแบบ VAT", data.taxRateLabel)}
+            ${infoRow("ภาษีหัก ณ ที่จ่าย", data.withholdingTaxLabel)}
+            ${infoRow("ผู้ติดต่อภายใน", data.createdBy)}
+            ${infoRow("เบอร์โทร", data.createdByPhone)}
           </div>
         </section>
+      </div>
+      <div class="section-heading">
+        <h2>รายการสินค้า</h2>
+        <span>สกุลเงิน: บาท (THB)</span>
       </div>`;
 }
 
@@ -184,11 +193,11 @@ function contStripHtml(data: PurchaseOrderPdfData) {
 function theadHtml() {
   return `
         <div class="tr thead">
-          <div class="cell center">ลำดับ</div>
-          <div class="cell center">รหัสสินค้า</div>
-          <div class="cell cell-name">รายการสินค้า / Description</div>
+          <div class="cell center">#</div>
+          <div class="cell">รหัสสินค้า</div>
+          <div class="cell cell-name">รายละเอียดสินค้า</div>
           <div class="cell center">หน่วย</div>
-          <div class="cell center">จำนวน</div>
+          <div class="cell right">จำนวน</div>
           <div class="cell right">ราคาต่อหน่วย</div>
           <div class="cell right">ส่วนลด</div>
           <div class="cell right">จำนวนเงิน</div>
@@ -210,32 +219,38 @@ function rowHtml(item: PurchaseOrderPdfItem) {
 }
 
 function scheduleSectionHeadHtml() {
-  return `<div class="sched-section-head">รอบจัดส่ง</div>`;
+  return `<div class="sched-section-head"><h2>กำหนดการจัดส่งสินค้า</h2></div>`;
 }
 
-function scheduleRoundHeadingHtml(round: PurchaseOrderPdfRound) {
-  const label = round.originalDeliveryDate
-    ? `รอบที่ ${round.roundNo} กำหนดส่ง ${escapeHtml(round.originalDeliveryDate)} เลื่อนเป็น ${escapeHtml(round.deliveryDate)}`
-    : `รอบที่ ${round.roundNo} — กำหนดส่ง ${escapeHtml(round.deliveryDate)}`;
-  return `<div class="group-heading">${label}</div>`;
+function scheduleDateLabel(round: PurchaseOrderPdfRound) {
+  return round.originalDeliveryDate
+    ? `${round.originalDeliveryDate} เลื่อนเป็น ${round.deliveryDate}`
+    : round.deliveryDate;
 }
 
 function scheduleTheadHtml() {
   return `
         <div class="tr thead sched">
-          <div class="cell center">รหัสสินค้า</div>
-          <div class="cell cell-name">รายการสินค้า / Description</div>
-          <div class="cell center">จำนวน</div>
+          <div class="cell center">รอบ</div>
+          <div class="cell">กำหนดส่ง</div>
+          <div class="cell">รหัสสินค้า</div>
+          <div class="cell cell-name">รายการสินค้า</div>
+          <div class="cell right">จำนวน</div>
           <div class="cell center">หน่วย</div>
         </div>`;
 }
 
-function scheduleRowHtml(item: PurchaseOrderPdfRoundItem) {
+function scheduleRowHtml(
+  round: PurchaseOrderPdfRound,
+  item: PurchaseOrderPdfRoundItem,
+) {
   return `
         <div class="tr tbody sched">
-          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell center">${round.roundNo}</div>
+          <div class="cell">${escapeHtml(scheduleDateLabel(round))}</div>
+          <div class="cell code">${escapeHtml(item.itemCode)}</div>
           <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
-          <div class="cell center">${formatQty(item.qty)}</div>
+          <div class="cell right">${formatQty(item.qty)}</div>
           <div class="cell center">${escapeHtml(item.unit)}</div>
         </div>`;
 }
@@ -289,8 +304,8 @@ ${chargeRowsHtml(data)}
           <div class="v">${formatMoney(data.vatAmount)}</div>
         </div>
         <div class="tot-row grand">
-          <div class="k">ยอดสุทธิ:</div>
-          <div class="v">${formatMoney(data.totalAmount)}</div>
+          <div class="k">ยอดสุทธิ</div>
+          <div class="v">${formatMoney(data.totalAmount)} บาท</div>
         </div>
       </div>`;
 }
@@ -310,14 +325,19 @@ function pageEndHtml() {
       <div class="page-end">
         <div class="signatures">
           <div class="sig">
-            <div>ผู้จัดทำ (Prepared By)</div>
-            <div class="line"></div>
-            <div class="date">วันที่ ___/___/___</div>
+            <div class="sig-line"></div>
+            <div class="role">ผู้จัดทำ</div>
+            <div class="date">วันที่ _____/_____/_____</div>
           </div>
           <div class="sig">
-            <div>ผู้อนุมัติ / (Approved By)</div>
-            <div class="line"></div>
-            <div class="date">วันที่ ___/___/___</div>
+            <div class="sig-line"></div>
+            <div class="role">ผู้ตรวจสอบ</div>
+            <div class="date">วันที่ _____/_____/_____</div>
+          </div>
+          <div class="sig">
+            <div class="sig-line"></div>
+            <div class="role">ผู้อนุมัติ</div>
+            <div class="date">วันที่ _____/_____/_____</div>
           </div>
         </div>
       </div>`;
@@ -355,7 +375,7 @@ function createStyle() {
         background: #fff;
         padding: ${PAGE_PAD_TOP}px 23px ${PAGE_PAD_BOTTOM}px;
         position: relative;
-        color: #7A7A7A;
+        color: #263039;
         font-family: "Sarabun", Tahoma, sans-serif;
         display: flex;
         flex-direction: column;
@@ -386,107 +406,102 @@ function createStyle() {
         flex-shrink: 0;
       }
 
-      .topbar {
+      .header {
         display: flex;
-        align-items: flex-start;
+        justify-content: space-between;
+        align-items: center;
         gap: 12px;
+        border-bottom: 1.5px solid #6ba83f;
+        padding-bottom: 8px;
         flex-shrink: 0;
       }
 
-      .logo {
-        width: auto;
-        height: 56px;
-        max-width: 120px;
-        object-fit: contain;
-        object-position: left top;
-        display: block;
-        flex: 0 0 auto;
-        margin-top: -10px;
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
       }
 
-      .company {
-        line-height: 1.26;
+      .logo,
+      .symbol {
+        width: 42px;
+        height: 42px;
+        object-fit: contain;
+        flex: 0 0 auto;
+      }
+
+      .symbol {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6ba83f;
+        font-size: 28px;
+        font-weight: 800;
       }
 
       .company-name {
-        font-size: 15px;
-        margin: 0 0 4px;
-        font-weight: 700;
-        color: #343434;
+        font-size: 12px;
+        margin: 0 0 2px;
+        font-weight: 800;
+        color: #333;
+        line-height: 1.15;
       }
 
       .company-address {
-        font-size: 7.4px;
+        font-size: 8px;
         margin: 0;
-        color: #7A7A7A;
-        font-weight: 400;
-        line-height: 1.26;
+        color: #555;
+        line-height: 1.4;
       }
 
-      .company-address + .company-address {
-        margin-top: 3px;
-      }
-
-      .rule {
-        height: 1px;
-        background: #D8DCE0;
-        margin: 14px 0;
+      .doc-title {
+        text-align: right;
         flex-shrink: 0;
       }
 
-      .headrow {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        flex-shrink: 0;
+      .doc-title strong {
+        display: block;
+        font-size: 18px;
+        color: #315e24;
+        line-height: 1.15;
       }
 
-      .titlebox {
-        margin-left: 111px;
-        margin-top: -2px;
+      .doc-title small {
+        display: block;
+        color: #7c848b;
+        letter-spacing: 0.4px;
+        font-size: 8px;
       }
 
-      .title-th {
-        font-size: 24px;
-        color: #78b64c;
-        font-weight: 700;
-        line-height: 1;
-      }
-
-      .title-en {
-        font-size: 10px;
-        color: #AA9F97;
-        margin-top: 7px;
-        text-align: center;
-      }
-
-      .docbox {
-        width: 233px;
-        border: 1px solid #D8DCE0;
+      .doc-meta {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr 1fr;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         overflow: hidden;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        margin-top: 10px;
+        flex-shrink: 0;
       }
 
-      .docbox > div {
-        padding: 9px 10px 8px;
+      .meta-cell {
+        padding: 6px 8px;
+        border-right: 1px solid #d5dce1;
       }
 
-      .docbox > div + div {
-        border-left: 1px solid #D8DCE0;
+      .meta-cell:last-child { border-right: 0; }
+
+      .label {
+        color: #66727d;
+        font-size: 8px;
+        display: block;
+        margin-bottom: 2px;
       }
 
-      .doclabel {
-        font-size: 7px;
-        color: #343434;
-        margin-bottom: 5px;
-      }
-
-      .docval {
-        font-size: 10px;
-        color: #343434;
+      .meta-cell .value {
         font-weight: 700;
+        font-size: 10px;
+        color: #263039;
       }
 
       .cont-strip {
@@ -508,64 +523,56 @@ function createStyle() {
         font-weight: 700;
       }
 
-      .section-rule {
-        height: 1px;
-        background: #D8DCE0;
-        margin: 14px 0;
-        flex-shrink: 0;
-      }
-
-      .info-wrap {
+      .info {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        gap: 8px;
+        margin-top: 10px;
         flex-shrink: 0;
       }
 
-      .info-card {
-        border: 1px solid #D8DCE0;
-        border-radius: 5px;
-        padding: 10px 10px 9px;
-        min-height: 121px;
+      .info-panel {
+        border: 1px solid #d5dce1;
+        border-radius: 6px;
+        padding: 8px 9px;
       }
 
-      .card-title {
-        font-size: 8.5px;
-        color: #343434;
+      .info-panel h2,
+      .section-heading h2,
+      .sched-section-head h2 {
+        font-size: 10px;
+        margin: 0 0 6px;
+        color: #253626;
         font-weight: 700;
-        margin-bottom: 8px;
       }
 
-      .info-grid {
+      .kv {
         display: grid;
-        grid-template-columns: 70px 1fr;
-        row-gap: 6px;
+        grid-template-columns: 88px 1fr;
+        gap: 2px 6px;
+        font-size: 8.5px;
       }
 
-      .label {
-        font-size: 7px;
-        color: #7A7A7A;
+      .kv .k { color: #66727d; }
+      .kv .v {
+        font-weight: 500;
+        color: #263039;
+        overflow-wrap: anywhere;
       }
 
-      .value {
-        font-size: 7.2px;
-        color: #7A7A7A;
-        word-break: break-word;
-        min-width: 0;
+      .section-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 12px 0 0;
+        flex-shrink: 0;
       }
 
-      /*
-        การ์ดข้อมูลการสั่งซื้อเป็นตารางสองคอลัมน์ที่ไหลข้ามหน้าไม่ได้ จึงยังตัดสามบรรทัด
-        ข้อความเต็มไปโผล่ที่บล็อก "หมายเหตุ :" ท้ายเอกสาร ไม่มีข้อมูลหาย
-      */
-      .value-clamp {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        overflow: hidden;
-        max-height: 32px;
-        line-height: 1.35;
-        white-space: pre-wrap;
+      .section-heading h2 { margin: 0; }
+
+      .section-heading span {
+        font-size: 8px;
+        color: #66727d;
       }
 
       .table {
@@ -580,8 +587,8 @@ function createStyle() {
       .tr {
         display: grid;
         width: 100%;
-        grid-template-columns: 34px 60px 1fr 40px 42px 78px 50px 64px;
-        align-items: center;
+        grid-template-columns: 22px 68px 1fr 32px 36px 58px 42px 54px;
+        align-items: start;
       }
 
       .cell-name {
@@ -590,19 +597,21 @@ function createStyle() {
       }
 
       .thead {
-        background: #ececeb;
-        min-height: 33px;
+        background: #edf0ee;
+        min-height: 26px;
         font-size: 7.6px;
-        color: #343434;
+        color: #35413b;
         font-weight: 700;
       }
 
       .tbody {
-        min-height: 31px;
-        font-size: 7.5px;
-        color: #7A7A7A;
-        border-top: 1px solid #D8DCE0;
+        min-height: 24px;
+        font-size: 8px;
+        color: #263039;
+        border-top: 1px solid #d5dce1;
       }
+
+      .code { font-size: 7.5px; color: #66727d; }
 
       .cell {
         padding: 8px 7px;
@@ -620,27 +629,18 @@ function createStyle() {
       }
 
       .sched-section-head {
-        margin-top: 16px;
-        font-size: 8.5px;
-        font-weight: 700;
-        color: #343434;
+        margin-top: 12px;
         flex-shrink: 0;
       }
 
-      .group-heading {
-        margin-top: 10px;
-        font-size: 8.5px;
-        font-weight: 700;
-        color: #343434;
-        flex-shrink: 0;
-      }
+      .sched-section-head h2 { margin: 0; }
 
       .table.schedule-table {
         margin-top: 6px;
       }
 
       .tr.sched {
-        grid-template-columns: 80px 1fr 56px 48px;
+        grid-template-columns: 28px 78px 68px 1fr 36px 32px;
       }
 
       .totals {
@@ -678,26 +678,19 @@ function createStyle() {
       }
 
       .grand {
-        margin-top: 4px;
-        background: #f2f8ec;
+        margin: 4px -4px -2px;
+        background: #f1f7ed;
+        color: #315e24;
         border-radius: 4px;
-        padding: 4px 7px 9px;
-        font-size: 8px;
+        padding: 5px 4px;
+        font-size: 10px;
+        font-weight: 800;
       }
 
       .grand .k,
       .grand .v {
-        transform: translateY(-2px);
-      }
-
-      .grand .k {
-        color: #343434;
-        font-weight: 700;
-      }
-
-      .grand .v {
-        color: #73b645;
-        font-weight: 700;
+        color: #315e24;
+        font-weight: 800;
       }
 
       .note-rule {
@@ -807,27 +800,30 @@ function createStyle() {
 
       .signatures {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 74px;
-        margin-top: 24px;
-        padding: 0 66px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+        text-align: center;
       }
 
       .sig {
         text-align: center;
-        color: #7A7A7A;
-        font-size: 6.7px;
+        color: #263039;
+        font-size: 8px;
       }
 
-      .sig .line {
-        width: 122px;
-        border-bottom: 1px dotted #D8DCE0;
-        margin: 24px auto 10px;
+      .sig-line {
+        border-bottom: 1px solid #93999e;
+        height: 22px;
+        margin: 0 6px 4px;
       }
+
+      .sig .role { font-weight: 700; }
 
       .sig .date {
-        margin-top: 0;
-        color: #7A7A7A;
+        margin-top: 3px;
+        color: #66727d;
+        font-size: 7.5px;
       }
 
       .po-foot {
@@ -835,9 +831,10 @@ function createStyle() {
         justify-content: space-between;
         align-items: baseline;
         margin-top: 10px;
-        padding-top: 6px;
-        font-size: 6.8px;
-        color: #7A7A7A;
+        padding-top: 5px;
+        border-top: 1px solid #d5dce1;
+        font-size: 7.5px;
+        color: #66727d;
         flex-shrink: 0;
       }
 
@@ -944,9 +941,8 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
       ${
         rounds.length
           ? `${scheduleSectionHeadHtml()}
-      <div id="po-probe-round-heads">${rounds.map(scheduleRoundHeadingHtml).join("")}</div>
       <div class="table schedule-table" id="po-probe-sched-table">
-        ${scheduleTheadHtml()}${rounds.flatMap((round) => round.items.map(scheduleRowHtml)).join("")}
+        ${scheduleTheadHtml()}${rounds.flatMap((round) => round.items.map((item) => scheduleRowHtml(round, item))).join("")}
       </div>`
           : ""
       }
@@ -966,7 +962,6 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
   const scratch = root.querySelector<HTMLElement>("#po-probe-scratch")!;
   const schedHead = root.querySelector<HTMLElement>(".sched-section-head");
   const schedTable = root.querySelector<HTMLElement>("#po-probe-sched-table");
-  const roundHeads = root.querySelector<HTMLElement>("#po-probe-round-heads");
 
   const height = (el: Element) => el.getBoundingClientRect().height;
 
@@ -989,10 +984,8 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
       rows: Array.from(table.querySelectorAll(".tr.tbody")).map(height),
       paragraphs: Array.from(notes.children).map(height),
       noteLine,
-      schedSection: schedHead ? height(schedHead) + 16 : 0,
-      schedRoundHeads: roundHeads
-        ? Array.from(roundHeads.children).map((el) => height(el) + 10)
-        : [],
+      schedSection: schedHead ? height(schedHead) + 12 : 0,
+      schedRoundHeads: [],
       schedThead: schedTable
         ? height(schedTable.querySelector(".tr.thead")!)
         : 0,
@@ -1103,20 +1096,7 @@ function buildPages(
     page.tail.push(scheduleSectionHeadHtml());
     page.used += m.schedSection;
 
-    for (let ri = 0; ri < rounds.length; ri += 1) {
-      const round = rounds[ri];
-      const headHeight = m.schedRoundHeads[ri] ?? 0;
-      const firstRowHeight = m.schedRows[schedRowIndex] ?? 0;
-      const firstNeed =
-        headHeight + m.schedThead + TABLE_CHROME + firstRowHeight;
-
-      if (page.used > 0 && firstNeed > free()) {
-        nextSchedulePage();
-      }
-      flushScheduleTable();
-      page.tail.push(scheduleRoundHeadingHtml(round));
-      page.used += headHeight;
-
+    for (const round of rounds) {
       for (const item of round.items) {
         const rowHeight = m.schedRows[schedRowIndex] ?? 0;
         const tableCost = openSchedRows.length
@@ -1128,7 +1108,7 @@ function buildPages(
         if (!openSchedRows.length) {
           page.used += m.schedThead + TABLE_CHROME;
         }
-        openSchedRows.push(scheduleRowHtml(item));
+        openSchedRows.push(scheduleRowHtml(round, item));
         page.used += rowHeight;
         schedRowIndex += 1;
       }

@@ -203,7 +203,8 @@ function buildCreditNotePdfData(
 }
 
 /**
- * ใบตั้งหนี้ / ใบเพิ่มหนี้ เจ้าหนี้ (TOR Phase 1 ข้อ 4.4) — ใช้ template เอกสารขายตัวเดียวกับใบลดหนี้
+ * ใบตั้งหนี้เจ้าหนี้ (TOR Phase 1 ข้อ 4.4) — ใช้ template เอกสารขาย
+ * ใบเพิ่มหนี้ไม่ผ่านฟังก์ชันนี้ — พิมพ์จาก generateApDebitNotePdf ตามแบบฟอร์ม A4 ของบริษัท
  *
  * ใบที่ยังไม่อนุมัติหรือถูกยกเลิก พิมพ์ป้ายเตือนไว้หัวกระดาษ กันเอาใบร่างไปใช้เป็นใบจริง
  */
@@ -212,7 +213,7 @@ export function buildApDocumentPdfData(
   /** ใบตั้งหนี้ที่ใบลดหนี้อ้างถึง — ใช้หามูลค่าเดิมของใบลดหนี้เท่านั้น */
   referenceInvoice?: ApDocument | null,
 ): SalesCommercialPdfData {
-  // ใบลดหนี้ใช้เนื้อหาตามแบบฟอร์มของบริษัท — ใบตั้งหนี้/ใบเพิ่มหนี้ยังใช้ชุดเดิมด้านล่าง
+  // ใบลดหนี้ใช้เนื้อหาตามแบบฟอร์มของบริษัท — ใบตั้งหนี้ยังใช้ชุดเดิมด้านล่าง
   if (doc.docType === "CREDIT_NOTE") {
     return buildCreditNotePdfData(doc, referenceInvoice);
   }
@@ -311,5 +312,10 @@ export async function generateApDocumentPdf(
   doc: ApDocument,
   referenceInvoice?: ApDocument | null,
 ) {
+  if (doc.docType === "DEBIT_NOTE") {
+    const { generateApDebitNotePdf } = await import("./generateApDebitNotePdf");
+    await generateApDebitNotePdf(doc);
+    return;
+  }
   await generateSalesCommercialPdf(buildApDocumentPdfData(doc, referenceInvoice));
 }

@@ -1,5 +1,4 @@
 "use client";
-import { Tag } from "antd";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import { useState } from "react";
@@ -33,12 +32,10 @@ import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
 import { useT, tNow } from "@/lib/i18n/useT";
-import { tStatus } from "@/types/purchase-orders";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
-import {
-  SUPPLIER_PAYMENT_METHOD_LABEL,
-  SUPPLIER_PAYMENT_STATUS_LABEL, SUPPLIER_PAYMENT_STATUS_COLOR } from "@/types/purchase-payments";
+import { usePaymentVoucherDetailQuery } from "@/hooks/payment-vouchers/usePaymentVouchers";
+import PurchasePaymentSheet from "./PurchasePaymentSheet";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentDetailPage.module.css";
@@ -163,6 +160,7 @@ function PurchasePaymentDetailView({
   const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
   const linkedGrs = grByPoQuery.data?.data ?? [];
   const attachments = attachmentsQuery.data?.data ?? [];
+  const detailQuery = usePaymentVoucherDetailQuery(data.id);
 
   const busy =
     cancelMutation.isPending ||
@@ -290,109 +288,9 @@ function PurchasePaymentDetailView({
         }
       />
 
-      <div className={styles.layout}>
-        <section className={styles.mainCard}>
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบสำคัญจ่าย")}</h2>
-            </div>
-            <div className={styles.metaGrid}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เลขที่")}</span>
-                <div className={styles.metaValue}>
-                  <Link href={`/finance/payables/payment-vouchers/${data.id}`}>
-                    {data.voucherNo}
-                  </Link>
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วันที่")}</span>
-                <div className={styles.metaValue}>
-                  {formatDate(data.voucherDate)}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ผู้ขาย")}</span>
-                <div className={styles.metaValue}>
-                  {data.creditor
-                    ? `${data.creditor.creditorCode} — ${data.creditor.nameTh}`
-                    : "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("อ้างอิง PO")}</span>
-                <div className={styles.metaValue}>
-                  {data.purchaseOrder ? (
-                    <Link href={`/purchase-orders/${data.purchaseOrder.id}`}>
-                      {data.purchaseOrder.poNo}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วิธีจ่าย")}</span>
-                <div className={styles.metaValue}>
-                  {t(
-                    SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
-                      data.paymentMethod,
-                  )}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
-                <div className={styles.metaValue}>
-                  {data.paymentTerm?.name ?? t("ไม่ระบุ")}
-                </div>
-              </div>
-            </div>
-          </div>
+      <PurchasePaymentSheet voucher={data} detail={detailQuery.data?.data} />
 
-          {(data.payments ?? []).length > 0 ? (
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>{t("รายการจ่ายเงิน")}</h2>
-              </div>
-              <div className={styles.itemList}>
-                {data.payments.map((payment, index) => (
-                  <div key={payment.id} className={styles.itemCard}>
-                    <div className={styles.itemIndex}>{index + 1}</div>
-                    <div className={styles.itemBody}>
-                      <p className={styles.itemName}>
-                        {formatDate(payment.paymentDate)} ·{" "}
-                        {t(
-                          SUPPLIER_PAYMENT_METHOD_LABEL[payment.paymentMethod] ??
-                            payment.paymentMethod,
-                        )}
-                      </p>
-                      <p className={styles.itemCode}>
-                        {payment.transactionRef
-                          ? `${t("อ้างอิง")} ${payment.transactionRef}`
-                          : t("ไม่มีเลขอ้างอิง")}
-                        {payment.paidBy
-                          ? ` · ${t("โดย")} ${payment.paidBy.displayName}`
-                          : ""}
-                      </p>
-                    </div>
-                    <div className={styles.itemQty}>
-                      <strong>{formatMoney(payment.amount)}</strong>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {data.remark ? (
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
-              </div>
-              <p className={styles.textBlock}>{data.remark}</p>
-            </div>
-          ) : null}
-
+      <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("หลักฐานการจ่ายเงิน")}</h2>
@@ -495,41 +393,9 @@ function PurchasePaymentDetailView({
               </p>
             ) : null}
           </div>
-          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
-        </section>
-
-        <aside className={styles.sideCard}>
-          <div>
-            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
-            <h2 className={styles.sideTitle}>{data.voucherNo}</h2>
-          </div>
-          <div>
-            <Tag color={SUPPLIER_PAYMENT_STATUS_COLOR[data.status] ?? "default"}>
-            {tStatus(SUPPLIER_PAYMENT_STATUS_LABEL[data.status] ?? data.status)}
-          </Tag>
-          </div>
-
-          <div className={styles.sideRows}>
-            <div className={styles.sideRow}>
-              <span>{t("ยอดจ่าย")}</span>
-              <strong>{formatMoney(data.totalAmount)}</strong>
-            </div>
-            <div className={styles.sideRow}>
-              <span>{t("จ่ายเมื่อ")}</span>
-              <strong>
-                {data.paidAt
-                  ? dayjs(data.paidAt).format("DD/MM/BBBB HH:mm")
-                  : "—"}
-              </strong>
-            </div>
-            <div className={styles.sideRow}>
-              <span>{t("ไฟล์แนบ")}</span>
-              <strong>{attachments.length}</strong>
-            </div>
-          </div>
-
-          <div className={styles.actionStack}>
-            {data.status === "DRAFT" && canCancelPayment ? (
+          <div className={styles.section}>
+          {data.status === "DRAFT" && canCancelPayment ? (
+            <div className={styles.actionStack} style={{ marginTop: 16 }}>
               <Button
                 className={styles.secondaryBtn}
                 danger
@@ -543,47 +409,49 @@ function PurchasePaymentDetailView({
               >
                 {t("ยกเลิกเอกสาร")}
               </Button>
-            ) : null}
-          </div>
-
-          <ProcurementFlowTimeline
-            input={{
-              pr: po?.purchaseRequest
-                ? {
-                    id: po.purchaseRequest.id,
-                    prNo: po.purchaseRequest.prNo,
-                    status: po.purchaseRequest.status,
-                  }
-                : null,
-              po: po
-                ? {
-                    id: po.id,
-                    poNo: po.poNo,
-                    status: po.status,
-                    paymentStatus: po.paymentStatus,
-                  }
-                : data.purchaseOrder
+            </div>
+          ) : null}
+          <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
+          <div style={{ marginTop: 16 }}>
+            <ProcurementFlowTimeline
+              input={{
+                pr: po?.purchaseRequest
                   ? {
-                      id: data.purchaseOrder.id,
-                      poNo: data.purchaseOrder.poNo,
-                      status: data.purchaseOrder.status,
-                      paymentStatus: data.purchaseOrder.paymentStatus,
+                      id: po.purchaseRequest.id,
+                      prNo: po.purchaseRequest.prNo,
+                      status: po.purchaseRequest.status,
                     }
                   : null,
-              goodsReceipts: linkedGrs.map((gr) => ({
-                id: gr.id,
-                grNo: gr.grNo,
-                status: gr.status,
-              })),
-              payment: {
-                id: data.id,
-                voucherNo: data.voucherNo,
-                status: data.status,
-              },
-            }}
-          />
-        </aside>
-      </div>
+                po: po
+                  ? {
+                      id: po.id,
+                      poNo: po.poNo,
+                      status: po.status,
+                      paymentStatus: po.paymentStatus,
+                    }
+                  : data.purchaseOrder
+                    ? {
+                        id: data.purchaseOrder.id,
+                        poNo: data.purchaseOrder.poNo,
+                        status: data.purchaseOrder.status,
+                        paymentStatus: data.purchaseOrder.paymentStatus,
+                      }
+                    : null,
+                goodsReceipts: linkedGrs.map((gr) => ({
+                  id: gr.id,
+                  grNo: gr.grNo,
+                  status: gr.status,
+                })),
+                payment: {
+                  id: data.id,
+                  voucherNo: data.voucherNo,
+                  status: data.status,
+                },
+              }}
+            />
+          </div>
+          </div>
+        </section>
 
       <Modal
         open={previewOpen}

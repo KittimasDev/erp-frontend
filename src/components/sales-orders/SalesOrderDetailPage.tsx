@@ -86,16 +86,24 @@ import {
   VatMode,
   VAT_MODE_LABEL,
   VAT_MODE_OPTIONS,
+  withVatPercentLabel,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
 import { vatAmountLabelT } from "@/types/purchase-orders";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
-import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
+import { salesOrderRevisionStamp } from "@/lib/datetime/thai-buddhist-date";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStaleDocumentPrompt } from "@/hooks/common/useStaleDocumentPrompt";
 import SalesOrderItemsEditModal from "./SalesOrderItemsEditModal";
 import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
-import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
+import {
+  documentHtmlIsEmpty,
+  sanitizeDocumentHtml,
+} from "@/lib/html/sanitize-document-html";
+import {
+  ensureCompanyInfo,
+  type CompanyInfoSnapshot,
+} from "@/lib/company/company-info";
 import {
   isDeliveryScheduleDone,
   type DeliverySchedule,
@@ -192,6 +200,14 @@ function formatQty(value?: string | number) {
   return n.toLocaleString("th-TH", { maximumFractionDigits: 3 });
 }
 
+function salesItemUnit(item: {
+  enteredUnitNameTh?: string;
+  unitNameTh?: string;
+  unitCode?: string;
+}) {
+  return item.enteredUnitNameTh || item.unitNameTh || item.unitCode || "—";
+}
+
 function formatMoney(value?: string) {
   const amount = Number(value ?? 0);
   if (!Number.isFinite(amount)) return "0.00";
@@ -252,7 +268,7 @@ function buildSalesOrderPdfDataFromOrder(
       no: index + 1,
       itemCode: item.itemCode ?? "—",
       itemName: item.itemNameTh ?? item.description ?? "—",
-      unit: item.unitCode ?? "—",
+          unit: salesItemUnit(item),
       qty,
       unitPrice: price,
       discountAmount: discount,
@@ -272,9 +288,17 @@ function buildSalesOrderPdfDataFromOrder(
     .slice()
     .sort((a, b) => a.roundNo - b.roundNo);
 
+  const unitByOrderItemId = new Map(
+    (order.items ?? []).map((item) => [item.id, salesItemUnit(item)]),
+  );
   const rounds = activeRounds.map((schedule) => ({
     roundNo: schedule.roundNo,
-    deliveryDate: schedule.deliveryDate,
+    deliveryDate: formatDate(schedule.deliveryDate),
+    originalDeliveryDate:
+      schedule.originalDeliveryDate &&
+      schedule.originalDeliveryDate !== schedule.deliveryDate
+        ? formatDate(schedule.originalDeliveryDate)
+        : undefined,
     items: (schedule.items ?? [])
       .slice()
       .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -286,7 +310,10 @@ function buildSalesOrderPdfDataFromOrder(
           no: index + 1,
           itemCode: line.itemCode ?? "—",
           itemName: line.itemNameTh ?? line.description ?? "—",
-          unit: line.unitCode ?? "—",
+          unit:
+            unitByOrderItemId.get(line.salesOrderItemId) ||
+            line.unitCode ||
+            "—",
           qty,
           unitPrice: price,
           discountAmount: discount,
@@ -318,7 +345,16 @@ function buildSalesOrderPdfDataFromOrder(
       header?.paymentDueDate || order.paymentDueDate,
     ),
     paymentTerm: order.paymentTerm?.name,
-    requestedDeliveryDate: formatDate(order.requestedDeliveryDate),
+    requestedDeliveryDate: formatDate(
+      activeRounds[0]?.deliveryDate ?? order.requestedDeliveryDate,
+    ),
+    vatMode,
+    withholdingTaxLabel: withholdingTaxTypeLabel(
+      order.withholdingTaxType,
+      order.withholdingTaxPercent,
+    ),
+    withholdingTaxAmount: Number(order.withholdingTaxAmount) || 0,
+    createdByPhone: order.createdBy?.phone || "—",
     remark: (header?.remark ?? order.remark)?.trim() || "",
     taxRatePercent: taxRate,
     revisedAt: order.revisedAt,
@@ -524,6 +560,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     remark: "",
     vatMode: VatMode.EXCLUSIVE,
   });
+  const [company, setCompany] = useState<CompanyInfoSnapshot | null>(null);
   /**
    * เลขรุ่นเอกสารที่ผู้ใช้เห็น "ตอนเริ่มแก้" — ไม่ใช่ตอนกดบันทึก
    *
@@ -564,6 +601,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const pickingActions = useScreenActionPermissions("PICKINGS");
   const packingActions = useScreenActionPermissions("PACKINGS");
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+
+  useEffect(() => {
+    let active = true;
+    void ensureCompanyInfo().then((snapshot) => {
+      if (active) setCompany(snapshot);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!data) {
@@ -925,6 +972,139 @@ export default function SalesOrderDetailPage({ id }: Props) {
   };
 
   const canEditHeader = isPreConfirm && canWrite;
+  const commercialRounds = (schedulesForGate.data ?? [])
+    .filter((schedule) => schedule.status !== "CANCELLED")
+    .slice()
+    .sort((a, b) => a.roundNo - b.roundNo);
+  const firstDeliveryDate = commercialRounds[0]
+    ? formatDate(commercialRounds[0].deliveryDate)
+    : formatDate(data.requestedDeliveryDate);
+  const vatPercent = Number(data.taxRate?.rate);
+  const paymentMethodLabel = data.paymentMethod
+    ? t(
+        SALES_ORDER_PAYMENT_METHOD_LABEL[
+          data.paymentMethod as SalesOrderPaymentMethod
+        ] ?? data.paymentMethod,
+      )
+    : "—";
+
+  const renderLineExtras = (item: SalesOrder["items"][number]) => {
+    const reservationLine = reservationByItemId.get(item.id);
+    const productionRequestLine = productionRequestLineByItemId.get(item.id);
+    return (
+      <>
+        {isPreConfirm && reservationLine ? (
+          <div className={styles.paperSub}>
+            {t("ต้องการ {qty}", {
+              qty: Number(reservationLine.orderedQty).toLocaleString("th-TH"),
+            })}
+            {Number(reservationLine.reservedQty) > 0.0005
+              ? ` · ${t("จองแล้ว {qty}", { qty: Number(reservationLine.reservedQty).toLocaleString("th-TH") })}`
+              : ""}
+            {` · ${t("พร้อมใช้ {qty}", { qty: Number(reservationLine.availableQty).toLocaleString("th-TH") })}`}
+            {Number(reservationLine.shortageQty) > 0
+              ? ` · ${t("ขาด {qty}", { qty: Number(reservationLine.shortageQty).toLocaleString("th-TH") })}`
+              : ""}
+          </div>
+        ) : null}
+        {!isPreConfirm &&
+        (Number(item.reservedQuantity) > 0.0005 ||
+          Number(item.issuedQuantity) > 0.0005 ||
+          Number(item.deliveredQuantity) > 0.0005) ? (
+          <div className={styles.paperSub}>
+            {t("จอง")} {Number(item.reservedQuantity).toLocaleString("th-TH")}
+            {" · "}
+            {tSoStatus("จ่ายแล้ว")}{" "}
+            {Number(item.issuedQuantity).toLocaleString("th-TH")}
+            {" · "}
+            {tSoStatus("ส่งแล้ว")}{" "}
+            {Number(item.deliveredQuantity).toLocaleString("th-TH")}
+            {Number(item.closedQuantity ?? 0) > 0.0005
+              ? ` · ${t("ปิดการส่ง")} ${Number(item.closedQuantity).toLocaleString("th-TH")}`
+              : ""}
+          </div>
+        ) : null}
+        <div className={styles.paperActions}>
+          {isPreConfirm && reservationLine
+            ? reservationLineTag(reservationLine)
+            : null}
+          {isPreConfirm && canWrite && reservationLine?.canReserve ? (
+            <Button
+              size="small"
+              type="primary"
+              icon={<ShoppingCartOutlined />}
+              loading={
+                reserveLineMutation.isPending &&
+                reserveLineMutation.variables?.itemId === item.id
+              }
+              disabled={busy}
+              onClick={() =>
+                modal.confirm({
+                  title: t("ยืนยันจองสต๊อก?"),
+                  content: t("กันของในคลังให้รายการนี้ตามจำนวนที่สั่ง"),
+                  okText: t("จองสต๊อก"),
+                  onOk: () =>
+                    reserveLineMutation.mutateAsync({
+                      id: data.id,
+                      itemId: item.id,
+                    }),
+                })
+              }
+            >
+              {t("จองสต๊อก")}
+            </Button>
+          ) : null}
+          {isPreConfirm && canWrite && reservationLine?.canRelease ? (
+            <Button
+              size="small"
+              danger
+              loading={
+                releaseReservationMutation.isPending &&
+                releaseReservationMutation.variables?.itemId === item.id
+              }
+              disabled={busy}
+              onClick={() =>
+                modal.confirm({
+                  title: t("ยืนยันยกเลิกการจองสต๊อก?"),
+                  content: t("คืนสต๊อกที่จองของรายการนี้เข้าคลัง"),
+                  okText: t("ยกเลิกการจอง"),
+                  okButtonProps: { danger: true },
+                  onOk: () =>
+                    releaseReservationMutation.mutateAsync({
+                      id: data.id,
+                      itemId: item.id,
+                    }),
+                })
+              }
+            >
+              {t("ยกเลิกการจอง")}
+            </Button>
+          ) : null}
+          {hasUnplannedShortage &&
+          canIssueProductionRequest &&
+          productionRequestLine ? (
+            <Button
+              size="small"
+              type="primary"
+              icon={<ProfileOutlined />}
+              loading={createProductionRequestMutation.isPending}
+              disabled={busy || eligibleSoQuery.isLoading}
+              onClick={() =>
+                openProductionRequestModal({
+                  kind: "line",
+                  salesOrderItemId: item.id,
+                  itemCode: item.itemCode,
+                })
+              }
+            >
+              {t("ออกใบขอผลิต")}
+            </Button>
+          ) : null}
+        </div>
+      </>
+    );
+  };
+
   const saveHeader = () => {
     updateHeaderMutation.mutate(
       {
@@ -1648,44 +1828,81 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{tSoStatus("ข้อมูลลูกค้า")}</h2>
+          <div className={styles.paper}>
+            <header className={styles.paperHeader}>
+              <div className={styles.paperBrand}>
+                {company?.logoDataUrl || company?.logoUrl ? (
+                  <img
+                    src={company.logoDataUrl || company.logoUrl}
+                    alt=""
+                    className={styles.paperLogo}
+                  />
+                ) : (
+                  <div className={styles.paperSymbol} aria-hidden="true">
+                    ◈
+                  </div>
+                )}
+                <div>
+                  <div className={styles.paperCompany}>
+                    {company?.nameTh || "—"}
+                  </div>
+                  {(company?.addressText || "—").split("\n").map((line) => (
+                    <div key={line} className={styles.paperAddress}>
+                      {line}
+                    </div>
+                  ))}
+                  {company?.phone || company?.taxId ? (
+                    <div className={styles.paperAddress}>
+                      {[
+                        company.phone ? `${t("โทร.")} ${company.phone}` : "",
+                        company.taxId
+                          ? `${t("เลขประจำตัวผู้เสียภาษี")} ${company.taxId}`
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" • ")}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className={styles.paperDocTitle}>
+                <strong>{t("ใบสั่งขาย")}</strong>
+                <small>SALES ORDER</small>
+              </div>
+            </header>
+
+            <div className={styles.paperMeta}>
+              <div>
+                <span>{t("เลขที่ใบสั่งขาย / SO No.")}</span>
+                <strong>{data.soNo}</strong>
+              </div>
+              <div>
+                <span>{t("วันที่เอกสาร")}</span>
+                <strong>{formatDate(data.soDate)}</strong>
+              </div>
+              <div>
+                <span>{t("กำหนดส่งครั้งแรก")}</span>
+                <strong>{firstDeliveryDate}</strong>
+              </div>
             </div>
-            <div className={styles.metaGrid}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ลูกค้า")}</span>
-                <div className={styles.metaValue}>
-                  {data.customer?.nameTh ?? "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("รหัสลูกค้า")}</span>
-                <div className={styles.metaValue}>
-                  {data.customer?.customerCode ?? "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เลขที่ผู้เสียภาษี")}</span>
-                <div className={styles.metaValue}>
-                  {data.customer?.taxId ?? "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ที่อยู่")}</span>
-                <div className={styles.metaValue}>
-                  {data.customerAddress ?? data.customer?.address ?? "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เบอร์โทร")}</span>
-                <div className={styles.metaValue}>
-                  {data.customer?.contactPhone ?? "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ผู้ติดต่อ")}</span>
-                <div className={styles.metaValue}>
+
+            <div className={styles.paperInfo}>
+              <section>
+                <h2>{tSoStatus("ข้อมูลลูกค้า")}</h2>
+                <div className={styles.paperKv}>
+                  <span>{t("ลูกค้า")}</span>
+                  <strong>{data.customer?.nameTh ?? "—"}</strong>
+                  <span>{t("รหัสลูกค้า")}</span>
+                  <strong>{data.customer?.customerCode ?? "—"}</strong>
+                  <span>{t("เลขผู้เสียภาษี")}</span>
+                  <strong>{data.customer?.taxId ?? "—"}</strong>
+                  <span>{t("ที่อยู่")}</span>
+                  <strong>
+                    {data.customerAddress ?? data.customer?.address ?? "—"}
+                  </strong>
+                  <span>{t("โทรศัพท์")}</span>
+                  <strong>{data.customer?.contactPhone ?? "—"}</strong>
+                  <span>{t("ผู้ติดต่อ")}</span>
                   {canEditHeader ? (
                     <Input
                       aria-label={t("ผู้ติดต่อ")}
@@ -1700,16 +1917,278 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       }
                     />
                   ) : (
-                    (data.contactName ?? data.customer?.contactName ?? "—")
+                    <strong>
+                      {data.contactName ?? data.customer?.contactName ?? "—"}
+                    </strong>
                   )}
                 </div>
+              </section>
+              <section>
+                <h2>{t("ข้อมูลการสั่งขาย")}</h2>
+                <div className={styles.paperKv}>
+                  <span>{t("เงื่อนไขชำระเงิน")}</span>
+                  <strong>{data.paymentTerm?.name ?? t("ไม่ระบุ")}</strong>
+                  <span>{t("วิธีชำระเงิน")}</span>
+                  {canEditHeader ? (
+                    <Select
+                      aria-label={t("วิธีการชำระเงิน")}
+                      allowClear
+                      placeholder={t("เลือกวิธีชำระ")}
+                      style={{ width: "100%" }}
+                      options={PAYMENT_METHOD_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label),
+                      }))}
+                      value={headerDraft.paymentMethod}
+                      onChange={(value) =>
+                        patchHeaderDraft((prev) => ({
+                          ...prev,
+                          paymentMethod: value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    <strong>{paymentMethodLabel}</strong>
+                  )}
+                  <span>{t("รูปแบบ VAT")}</span>
+                  {canEditHeader ? (
+                    <Select
+                      aria-label={t("รูปแบบ VAT")}
+                      style={{ width: "100%" }}
+                      options={VAT_MODE_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label),
+                      }))}
+                      value={resolveVatMode(headerDraft.vatMode)}
+                      onChange={(value) =>
+                        patchHeaderDraft((prev) => ({
+                          ...prev,
+                          vatMode: value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    <strong>
+                      {withVatPercentLabel(
+                        t(
+                          VAT_MODE_LABEL[resolveVatMode(data.vatMode)] ??
+                            "ไม่รวม VAT",
+                        ),
+                        Number.isFinite(vatPercent) ? vatPercent : undefined,
+                      )}
+                    </strong>
+                  )}
+                  <span>{t("ภาษีหัก ณ ที่จ่าย")}</span>
+                  <strong>
+                    {t(
+                      withholdingTaxTypeLabel(
+                        data.withholdingTaxType,
+                        data.withholdingTaxPercent,
+                      ),
+                    )}
+                  </strong>
+                  <span>{t("ผู้ติดต่อภายใน")}</span>
+                  <strong>{data.createdBy?.displayName ?? "—"}</strong>
+                  <span>{t("เบอร์โทร")}</span>
+                  <strong>{data.createdBy?.phone || "—"}</strong>
+                </div>
+              </section>
+            </div>
+
+            <div className={styles.paperSectionHead}>
+              <h2>{t("รายการสินค้า")}</h2>
+              <span>{t("สกุลเงิน: บาท (THB)")}</span>
+              {isPreConfirm && canWrite ? (
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => setItemsEditOpen(true)}
+                >
+                  {t("แก้ไขรายการ")}
+                </Button>
+              ) : null}
+            </div>
+            {isPreConfirm && canWrite && allLinesReserved ? (
+              <p className={styles.sectionHint}>
+                {t("ของถูกจองแล้ว — ยกเลิกการจองรายการเพื่อคืนสต๊อก หรือจองใหม่ได้ก่อนยืนยัน")}
+              </p>
+            ) : null}
+            {showReserveCta ? (
+              <p className={styles.sectionHint}>
+                {t("ของพร้อมใช้ — กดจองสต๊อกต่อรายการ หรือจองทุกรายการที่ยังไม่จอง")}
+              </p>
+            ) : null}
+            {isPreConfirm && hasUnplannedShortage ? (
+              <p className={styles.sectionHint}>
+                {hasActiveProductionRequest
+                  ? t("รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด")
+                  : t("รายการที่สต๊อกไม่พอ เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ")}
+              </p>
+            ) : null}
+            <table className={styles.paperTable}>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t("รหัสสินค้า")}</th>
+                  <th>{t("รายละเอียดสินค้า")}</th>
+                  <th>{t("หน่วย")}</th>
+                  <th>{t("จำนวน")}</th>
+                  <th>{t("ราคาต่อหน่วย")}</th>
+                  <th>{t("ส่วนลด")}</th>
+                  <th>{t("จำนวนเงิน")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((item, index) => (
+                  <tr key={item.id}>
+                    <td>{index + 1}</td>
+                    <td className={styles.paperCode}>{item.itemCode ?? "—"}</td>
+                    <td>
+                      {item.itemNameTh ?? item.description ?? "—"}
+                      {renderLineExtras(item)}
+                    </td>
+                    <td>{salesItemUnit(item)}</td>
+                    <td>{Number(item.quantity).toLocaleString("th-TH")}</td>
+                    <td>{formatMoney(item.unitPrice)}</td>
+                    <td>{formatMoney(item.discountAmount)}</td>
+                    <td>{formatMoney(item.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className={styles.paperSummary}>
+              <div>
+                <span>{t("ยอดรวมก่อนส่วนลด")}</span>
+                <strong>{formatMoney(data.subtotalAmount)}</strong>
+              </div>
+              <div>
+                <span>{t("ส่วนลดท้ายบิล")}</span>
+                <strong>{formatMoney(data.discountAmount)}</strong>
+              </div>
+              <div>
+                <span>{t("ยอดหลังหักส่วนลด")}</span>
+                <strong>
+                  {formatMoney(
+                    String(
+                      Number(data.subtotalAmount) - Number(data.discountAmount),
+                    ),
+                  )}
+                </strong>
+              </div>
+              <div>
+                <span>{vatLabel(data, data.taxRate?.rate)}</span>
+                <strong>{formatMoney(data.vatAmount)}</strong>
+              </div>
+              {Number(data.withholdingTaxPercent) > 0 ? (
+                <div>
+                  <span>
+                    {t("ภาษีหัก ณ ที่จ่าย")} {data.withholdingTaxPercent}%
+                  </span>
+                  <strong>{formatMoney(data.withholdingTaxAmount)}</strong>
+                </div>
+              ) : null}
+              <div className={styles.paperGrand}>
+                <span>{t("ยอดสุทธิ")}</span>
+                <strong>
+                  {formatMoney(data.totalAmount)} {t("บาท")}
+                </strong>
+              </div>
+            </div>
+
+            <div className={styles.paperSectionHead}>
+              <h2>{t("กำหนดการจัดส่งสินค้า")}</h2>
+            </div>
+            {commercialRounds.length === 0 ? (
+              <p className={styles.sectionHint}>
+                {t("ยังไม่มีรอบจัดส่ง — ตารางแยกรอบจะขึ้นเมื่อจัดรอบแล้ว")}
+              </p>
+            ) : (
+              <table className={`${styles.paperTable} ${styles.paperSchedule}`}>
+                <thead>
+                  <tr>
+                    <th>{t("รอบ")}</th>
+                    <th>{t("กำหนดส่ง")}</th>
+                    <th>{t("รหัสสินค้า")}</th>
+                    <th>{t("รายการสินค้า")}</th>
+                    <th>{t("จำนวน")}</th>
+                    <th>{t("หน่วย")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {commercialRounds.flatMap((schedule) =>
+                    (schedule.items ?? [])
+                      .slice()
+                      .sort((a, b) => a.sortOrder - b.sortOrder)
+                      .map((line, index) => {
+                        const current = formatDate(schedule.deliveryDate);
+                        const postponed =
+                          !!schedule.originalDeliveryDate &&
+                          schedule.originalDeliveryDate !== schedule.deliveryDate;
+                        const dateLabel = postponed
+                          ? `${formatDate(schedule.originalDeliveryDate)} ${t("เลื่อนเป็น")} ${current}`
+                          : current;
+                        return (
+                          <tr key={line.id}>
+                            <td>{index === 0 ? schedule.roundNo : ""}</td>
+                            <td>{index === 0 ? dateLabel : ""}</td>
+                            <td className={styles.paperCode}>
+                              {line.itemCode ?? "—"}
+                            </td>
+                            <td>{line.itemNameTh ?? line.description ?? "—"}</td>
+                            <td>{formatQty(line.quantity)}</td>
+                            <td>{salesItemUnit(line)}</td>
+                          </tr>
+                        );
+                      }),
+                  )}
+                </tbody>
+              </table>
+            )}
+
+            <div className={styles.paperNote}>
+              <h2>{t("หมายเหตุ")}</h2>
+              {canEditHeader ? (
+                <DocumentHtmlEditor
+                  ariaLabel={t("หมายเหตุเอกสาร")}
+                  placeholder={t("รายละเอียดเพิ่มเติมบนใบสั่งขาย")}
+                  value={headerDraft.remark}
+                  onChange={(html) =>
+                    patchHeaderDraft((prev) => ({
+                      ...prev,
+                      remark: html,
+                    }))
+                  }
+                />
+              ) : documentHtmlIsEmpty(data.remark) ? (
+                <p>—</p>
+              ) : (
+                <DocumentHtmlView html={data.remark} />
+              )}
+            </div>
+
+            <div className={styles.paperSigns}>
+              <div>
+                <div className={styles.paperSignLine} />
+                <strong>{t("ผู้จัดทำ")}</strong>
+                <span>{t("วันที่ _____/_____/_____")}</span>
+              </div>
+              <div>
+                <div className={styles.paperSignLine} />
+                <strong>{t("ผู้ตรวจสอบ")}</strong>
+                <span>{t("วันที่ _____/_____/_____")}</span>
+              </div>
+              <div>
+                <div className={styles.paperSignLine} />
+                <strong>{t("ผู้อนุมัติ")}</strong>
+                <span>{t("วันที่ _____/_____/_____")}</span>
               </div>
             </div>
           </div>
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
+              <h2 className={styles.sectionTitle}>{t("อ้างอิงและกำหนดชำระ")}</h2>
               {canEditHeader ? (
                 <Button
                   size="small"
@@ -1793,42 +2272,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วิธีการชำระเงิน")}</span>
-                <div className={styles.metaValue}>
-                  {canEditHeader ? (
-                    <Select
-                      aria-label={t("วิธีการชำระเงิน")}
-                      allowClear
-                      placeholder={t("เลือกวิธีชำระ")}
-                      style={{ width: "100%" }}
-                      options={PAYMENT_METHOD_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
-                      value={headerDraft.paymentMethod}
-                      onChange={(value) =>
-                        patchHeaderDraft((prev) => ({
-                          ...prev,
-                          paymentMethod: value,
-                        }))
-                      }
-                    />
-                  ) : (
-                    (headerDraft.paymentMethod
-                      ? t(
-                          SALES_ORDER_PAYMENT_METHOD_LABEL[
-                            headerDraft.paymentMethod
-                          ],
-                        )
-                      : null) ??
-                    (data.paymentMethod
-                      ? t(
-                          SALES_ORDER_PAYMENT_METHOD_LABEL[
-                            data.paymentMethod as SalesOrderPaymentMethod
-                          ] ?? data.paymentMethod,
-                        )
-                      : "—")
-                  )}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("ครบกำหนดชำระ")}</span>
                 <div className={styles.metaValue}>
                   {canEditHeader ? (
@@ -1852,47 +2295,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     />
                   ) : (
                     formatDate(data.paymentDueDate)
-                  )}
-                </div>
-              </div>
-              {data.paymentTerm?.name ? (
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
-                  <div className={styles.metaValue}>{data.paymentTerm.name}</div>
-                </div>
-              ) : null}
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("รูปแบบ VAT")}</span>
-                <div className={styles.metaValue}>
-                  {canEditHeader ? (
-                    <Select
-                      aria-label={t("รูปแบบ VAT")}
-                      style={{ width: "100%" }}
-                      options={VAT_MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
-                      value={resolveVatMode(headerDraft.vatMode)}
-                      onChange={(value) =>
-                        patchHeaderDraft((prev) => ({
-                          ...prev,
-                          vatMode: value,
-                        }))
-                      }
-                    />
-                  ) : (
-                    t(
-                      VAT_MODE_LABEL[resolveVatMode(data.vatMode)] ??
-                        "ไม่รวม VAT",
-                    )
-                  )}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ภาษีหัก ณ ที่จ่าย")}</span>
-                <div className={styles.metaValue}>
-                  {t(
-                    withholdingTaxTypeLabel(
-                      data.withholdingTaxType,
-                      data.withholdingTaxPercent,
-                    ),
                   )}
                 </div>
               </div>
@@ -2489,319 +2891,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
           ) : null}
 
           <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
-              {/* แก้ได้เฉพาะก่อนยืนยัน — เงื่อนไขเดียวกับปุ่มจอง/ยกเลิกจองในส่วนนี้ */}
-              {isPreConfirm && canWrite ? (
-                <Button
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => setItemsEditOpen(true)}
-                >
-                  {t("แก้ไขรายการ")}
-                </Button>
-              ) : null}
-            </div>
-            {isPreConfirm && canWrite && allLinesReserved ? (
-              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                {t("ของถูกจองแล้ว — ยกเลิกการจองรายการเพื่อคืนสต๊อก หรือจองใหม่ได้ก่อนยืนยัน")}
-              </p>
-            ) : null}
-            {showReserveCta ? (
-              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                {t("ของพร้อมใช้ — กดจองสต๊อกต่อรายการ หรือจองทุกรายการที่ยังไม่จอง")}
-              </p>
-            ) : null}
-            {isPreConfirm && hasUnplannedShortage ? (
-              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                {hasActiveProductionRequest
-                  ? t("รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด")
-                  : t("รายการที่สต๊อกไม่พอ เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ")}
-              </p>
-            ) : null}
-            <div className={styles.itemList}>
-              {data.items.map((item, index) => {
-                const reservationLine = reservationByItemId.get(item.id);
-                const productionRequestLine = productionRequestLineByItemId.get(
-                  item.id,
-                );
-                return (
-                  <div key={item.id} className={styles.itemCard}>
-                    <div className={styles.itemIndex}>{index + 1}</div>
-                    <div className={styles.itemBody}>
-                      <p className={styles.itemName}>
-                        {item.itemCode
-                          ? `${item.itemCode} — ${item.itemNameTh ?? ""}`
-                          : (item.itemNameTh ?? "—")}
-                      </p>
-                      <p className={styles.itemCode}>
-                        {t("{qty} {unit} · ราคา {price}", {
-                          qty: Number(item.quantity).toLocaleString("th-TH"),
-                          unit: item.unitCode ?? "",
-                          price: formatMoney(item.unitPrice),
-                        })}
-                        {Number(item.discountAmount) > 0
-                          ? ` · ${t("ส่วนลด {amount}", { amount: formatMoney(item.discountAmount) })}`
-                          : ""}
-                      </p>
-                      {isPreConfirm && reservationLine ? (
-                        <p className={styles.itemCode}>
-                          {t("ต้องการ {qty}", {
-                            qty: Number(reservationLine.orderedQty).toLocaleString("th-TH"),
-                          })}
-                          {Number(reservationLine.reservedQty) > 0.0005
-                            ? ` · ${t("จองแล้ว {qty}", { qty: Number(reservationLine.reservedQty).toLocaleString("th-TH") })}`
-                            : ""}{" "}
-                          · {t("พร้อมใช้ {qty}", {
-                            qty: Number(reservationLine.availableQty).toLocaleString("th-TH"),
-                          })}
-                          {Number(reservationLine.shortageQty) > 0
-                            ? ` · ${t("ขาด {qty}", { qty: Number(reservationLine.shortageQty).toLocaleString("th-TH") })}`
-                            : ""}
-                        </p>
-                      ) : null}
-                      {!isPreConfirm &&
-                      (Number(item.reservedQuantity) > 0.0005 ||
-                        Number(item.issuedQuantity) > 0.0005 ||
-                        Number(item.deliveredQuantity) > 0.0005) ? (
-                        <div className={styles.itemMeta}>
-                          <span>
-                            {t("จอง")}{" "}
-                            {Number(item.reservedQuantity).toLocaleString("th-TH")}
-                          </span>
-                          <span>
-                            {tSoStatus("จ่ายแล้ว")}{" "}
-                            {Number(item.issuedQuantity).toLocaleString("th-TH")}
-                          </span>
-                          <span>
-                            {tSoStatus("ส่งแล้ว")}{" "}
-                            {Number(item.deliveredQuantity).toLocaleString(
-                              "th-TH",
-                            )}
-                          </span>
-                          {Number(item.closedQuantity ?? 0) > 0.0005 ? (
-                            <span style={{ color: "#cf1322" }}>
-                              {t("ปิดการส่ง")}{" "}
-                              {Number(item.closedQuantity).toLocaleString(
-                                "th-TH",
-                              )}
-                            </span>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className={styles.itemQty}>
-                      {(() => {
-                        const qty = Number(item.quantity) || 0;
-                        const price = Number(item.unitPrice) || 0;
-                        const discount = Number(item.discountAmount) || 0;
-                        const gross = qty * price;
-                        const net = Math.max(0, gross - discount);
-                        return (
-                          <div className={styles.itemTotals}>
-                            {isPreConfirm && reservationLine
-                              ? reservationLineTag(reservationLine)
-                              : null}
-                            {isPreConfirm &&
-                            canWrite &&
-                            reservationLine?.canReserve ? (
-                              <Button
-                                size="small"
-                                type="primary"
-                                icon={<ShoppingCartOutlined />}
-                                loading={
-                                  reserveLineMutation.isPending &&
-                                  reserveLineMutation.variables?.itemId ===
-                                    item.id
-                                }
-                                disabled={busy}
-                                onClick={() =>
-                                  modal.confirm({
-                                    title: t("ยืนยันจองสต๊อก?"),
-                                    content:
-                                      t("กันของในคลังให้รายการนี้ตามจำนวนที่สั่ง"),
-                                    okText: t("จองสต๊อก"),
-                                    onOk: () =>
-                                      reserveLineMutation.mutateAsync({
-                                        id: data.id,
-                                        itemId: item.id,
-                                      }),
-                                  })
-                                }
-                              >
-                                {t("จองสต๊อก")}
-                              </Button>
-                            ) : null}
-                            {isPreConfirm &&
-                            canWrite &&
-                            reservationLine?.canRelease ? (
-                              <Button
-                                size="small"
-                                danger
-                                loading={
-                                  releaseReservationMutation.isPending &&
-                                  releaseReservationMutation.variables
-                                    ?.itemId === item.id
-                                }
-                                disabled={busy}
-                                onClick={() =>
-                                  modal.confirm({
-                                    title: t("ยืนยันยกเลิกการจองสต๊อก?"),
-                                    content:
-                                      t("คืนสต๊อกที่จองของรายการนี้เข้าคลัง"),
-                                    okText: t("ยกเลิกการจอง"),
-                                    okButtonProps: { danger: true },
-                                    onOk: () =>
-                                      releaseReservationMutation.mutateAsync({
-                                        id: data.id,
-                                        itemId: item.id,
-                                      }),
-                                  })
-                                }
-                              >
-                                {t("ยกเลิกการจอง")}
-                              </Button>
-                            ) : null}
-                            {hasUnplannedShortage &&
-                            canIssueProductionRequest &&
-                            productionRequestLine ? (
-                              <Button
-                                size="small"
-                                type="primary"
-                                icon={<ProfileOutlined />}
-                                loading={
-                                  createProductionRequestMutation.isPending
-                                }
-                                disabled={busy || eligibleSoQuery.isLoading}
-                                onClick={() =>
-                                  openProductionRequestModal({
-                                    kind: "line",
-                                    salesOrderItemId: item.id,
-                                    itemCode: item.itemCode,
-                                  })
-                                }
-                              >
-                                {t("ออกใบขอผลิต")}
-                              </Button>
-                            ) : null}
-                            <div className={styles.itemTotalRow}>
-                              <span>{t("ราคารวม")}</span>
-                              <strong>{formatMoney(String(gross))}</strong>
-                            </div>
-                            <div className={styles.itemTotalRow}>
-                              <span>{t("ส่วนลด")}</span>
-                              <strong>{formatMoney(String(discount))}</strong>
-                            </div>
-                            <div className={styles.itemTotalRow}>
-                              <span>{t("ราคาหลังหักส่วนลด")}</span>
-                              <strong>{formatMoney(String(net))}</strong>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {(() => {
-              const commercialRounds = (schedulesForGate.data ?? [])
-                .filter((schedule) => schedule.status !== "CANCELLED")
-                .slice()
-                .sort((a, b) => a.roundNo - b.roundNo);
-              if (commercialRounds.length === 0) {
-                return (
-                  <p className={styles.sectionHint} style={{ marginTop: 16 }}>
-                    {t("ยังไม่มีรอบจัดส่ง — ตารางแยกรอบจะขึ้นเมื่อจัดรอบแล้ว")}
-                  </p>
-                );
-              }
-              return (
-                <div className={styles.roundTables}>
-                  <h3 className={styles.roundTablesTitle}>{t("รายการแยกตามรอบ")}</h3>
-                  {commercialRounds.map((schedule) => (
-                    <div key={schedule.id} className={styles.roundTableBlock}>
-                      <h4 className={styles.roundTableHeading}>
-                        {t("รอบที่ {no} —", { no: schedule.roundNo })}{" "}
-                        {formatThaiBuddhistDate(
-                          schedule.deliveryDate,
-                          formatDate(schedule.deliveryDate),
-                          language,
-                        )}
-                      </h4>
-                      <div className={styles.roundTableWrap}>
-                        <table className={styles.roundTable}>
-                          <thead>
-                            <tr>
-                              <th>{t("ลำดับ")}</th>
-                              <th>{t("รหัสสินค้า")}</th>
-                              <th>{t("รายการสินค้า")}</th>
-                              <th>{t("หน่วย")}</th>
-                              <th>{t("จำนวน")}</th>
-                              <th>{t("ราคาต่อหน่วย")}</th>
-                              <th>{t("ส่วนลด")}</th>
-                              <th>{t("จำนวนเงิน")}</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(schedule.items ?? [])
-                              .slice()
-                              .sort((a, b) => a.sortOrder - b.sortOrder)
-                              .map((line, index) => (
-                                <tr key={line.id}>
-                                  <td>{index + 1}</td>
-                                  <td>{line.itemCode ?? "—"}</td>
-                                  <td>
-                                    {line.itemNameTh ?? line.description ?? "—"}
-                                  </td>
-                                  <td>{line.unitCode ?? "—"}</td>
-                                  <td className={styles.roundNum}>
-                                    {formatQty(line.quantity)}
-                                  </td>
-                                  <td className={styles.roundNum}>
-                                    {formatMoney(line.unitPrice)}
-                                  </td>
-                                  <td className={styles.roundNum}>
-                                    {formatMoney(line.discountAmount)}
-                                  </td>
-                                  <td className={styles.roundNum}>
-                                    {formatMoney(line.amount)}
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
-
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("หมายเหตุเอกสาร")}</h2>
-            </div>
-            {canEditHeader ? (
-              <DocumentHtmlEditor
-                ariaLabel={t("หมายเหตุเอกสาร")}
-                placeholder={t("รายละเอียดเพิ่มเติมบนใบสั่งขาย")}
-                value={headerDraft.remark}
-                onChange={(html) =>
-                  patchHeaderDraft((prev) => ({
-                    ...prev,
-                    remark: html,
-                  }))
-                }
-              />
-            ) : (
-              <DocumentHtmlView html={data.remark} />
-            )}
-          </div>
-
-          <div className={styles.section}>
             {/*
               canWrite ไม่ใช่สิทธิ์แก้รายการ — รายการล็อกตามใบเสนอราคา ปุ่มเลื่อน/ยกเลิกรอบยังต้องโชว์หลังยืนยัน · การคุมสถานะอยู่ในแผงเอง ทีละปุ่มตามสถานะรอบ และ backend คุมซ้ำอีกชั้น
               (SCHEDULABLE_SO_STATUSES มี CONFIRMED)
@@ -2886,42 +2975,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </>
             ) : null}
-            <div className={styles.sideRow}>
-              <span>{t("ยอดรวมก่อนส่วนลด")}</span>
-              <strong>{formatMoney(data.subtotalAmount)}</strong>
-            </div>
-            <div className={styles.sideRow}>
-              <span>{t("ส่วนลดท้ายบิล")}</span>
-              <strong>{formatMoney(data.discountAmount)}</strong>
-            </div>
-            <div className={styles.sideRow}>
-              <span>{t("ยอดหลังหักส่วนลด")}</span>
-              <strong>
-                {formatMoney(
-                  String(
-                    Number(data.subtotalAmount) - Number(data.discountAmount),
-                  ),
-                )}
-              </strong>
-            </div>
-            <div className={styles.sideRow}>
-              <span>
-                {vatLabel(data, data.taxRate?.rate)}
-              </span>
-              <strong>{formatMoney(data.vatAmount)}</strong>
-            </div>
-            {Number(data.withholdingTaxPercent) > 0 ? (
-              <div className={styles.sideRow}>
-                <span>
-                  {t("ภาษีหัก ณ ที่จ่าย")} {data.withholdingTaxPercent}%
-                </span>
-                <strong>{formatMoney(data.withholdingTaxAmount)}</strong>
-              </div>
-            ) : null}
-            <div className={styles.sideRow}>
-              <span>{t("ยอดสุทธิ")}</span>
-              <strong>{formatMoney(data.totalAmount)}</strong>
-            </div>
           </div>
 
           <div className={styles.actionStack}>

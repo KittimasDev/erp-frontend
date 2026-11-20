@@ -4,7 +4,7 @@ import { vatAmountLabelT, tStatus } from "@/types/purchase-orders";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { tNow, useT, type TFunction } from "@/lib/i18n/useT";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getPurchaseOrderBackHref } from "@/lib/navigation/purchase-order-list-return";
@@ -86,6 +86,10 @@ import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTim
 import PoDeliverySchedulesSection from "./PoDeliverySchedulesSection";
 import styles from "./PurchaseOrderDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import {
+  ensureCompanyInfo,
+  type CompanyInfoSnapshot,
+} from "@/lib/company/company-info";
 
 type Props = { id: string };
 
@@ -274,6 +278,17 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const [previewIsImage, setPreviewIsImage] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const pdfLockRef = useRef(false);
+  const [company, setCompany] = useState<CompanyInfoSnapshot | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void ensureCompanyInfo().then((snapshot) => {
+      if (active) setCompany(snapshot);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const data = query.data?.data;
   /* ใบสั่งซื้อหนึ่งใบรวมใบขอซื้อได้หลายใบ — แสดงให้ครบ ไม่ใช่แค่ใบแรก */
@@ -444,6 +459,15 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     cancelMutation.isPending ||
     uploadMutation.isPending;
 
+  const firstDeliveryDate = (() => {
+    const first = [...schedules]
+      .filter((schedule) => schedule.status !== "CANCELLED")
+      .sort((a, b) => a.roundNo - b.roundNo)[0];
+    return first
+      ? formatDate(first.effectiveDeliveryDate)
+      : formatDate(data.expectedDeliveryDate);
+  })();
+
   const buildPurchaseOrderPdf = async () => {
     const { generatePurchaseOrderPdf } =
       await import("@/utils/generatePurchaseOrderPdf");
@@ -477,7 +501,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
         "—",
       createdBy: formatCreatorContact(data.createdBy),
       createdByPhone: data.createdBy?.phone ?? "—",
-      expectedDeliveryDate: formatDate(data.expectedDeliveryDate),
+      expectedDeliveryDate: firstDeliveryDate,
       remark: data.remark?.trim() || "",
       subtotalAmount: totals.subtotal,
       discountAmount: totals.discount,
@@ -558,29 +582,244 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
+                    <div className={styles.paper}>
+            <header className={styles.paperHeader}>
+              <div className={styles.paperBrand}>
+                {company?.logoDataUrl || company?.logoUrl ? (
+                  <img
+                    src={company.logoDataUrl || company.logoUrl}
+                    alt=""
+                    className={styles.paperLogo}
+                  />
+                ) : (
+                  <div className={styles.paperSymbol} aria-hidden="true">
+                    ◈
+                  </div>
+                )}
+                <div>
+                  <div className={styles.paperCompany}>{company?.nameTh || "—"}</div>
+                  {(company?.addressText || "—").split("\n").map((line, index) => (
+                    <div key={`${index}-${line}`} className={styles.paperAddress}>
+                      {line}
+                    </div>
+                  ))}
+                  {company?.phone || company?.taxId ? (
+                    <div className={styles.paperAddress}>
+                      {[
+                        company.phone ? `${t("โทร.")} : ${company.phone}` : "",
+                        company.taxId
+                          ? `${t("เลขประจำตัวผู้เสียภาษี")} ${company.taxId}`
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" • ")}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className={styles.paperDocTitle}>
+                <strong>{t("ใบสั่งซื้อ")}</strong>
+                <small>PURCHASE ORDER</small>
+              </div>
+            </header>
+
+            <div className={styles.paperMeta}>
+              <div>
+                <span>{t("เลขที่ใบสั่งซื้อ / PO No.")}</span>
+                <strong>{data.poNo}</strong>
+              </div>
+              <div>
+                <span>{t("วันที่เอกสาร")}</span>
+                <strong>{formatDate(data.poDate)}</strong>
+              </div>
+              <div>
+                <span>{t("กำหนดส่งครั้งแรก")}</span>
+                <strong>{firstDeliveryDate}</strong>
+              </div>
+            </div>
+
+            <div className={styles.paperInfo}>
+              <section>
+                <h2>{t("ข้อมูลผู้ขาย")}</h2>
+                <div className={styles.paperKv}>
+                  <span>{t("ผู้ขาย")}</span>
+                  <strong>{data.creditor?.nameTh ?? "—"}</strong>
+                  <span>{t("รหัสผู้ขาย")}</span>
+                  <strong>{data.creditor?.creditorCode ?? "—"}</strong>
+                  <span>{t("เลขผู้เสียภาษี")}</span>
+                  <strong>{data.creditor?.taxId ?? "—"}</strong>
+                  <span>{t("ที่อยู่")}</span>
+                  <strong>{data.creditor?.address ?? "—"}</strong>
+                  <span>{t("โทรศัพท์")}</span>
+                  <strong>{data.creditor?.contactPhone ?? "—"}</strong>
+                  <span>{t("ผู้ติดต่อ")}</span>
+                  <strong>{data.creditor?.contactName ?? "—"}</strong>
+                </div>
+              </section>
+              <section>
+                <h2>{t("ข้อมูลการสั่งซื้อ")}</h2>
+                <div className={styles.paperKv}>
+                  <span>{t("เงื่อนไขชำระเงิน")}</span>
+                  <strong>{data.paymentTerm?.name ?? t("ไม่ระบุ")}</strong>
+                  <span>{t("วิธีชำระเงิน")}</span>
+                  <strong>
+                    {data.paymentMethod
+                      ? t(
+                          SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
+                            data.paymentMethod,
+                        )
+                      : "—"}
+                  </strong>
+                  <span>{t("รูปแบบ VAT")}</span>
+                  <strong>
+                    {withVatPercentLabel(
+                      t(VAT_MODE_LABEL[resolveVatMode(data.vatMode)]),
+                      vatPercent,
+                    )}
+                  </strong>
+                  <span>{t("ภาษีหัก ณ ที่จ่าย")}</span>
+                  <strong>
+                    {t(
+                      withholdingTaxTypeLabel(
+                        data.withholdingTaxType,
+                        data.withholdingTaxPercent,
+                      ),
+                    )}
+                  </strong>
+                  <span>{t("ผู้ติดต่อภายใน")}</span>
+                  <strong>{formatCreatorContact(data.createdBy)}</strong>
+                  <span>{t("เบอร์โทร")}</span>
+                  <strong>{data.createdBy?.phone || "—"}</strong>
+                </div>
+              </section>
+            </div>
+
+            <div className={styles.paperSectionHead}>
+              <h2>{t("รายการสินค้า")}</h2>
+              <span>{t("สกุลเงิน: บาท (THB)")}</span>
+            </div>
+            <table className={styles.paperTable}>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{t("รหัสสินค้า")}</th>
+                  <th>{t("รายละเอียดสินค้า")}</th>
+                  <th>{t("หน่วย")}</th>
+                  <th>{t("จำนวน")}</th>
+                  <th>{t("ราคาต่อหน่วย")}</th>
+                  <th>{t("ส่วนลด")}</th>
+                  <th>{t("จำนวนเงิน")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.items ?? []).map((item, index) => (
+                  <tr key={item.id}>
+                    <td>{index + 1}</td>
+                    <td className={styles.paperCode}>{item.itemCode ?? "—"}</td>
+                    <td>
+                      {item.itemNameTh ?? item.description ?? "—"}
+                      <div className={styles.paperSub}>
+                        {t("คลังปลายทาง:")}{" "}
+                        {item.expectedWarehouseCode || item.expectedWarehouseName
+                          ? `${item.expectedWarehouseCode ?? ""}${
+                              item.expectedWarehouseCode &&
+                              item.expectedWarehouseName
+                                ? " — "
+                                : ""
+                            }${item.expectedWarehouseName ?? ""}`
+                          : t("ระบุตอนรับของ")}
+                        {item.expectedLocationCode || item.expectedLocationName
+                          ? ` · ${t("ตำแหน่ง:")} ${item.expectedLocationCode ?? ""}${
+                              item.expectedLocationCode &&
+                              item.expectedLocationName
+                                ? " — "
+                                : ""
+                            }${item.expectedLocationName ?? ""}`
+                          : ""}
+                      </div>
+                    </td>
+                    <td>{item.unitNameTh ?? item.unitCode ?? "—"}</td>
+                    <td>{Number(item.quantity).toLocaleString("th-TH")}</td>
+                    <td>{formatMoney(item.unitPrice)}</td>
+                    <td>{formatMoney(item.discountAmount)}</td>
+                    <td>{formatMoney(item.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className={styles.paperSummary}>
+              <div>
+                <span>{t("ยอดรวมก่อนส่วนลด")}</span>
+                <strong>{formatMoney(totals.subtotal)}</strong>
+              </div>
+              <div>
+                <span>{t("ส่วนลดท้ายบิล")}</span>
+                <strong>{formatMoney(totals.discount)}</strong>
+              </div>
+              <div>
+                <span>{t("ยอดหลังหักส่วนลด")}</span>
+                <strong>{formatMoney(totals.afterDiscount)}</strong>
+              </div>
+              {charges.map((charge) => (
+                <div key={charge.id}>
+                  <span>
+                    {charge.expenseTypeName ??
+                      t(PO_CHARGE_TYPE_LABEL[charge.chargeType] ?? charge.chargeType)}
+                    : {charge.description}
+                  </span>
+                  <strong>{formatMoney(charge.amountBeforeVat)}</strong>
+                </div>
+              ))}
+              <div>
+                <span>{vatAmountLabelT(vatPercent)}</span>
+                <strong>{formatMoney(totals.vat + chargeVat)}</strong>
+              </div>
+              <div className={styles.paperGrand}>
+                <span>{t("ยอดสุทธิ")}</span>
+                <strong>{formatMoney(grandTotal)} {t("บาท")}</strong>
+              </div>
+            </div>
+
+            <PoDeliverySchedulesSection
+              purchaseOrderId={data.id}
+              canManage={canWrite}
+              purchaseOrderCancelled={data.status === "CANCELLED"}
+            />
+
+            <div className={styles.paperNote}>
+              <h2>{t("หมายเหตุ")}</h2>
+              {documentHtmlIsEmpty(data.remark) ? (
+                <p>—</p>
+              ) : (
+                <DocumentHtmlView html={data.remark} />
+              )}
+            </div>
+
+            <div className={styles.paperSigns}>
+              <div>
+                <div className={styles.paperSignLine} />
+                <strong>{t("ผู้จัดทำ")}</strong>
+                <span>{t("วันที่ _____/_____/_____")}</span>
+              </div>
+              <div>
+                <div className={styles.paperSignLine} />
+                <strong>{t("ผู้ตรวจสอบ")}</strong>
+                <span>{t("วันที่ _____/_____/_____")}</span>
+              </div>
+              <div>
+                <div className={styles.paperSignLine} />
+                <strong>{t("ผู้อนุมัติ")}</strong>
+                <span>{t("วันที่ _____/_____/_____")}</span>
+              </div>
+            </div>
+          </div>
+
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
+              <h2 className={styles.sectionTitle}>{t("อ้างอิงและกำหนดชำระ")}</h2>
             </div>
             <div className={styles.metaGrid}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เลขที่")}</span>
-                <div className={styles.metaValue}>{data.poNo}</div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วันที่")}</span>
-                <div className={styles.metaValue}>
-                  {formatDate(data.poDate)}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ผู้ขาย")}</span>
-                <div className={styles.metaValue}>
-                  {data.creditor
-                    ? `${data.creditor.creditorCode} — ${data.creditor.nameTh}`
-                    : "—"}
-                </div>
-              </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("อ้างอิง PR")}</span>
                 <div className={styles.metaValue}>
@@ -594,55 +833,6 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                         </span>
                       ))
                     : "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
-                <div className={styles.metaValue}>
-                  {data.paymentTerm?.name ?? t("ไม่ระบุ")}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("รูปแบบ VAT")}</span>
-                <div className={styles.metaValue}>
-                  {withVatPercentLabel(
-                    t(VAT_MODE_LABEL[resolveVatMode(data.vatMode)]),
-                    vatPercent,
-                  )}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("อัตรา VAT")}</span>
-                <div className={styles.metaValue}>
-                  {vatPercent > 0 ? `${vatPercent}%` : t("ไม่คิด VAT")}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ภาษีหัก ณ ที่จ่าย")}</span>
-                <div className={styles.metaValue}>
-                  {t(
-                    withholdingTaxTypeLabel(
-                      data.withholdingTaxType,
-                      data.withholdingTaxPercent,
-                    ),
-                  )}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วิธีการชำระเงิน")}</span>
-                <div className={styles.metaValue}>
-                  {data.paymentMethod
-                    ? t(
-                        SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
-                          data.paymentMethod,
-                      )
-                    : "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วันที่ส่งมอบ")}</span>
-                <div className={styles.metaValue}>
-                  {formatDate(data.expectedDeliveryDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -691,82 +881,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   })()}
                 </div>
               </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ผู้จัดทำ")}</span>
-                <div className={styles.metaValue}>
-                  {formatCreatorContact(data.createdBy)}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เบอร์โทรผู้จัดทำ")}</span>
-                <div className={styles.metaValue}>
-                  {data.createdBy?.phone || "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <PoDeliverySchedulesSection
-            purchaseOrderId={data.id}
-            canManage={canWrite}
-            purchaseOrderCancelled={data.status === "CANCELLED"}
-          />
-
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
-            </div>
-            <div className={styles.itemList}>
-              {(data.items ?? []).map((item, index) => (
-                <div key={item.id} className={styles.itemCard}>
-                  <div className={styles.itemIndex}>{index + 1}</div>
-                  <div className={styles.itemBody}>
-                    <p className={styles.itemName}>
-                      {item.itemNameTh ?? item.description ?? "—"}
-                    </p>
-                    <p className={styles.itemCode}>
-                      {item.itemCode ?? "—"} · {t("ราคา")}{" "}
-                      {formatMoney(item.unitPrice)}
-                    </p>
-                    <div className={styles.itemMeta}>
-                      <span>
-                        {t("คลังปลายทาง:")}{" "}
-                        {item.expectedWarehouseCode ||
-                        item.expectedWarehouseName
-                          ? `${item.expectedWarehouseCode ?? ""}${
-                              item.expectedWarehouseCode &&
-                              item.expectedWarehouseName
-                                ? " — "
-                                : ""
-                            }${item.expectedWarehouseName ?? ""}`
-                          : t("ระบุตอนรับของ")}
-                      </span>
-                      {item.expectedLocationCode ||
-                      item.expectedLocationName ? (
-                        <span>
-                          {t("ตำแหน่ง:")} {item.expectedLocationCode ?? ""}
-                          {item.expectedLocationCode &&
-                          item.expectedLocationName
-                            ? " — "
-                            : ""}
-                          {item.expectedLocationName ?? ""}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className={styles.itemQty}>
-                    <strong>{formatMoney(item.amount)}</strong>
-                    <span>
-                      {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                      {item.unitNameTh ?? item.unitCode ?? ""}
-                    </span>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
           {charges.length > 0 ? (
+
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>{t("ค่าใช้จ่ายเพิ่มเติม")}</h2>
@@ -817,16 +936,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           ) : null}
 
-          {documentHtmlIsEmpty(data.remark) ? null : (
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
-              </div>
-              <DocumentHtmlView html={data.remark} />
-            </div>
-          )}
-
-          {data.paymentAdjustment ? (
+{data.paymentAdjustment ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>{t("สรุปการชำระเงินและการปรับหนี้")}</h2>
