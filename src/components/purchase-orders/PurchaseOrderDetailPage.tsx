@@ -1,5 +1,7 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { vatAmountLabelT, tStatus } from "@/types/purchase-orders";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { getStoredLanguage } from "@/lib/i18n/language";
@@ -425,11 +427,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   };
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

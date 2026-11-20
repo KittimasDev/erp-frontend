@@ -1,9 +1,11 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, App, Button, Card, Descriptions, Input, Modal, Space, Spin, Table, Tag, Timeline, Tooltip, Typography } from "antd";
+import { Alert, App, Button, Card, Descriptions, Input, Modal, Space, Table, Tag, Timeline, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, DownloadOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -134,7 +136,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
   const [reason, setReason] = useState("");
   const d = query.data?.data;
 
-  if (query.isLoading) return <Spin />;
+  if (query.isLoading) return <PageLoading />;
   if (!d) return <Alert type="error" showIcon title={t("ไม่พบรายการจ่าย (หรือเป็นรายการของใบสำคัญจ่ายแบบเดิม)")} />;
 
   const pv = d.voucherDetail.voucher;

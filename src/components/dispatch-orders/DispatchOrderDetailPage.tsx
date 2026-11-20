@@ -1,9 +1,11 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Form, Input, Modal, Spin } from "antd";
+import { App, Button, Form, Input, Modal } from "antd";
 import {
   ArrowLeftOutlined,
   CarOutlined,
@@ -76,11 +78,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
   const canApprove = dispatchActions.canApprove;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

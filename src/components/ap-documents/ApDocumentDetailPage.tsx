@@ -1,28 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Alert,
-  App,
-  Button,
-  Card,
-  DatePicker,
-  Descriptions,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Result,
-  Select,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
+import { Alert, App, Button, Card, DatePicker, Descriptions, Form, Input, InputNumber, Modal, Result, Select, Space, Table, Tag, Typography } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -130,7 +114,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
     "creditNote",
   );
 
-  if (query.isLoading) return <Spin />;
+  if (query.isLoading) return <PageLoading />;
   if (!doc) {
     return (
       <Result

@@ -1,14 +1,17 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Breadcrumb, Button, DatePicker, Descriptions, Form, Input, InputNumber, Modal, Spin, Tag } from "antd";
+import { App, Breadcrumb, Button, DatePicker, Descriptions, Form, Input, InputNumber, Modal, Tag } from "antd";
 import dayjs from "dayjs";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
 import AccessDenied from "@/components/auth/AccessDenied";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import {
   useArDebitNoteQuery,
@@ -29,11 +32,7 @@ export default function ArDebitNoteDetailPage({ id }: { id: string }) {
   const query = useArDebitNoteQuery(id);
   if (!perms.canView) return <AccessDenied screenCodes={[SCREEN_CODE]} />;
   if (query.isLoading) {
-    return (
-      <div style={{ padding: 24 }}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!query.data) {
     return (
@@ -135,6 +134,14 @@ function View({ note, canEdit, canApprove }: { note: ArDebitNote; canEdit: boole
           </>
         }
       />
+      <DocumentPaper
+        titleTh={t("ใบเพิ่มหนี้")}
+        titleEn="DEBIT NOTE"
+        meta={[
+          { label: t("เลขที่เอกสาร"), value: note.debitNoteNo },
+          { label: t("วันที่เอกสาร"), value: formatThaiDate(note.debitNoteDate) },
+        ]}
+      >
       <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
         <Descriptions
           column={{ xs: 1, md: 2, xl: 3 }}
@@ -152,6 +159,7 @@ function View({ note, canEdit, canApprove }: { note: ArDebitNote; canEdit: boole
           ]}
         />
       </div>
+      </DocumentPaper>
       <ESignatureHistoryCard documentId={note.id} />
 
       <Modal
@@ -160,7 +168,7 @@ function View({ note, canEdit, canApprove }: { note: ArDebitNote; canEdit: boole
         okText={t("บันทึก")}
         cancelText={t("ยกเลิก")}
         confirmLoading={updateMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setEditOpen(false)}
         onOk={() => form.submit()}
@@ -212,7 +220,7 @@ function View({ note, canEdit, canApprove }: { note: ArDebitNote; canEdit: boole
         cancelText={t("ปิด")}
         okButtonProps={{ danger: true, disabled: isPosted && reason.trim().length < 5 }}
         confirmLoading={cancelMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         afterOpenChange={(v) => { if (!v) setReason(""); }}
         onCancel={() => setCancelOpen(false)}

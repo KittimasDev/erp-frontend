@@ -140,13 +140,11 @@ function styles() {
       }
       .logo-box {
         flex: 0 0 auto;
-        width: 46px;
         height: 46px;
         display: flex;
         align-items: center;
-        justify-content: center;
       }
-      .logo { max-width: 46px; max-height: 46px; object-fit: contain; }
+      .logo { height: 46px; width: auto; max-width: 90px; object-fit: contain; display: block; }
       .company { min-width: 0; }
       .company-name {
         font-size: 12.5px;

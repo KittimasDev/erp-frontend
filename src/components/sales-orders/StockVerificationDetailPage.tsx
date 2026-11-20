@@ -1,8 +1,10 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Spin, Tag, Typography } from "antd";
+import { Button, Tag, Typography } from "antd";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -195,11 +197,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
   );
 
   if (verifyQuery.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!verification) {

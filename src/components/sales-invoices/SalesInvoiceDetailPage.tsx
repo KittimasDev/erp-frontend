@@ -1,5 +1,7 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useEffect, useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
@@ -63,6 +65,7 @@ import ApplyCreditButton from "@/components/ar-receipts/ApplyCreditButton";
 import ArInvoiceDeliveriesCard from "./ArInvoiceDeliveriesCard";
 import styles from "./SalesInvoiceDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 
 type Props = { id: string };
 
@@ -115,11 +118,7 @@ export default function SalesInvoiceDetailPage({ id }: Props) {
   const data = query.data?.data;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {
@@ -464,6 +463,15 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
+          <DocumentPaper
+            titleTh={t("ใบแจ้งหนี้")}
+            titleEn="SALES INVOICE"
+            meta={[
+              { label: t("เลขที่เอกสาร"), value: data.invoiceNo },
+              { label: t("วันที่เอกสาร"), value: formatDate(data.invoiceDate) },
+              { label: t("ครบกำหนด"), value: formatDate(data.dueDate) },
+            ]}
+          >
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("ข้อมูลใบแจ้งหนี้")}</h2>
@@ -719,6 +727,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
           <ArInvoiceDeliveriesCard invoice={data} canEdit={canEdit} />
 
+          </DocumentPaper>
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
       </div>

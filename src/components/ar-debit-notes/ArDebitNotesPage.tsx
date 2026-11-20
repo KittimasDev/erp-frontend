@@ -107,7 +107,7 @@ export default function ArDebitNotesPage() {
         okText={t("สร้างใบเพิ่มหนี้ (ร่าง)")}
         cancelText={t("ยกเลิก")}
         confirmLoading={createMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}

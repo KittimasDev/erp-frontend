@@ -1,9 +1,11 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Card, Descriptions, Input, Modal, Space, Spin, Tag, Typography } from "antd";
+import { Alert, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -39,7 +41,7 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
   const [reason, setReason] = useState("");
   const r = query.data?.data;
 
-  if (query.isLoading) return <Spin />;
+  if (query.isLoading) return <PageLoading />;
   if (!r) return <Alert type="error" showIcon title={t("ไม่พบรายการขอจ่าย")} />;
   const poCancelled = r.purchaseOrderStatus === "CANCELLED";
 

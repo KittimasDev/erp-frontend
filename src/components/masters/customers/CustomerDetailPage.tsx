@@ -1,5 +1,7 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useT } from "@/lib/i18n/useT";
 import { useLanguage } from "@/lib/i18n/language";
 import { formatDate } from "@/lib/i18n/format";
@@ -8,7 +10,7 @@ import type { Language } from "@/lib/i18n/translate";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Popconfirm, Space, Spin, Table, Tag, Typography } from "antd";
+import { Button, Popconfirm, Space, Table, Tag, Typography } from "antd";
 import {
   EditOutlined,
   LeftOutlined,
@@ -186,16 +188,7 @@ export default function CustomerDetailPage({ id }: Props) {
   ];
 
   if (query.isLoading) {
-    return (
-      <section className={styles.page}>
-        <div
-          className={styles.tableCard}
-          style={{ textAlign: "center", padding: 48 }}
-        >
-          <Spin /> {t("กำลังโหลดข้อมูลลูกค้า...")}
-        </div>
-      </section>
-    );
+    return <PageLoading label="กำลังโหลดข้อมูลลูกค้า..." />;
   }
 
   if (!data) {

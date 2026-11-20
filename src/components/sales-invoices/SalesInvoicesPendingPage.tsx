@@ -317,7 +317,7 @@ export default function SalesInvoicesPendingPage() {
         okText={t("สร้างใบตั้งลูกหนี้ (DRAFT)")}
         cancelText={t("ยกเลิก")}
         confirmLoading={createMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setModalOpen(false)}
         onOk={() => form.submit()}

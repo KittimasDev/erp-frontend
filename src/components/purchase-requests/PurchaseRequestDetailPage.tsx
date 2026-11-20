@@ -1,10 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Input, Modal, Spin, Tag } from "antd";
+import { App, Button, Input, Modal, Tag } from "antd";
 import CancelInfoAlert from "@/components/common/CancelInfoAlert";
 import CancelReasonModal from "@/components/common/CancelReasonModal";
 import {
@@ -51,6 +53,8 @@ import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTim
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchaseRequestDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
+import paper from "@/components/common/document-paper.module.css";
 
 type Props = {
   id: string;
@@ -122,11 +126,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลดรายละเอียดใบขอซื้อ...")}
-      </div>
-    );
+    return <PageLoading label="กำลังโหลดรายละเอียดใบขอซื้อ..." />;
   }
 
   if (!data) {
@@ -203,119 +203,94 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
+          <DocumentPaper
+            titleTh={t("ใบขอซื้อ")}
+            titleEn="PURCHASE REQUEST"
+            meta={[
+              { label: t("เลขที่เอกสาร"), value: data.prNo },
+              { label: t("วันที่เอกสาร"), value: formatDate(data.prDate) },
+              {
+                label: t("อัปเดตล่าสุด"),
+                value: dayjs(data.updatedAt).format("DD/MM/BBBB HH:mm"),
+              },
+            ]}
+            panels={[
+              {
+                title: t("ข้อมูลผู้ขอซื้อ"),
+                rows: [
+                  { label: t("ผู้ขอซื้อ"), value: data.requestedBy?.displayName ?? "—" },
+                  {
+                    label: t("ส่วนงาน"),
+                    value: data.department
+                      ? `${data.department.code} — ${data.department.nameTh}`
+                      : t("ไม่ระบุ"),
+                  },
+                  {
+                    label: t("ประเภท"),
+                    value: data.purchaseRequestType
+                      ? `${data.purchaseRequestType.code} — ${data.purchaseRequestType.nameTh}`
+                      : "—",
+                  },
+                ],
+              },
+              {
+                title: t("วัตถุประสงค์"),
+                rows: [
+                  { label: t("รายละเอียด"), value: data.objective?.trim() || t("ไม่ระบุ") },
+                ],
+              },
+            ]}
+          >
+            <div className={paper.paperSectionHead}>
+              <h2>{t("รายการสินค้า")}</h2>
+              <span>{t("{n} รายการ", { n: data.items?.length ?? 0 })}</span>
             </div>
-            <div className={styles.metaGrid}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("เลขที่")}</span>
-                <div className={styles.metaValue}>{data.prNo}</div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("วันที่ขอซื้อ")}</span>
-                <div className={styles.metaValue}>{formatDate(data.prDate)}</div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ผู้ขอซื้อ")}</span>
-                <div className={styles.metaValue}>
-                  {data.requestedBy?.displayName ?? "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ประเภท")}</span>
-                <div className={styles.metaValue}>
-                  {data.purchaseRequestType
-                    ? `${data.purchaseRequestType.code} — ${data.purchaseRequestType.nameTh}`
-                    : "—"}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("ส่วนงาน")}</span>
-                <div className={styles.metaValue}>
-                  {data.department
-                    ? `${data.department.code} — ${data.department.nameTh}`
-                    : t("ไม่ระบุ")}
-                </div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>{t("อัปเดตล่าสุด")}</span>
-                <div className={styles.metaValue}>
-                  {dayjs(data.updatedAt).format("DD/MM/BBBB HH:mm")}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("วัตถุประสงค์")}</h2>
-            </div>
-            <p className={styles.textBlock}>
-              {data.objective?.trim() || t("ไม่ระบุ")}
-            </p>
-          </div>
-
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
-              <p className={styles.sectionHint}>
-                {t("{n} รายการ", { n: data.items?.length ?? 0 })}
-              </p>
-            </div>
-            <div className={styles.itemList}>
-              {(data.items ?? []).map((item, index) => (
-                <div key={item.id} className={styles.itemCard}>
-                  <div className={styles.itemIndex}>{index + 1}</div>
-                  <div className={styles.itemBody}>
-                    <p className={styles.itemName}>
+            <table className={paper.paperTable}>
+              <thead>
+                <tr>
+                  <th className={paper.ctr}>#</th>
+                  <th>{t("รหัสสินค้า")}</th>
+                  <th>{t("รายละเอียด")}</th>
+                  <th className={paper.num}>{t("จำนวน")}</th>
+                  <th>{t("หน่วย")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.items ?? []).map((item, index) => (
+                  <tr key={item.id}>
+                    <td className={paper.ctr}>{index + 1}</td>
+                    <td className={paper.paperCode}>{item.itemCode ?? "—"}</td>
+                    <td>
                       {item.itemNameTh ?? item.description ?? "—"}
-                    </p>
-                    <p className={styles.itemCode}>
-                      {item.itemCode ?? "—"}
-                      {item.description ? ` · ${item.description}` : ""}
-                    </p>
-                    <div className={styles.itemMeta}>
-                      <span>
-                        {t("ต้องการภายใน {date}", {
-                          date: formatDate(item.requiredDate),
-                        })}
-                      </span>
-                      {item.remark ? <span>
-                          {t("หมายเหตุ")}: {item.remark}
-                        </span> : null}
-                      {/* ใบเดียวแตกเป็นหลายใบสั่งซื้อได้ จึงบอกเป็นรายบรรทัด */}
-                      {item.orderedPurchaseOrder ? (
-                        <span>
-                          {t("สั่งซื้อแล้วใน")}{" "}
-                          <Link
-                            href={`/purchase-orders/${item.orderedPurchaseOrder.id}`}
-                          >
-                            {item.orderedPurchaseOrder.poNo}
-                          </Link>
-                        </span>
-                      ) : (
-                        <span>{t("ยังไม่ได้สั่งซื้อ")}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.itemQty}>
-                    <strong>{formatQty(item.quantity, lang)}</strong>
-                    <span>{item.unitNameTh ?? item.unitCode ?? "—"}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {documentHtmlIsEmpty(data.remark) ? null : (
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
+                      <div className={paper.paperSub}>
+                        {t("ต้องการภายใน {date}", { date: formatDate(item.requiredDate) })}
+                        {item.remark ? ` · ${item.remark}` : ""}
+                        {" · "}
+                        {item.orderedPurchaseOrder ? (
+                          <>
+                            {t("สั่งซื้อแล้วใน")}{" "}
+                            <Link href={`/purchase-orders/${item.orderedPurchaseOrder.id}`}>
+                              {item.orderedPurchaseOrder.poNo}
+                            </Link>
+                          </>
+                        ) : (
+                          t("ยังไม่ได้สั่งซื้อ")
+                        )}
+                      </div>
+                    </td>
+                    <td className={paper.num}>{formatQty(item.quantity, lang)}</td>
+                    <td>{item.unitNameTh ?? item.unitCode ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {documentHtmlIsEmpty(data.remark) ? null : (
+              <div className={paper.paperNote}>
+                <h2>{t("หมายเหตุ")}</h2>
+                <DocumentHtmlView html={data.remark} />
               </div>
-              <DocumentHtmlView html={data.remark} />
-            </div>
-          )}
+            )}
+          </DocumentPaper>
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 

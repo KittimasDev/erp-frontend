@@ -1,10 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Spin } from "antd";
+import { Button } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -23,6 +25,7 @@ import {
 } from "./ReturnNoteDecisionModals";
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 import { useT } from "@/lib/i18n/useT";
 
 type Props = { id: string };
@@ -53,11 +56,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
   const data = query.data?.data;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {
@@ -141,6 +140,14 @@ export default function ReturnNoteDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
+          <DocumentPaper
+            titleTh={t("ใบรับคืนสินค้า")}
+            titleEn="RETURN NOTE"
+            meta={[
+              { label: t("เลขที่เอกสาร"), value: data.returnNoteNo },
+              { label: t("วันที่เอกสาร"), value: formatDateTime(data.createdAt) },
+            ]}
+          >
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("เอกสารอ้างอิง")}</h2>
@@ -235,6 +242,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
               <p className={styles.textBlock}>{data.rejectReason ?? "—"}</p>
             </div>
           ) : null}
+          </DocumentPaper>
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 

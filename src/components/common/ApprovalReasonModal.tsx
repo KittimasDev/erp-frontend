@@ -50,7 +50,7 @@ export default function ApprovalReasonModal({
       cancelText={t("ยกเลิก")}
       okButtonProps={{ danger: reject, disabled: trimmed.length === 0 }}
       confirmLoading={loading}
-      maskClosable={false}
+      mask={{ closable: false }}
       destroyOnHidden
       onCancel={onCancel}
       onOk={async () => {

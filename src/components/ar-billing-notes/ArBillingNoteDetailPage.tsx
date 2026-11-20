@@ -1,28 +1,18 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Alert,
-  App,
-  Breadcrumb,
-  Button,
-  DatePicker,
-  Descriptions,
-  Form,
-  Input,
-  Modal,
-  Spin,
-  Table,
-  Tag,
-} from "antd";
+import { Alert, App, Breadcrumb, Button, DatePicker, Descriptions, Form, Input, Modal, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
 import AccessDenied from "@/components/auth/AccessDenied";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import pageStyles from "@/components/ar-billing-notes/ar-billing-notes-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -52,11 +42,7 @@ export default function ArBillingNoteDetailPage({ id }: { id: string }) {
     return <AccessDenied screenCodes={[SCREEN_CODE]} />;
   }
   if (query.isLoading) {
-    return (
-      <div style={{ padding: 24 }}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
   if (!query.data) {
     return (
@@ -317,6 +303,15 @@ function DetailView({
         />
       ) : null}
 
+      <DocumentPaper
+        titleTh={t("ใบวางบิล")}
+        titleEn="BILLING NOTE"
+        meta={[
+          { label: t("เลขที่เอกสาร"), value: note.billingNo },
+          { label: t("วันที่เอกสาร"), value: formatThaiDate(note.billingDate) },
+          { label: t("วันนัดรับเงิน"), value: formatThaiDate(note.appointmentDate) },
+        ]}
+      >
       <div className={pageStyles.detailCard}>
         <Descriptions
           column={{ xs: 1, md: 2, xl: 3 }}
@@ -398,6 +393,7 @@ function DetailView({
         />
       </div>
 
+      </DocumentPaper>
       <ESignatureHistoryCard documentId={note.id} />
 
       <Modal

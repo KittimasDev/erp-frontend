@@ -189,7 +189,7 @@ export default function ArRefundsPage() {
         okText={t("บันทึกคืนเงิน")}
         cancelText={t("ยกเลิก")}
         confirmLoading={createMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setCreateOpen(false)}
         onOk={() => form.submit()}
@@ -260,7 +260,7 @@ export default function ArRefundsPage() {
         cancelText={t("ปิด")}
         okButtonProps={{ danger: true, disabled: reason.trim().length < 5 }}
         confirmLoading={cancelMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         afterOpenChange={(v) => { if (!v) setReason(""); }}
         onCancel={() => setCancelTarget(null)}

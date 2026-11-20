@@ -1,10 +1,12 @@
 "use client";
+
+import PageLoading from "@/components/common/PageLoading";
 import { Tag } from "antd";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { App, Button, Spin } from "antd";
+import { App, Button } from "antd";
 import {
   ArrowLeftOutlined,
   ArrowRightOutlined,
@@ -57,11 +59,7 @@ export default function StockTransferDetailPage({ id }: Props) {
   const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

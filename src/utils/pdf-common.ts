@@ -163,20 +163,21 @@ export function basePdfStyles() {
       }
       .header {
         display: grid;
-        grid-template-columns: 72px 1fr;
+        grid-template-columns: auto 1fr;
         gap: 14px;
         align-items: center;
       }
       .logo-box {
-        width: 64px;
         height: 64px;
-        display: grid;
-        place-items: center;
+        display: flex;
+        align-items: center;
       }
       .logo {
-        max-width: 64px;
-        max-height: 64px;
+        height: 64px;
+        width: auto;
+        max-width: 120px;
         object-fit: contain;
+        display: block;
       }
       .company-name {
         font-size: 16px;
@@ -814,6 +815,11 @@ export type SalesCommercialPdfData = {
   titleEn?: string;
   docNo: string;
   docDate: string;
+  /**
+   * ช่องที่สามของแถบหัว — ใส่เฉพาะเมื่อเอกสารมีค่านี้อยู่แล้ว
+   * เช่น วันครบกำหนด หรือวันหมดอายุ ไม่สร้างฟิลด์ใหม่ในฐานข้อมูล
+   */
+  metaThird?: { label: string; value: string };
   /** ป้ายใต้เลขที่ เช่น ฉบับแก้ไข วันที่ … */
   revisionLabel?: string;
   draftBanner?: string;
@@ -897,7 +903,7 @@ function salesStyles() {
         background: #fff;
         padding: ${SALES_PAD_TOP}px 23px ${SALES_PAD_BOTTOM}px;
         position: relative;
-        color: #7A7A7A;
+        color: #263039;
         font-family: "Sarabun", Tahoma, sans-serif;
         display: flex;
         flex-direction: column;
@@ -928,114 +934,120 @@ function salesStyles() {
         flex-shrink: 0;
       }
 
-      .topbar {
+      .header {
         display: flex;
-        align-items: flex-start;
+        justify-content: space-between;
+        align-items: center;
         gap: 12px;
+        border-bottom: 1.5px solid #6ba83f;
+        padding-bottom: 8px;
         flex-shrink: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
       }
 
       .logo {
+        height: 46px;
         width: auto;
-        height: 56px;
-        max-width: 120px;
+        max-width: 84px;
         object-fit: contain;
-        object-position: left top;
         display: block;
         flex: 0 0 auto;
-        margin-top: -10px;
       }
 
-      .company {
-        line-height: 1.26;
+      .symbol {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+      }
+
+      .symbol {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6ba83f;
+        font-size: 28px;
+        font-weight: 800;
       }
 
       .company-name {
-        font-size: 15px;
-        margin: 0 0 4px;
-        font-weight: 700;
-        color: #343434;
+        font-size: 12px;
+        margin: 0 0 2px;
+        font-weight: 800;
+        color: #333;
+        line-height: 1.15;
       }
 
       .company-address {
-        font-size: 7.4px;
+        font-size: 8px;
         margin: 0;
-        color: #7A7A7A;
-        font-weight: 400;
-        line-height: 1.26;
+        color: #555;
+        line-height: 1.4;
       }
 
-      .company-address + .company-address {
-        margin-top: 3px;
-      }
-
-      .rule {
-        height: 1px;
-        background: #D8DCE0;
-        margin: 14px 0;
+      .doc-title {
+        text-align: right;
         flex-shrink: 0;
       }
 
-      .headrow {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        flex-shrink: 0;
+      .doc-title strong {
+        display: block;
+        font-size: 18px;
+        color: #315e24;
+        line-height: 1.15;
       }
 
-      .titlebox {
-        margin-left: 40px;
-        margin-top: -2px;
+      .doc-title small {
+        display: block;
+        color: #7c848b;
+        letter-spacing: 0.4px;
+        font-size: 8px;
       }
 
-      .title-th {
-        font-size: 24px;
-        color: #78b64c;
-        font-weight: 700;
-        line-height: 1;
-      }
-
-      .title-en {
-        font-size: 10px;
-        color: #AA9F97;
-        margin-top: 7px;
-        text-align: center;
-      }
-
-      .docbox {
-        width: 233px;
-        border: 1px solid #D8DCE0;
+      .doc-meta {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         overflow: hidden;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        margin-top: 10px;
+        flex-shrink: 0;
       }
 
-      .docbox > div {
-        padding: 9px 10px 8px;
+      .doc-meta.cols-3 {
+        grid-template-columns: 1.3fr 1fr 1fr;
       }
 
-      .docbox > div + div {
-        border-left: 1px solid #D8DCE0;
+      .meta-cell {
+        padding: 6px 8px;
+        border-right: 1px solid #d5dce1;
       }
 
-      .doclabel {
-        font-size: 7px;
-        color: #343434;
-        margin-bottom: 5px;
+      .meta-cell:last-child { border-right: 0; }
+
+      .meta-cell .meta-label {
+        color: #66727d;
+        font-size: 8px;
+        display: block;
+        margin-bottom: 2px;
       }
 
-      .docval {
-        font-size: 10px;
-        color: #343434;
+      .meta-cell .meta-value {
         font-weight: 700;
+        font-size: 10px;
+        color: #263039;
       }
 
       .docrev {
-        margin-top: 3px;
-        font-size: 6.8px;
+        margin-top: 2px;
+        font-size: 7.5px;
         font-weight: 400;
-        color: #7A7A7A;
+        color: #66727d;
       }
 
       .cont-strip {
@@ -1047,13 +1059,13 @@ function salesStyles() {
 
       .cont-title {
         font-size: 11px;
-        color: #78b64c;
+        color: #315e24;
         font-weight: 700;
       }
 
       .cont-no {
         font-size: 8px;
-        color: #343434;
+        color: #263039;
         font-weight: 700;
       }
 
@@ -1076,17 +1088,11 @@ function salesStyles() {
         font-weight: 700;
       }
 
-      .section-rule {
-        height: 1px;
-        background: #D8DCE0;
-        margin: 14px 0;
-        flex-shrink: 0;
-      }
-
       .info-wrap {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        gap: 8px;
+        margin-top: 10px;
         flex-shrink: 0;
       }
 
@@ -1096,26 +1102,28 @@ function salesStyles() {
       }
 
       .info-card {
-        border: 1px solid #D8DCE0;
-        border-radius: 5px;
-        padding: 10px 10px 9px;
+        border: 1px solid #d5dce1;
+        border-radius: 6px;
+        padding: 8px 9px;
       }
 
       .card-title {
-        font-size: 8.5px;
-        color: #343434;
+        font-size: 10px;
+        color: #253626;
         font-weight: 700;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       .info-grid {
         display: grid;
-        grid-template-columns: 96px 1fr;
+        grid-template-columns: minmax(0, 118px) minmax(0, 1fr);
+        column-gap: 8px;
         row-gap: 6px;
+        align-items: baseline;
       }
 
       .info-grid.pairs {
-        grid-template-columns: 118px 1fr 132px 1fr;
+        grid-template-columns: minmax(0, 118px) minmax(0, 1fr) minmax(0, 118px) minmax(0, 1fr);
         column-gap: 10px;
       }
 
@@ -1124,20 +1132,25 @@ function salesStyles() {
         html2canvas 1.4 ไม่วาดลูกของ contents จึงเหลือกรอบการ์ดแต่ค่าในช่องหาย
       */
       .label {
-        font-size: 7px;
-        color: #7A7A7A;
+        font-size: 8px;
+        color: #66727d;
+        line-height: 1.35;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .value {
-        font-size: 7.2px;
-        color: #7A7A7A;
+        font-size: 8.5px;
+        color: #263039;
+        line-height: 1.35;
         word-break: break-word;
+        overflow-wrap: anywhere;
         min-width: 0;
       }
 
       .label.emphasis,
       .value.emphasis {
-        color: #343434;
+        color: #263039;
         font-weight: 700;
       }
 
@@ -1149,7 +1162,7 @@ function salesStyles() {
       .table {
         width: 100%;
         margin-top: 14px;
-        border: 1px solid #D8DCE0;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         overflow: hidden;
         flex-shrink: 0;
@@ -1221,18 +1234,18 @@ function salesStyles() {
       }
 
       .thead {
-        background: #ececeb;
-        min-height: 33px;
+        background: #edf0ee;
+        min-height: 26px;
         font-size: 7.6px;
-        color: #343434;
+        color: #35413b;
         font-weight: 700;
       }
 
       .tbody {
-        min-height: 31px;
-        font-size: 7.5px;
-        color: #7A7A7A;
-        border-top: 1px solid #D8DCE0;
+        min-height: 24px;
+        font-size: 8px;
+        color: #263039;
+        border-top: 1px solid #d5dce1;
       }
 
       .cell {
@@ -1268,7 +1281,7 @@ function salesStyles() {
         width: 229px;
         margin-left: auto;
         margin-top: 20px;
-        border: 1px solid #D8DCE0;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         padding: 10px 8px 9px;
         flex-shrink: 0;
@@ -1299,26 +1312,20 @@ function salesStyles() {
       }
 
       .grand {
-        margin-top: 4px;
-        background: #f2f8ec;
+        margin: 4px -4px -2px;
+        background: #f1f7ed;
+        color: #315e24;
         border-radius: 4px;
-        padding: 4px 7px 9px;
-        font-size: 8px;
+        padding: 5px 4px;
+        font-size: 10px;
+        font-weight: 800;
       }
 
       .grand .k,
       .grand .v {
-        transform: translateY(-2px);
-      }
-
-      .grand .k {
-        color: #343434;
-        font-weight: 700;
-      }
-
-      .grand .v {
-        color: #73b645;
-        font-weight: 700;
+        color: #315e24;
+        font-weight: 800;
+        transform: none;
       }
 
       .note-rule {
@@ -1428,7 +1435,7 @@ function salesStyles() {
       /* บัญชีธนาคารหลัก — เอกสารกลุ่มขายเท่านั้น */
       .bank-box {
         margin-top: 12px;
-        border: 1px solid #D8DCE0;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         padding: 8px 10px;
         display: grid;
@@ -1452,15 +1459,19 @@ function salesStyles() {
       .signatures {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 24px;
-        margin-top: 24px;
-        padding: 0 20px;
+        gap: 12px;
+        margin-top: 18px;
+        text-align: center;
       }
 
       .sig {
         text-align: center;
-        color: #7A7A7A;
-        font-size: 6.7px;
+        color: #263039;
+        font-size: 8px;
+      }
+
+      .sig > div:first-child {
+        font-weight: 700;
       }
 
       /*
@@ -1483,9 +1494,9 @@ function salesStyles() {
       }
 
       .sig .line {
-        width: 122px;
-        border-bottom: 1px dotted #D8DCE0;
-        margin: 0 auto 6px;
+        border-bottom: 1px solid #93999e;
+        height: 0;
+        margin: 0 6px 4px;
       }
 
       .sig .name {
@@ -1495,8 +1506,9 @@ function salesStyles() {
       }
 
       .sig .date {
-        margin-top: 0;
-        color: #7A7A7A;
+        margin-top: 3px;
+        color: #66727d;
+        font-size: 7.5px;
       }
 
       .doc-foot {
@@ -1504,9 +1516,10 @@ function salesStyles() {
         justify-content: space-between;
         align-items: baseline;
         margin-top: 10px;
-        padding-top: 6px;
-        font-size: 6.8px;
-        color: #7A7A7A;
+        padding-top: 5px;
+        border-top: 1px solid #d5dce1;
+        font-size: 7.5px;
+        color: #66727d;
         flex-shrink: 0;
       }
 
@@ -1820,36 +1833,52 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
     )
     .join("");
 
+  const logo = companyLogoUrl();
   const head = `
-      <div class="topbar">
-        <img src="${companyLogoUrl()}" class="logo" alt="" crossorigin="anonymous" />
-        <div class="company">${companyIdentityLinesHtml()}
+      <header class="header">
+        <div class="brand">
+          ${
+            logo
+              ? `<img src="${logo}" class="logo" alt="" crossorigin="anonymous" />`
+              : `<div class="symbol" aria-hidden="true">◈</div>`
+          }
+          <div>
+            <div class="company">${companyIdentityLinesHtml({
+              phoneLabel: "โทร.",
+              taxIdStyle: "grouped",
+              separator: " • ",
+            })}
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="rule"></div>`;
+        <div class="doc-title">
+          <strong>${escapeHtml(data.titleTh)}</strong>
+          ${data.titleEn ? `<small>${escapeHtml(data.titleEn)}</small>` : ""}
+        </div>
+      </header>`;
 
+  const metaClass = data.metaThird ? "doc-meta cols-3" : "doc-meta";
   const first = `
-      <div class="headrow">
-        <div class="titlebox">
-          <div class="title-th">${escapeHtml(data.titleTh)}</div>
-          ${data.titleEn ? `<div class="title-en">${escapeHtml(data.titleEn)}</div>` : ""}
+      <div class="${metaClass}">
+        <div class="meta-cell">
+          <span class="meta-label">เลขที่เอกสาร</span>
+          <span class="meta-value">${escapeHtml(data.docNo)}</span>
+          ${data.revisionLabel ? `<div class="docrev">${escapeHtml(data.revisionLabel)}</div>` : ""}
         </div>
-        <div class="docbox">
-          <div>
-            <div class="doclabel">เลขที่เอกสาร</div>
-            <div class="docval">${escapeHtml(data.docNo)}</div>
-            ${data.revisionLabel ? `<div class="docrev">${escapeHtml(data.revisionLabel)}</div>` : ""}
-          </div>
-          <div>
-            <div class="doclabel">วันที่</div>
-            <div class="docval">${escapeHtml(salesDash(data.docDate))}</div>
-          </div>
+        <div class="meta-cell">
+          <span class="meta-label">วันที่เอกสาร</span>
+          <span class="meta-value">${escapeHtml(salesDash(data.docDate))}</span>
         </div>
+        ${
+          data.metaThird
+            ? `<div class="meta-cell">
+          <span class="meta-label">${escapeHtml(data.metaThird.label)}</span>
+          <span class="meta-value">${escapeHtml(salesDash(data.metaThird.value))}</span>
+        </div>`
+            : ""
+        }
       </div>
       ${data.draftBanner ? `<div class="draft-banner${data.draftBannerTone === "success" ? " success" : ""}">${escapeHtml(data.draftBanner)}</div>` : ""}
-
-      <div class="section-rule"></div>
-
       <div class="info-wrap${infoSections.length === 1 ? " single" : ""}">
         ${infoCardsHtml}
       </div>`;

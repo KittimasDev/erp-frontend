@@ -85,6 +85,9 @@ export async function generateSalesQuotationPdf(data: SalesQuotationPdfData) {
     titleTh: "ใบเสนอราคา",
     docNo: data.quotationNo,
     docDate: data.quotationDate,
+    metaThird: data.validUntil
+      ? { label: "วันหมดอายุ", value: data.validUntil }
+      : undefined,
     draftBanner: data.draftBanner,
     infoRows: [],
     infoSections: [

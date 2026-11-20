@@ -1,29 +1,13 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import CancelReasonModal from "@/components/common/CancelReasonModal";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Alert,
-  App,
-  Button,
-  Card,
-  Descriptions,
-  Dropdown,
-  Input,
-  Modal,
-  Popconfirm,
-  Result,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Timeline,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Alert, App, Button, Card, Descriptions, Dropdown, Input, Modal, Popconfirm, Result, Space, Table, Tag, Timeline, Tooltip, Typography } from "antd";
 import type { MenuProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, FilePdfOutlined, MoreOutlined } from "@ant-design/icons";
@@ -92,7 +76,7 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
   const queryClient = useQueryClient();
   const d = query.data;
 
-  if (query.isLoading) return <Spin />;
+  if (query.isLoading) return <PageLoading />;
   if (!d) {
     return (
       <Result

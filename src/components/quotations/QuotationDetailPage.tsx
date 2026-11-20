@@ -1,10 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useMemo, useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Spin } from "antd";
+import { App, Button } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -57,6 +59,7 @@ import { quotationFlowText } from "@/types/quotations";
 import { vatAmountLabelT } from "@/types/purchase-orders";
 import styles from "./QuotationDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 
 type Props = { id: string };
 
@@ -148,11 +151,7 @@ export default function QuotationDetailPage({ id }: Props) {
   const [reviewKind, setReviewKind] = useState<ApprovalReasonKind | null>(null);
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {
@@ -256,6 +255,15 @@ export default function QuotationDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
+          <DocumentPaper
+            titleTh={t("ใบเสนอราคา")}
+            titleEn="QUOTATION"
+            meta={[
+              { label: t("เลขที่เอกสาร"), value: data.quotationNo },
+              { label: t("วันที่เอกสาร"), value: formatDate(data.quotationDate) },
+              { label: t("วันหมดอายุ"), value: formatDate(data.validUntil) },
+            ]}
+          >
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("ข้อมูลใบเสนอราคา")}</h2>
@@ -399,6 +407,7 @@ export default function QuotationDetailPage({ id }: Props) {
               <DocumentHtmlView html={data.remark} />
             </div>
           )}
+          </DocumentPaper>
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 

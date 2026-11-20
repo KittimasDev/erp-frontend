@@ -1,22 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  App,
-  Button,
-  Card,
-  DatePicker,
-  Descriptions,
-  Input,
-  InputNumber,
-  Space,
-  Table,
-  Typography,
-  Upload,
-} from "antd";
+import { App, Button, Card, DatePicker, Descriptions, Input, InputNumber, Space, Table, Typography, Upload } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -42,6 +32,7 @@ import {
   type SalesCreditNote,
 } from "@/types/sales-credit-notes";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 import CreditNoteSettlementCard from "./CreditNoteSettlementCard";
 
 function useMoney() {
@@ -103,7 +94,7 @@ export default function SalesCreditNoteDetailPage({ id }: { id: string }) {
   const note = query.data;
 
   if (query.isLoading) {
-    return <Typography.Text>{t("กำลังโหลดใบลดหนี้")}</Typography.Text>;
+    return <PageLoading label="กำลังโหลดใบลดหนี้" />;
   }
   if (!note) {
     return <Typography.Text>{t("ไม่พบใบลดหนี้")}</Typography.Text>;
@@ -348,6 +339,14 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
     <>
       <PageHeader title={`${note.creditNoteNo} · ${salesCreditNoteStatusLabel(note.status, lang)}`} />
 
+      <DocumentPaper
+        titleTh={t("ใบลดหนี้")}
+        titleEn="CREDIT NOTE"
+        meta={[
+          { label: t("เลขที่เอกสาร"), value: note.creditNoteNo },
+          { label: t("วันที่เอกสาร"), value: dayjs(note.creditNoteDate).format("DD/MM/BBBB") },
+        ]}
+      >
       <Card>
       <Descriptions column={2} size="small" style={{ marginBottom: 16 }}>
         <Descriptions.Item label={t("วันที่")}>{dayjs(note.creditNoteDate).format("DD/MM/BBBB")}</Descriptions.Item>
@@ -414,6 +413,7 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         <Descriptions.Item label={t("ยอดรวมที่ลด")}>{money.format(note.totalAmount)}</Descriptions.Item>
       </Descriptions>
           </Card>
+      </DocumentPaper>
       {note.status === "COMPLETED" ? <CreditNoteSettlementCard creditNoteId={note.id} /> : null}
     </>
   );

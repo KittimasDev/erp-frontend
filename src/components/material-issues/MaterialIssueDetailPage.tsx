@@ -1,10 +1,12 @@
 "use client";
+
+import PageLoading from "@/components/common/PageLoading";
 import { Tag } from "antd";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Spin } from "antd";
+import { App, Button } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -26,6 +28,7 @@ import { tStockLabel } from "@/types/stock-adjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./MaterialIssueDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 
 type Props = { id: string };
 
@@ -51,11 +54,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
   const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {
@@ -130,6 +129,14 @@ export default function MaterialIssueDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
+          <DocumentPaper
+            titleTh={t("ใบเบิกวัตถุดิบ")}
+            titleEn="MATERIAL ISSUE"
+            meta={[
+              { label: t("เลขที่เอกสาร"), value: data.issueNo },
+              { label: t("วันที่เอกสาร"), value: formatDate(data.issueDate) },
+            ]}
+          >
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
@@ -203,6 +210,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
           ) : null}
+          </DocumentPaper>
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 

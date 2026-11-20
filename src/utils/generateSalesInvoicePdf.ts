@@ -40,6 +40,7 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
     titleEn: "SALES INVOICE",
     docNo: data.invoiceNo,
     docDate: data.invoiceDate,
+    metaThird: { label: "ครบกำหนด", value: data.dueDate },
     infoRows: [
       { label: "ลูกค้า", value: data.customerName },
       { label: "รหัสลูกค้า", value: data.customerCode },

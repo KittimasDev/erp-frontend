@@ -1,21 +1,12 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Alert,
-  Button,
-  Card,
-  Descriptions,
-  Result,
-  Space,
-  Spin,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
+import { Alert, Button, Card, Descriptions, Result, Space, Table, Tag, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
@@ -63,7 +54,7 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
   const query = usePayablePurchaseOrderQuery(id);
   const po = query.data;
 
-  if (query.isLoading) return <Spin />;
+  if (query.isLoading) return <PageLoading />;
   if (!po) {
     return (
       <Result

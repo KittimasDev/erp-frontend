@@ -187,7 +187,7 @@ export default function LabApplySpecModal({ sample, resultIds, onClose }: Props)
       cancelText={t("ยกเลิก")}
       okButtonProps={{ disabled: !canConfirm }}
       confirmLoading={apply.isPending}
-      maskClosable={false}
+      mask={{ closable: false }}
       onCancel={onClose}
       onOk={submit}
     >

@@ -1,0 +1,261 @@
+.paper {
+  padding: 22px 24px 8px;
+  color: #263039;
+}
+
+.paperHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1.5px solid #6ba83f;
+  padding-bottom: 10px;
+}
+
+.paperBrand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.paperLogo,
+.paperSymbol {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.paperSymbol {
+  display: grid;
+  place-items: center;
+  color: #6ba83f;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.paperCompany {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.paperAddress {
+  color: #555;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.paperDocTitle {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.paperDocTitle strong {
+  display: block;
+  color: #315e24;
+  font-size: 26px;
+  line-height: 1.1;
+}
+
+.paperDocTitle small {
+  color: #7c848b;
+  letter-spacing: 0.4px;
+  font-size: 12px;
+}
+
+.paperMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-top: 14px;
+  border: 1px solid #d5dce1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.paperMeta > div {
+  padding: 8px 12px;
+  border-right: 1px solid #d5dce1;
+}
+
+.paperMeta > div:last-child {
+  border-right: 0;
+}
+
+.paperMeta span,
+.paperKv span,
+.paperSummary span,
+.paperSub {
+  color: #66727d;
+  font-size: 12px;
+}
+
+.paperMeta strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+}
+
+.paperInfo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.paperInfo section {
+  border: 1px solid #d5dce1;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.paperInfo h2,
+.paperSectionHead h2,
+.paperNote h2 {
+  margin: 0 0 8px;
+  color: #253626;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.paperKv {
+  display: grid;
+  grid-template-columns: 118px 1fr;
+  gap: 4px 8px;
+  font-size: 13px;
+}
+
+.paperKv strong {
+  color: #263039;
+  font-weight: 600;
+}
+
+.paperSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 16px 0 8px;
+}
+
+.paperSectionHead h2 {
+  margin: 0;
+}
+
+.paperTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.paperTable th,
+.paperTable td {
+  border-bottom: 1px solid #d5dce1;
+  padding: 7px 6px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.paperTable th {
+  background: #edf0ee;
+  color: #35413b;
+  font-weight: 700;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ctr {
+  text-align: center;
+}
+
+.paperCode {
+  color: #66727d;
+  font-size: 12px;
+}
+
+.paperSummary {
+  width: min(360px, 100%);
+  margin: 14px 0 0 auto;
+  border: 1px solid #d5dce1;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.paperSummary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.paperGrand {
+  margin: 4px -6px -4px;
+  padding: 8px 6px !important;
+  border-radius: 4px;
+  background: #f1f7ed;
+  color: #315e24;
+  font-weight: 800;
+}
+
+.paperGrand span,
+.paperGrand strong {
+  color: #315e24;
+}
+
+.paperNote {
+  margin-top: 16px;
+}
+
+.paperNote p {
+  margin: 0;
+}
+
+.paperSigns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 22px;
+  text-align: center;
+}
+
+.paperSignLine {
+  height: 36px;
+  margin: 0 12px 6px;
+  border-bottom: 1px solid #93999e;
+}
+
+.paperSigns span {
+  display: block;
+  margin-top: 4px;
+  color: #66727d;
+  font-size: 12px;
+}
+
+.paperBody {
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .paperMeta,
+  .paperInfo,
+  .paperSigns {
+    grid-template-columns: 1fr;
+  }
+
+  .paperMeta > div + div {
+    border-right: 0;
+    border-top: 1px solid #d5dce1;
+  }
+
+  .paperHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .paperDocTitle {
+    text-align: left;
+  }
+}

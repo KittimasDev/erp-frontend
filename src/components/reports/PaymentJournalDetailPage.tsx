@@ -1,19 +1,10 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Alert,
-  App,
-  Button,
-  Card,
-  Descriptions,
-  Space,
-  Spin,
-  Tabs,
-  Tooltip,
-  Typography,
-} from "antd";
+import { Alert, App, Button, Card, Descriptions, Space, Tabs, Tooltip, Typography } from "antd";
 import { ArrowLeftOutlined, DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 
 import { JournalLinesTable } from "@/components/ap-documents/ApJournalVoucher";
@@ -99,11 +90,7 @@ export default function PaymentJournalDetailPage({ id }: Props) {
   };
 
   if (journalQuery.isLoading) {
-    return (
-      <div style={{ textAlign: "center", padding: 48 }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (journalQuery.isError || !entry) {

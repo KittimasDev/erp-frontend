@@ -215,7 +215,7 @@ function styles() {
       }
       /* หัวบริษัท */
       .t29-head { display: grid; grid-template-columns: 66px 1fr 66px; gap: 12px; align-items: center; }
-      .t29-logo { max-width: 62px; max-height: 62px; object-fit: contain; }
+      .t29-logo { height: 56px; width: auto; max-width: 110px; object-fit: contain; display: block; }
       .t29-head .company-name { font-size: 18px; font-weight: 600; color: #111827; text-align: center; }
       .t29-head .company-address { font-size: 11px; color: #6b7280; text-align: center; }
       .t29-rule { margin: 12px 0 10px; border-top: 3px solid #6f9720; border-bottom: 1px solid #d9e6b8; height: 3px; }

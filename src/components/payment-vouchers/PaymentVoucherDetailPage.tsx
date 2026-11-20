@@ -1,10 +1,13 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useEffect, useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
+import DocumentPaper from "@/components/common/DocumentPaper";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, App, Button, Card, Descriptions, Form, Input, Modal, Space, Spin, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, Descriptions, Form, Input, Modal, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, FilePdfOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
@@ -85,7 +88,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
     });
   }, [d, v, form, editable]);
 
-  if (query.isLoading) return <Spin />;
+  if (query.isLoading) return <PageLoading />;
   if (!d || !v) return <Alert type="error" showIcon title={t("ไม่พบใบสำคัญจ่าย")} />;
 
   const status = v.status;
@@ -274,6 +277,14 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
         />
       ) : null}
 
+      <DocumentPaper
+        titleTh={t("ใบสำคัญจ่าย")}
+        titleEn="PAYMENT VOUCHER"
+        meta={[
+          { label: t("เลขที่เอกสาร"), value: v.voucherNo },
+          { label: t("วันที่เอกสาร"), value: dayjs(v.voucherDate).format("DD/MM/BBBB") },
+        ]}
+      >
       <Card title={t("1. ข้อมูลเอกสารและสถานะ")} size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>
           <Descriptions.Item label={t("เลขที่ PV")}>{v.voucherNo}</Descriptions.Item>
@@ -390,6 +401,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
         paymentIds={activePayments.map((payment) => payment.id)}
       />
 
+      </DocumentPaper>
       <Modal
         open={reasonFor !== null}
         title={reasonFor === "reject" ? t("ไม่อนุมัติใบสำคัญจ่าย") : t("ยกเลิกใบสำคัญจ่าย")}

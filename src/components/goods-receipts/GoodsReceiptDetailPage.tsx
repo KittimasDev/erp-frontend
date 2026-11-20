@@ -1,4 +1,6 @@
 "use client";
+
+import PageLoading from "@/components/common/PageLoading";
 import { Tag } from "antd";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
@@ -6,7 +8,7 @@ import { tStatus } from "@/types/purchase-orders";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, App, Button, Spin } from "antd";
+import { Alert, App, Button } from "antd";
 import CancelInfoAlert from "@/components/common/CancelInfoAlert";
 import CancelReasonModal from "@/components/common/CancelReasonModal";
 import {
@@ -39,6 +41,7 @@ import { isPoPayableStatus } from "@/types/purchase-orders";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 
 type Props = { id: string };
 
@@ -95,11 +98,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
     po?.paymentStatus === "PAID" || linkedPayment?.status === "PAID";
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {
@@ -223,6 +222,14 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
+          <DocumentPaper
+            titleTh={t("ใบรับสินค้า")}
+            titleEn="GOODS RECEIPT"
+            meta={[
+              { label: t("เลขที่เอกสาร"), value: data.grNo },
+              { label: t("วันที่เอกสาร"), value: formatDate(data.grDate) },
+            ]}
+          >
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
@@ -322,6 +329,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
           ) : null}
+          </DocumentPaper>
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
 

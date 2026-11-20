@@ -59,7 +59,7 @@ export default function ApplyCreditButton({ customerId, salesInvoiceId, salesOrd
         okText={t("หักเครดิต")}
         cancelText={t("ยกเลิก")}
         confirmLoading={mutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}

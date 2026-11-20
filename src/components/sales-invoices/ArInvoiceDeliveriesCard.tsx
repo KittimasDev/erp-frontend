@@ -168,7 +168,7 @@ function AddDeliveriesModal({
       cancelText={t("ยกเลิก")}
       okButtonProps={{ disabled: picked.length === 0 }}
       confirmLoading={addMutation.isPending}
-      maskClosable={false}
+      mask={{ closable: false }}
       onCancel={onClose}
       onOk={async () => {
         try {

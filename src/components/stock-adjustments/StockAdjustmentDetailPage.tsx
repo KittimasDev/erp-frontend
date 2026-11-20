@@ -1,11 +1,13 @@
 "use client";
+
+import PageLoading from "@/components/common/PageLoading";
 import { Tag } from "antd";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { App, Button, Input, Spin, Upload } from "antd";
+import { App, Button, Input, Upload } from "antd";
 import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
@@ -84,11 +86,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
   const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

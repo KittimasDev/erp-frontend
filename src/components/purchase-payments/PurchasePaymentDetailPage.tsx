@@ -1,4 +1,6 @@
 "use client";
+
+import PageLoading from "@/components/common/PageLoading";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 
 import { useState } from "react";
@@ -101,11 +103,7 @@ export default function PurchasePaymentDetailPage({
   const data = query.data?.data;
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

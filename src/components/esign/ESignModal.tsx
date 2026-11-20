@@ -99,7 +99,7 @@ export default function ESignModal({
       cancelText={t("ยกเลิก")}
       okButtonProps={{ disabled: !ready }}
       confirmLoading={loading}
-      maskClosable={false}
+      mask={{ closable: false }}
       onCancel={() => !loading && onCancel()}
       onOk={() => void submit()}
       destroyOnHidden

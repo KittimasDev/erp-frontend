@@ -1,5 +1,7 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import {
   useCallback,
   useEffect,
@@ -765,11 +767,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   }, [data?.items, schedulesForGate.data]);
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

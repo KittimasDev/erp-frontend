@@ -1,9 +1,11 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Alert, App, Button, Input, Modal, Spin, Table, Tag, Tooltip } from "antd";
+import { Alert, App, Button, Input, Modal, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   ArrowLeftOutlined,
@@ -66,11 +68,7 @@ export default function LabSampleDetailPage({ id }: Props) {
   const reissue = useReissueLabCoaMutation(id);
 
   if (query.isLoading) {
-    return (
-      <div className={styles.stateCard}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!data) {

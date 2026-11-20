@@ -63,35 +63,43 @@ function infoRow(label: string, value?: string) {
 /* ---------- ชิ้นส่วน HTML — แยกเป็นก้อนเพราะตัวจัดหน้าต้องวัดทีละก้อน ---------- */
 
 function headHtml() {
+  const logo = companyLogoUrl();
   return `
-      <div class="topbar">
-        <img src="${companyLogoUrl()}" class="logo" alt="" crossorigin="anonymous" />
-        <div class="company">${companyIdentityLinesHtml()}
+      <header class="header">
+        <div class="brand">
+          ${
+            logo
+              ? `<img src="${logo}" class="logo" alt="" crossorigin="anonymous" />`
+              : `<div class="symbol" aria-hidden="true">◈</div>`
+          }
+          <div>
+            <div class="company">${companyIdentityLinesHtml({
+              phoneLabel: "โทร.",
+              taxIdStyle: "grouped",
+              separator: " • ",
+            })}
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="rule"></div>`;
+        <div class="doc-title">
+          <strong>ใบขอซื้อ</strong>
+          <small>PURCHASE REQUEST</small>
+        </div>
+      </header>`;
 }
 
 function firstBlockHtml(data: PurchaseRequestPdfData) {
   return `
-      <div class="headrow">
-        <div class="titlebox">
-          <div class="title-th">ใบขอซื้อ</div>
-          <div class="title-en">Purchase Request</div>
+      <div class="doc-meta">
+        <div class="meta-cell">
+          <span class="meta-label">เลขที่เอกสาร</span>
+          <span class="meta-value">${escapeHtml(data.prNo)}</span>
         </div>
-        <div class="docbox">
-          <div>
-            <div class="doclabel">เลขที่เอกสาร</div>
-            <div class="docval">${escapeHtml(data.prNo)}</div>
-          </div>
-          <div>
-            <div class="doclabel">วันที่เอกสาร</div>
-            <div class="docval">${escapeHtml(data.requestDate)}</div>
-          </div>
+        <div class="meta-cell">
+          <span class="meta-label">วันที่เอกสาร</span>
+          <span class="meta-value">${escapeHtml(data.requestDate)}</span>
         </div>
       </div>
-
-      <div class="section-rule"></div>
 
       <div class="info-wrap">
         <section class="info-card">
@@ -198,7 +206,7 @@ function createStyle() {
         background: #fff;
         padding: ${PAGE_PAD_TOP}px 23px ${PAGE_PAD_BOTTOM}px;
         position: relative;
-        color: #7A7A7A;
+        color: #263039;
         font-family: "Sarabun", Tahoma, sans-serif;
         display: flex;
         flex-direction: column;
@@ -229,107 +237,110 @@ function createStyle() {
         flex-shrink: 0;
       }
 
-      .topbar {
+
+      .header {
         display: flex;
-        align-items: flex-start;
+        justify-content: space-between;
+        align-items: center;
         gap: 12px;
+        border-bottom: 1.5px solid #6ba83f;
+        padding-bottom: 8px;
         flex-shrink: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
       }
 
       .logo {
+        height: 46px;
         width: auto;
-        height: 56px;
-        max-width: 120px;
+        max-width: 84px;
         object-fit: contain;
-        object-position: left top;
         display: block;
         flex: 0 0 auto;
-        margin-top: -10px;
       }
 
-      .company {
-        line-height: 1.26;
+      .symbol {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 auto;
+      }
+
+      .symbol {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6ba83f;
+        font-size: 28px;
+        font-weight: 800;
       }
 
       .company-name {
-        font-size: 15px;
-        margin: 0 0 4px;
-        font-weight: 700;
-        color: #343434;
+        font-size: 12px;
+        margin: 0 0 2px;
+        font-weight: 800;
+        color: #333;
+        line-height: 1.15;
       }
 
       .company-address {
-        font-size: 7.4px;
+        font-size: 8px;
         margin: 0;
-        color: #7A7A7A;
-        font-weight: 400;
-        line-height: 1.26;
+        color: #555;
+        line-height: 1.4;
       }
 
-      .company-address + .company-address {
-        margin-top: 3px;
-      }
-
-      .rule {
-        height: 1px;
-        background: #D8DCE0;
-        margin: 14px 0;
+      .doc-title {
+        text-align: right;
         flex-shrink: 0;
       }
 
-      .headrow {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        flex-shrink: 0;
+      .doc-title strong {
+        display: block;
+        font-size: 18px;
+        color: #315e24;
+        line-height: 1.15;
       }
 
-      .titlebox {
-        margin-left: 111px;
-        margin-top: -2px;
+      .doc-title small {
+        display: block;
+        color: #7c848b;
+        letter-spacing: 0.4px;
+        font-size: 8px;
       }
 
-      .title-th {
-        font-size: 24px;
-        color: #78b64c;
-        font-weight: 700;
-        line-height: 1;
-      }
-
-      .title-en {
-        font-size: 10px;
-        color: #AA9F97;
-        margin-top: 7px;
-        text-align: center;
-      }
-
-      .docbox {
-        width: 233px;
-        border: 1px solid #D8DCE0;
+      .doc-meta {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         overflow: hidden;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        margin-top: 10px;
+        flex-shrink: 0;
       }
 
-      .docbox > div {
-        padding: 9px 10px 8px;
+      .meta-cell {
+        padding: 6px 8px;
+        border-right: 1px solid #d5dce1;
       }
 
-      .docbox > div + div {
-        border-left: 1px solid #D8DCE0;
+      .meta-cell:last-child { border-right: 0; }
+
+      .meta-cell .meta-label {
+        color: #66727d;
+        font-size: 8px;
+        display: block;
+        margin-bottom: 2px;
       }
 
-      .doclabel {
-        font-size: 7px;
-        color: #343434;
-        margin-bottom: 5px;
-      }
-
-      .docval {
-        font-size: 10px;
-        color: #343434;
+      .meta-cell .meta-value {
         font-weight: 700;
+        font-size: 10px;
+        color: #263039;
       }
 
       .cont-strip {
@@ -341,13 +352,13 @@ function createStyle() {
 
       .cont-title {
         font-size: 11px;
-        color: #78b64c;
+        color: #315e24;
         font-weight: 700;
       }
 
       .cont-no {
         font-size: 8px;
-        color: #343434;
+        color: #263039;
         font-weight: 700;
       }
 
@@ -361,38 +372,45 @@ function createStyle() {
       .info-wrap {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        gap: 10px;
+        margin-top: 12px;
         flex-shrink: 0;
       }
 
       .info-card {
-        border: 1px solid #D8DCE0;
-        border-radius: 5px;
-        padding: 10px 10px 9px;
+        border: 1px solid #d5dce1;
+        border-radius: 6px;
+        padding: 8px 10px;
         min-height: 60px;
       }
 
       .card-title {
-        font-size: 8.5px;
-        color: #343434;
+        font-size: 10px;
+        color: #253626;
         font-weight: 700;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       .info-grid {
         display: grid;
-        grid-template-columns: 78px 1fr;
-        row-gap: 6px;
+        grid-template-columns: 118px 1fr;
+        column-gap: 8px;
+        row-gap: 5px;
+        align-items: baseline;
       }
 
       .label {
-        font-size: 7px;
-        color: #7A7A7A;
+        font-size: 8px;
+        color: #66727d;
+        line-height: 1.35;
+        min-width: 0;
+        overflow-wrap: anywhere;
       }
 
       .value {
-        font-size: 7.2px;
-        color: #7A7A7A;
+        font-size: 8.5px;
+        color: #263039;
+        line-height: 1.35;
         word-break: break-word;
         min-width: 0;
       }
@@ -400,7 +418,7 @@ function createStyle() {
       .table {
         width: 100%;
         margin-top: 14px;
-        border: 1px solid #D8DCE0;
+        border: 1px solid #d5dce1;
         border-radius: 5px;
         overflow: hidden;
         flex-shrink: 0;
@@ -419,18 +437,18 @@ function createStyle() {
       }
 
       .thead {
-        background: #ececeb;
-        min-height: 33px;
-        font-size: 7.6px;
-        color: #343434;
+        background: #edf0ee;
+        min-height: 28px;
+        font-size: 8px;
+        color: #35413b;
         font-weight: 700;
       }
 
       .tbody {
-        min-height: 31px;
-        font-size: 7.5px;
-        color: #7A7A7A;
-        border-top: 1px solid #D8DCE0;
+        min-height: 28px;
+        font-size: 8.5px;
+        color: #263039;
+        border-top: 1px solid #d5dce1;
       }
 
       .cell {
@@ -463,29 +481,30 @@ function createStyle() {
 
       .sig {
         text-align: center;
-        color: #7A7A7A;
-        font-size: 6.7px;
+        color: #263039;
+        font-size: 8px;
       }
 
       .sig .line {
-        width: 122px;
-        border-bottom: 1px dotted #D8DCE0;
-        margin: 24px auto 10px;
+        height: 28px;
+        border-bottom: 1px solid #93999e;
+        margin: 4px 14px 8px;
       }
 
       .sig .date {
         margin-top: 0;
-        color: #7A7A7A;
+        color: #66727d;
       }
 
       .doc-foot {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
-        margin-top: 10px;
+        margin-top: 16px;
         padding-top: 6px;
-        font-size: 6.8px;
-        color: #7A7A7A;
+        border-top: 1px solid #d5dce1;
+        font-size: 7.5px;
+        color: #66727d;
         flex-shrink: 0;
       }
 

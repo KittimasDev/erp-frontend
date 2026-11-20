@@ -128,7 +128,7 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
         okText={t("ตัดยอด")}
         cancelText={t("ยกเลิก")}
         confirmLoading={settleMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => setOpen(false)}
         onOk={() => form.submit()}
@@ -209,7 +209,7 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
         cancelText={t("ปิด")}
         okButtonProps={{ danger: true, disabled: reason.trim().length < 5 }}
         confirmLoading={cancelMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         afterOpenChange={(v) => { if (!v) setReason(""); }}
         onCancel={() => setCancelTarget(null)}

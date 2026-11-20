@@ -31,6 +31,7 @@ import {
 import { tFin } from "@/components/payment-vouchers/paymentVoucherUtils";
 import { useT } from "@/lib/i18n/useT";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 
 const SCREEN_CODE = "FINANCE_BILLING_NOTES";
 const BASE_PATH = "/finance/payables/billing-notes";
@@ -313,6 +314,14 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
         />
       ) : null}
 
+      <DocumentPaper
+        titleTh={t("ใบวางบิล")}
+        titleEn="BILLING NOTE"
+        meta={[
+          { label: t("เลขที่เอกสาร"), value: n.billingNo },
+          { label: t("วันที่เอกสาร"), value: formatThaiDate(n.billingDate) },
+        ]}
+      >
       <Card title={t("ข้อมูลเอกสาร")}>
         <Descriptions column={{ xs: 1, md: 2 }} bordered size="small">
           <Descriptions.Item label={t("เลขที่ใบวางบิล")}>{n.billingNo}</Descriptions.Item>
@@ -374,6 +383,7 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
           </Descriptions.Item>
         </Descriptions>
       </Card>
+      </DocumentPaper>
 
       {modal === "issue" ? <IssuePvModal note={n} onClose={() => setModal(null)} /> : null}
       {modal === "cancel" ? <CancelModal note={n} onClose={() => setModal(null)} /> : null}

@@ -1,8 +1,10 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, App, Button, Card, Descriptions, Space, Spin, Tabs, Tag, Tooltip, Typography } from "antd";
+import { Alert, App, Button, Card, Descriptions, Space, Tabs, Tag, Tooltip, Typography } from "antd";
 import { ArrowLeftOutlined, DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 
 import { JournalLinesTable } from "@/components/ap-documents/ApJournalVoucher";
@@ -81,11 +83,7 @@ export default function ArJournalDetailPage({ kind, id }: { kind: ArJournalKind;
   };
 
   if (query.isLoading) {
-    return (
-      <div style={{ textAlign: "center", padding: 48 }}>
-        <Spin size="large" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (query.isError || !entry) {

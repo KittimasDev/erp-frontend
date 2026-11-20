@@ -423,11 +423,18 @@ function createStyle() {
         min-width: 0;
       }
 
-      .logo,
+      .logo {
+        height: 46px;
+        width: auto;
+        max-width: 84px;
+        object-fit: contain;
+        display: block;
+        flex: 0 0 auto;
+      }
+
       .symbol {
         width: 42px;
         height: 42px;
-        object-fit: contain;
         flex: 0 0 auto;
       }
 

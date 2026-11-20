@@ -71,12 +71,12 @@ function rateLabel(rate: number) {
 const SHEET_CSS = `
 .apdn, .apdn * { box-sizing: border-box; }
 .apdn {
-  --green: #477f26;
-  --green-dark: #2c641b;
-  --green-light: #f0f6e9;
-  --ink: #242b29;
-  --muted: #66716d;
-  --line: #cfd8d4;
+  --green: #6ba83f;
+  --green-dark: #315e24;
+  --green-light: #f1f7ed;
+  --ink: #263039;
+  --muted: #66727d;
+  --line: #d5dce1;
   --light: #f4f6f5;
   color: var(--ink);
   font-family: "Sarabun", "TH Sarabun New", "Noto Sans Thai", Tahoma, Arial, sans-serif;
@@ -94,25 +94,22 @@ const SHEET_CSS = `
   position: relative;
 }
 .apdn-pdf { margin: 0; box-shadow: none; }
-.apdn-company { display: flex; gap: 15px; align-items: center; padding-bottom: 13px; border-bottom: 2px solid var(--green); }
+.apdn-company { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1.5px solid var(--green); }
+.apdn-brand { display: flex; gap: 10px; align-items: center; min-width: 0; }
 .apdn-logo {
-  width: 84px;
-  min-width: 84px;
-  text-align: center;
-  border-right: 1px solid var(--line);
-  padding-right: 14px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
 }
-.apdn-logo img { max-width: 70px; max-height: 70px; object-fit: contain; display: block; margin: 0 auto; }
-.apdn-logo-symbol { font-size: 31px; color: var(--green); line-height: 1; font-weight: 800; letter-spacing: -2px; }
-.apdn-logo-name { font-size: 15px; font-weight: 800; line-height: 1; color: #3a4641; }
-.apdn-logo-small { font-size: 8px; color: var(--muted); }
-.apdn-company-name { font-size: 17px; font-weight: 700; line-height: 1.3; }
-.apdn-sub { font-size: 10px; color: var(--muted); line-height: 1.55; }
-.apdn-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 0 15px; border-bottom: 1px solid var(--line); }
-.apdn-heading h1 { margin: 0; color: var(--green); font-weight: 800; font-size: 27px; line-height: 1.2; }
-.apdn-en { font-size: 11px; letter-spacing: 1.1px; color: var(--muted); font-weight: 600; }
-.apdn-meta { border: 1px solid var(--line); border-radius: 5px; display: grid; grid-template-columns: 1.4fr 1fr; min-width: 282px; overflow: hidden; }
-.apdn-meta > div { padding: 9px 11px; }
+.apdn-logo img { height: 46px; width: auto; max-width: 84px; object-fit: contain; display: block; }
+.apdn-logo-symbol { font-size: 28px; color: var(--green); line-height: 1; font-weight: 800; }
+.apdn-company-name { font-size: 14px; font-weight: 800; line-height: 1.2; color: #333; }
+.apdn-sub { font-size: 11px; color: #555; line-height: 1.45; }
+.apdn-doc-title { text-align: right; flex-shrink: 0; }
+.apdn-doc-title h1 { margin: 0; color: var(--green-dark); font-weight: 800; font-size: 22px; line-height: 1.15; }
+.apdn-en { font-size: 11px; letter-spacing: 0.4px; color: #7c848b; font-weight: 600; }
+.apdn-meta { margin-top: 12px; border: 1px solid var(--line); border-radius: 5px; display: grid; grid-template-columns: 1.3fr 1fr; overflow: hidden; }
+.apdn-meta > div { padding: 8px 10px; }
 .apdn-meta > div + div { border-left: 1px solid var(--line); }
 .apdn-label { font-size: 10px; color: var(--muted); }
 .apdn-value { font-size: 12px; font-weight: 700; }
@@ -137,8 +134,8 @@ const SHEET_CSS = `
 .apdn-grand { background: var(--green-light); border-top: 1px solid #d7e3cf; border-bottom: 1px solid #d7e3cf; color: var(--green-dark); font-size: 15px; font-weight: 800; margin-top: 5px; padding: 10px 9px; }
 .apdn-words { text-align: right; font-size: 10px; color: var(--muted); margin-top: 5px; }
 .apdn-signatures { margin-top: 43px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; text-align: center; break-inside: avoid; }
-.apdn-sig-role { font-weight: 700; font-size: 11px; margin-bottom: 30px; }
-.apdn-sig-line { border-bottom: 1px solid #7b8781; margin: 0 9px 5px; }
+.apdn-sig-role { font-weight: 700; font-size: 11px; margin-bottom: 8px; }
+.apdn-sig-line { border-bottom: 1px solid #93999e; margin: 28px 9px 5px; }
 .apdn-sig-detail { font-size: 10px; color: var(--muted); line-height: 2; }
 .apdn-footer { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 24px; color: var(--muted); font-size: 9px; }
 .apdn-hint { margin-top: 9px; color: #9a6e34; font-size: 9px; }
@@ -169,7 +166,7 @@ function companyLines(company: CompanyInfoSnapshot | null) {
 function logoHtml(company: CompanyInfoSnapshot | null) {
   const src = safeLogoSrc(company?.logoDataUrl ?? company?.logoUrl);
   if (!src) {
-    return `<div class="apdn-logo" aria-hidden="true"><div class="apdn-logo-symbol">SMT</div><div class="apdn-logo-name">ENERGY</div><div class="apdn-logo-small">ERP DOCUMENT</div></div>`;
+    return `<div class="apdn-logo" aria-hidden="true"><div class="apdn-logo-symbol">◈</div></div>`;
   }
   return `<div class="apdn-logo"><img src="${escapeHtml(src)}" alt="" /></div>`;
 }
@@ -202,19 +199,22 @@ function sheetBody(doc: ApDocument, company: CompanyInfoSnapshot | null) {
 
   return `
     <header class="apdn-company">
-      ${logoHtml(company)}
-      <div>
-        <div class="apdn-company-name">${escapeHtml(companyText.name)}</div>
-        <div class="apdn-sub">${escapeHtml(companyText.contact)}</div>
-        <div class="apdn-sub">${escapeHtml(companyText.tax)}</div>
+      <div class="apdn-brand">
+        ${logoHtml(company)}
+        <div>
+          <div class="apdn-company-name">${escapeHtml(companyText.name)}</div>
+          <div class="apdn-sub">${escapeHtml(companyText.contact)}</div>
+          <div class="apdn-sub">${escapeHtml(companyText.tax)}</div>
+        </div>
+      </div>
+      <div class="apdn-doc-title">
+        <h1>ใบเพิ่มหนี้เจ้าหนี้</h1>
+        <div class="apdn-en">AP DEBIT NOTE</div>
       </div>
     </header>
-    <div class="apdn-heading">
-      <div><h1>ใบเพิ่มหนี้เจ้าหนี้</h1><div class="apdn-en">AP DEBIT NOTE · INTERNAL RECORD</div></div>
-      <div class="apdn-meta">
-        <div><div class="apdn-label">เลขที่เอกสาร</div><div class="apdn-value">${escapeHtml(dash(doc.docNo))}</div></div>
-        <div><div class="apdn-label">วันที่เอกสาร</div><div class="apdn-value">${escapeHtml(formatThaiDate(doc.docDate))}</div></div>
-      </div>
+    <div class="apdn-meta">
+      <div><div class="apdn-label">เลขที่เอกสาร</div><div class="apdn-value">${escapeHtml(dash(doc.docNo))}</div></div>
+      <div><div class="apdn-label">วันที่เอกสาร</div><div class="apdn-value">${escapeHtml(formatThaiDate(doc.docDate))}</div></div>
     </div>
     <section class="apdn-section apdn-two">
       <div>

@@ -152,7 +152,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: min(60dvh, 520px);
+  min-height: calc(100dvh - 148px);
   padding: 48px 16px;
   box-sizing: border-box;
 }

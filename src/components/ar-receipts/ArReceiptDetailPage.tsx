@@ -1,15 +1,18 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Breadcrumb, Button, Descriptions, Input, Modal, Spin, Table, Tag } from "antd";
+import { App, Breadcrumb, Button, Descriptions, Input, Modal, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
 import AccessDenied from "@/components/auth/AccessDenied";
 import PageHeader from "@/components/common/PageHeader";
+import DocumentPaper from "@/components/common/DocumentPaper";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useArReceiptQuery, useCancelArReceiptMutation } from "@/hooks/ar-receipts/useArReceipts";
 import { useT } from "@/lib/i18n/useT";
@@ -37,11 +40,7 @@ export default function ArReceiptDetailPage({ id }: { id: string }) {
     return <AccessDenied screenCodes={["FINANCE_PAYMENT_RECEIPTS", "FINANCE_RECEIPTS"]} />;
   }
   if (query.isLoading) {
-    return (
-      <div style={{ padding: 24 }}>
-        <Spin /> {t("กำลังโหลด...")}
-      </div>
-    );
+    return <PageLoading />;
   }
   const r = query.data;
   if (!r) {
@@ -110,6 +109,14 @@ export default function ArReceiptDetailPage({ id }: { id: string }) {
           </>
         }
       />
+      <DocumentPaper
+        titleTh={t("ใบเสร็จรับเงิน")}
+        titleEn="RECEIPT"
+        meta={[
+          { label: t("เลขที่เอกสาร"), value: r.receiptNo },
+          { label: t("วันที่เอกสาร"), value: formatThaiDate(r.receiptDate) },
+        ]}
+      >
       <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
         <Descriptions
           column={{ xs: 1, md: 2, xl: 3 }}
@@ -137,9 +144,10 @@ export default function ArReceiptDetailPage({ id }: { id: string }) {
       <ArReceiptRelatedDocsCard receipt={r} />
       <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
         <h3 style={{ marginTop: 0 }}>{t("ใบตั้งลูกหนี้ที่ตัดยอด ({n})", { n: r.allocations.length })}</h3>
-        <Table rowKey="id" size="middle" columns={columns} dataSource={r.allocations} pagination={false} scroll={{ x: 800 }} />
+        <Table rowKey="id" size="middle" columns={columns} dataSource={r.allocations} pagination={false} scroll={{ x: 800 }}         />
       </div>
 
+      </DocumentPaper>
       <Modal
         open={cancelOpen}
         title={t("ยกเลิกใบรับชำระ {no}", { no: r.receiptNo })}
@@ -147,7 +155,7 @@ export default function ArReceiptDetailPage({ id }: { id: string }) {
         cancelText={t("ปิด")}
         okButtonProps={{ danger: true, disabled: reason.trim().length < 5 }}
         confirmLoading={cancelMutation.isPending}
-        maskClosable={false}
+        mask={{ closable: false }}
         destroyOnHidden
         afterOpenChange={(v) => {
           if (!v) setReason("");

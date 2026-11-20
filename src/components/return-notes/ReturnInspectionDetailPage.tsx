@@ -1,9 +1,11 @@
 "use client";
 
+import PageLoading from "@/components/common/PageLoading";
+
 import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
-import { Button, Spin, Table } from "antd";
+import { Button, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -35,11 +37,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
   const [sorting, setSorting] = useState<ReturnNoteItem | null>(null);
 
   if (query.isLoading || !data) {
-    return (
-      <div className={styles.page}>
-        <Spin />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   const confirmed = data.inspectionStatus === "CONFIRMED";
