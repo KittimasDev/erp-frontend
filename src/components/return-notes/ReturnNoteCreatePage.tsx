@@ -74,6 +74,10 @@ export default function ReturnNoteCreatePage() {
   const createMutation = useCreateReturnNoteMutation();
 
   const fromReturn = isReturnResult(source?.deliveryResult);
+  const canCreate =
+    Boolean(source) &&
+    isReturnResult(source?.deliveryResult) &&
+    source?.returnToStock !== false;
 
   const qtyOf = (line: ReturnSourceLine): number | null => {
     if (line.pickingItemId in edited) return edited[line.pickingItemId];
@@ -90,6 +94,15 @@ export default function ReturnNoteCreatePage() {
 
   const errors: string[] = [];
   if (source) {
+    if (!isReturnResult(source.deliveryResult)) {
+      errors.push(
+        t("สร้างใบรับคืนได้เฉพาะใบส่งที่ตีกลับและเลือกนำเข้าคลัง"),
+      );
+    } else if (source.returnToStock === false) {
+      errors.push(
+        t("ใบส่งนี้เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้"),
+      );
+    }
     if (!reason.trim()) errors.push(t("กรุณาระบุเหตุผลการคืนสินค้า"));
     let positive = 0;
     for (const line of source.lines) {
@@ -288,7 +301,9 @@ export default function ReturnNoteCreatePage() {
                       value: so.id,
                       label: `${so.soNo}${so.customerName ? ` · ${so.customerName}` : ""}`,
                     }))}
-                    notFoundContent={t("ไม่พบ SO ที่มีใบส่งสินค้าส่งถึงลูกค้าแล้ว")}
+                    notFoundContent={t(
+                      "ไม่พบ SO ที่มีใบส่งตีกลับและเลือกนำเข้าคลัง",
+                    )}
                   />
                 </div>
                 <div className={styles.metaItem}>
@@ -316,6 +331,9 @@ export default function ReturnNoteCreatePage() {
                           : ""
                       }`,
                     }))}
+                    notFoundContent={t(
+                      "ไม่พบบิลส่งที่ตีกลับและเลือกนำเข้าคลังของ SO นี้",
+                    )}
                   />
                 </div>
               </div>
@@ -447,7 +465,7 @@ export default function ReturnNoteCreatePage() {
               className={styles.primaryBtn}
               type="primary"
               icon={<SaveOutlined />}
-              disabled={!source}
+              disabled={!canCreate}
               loading={createMutation.isPending}
               onClick={onSubmit}
             >

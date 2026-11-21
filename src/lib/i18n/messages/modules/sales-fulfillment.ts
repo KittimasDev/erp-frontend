@@ -384,6 +384,14 @@ export const EN_SALES_FULFILLMENT: Record<string, string> = {
   " · รอบที่ {roundNo}": " · Round {roundNo}",
   "ค้นหาเลขที่ SO / ลูกค้า": "Search SO no. / customer",
   "ไม่พบ SO ที่มีใบส่งสินค้าส่งถึงลูกค้าแล้ว": "No SO with a delivery order already delivered to the customer was found",
+  "ไม่พบ SO ที่มีใบส่งตีกลับและเลือกนำเข้าคลัง":
+    "No SO with a returned delivery that chose to restock was found",
+  "ไม่พบบิลส่งที่ตีกลับและเลือกนำเข้าคลังของ SO นี้":
+    "No returned delivery that chose to restock was found for this SO",
+  "สร้างใบรับคืนได้เฉพาะใบส่งที่ตีกลับและเลือกนำเข้าคลัง":
+    "Return notes can only be created from deliveries that were returned and chose to restock",
+  "ใบส่งนี้เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้":
+    "This delivery chose not to restock on return — a return note cannot be created",
   "เลือกใบเบิกสินค้า": "Select picking list",
   "เลือก SO ก่อน": "Select an SO first",
   "รายการคืน": "Return items",

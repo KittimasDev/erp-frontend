@@ -160,6 +160,7 @@ export type ReturnSourcePicking = {
   deliveryOrderId?: string;
   deliveryOrderNo?: string;
   deliveryResult?: DeliveryResult | string;
+  returnToStock?: boolean;
 };
 
 export type ReturnSourceLine = {
@@ -191,6 +192,7 @@ export type ReturnSourcePickingDetail = {
   deliveryOrderId?: string;
   deliveryOrderNo?: string;
   deliveryResult?: DeliveryResult | string;
+  returnToStock?: boolean;
   deliveryReturnReason?: string;
   lines: ReturnSourceLine[];
 };
