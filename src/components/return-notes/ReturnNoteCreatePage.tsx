@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Button, Input, InputNumber, Select, Spin, Table, Tag } from "antd";
@@ -19,12 +19,18 @@ import {
   DELIVERY_RESULT_LABEL,
   type DeliveryResult,
 } from "@/types/delivery-orders";
-import type { ReturnSourceLine } from "@/types/return-notes";
+import type {
+  ReturnSourceLine,
+  ReturnSourcePicking,
+  ReturnSourceSalesOrder,
+} from "@/types/return-notes";
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
-import { useT } from "@/lib/i18n/useT";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 const EPS = 5e-4;
+
+type SelectOption = { value: string; label: string };
 
 function fmt(value: string | number) {
   const n = Number(value);
@@ -33,6 +39,31 @@ function fmt(value: string | number) {
 
 function isReturnResult(result?: string) {
   return result === "FULL_RETURN" || result === "PARTIAL_RETURN";
+}
+
+/** ตรงกับ BE isStockReturnDelivery — คืนเข้าคลังต้องเป็น true เท่านั้น */
+function isStockReturnDelivery(delivery?: {
+  deliveryResult?: string | null;
+  returnToStock?: boolean | null;
+}) {
+  return (
+    isReturnResult(delivery?.deliveryResult ?? undefined) &&
+    delivery?.returnToStock === true
+  );
+}
+
+function soOptionLabel(so: ReturnSourceSalesOrder) {
+  return `${so.soNo}${so.customerName ? ` · ${so.customerName}` : ""}`;
+}
+
+function pickingOptionLabel(p: ReturnSourcePicking, t: TFunction) {
+  return `${p.pickingNo}${p.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: p.roundNo }) : ""}${
+    p.deliveryOrderNo ? ` · ${p.deliveryOrderNo}` : ""
+  }${
+    isReturnResult(p.deliveryResult)
+      ? ` (${t(DELIVERY_RESULT_LABEL[p.deliveryResult as DeliveryResult])})`
+      : ""
+  }`;
 }
 
 export default function ReturnNoteCreatePage() {
@@ -48,6 +79,12 @@ export default function ReturnNoteCreatePage() {
   const [salesOrderId, setSalesOrderId] = useState<string>();
   const [pickedPickingId, setPickedPickingId] = useState<string>();
   const [pickedDeliveryOrderId, setPickedDeliveryOrderId] = useState<string>();
+  /** TASK 13: เก็บตัวเลือกที่เลือกไว้ — ค้นหาใหม่แล้วยังโชว์เลขเอกสาร */
+  const [selectedSoOption, setSelectedSoOption] = useState<SelectOption | null>(
+    null,
+  );
+  const [selectedPickingOption, setSelectedPickingOption] =
+    useState<SelectOption | null>(null);
   const [edited, setEdited] = useState<Record<string, number | null>>({});
   const [reasonInput, setReasonInput] = useState<string | null>(null);
   const [remark, setRemark] = useState("");
@@ -67,20 +104,79 @@ export default function ReturnNoteCreatePage() {
     : pickedPickingId;
   const deliveryOrderId = prefilled ? fromDeliveryOrderId : pickedDeliveryOrderId;
 
+  // TASK 12: DO จากลิงก์ที่ไม่เข้าเงื่อนไข — ไม่โหลดตาราง/ไม่เติมจำนวน
+  const prefilledDoLoaded = !prefilled || Boolean(fromDeliveryOrder);
+  const prefilledDoEligible =
+    !prefilled ||
+    (fromDeliveryOrder != null && isStockReturnDelivery(fromDeliveryOrder));
+  const prefilledIneligibleReason = (() => {
+    if (!prefilled || !fromDeliveryOrder) return null;
+    if (isStockReturnDelivery(fromDeliveryOrder)) return null;
+    const doNo =
+      fromDeliveryOrder.deliveryOrderNo?.trim() || t("ใบส่งสินค้า");
+    if (!isReturnResult(fromDeliveryOrder.deliveryResult)) {
+      return t(
+        "{doNo} ส่งสำเร็จหรือยังไม่บันทึกผลตีกลับ — สร้างใบรับคืนได้เฉพาะใบที่ตีกลับ",
+        { doNo },
+      );
+    }
+    return t(
+      "{doNo} เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้",
+      { doNo },
+    );
+  })();
+
   const salesOrdersQuery = useReturnSourceSalesOrdersQuery(soKeyword, !prefilled);
   const pickingsQuery = useReturnSourcePickingsQuery(prefilled ? undefined : salesOrderId);
-  const sourceQuery = useReturnSourcePickingDetailQuery(pickingId, deliveryOrderId);
+  const sourceQuery = useReturnSourcePickingDetailQuery(
+    prefilledDoLoaded && prefilledDoEligible ? pickingId : undefined,
+    prefilledDoLoaded && prefilledDoEligible ? deliveryOrderId : undefined,
+  );
   const source = sourceQuery.data?.data;
   const createMutation = useCreateReturnNoteMutation();
 
-  const fromReturn = isReturnResult(source?.deliveryResult);
-  const canCreate =
-    Boolean(source) &&
-    isReturnResult(source?.deliveryResult) &&
-    source?.returnToStock !== false;
+  const fromReturn = isStockReturnDelivery(source);
+  const canCreate = Boolean(source) && isStockReturnDelivery(source);
+
+  const soOptions = useMemo(() => {
+    const list = (salesOrdersQuery.data?.data ?? []).map((so) => ({
+      value: so.id,
+      label: soOptionLabel(so),
+    }));
+    if (
+      selectedSoOption &&
+      !list.some((row) => row.value === selectedSoOption.value)
+    ) {
+      return [selectedSoOption, ...list];
+    }
+    return list;
+  }, [salesOrdersQuery.data?.data, selectedSoOption]);
+
+  const pickingOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const list: SelectOption[] = [];
+    const byId = new Map<string, ReturnSourcePicking>();
+    for (const p of pickingsQuery.data?.data ?? []) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      byId.set(p.id, p);
+      list.push({ value: p.id, label: pickingOptionLabel(p, t) });
+    }
+    if (
+      selectedPickingOption &&
+      !list.some((row) => row.value === selectedPickingOption.value)
+    ) {
+      return {
+        options: [selectedPickingOption, ...list],
+        byId,
+      };
+    }
+    return { options: list, byId };
+  }, [pickingsQuery.data?.data, selectedPickingOption, t]);
 
   const qtyOf = (line: ReturnSourceLine): number | null => {
     if (line.pickingItemId in edited) return edited[line.pickingItemId];
+    // เติมจำนวนคืนเฉพาะตอน DO เข้าเงื่อนไขคืนเข้าคลัง
     return fromReturn ? Number(line.maxReturnQty) : 0;
   };
 
@@ -92,28 +188,40 @@ export default function ReturnNoteCreatePage() {
     setSubmitted(false);
   };
 
-  const errors: string[] = [];
-  if (source) {
-    if (!isReturnResult(source.deliveryResult)) {
-      errors.push(
-        t("สร้างใบรับคืนได้เฉพาะใบส่งที่ตีกลับและเลือกนำเข้าคลัง"),
-      );
-    } else if (source.returnToStock === false) {
-      errors.push(
-        t("ใบส่งนี้เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้"),
-      );
-    }
-    if (!reason.trim()) errors.push(t("กรุณาระบุเหตุผลการคืนสินค้า"));
+  const formErrors: string[] = [];
+  if (source && isStockReturnDelivery(source)) {
+    if (!reason.trim()) formErrors.push(t("กรุณาระบุเหตุผลการคืนสินค้า"));
     let positive = 0;
     for (const line of source.lines) {
       const q = qtyOf(line) ?? 0;
-      if (q < 0) errors.push(`${line.itemCode ?? t("สินค้า")}: ${t("จำนวนคืนต้องไม่ติดลบ")}`);
+      if (q < 0) formErrors.push(`${line.itemCode ?? t("สินค้า")}: ${t("จำนวนคืนต้องไม่ติดลบ")}`);
       if (q - Number(line.maxReturnQty) > EPS) {
-        errors.push(`${line.itemCode ?? t("สินค้า")}: ${t("คืนได้สูงสุด {max}", { max: fmt(line.maxReturnQty) })}`);
+        formErrors.push(`${line.itemCode ?? t("สินค้า")}: ${t("คืนได้สูงสุด {max}", { max: fmt(line.maxReturnQty) })}`);
       }
       if (q > EPS) positive += 1;
     }
-    if (positive === 0) errors.push(t("ต้องมีจำนวนคืนมากกว่า 0 อย่างน้อย 1 รายการ"));
+    if (positive === 0) formErrors.push(t("ต้องมีจำนวนคืนมากกว่า 0 อย่างน้อย 1 รายการ"));
+  }
+
+  const eligibilityErrors: string[] = [];
+  if (prefilledIneligibleReason) {
+    eligibilityErrors.push(prefilledIneligibleReason);
+  } else if (source && !isStockReturnDelivery(source)) {
+    const doNo = source.deliveryOrderNo?.trim() || t("ใบส่งสินค้า");
+    if (!isReturnResult(source.deliveryResult)) {
+      eligibilityErrors.push(
+        t(
+          "{doNo} ส่งสำเร็จหรือยังไม่บันทึกผลตีกลับ — สร้างใบรับคืนได้เฉพาะใบที่ตีกลับ",
+          { doNo },
+        ),
+      );
+    } else {
+      eligibilityErrors.push(
+        t("{doNo} เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้", {
+          doNo,
+        }),
+      );
+    }
   }
 
   const columns: ColumnsType<ReturnSourceLine> = [
@@ -204,7 +312,9 @@ export default function ReturnNoteCreatePage() {
 
   const onSubmit = async () => {
     setSubmitted(true);
-    if (!source || errors.length) return;
+    if (!source || !canCreate || formErrors.length || eligibilityErrors.length) {
+      return;
+    }
     try {
       const res = await createMutation.mutateAsync({
         pickingId: source.pickingId,
@@ -225,6 +335,8 @@ export default function ReturnNoteCreatePage() {
   };
 
   const sourceError = sourceQuery.error as Error | null;
+  const showReturnLines =
+    Boolean(pickingId) && prefilledDoEligible && !prefilledIneligibleReason;
 
   return (
     <div className={styles.page}>
@@ -254,30 +366,70 @@ export default function ReturnNoteCreatePage() {
                 <Spin />
               ) : !fromDeliveryOrder ? (
                 <Alert type="error" showIcon title={t("ไม่พบใบส่งสินค้าที่อ้างอิง")} />
-              ) : multiPicking ? (
-                <div className={styles.metaGrid}>
-                  <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>
-                      {t("ใบเบิกสินค้า (ใบส่ง {doNo} รวม {n} ใบเบิก)", { doNo: fromDeliveryOrder.deliveryOrderNo ?? "", n: doPickings.length })}
-                    </span>
-                    <Select
-                      style={{ width: "100%" }}
-                      placeholder={t("เลือกใบเบิกสินค้าที่จะคืน")}
-                      value={pickingId}
-                      onChange={(value: string) => {
-                        setPrefilledPickingId(value);
-                        resetLines();
-                      }}
-                      options={doPickings.map((ref) => ({
-                        value: ref.pickingId,
-                        label: `${ref.pickingNo ?? ref.pickingId}${
-                          ref.packingNo ? ` · ${ref.packingNo}` : ""
-                        }${ref.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: ref.roundNo }) : ""}`,
-                      }))}
-                    />
+              ) : (
+                <>
+                  <div className={styles.metaGrid}>
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>
+                      <div className={styles.metaValue}>
+                        <Link href={`/delivery-orders/${fromDeliveryOrder.id}`}>
+                          {fromDeliveryOrder.deliveryOrderNo ?? "—"}
+                        </Link>
+                        {fromDeliveryOrder.deliveryResult ? (
+                          <Tag
+                            style={{ marginLeft: 8 }}
+                            color={
+                              DELIVERY_RESULT_COLOR[
+                                fromDeliveryOrder.deliveryResult as DeliveryResult
+                              ]
+                            }
+                          >
+                            {t(
+                              DELIVERY_RESULT_LABEL[
+                                fromDeliveryOrder.deliveryResult as DeliveryResult
+                              ] ?? fromDeliveryOrder.deliveryResult,
+                            )}
+                          </Tag>
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ) : null
+                  {prefilledIneligibleReason ? (
+                    <Alert
+                      type="error"
+                      showIcon
+                      style={{ marginTop: 12 }}
+                      title={prefilledIneligibleReason}
+                    />
+                  ) : multiPicking ? (
+                    <div className={styles.metaGrid} style={{ marginTop: 12 }}>
+                      <div className={styles.metaItem}>
+                        <span className={styles.metaLabel}>
+                          {t("ใบเบิกสินค้า (ใบส่ง {doNo} รวม {n} ใบเบิก)", {
+                            doNo: fromDeliveryOrder.deliveryOrderNo ?? "",
+                            n: doPickings.length,
+                          })}
+                        </span>
+                        <Select
+                          style={{ width: "100%" }}
+                          placeholder={t("เลือกใบเบิกสินค้าที่จะคืน")}
+                          value={pickingId}
+                          onChange={(value: string) => {
+                            setPrefilledPickingId(value);
+                            resetLines();
+                          }}
+                          options={doPickings.map((ref) => ({
+                            value: ref.pickingId,
+                            label: `${ref.pickingNo ?? ref.pickingId}${
+                              ref.packingNo ? ` · ${ref.packingNo}` : ""
+                            }${ref.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: ref.roundNo }) : ""}`,
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )
             ) : (
               <div className={styles.metaGrid}>
                 <div className={styles.metaItem}>
@@ -292,15 +444,27 @@ export default function ReturnNoteCreatePage() {
                     loading={salesOrdersQuery.isFetching}
                     value={salesOrderId}
                     onChange={(value?: string) => {
-                      setSalesOrderId(value);
+                      if (!value) {
+                        setSalesOrderId(undefined);
+                        setSelectedSoOption(null);
+                      } else {
+                        const fromList = soOptions.find(
+                          (row) => row.value === value,
+                        );
+                        setSalesOrderId(value);
+                        setSelectedSoOption(
+                          fromList ??
+                            (selectedSoOption?.value === value
+                              ? selectedSoOption
+                              : { value, label: value }),
+                        );
+                      }
                       setPickedPickingId(undefined);
                       setPickedDeliveryOrderId(undefined);
+                      setSelectedPickingOption(null);
                       resetLines();
                     }}
-                    options={(salesOrdersQuery.data?.data ?? []).map((so) => ({
-                      value: so.id,
-                      label: `${so.soNo}${so.customerName ? ` · ${so.customerName}` : ""}`,
-                    }))}
+                    options={soOptions}
                     notFoundContent={t(
                       "ไม่พบ SO ที่มีใบส่งตีกลับและเลือกนำเข้าคลัง",
                     )}
@@ -316,21 +480,27 @@ export default function ReturnNoteCreatePage() {
                     loading={pickingsQuery.isFetching}
                     value={pickedPickingId}
                     onChange={(value?: string) => {
-                      const picking = pickingsQuery.data?.data.find((p) => p.id === value);
-                      setPickedPickingId(value);
-                      setPickedDeliveryOrderId(picking?.deliveryOrderId);
+                      if (!value) {
+                        setPickedPickingId(undefined);
+                        setPickedDeliveryOrderId(undefined);
+                        setSelectedPickingOption(null);
+                      } else {
+                        const picking = pickingOptions.byId.get(value);
+                        const fromList = pickingOptions.options.find(
+                          (row) => row.value === value,
+                        );
+                        setPickedPickingId(value);
+                        setPickedDeliveryOrderId(picking?.deliveryOrderId);
+                        setSelectedPickingOption(
+                          fromList ??
+                            (selectedPickingOption?.value === value
+                              ? selectedPickingOption
+                              : { value, label: picking?.pickingNo ?? value }),
+                        );
+                      }
                       resetLines();
                     }}
-                    options={(pickingsQuery.data?.data ?? []).map((p) => ({
-                      value: p.id,
-                      label: `${p.pickingNo}${p.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: p.roundNo }) : ""}${
-                        p.deliveryOrderNo ? ` · ${p.deliveryOrderNo}` : ""
-                      }${
-                        isReturnResult(p.deliveryResult)
-                          ? ` (${t(DELIVERY_RESULT_LABEL[p.deliveryResult as DeliveryResult])})`
-                          : ""
-                      }`,
-                    }))}
+                    options={pickingOptions.options}
                     notFoundContent={t(
                       "ไม่พบบิลส่งที่ตีกลับและเลือกนำเข้าคลังของ SO นี้",
                     )}
@@ -339,7 +509,7 @@ export default function ReturnNoteCreatePage() {
               </div>
             )}
 
-            {source ? (
+            {source && prefilledDoEligible ? (
               <div className={styles.metaGrid} style={{ marginTop: 12 }}>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>{t("ใบสั่งขาย")}</span>
@@ -381,7 +551,7 @@ export default function ReturnNoteCreatePage() {
             ) : null}
           </div>
 
-          {pickingId ? (
+          {showReturnLines ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>{t("รายการคืน")}</h2>
@@ -403,7 +573,7 @@ export default function ReturnNoteCreatePage() {
             </div>
           ) : null}
 
-          {source ? (
+          {source && isStockReturnDelivery(source) ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>{t("เหตุผลการคืน")}</h2>
@@ -446,14 +616,31 @@ export default function ReturnNoteCreatePage() {
           <p className={styles.sideNote}>
             {t("บันทึกแล้วสถานะเป็น “รอคลังอนุมัติ” ยังไม่แตะสต๊อก — คลังอนุมัติจึงรับเข้าคลังตรวจสอบ")}
           </p>
-          {submitted && errors.length ? (
+          {eligibilityErrors.length ? (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 12 }}
+              title={eligibilityErrors[0]}
+              description={
+                eligibilityErrors.length > 1 ? (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {eligibilityErrors.slice(1).map((e) => (
+                      <li key={e}>{e}</li>
+                    ))}
+                  </ul>
+                ) : undefined
+              }
+            />
+          ) : null}
+          {submitted && formErrors.length ? (
             <Alert
               type="error"
               showIcon
               title={t("ตรวจข้อมูลก่อนบันทึก")}
               description={
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
-                  {errors.map((e) => (
+                  {formErrors.map((e) => (
                     <li key={e}>{e}</li>
                   ))}
                 </ul>

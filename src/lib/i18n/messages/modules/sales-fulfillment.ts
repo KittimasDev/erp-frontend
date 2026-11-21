@@ -392,6 +392,10 @@ export const EN_SALES_FULFILLMENT: Record<string, string> = {
     "Return notes can only be created from deliveries that were returned and chose to restock",
   "ใบส่งนี้เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้":
     "This delivery chose not to restock on return — a return note cannot be created",
+  "{doNo} ส่งสำเร็จหรือยังไม่บันทึกผลตีกลับ — สร้างใบรับคืนได้เฉพาะใบที่ตีกลับ":
+    "{doNo} was delivered successfully or has no return result yet — return notes can only be created from returned deliveries",
+  "{doNo} เลือกไม่นำเข้าคลังตอนตีกลับ — สร้างใบรับคืนไม่ได้":
+    "{doNo} chose not to restock on return — a return note cannot be created",
   "เลือกใบเบิกสินค้า": "Select picking list",
   "เลือก SO ก่อน": "Select an SO first",
   "รายการคืน": "Return items",
