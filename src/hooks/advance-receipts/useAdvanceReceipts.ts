@@ -18,8 +18,18 @@ import {
 import type { AdvanceReceiptInput } from "@/types/advance-receipts";
 import { getAccessToken } from "@/lib/auth/token";
 import { useT } from "@/lib/i18n/useT";
+import { arReceiptsQueryKey } from "@/hooks/ar-receipts/useArReceipts";
 
 export const advanceReceiptsQueryKey = ["advance-receipts"] as const;
+
+async function invalidateAdvanceAndSoFinance(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: advanceReceiptsQueryKey }),
+    queryClient.invalidateQueries({ queryKey: arReceiptsQueryKey }),
+  ]);
+}
 
 export function useAdvanceReceiptsQuery(params: AdvanceReceiptQuery) {
   return useQuery({
@@ -45,10 +55,23 @@ export function useAdvanceSalesOrderSearchQuery(keyword: string) {
   });
 }
 
-export function useAdvanceReceiptSuggestionQuery(salesOrderId?: string) {
+export function useAdvanceReceiptSuggestionQuery(
+  salesOrderId?: string,
+  excludeAdvanceId?: string,
+) {
   return useQuery({
-    queryKey: [...advanceReceiptsQueryKey, "suggestion", salesOrderId],
-    queryFn: () => getAdvanceReceiptSuggestion(getAccessToken(), salesOrderId!),
+    queryKey: [
+      ...advanceReceiptsQueryKey,
+      "suggestion",
+      salesOrderId,
+      excludeAdvanceId ?? "",
+    ],
+    queryFn: () =>
+      getAdvanceReceiptSuggestion(
+        getAccessToken(),
+        salesOrderId!,
+        excludeAdvanceId,
+      ),
     enabled: Boolean(salesOrderId),
   });
 }
@@ -60,7 +83,7 @@ export function useCreateAdvanceReceiptMutation() {
   return useMutation({
     mutationFn: (body: AdvanceReceiptInput) => createAdvanceReceipt(getAccessToken(), body),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: advanceReceiptsQueryKey });
+      await invalidateAdvanceAndSoFinance(queryClient);
       message.success(res.message || t("สร้างเอกสารรับเงินล่วงหน้าสำเร็จ"));
     },
     onError: (error: Error) => {
@@ -76,7 +99,7 @@ export function useUpdateAdvanceReceiptMutation(id: string) {
   return useMutation({
     mutationFn: (body: AdvanceReceiptInput) => updateAdvanceReceipt(getAccessToken(), id, body),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: advanceReceiptsQueryKey });
+      await invalidateAdvanceAndSoFinance(queryClient);
       message.success(res.message || t("บันทึกเอกสารรับเงินล่วงหน้าสำเร็จ"));
     },
     onError: (error: Error) => {
@@ -92,7 +115,7 @@ export function useConfirmAdvanceReceiptMutation() {
   return useMutation({
     mutationFn: (id: string) => confirmAdvanceReceipt(getAccessToken(), id),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: advanceReceiptsQueryKey });
+      await invalidateAdvanceAndSoFinance(queryClient);
       message.success(res.message || t("ยืนยันรับเงินสำเร็จ"));
     },
     onError: (error: Error) => {
@@ -109,7 +132,7 @@ export function useCancelAdvanceReceiptMutation() {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       cancelAdvanceReceipt(getAccessToken(), id, reason),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: advanceReceiptsQueryKey });
+      await invalidateAdvanceAndSoFinance(queryClient);
       message.success(res.message || t("ยกเลิกเอกสารรับเงินล่วงหน้าสำเร็จ"));
     },
     onError: (error: Error) => {

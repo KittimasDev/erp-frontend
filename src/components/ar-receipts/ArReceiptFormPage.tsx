@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Checkbox, DatePicker, Input, InputNumber, Select, Table, Typography } from "antd";
+import { Alert, Button, DatePicker, Input, InputNumber, Radio, Select, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
@@ -21,6 +21,8 @@ import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useT } from "@/lib/i18n/useT";
 import { arReceiptRoutes, arRoutes } from "@/lib/sales/ar-routes";
 import { AR_PAYMENT_METHOD_LABEL, type OutstandingArInvoice } from "@/types/ar-receipts";
+
+type OverpayDisposition = "CREDIT" | "REFUND";
 
 const SCREEN_CODE = "FINANCE_PAYMENT_RECEIPTS";
 
@@ -51,7 +53,7 @@ export default function ArReceiptFormPage() {
   const [remark, setRemark] = useState("");
   const [received, setReceived] = useState<number | null>(null);
   const [lines, setLines] = useState<Record<string, Line>>({});
-  const [overpayOk, setOverpayOk] = useState(false);
+  const [overpayDisposition, setOverpayDisposition] = useState<OverpayDisposition | null>(null);
 
   const outstanding = useOutstandingArInvoicesQuery(customerId);
   const credit = useCustomerCreditQuery(customerId);
@@ -143,7 +145,7 @@ export default function ArReceiptFormPage() {
     receivedSatang > 0 &&
     rest >= 0 &&
     !overLine &&
-    (rest === 0 || overpayOk);
+    (rest === 0 || overpayDisposition != null);
 
   const columns: ColumnsType<OutstandingArInvoice> = [
     {
@@ -221,9 +223,16 @@ export default function ArReceiptFormPage() {
           amount: lines[r.id].amount,
           whtAmount: lines[r.id].wht || undefined,
         })),
-        overpayToCredit: rest > 0 ? overpayOk : undefined,
+        // ยอดเกินต้องบันทึกเป็น Customer Credit เสมอ (ไม่เข้า Advance) — คืนเงินทำที่ workflow แยก
+        overpayToCredit: rest > 0 ? true : undefined,
         remark: remark.trim() || undefined,
       });
+      if (rest > 0 && overpayDisposition === "REFUND") {
+        router.push(
+          `/finance/receivables/refunds?customerId=${encodeURIComponent(customerId)}`,
+        );
+        return;
+      }
       router.push(arReceiptRoutes.detail(res.data.id));
     } catch {
       // hook แจ้ง error แล้ว (เช่น AR ถูกรับชำระโดยคนอื่นไปแล้ว) — อยู่หน้าเดิม
@@ -261,7 +270,7 @@ export default function ArReceiptFormPage() {
             onChange={(v) => {
               setCustomerId(v);
               setLines({});
-              setOverpayOk(false);
+              setOverpayDisposition(null);
             }}
           />
         </div>
@@ -389,9 +398,37 @@ export default function ArReceiptFormPage() {
           <Alert type="error" showIcon message={t("เงินที่ตัด AR เกินเงินที่รับจริง")} />
         ) : null}
         {rest > 0 ? (
-          <Checkbox checked={overpayOk} onChange={(e) => setOverpayOk(e.target.checked)}>
-            {t("เงินเหลือ {amount} เก็บเป็นเครดิตลูกค้า", { amount: money.format(rest / 100) })}
-          </Checkbox>
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 4 }}
+            message={t("มีเงินรับเกิน {amount} — เลือกวิธีจัดการก่อนบันทึก", {
+              amount: money.format(rest / 100),
+            })}
+            description={
+              <div style={{ display: "grid", gap: 8 }}>
+                <div>
+                  {t(
+                    "ยอดส่วนเกินจะไม่ถูกเพิ่มเข้า Advance Receipt โดยอัตโนมัติ และต้องระบุประเภทให้ชัดเจน",
+                  )}
+                </div>
+                <Radio.Group
+                  value={overpayDisposition ?? undefined}
+                  onChange={(e) => setOverpayDisposition(e.target.value)}
+                  options={[
+                    {
+                      value: "CREDIT" satisfies OverpayDisposition,
+                      label: t("เก็บเป็นเครดิตลูกค้า (Customer Credit)"),
+                    },
+                    {
+                      value: "REFUND" satisfies OverpayDisposition,
+                      label: t("คืนเงินผ่านใบคืนเงิน — บันทึกเป็นเครดิตชั่วคราวแล้วไปหน้าคืนเงิน"),
+                    },
+                  ]}
+                />
+              </div>
+            }
+          />
         ) : null}
         <Input.TextArea
           rows={2}

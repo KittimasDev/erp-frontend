@@ -11,6 +11,7 @@ type Api<T> = { statusCode: number; message: string; data: T };
 export type AdvanceReceiptQuery = {
   keyword?: string;
   status?: string;
+  salesOrderId?: string;
   page?: number;
   limit?: number;
 };
@@ -43,9 +44,13 @@ export function searchAdvanceSalesOrders(token: string, keyword: string) {
   );
 }
 
-export function getAdvanceReceiptSuggestion(token: string, salesOrderId: string) {
+export function getAdvanceReceiptSuggestion(
+  token: string,
+  salesOrderId: string,
+  excludeAdvanceId?: string,
+) {
   return apiFetch<Api<AdvanceReceiptSuggestion>>(
-    `/api/advance-receipts/suggestion${qs({ salesOrderId })}`,
+    `/api/advance-receipts/suggestion${qs({ salesOrderId, excludeAdvanceId })}`,
     { token },
   );
 }

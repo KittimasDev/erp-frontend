@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { App, DatePicker, Input, InputNumber, Select } from "antd";
+import { Alert, App, DatePicker, Input, InputNumber, Select } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyBankAccountsQuery";
@@ -30,12 +30,15 @@ export default function AdvanceReceiptForm({
   initial,
   salesOrderId: presetSalesOrderId,
   onSubmit,
+  onCanSaveChange,
 }: {
   formId: string;
   initial?: AdvanceReceipt;
   /** ใบสั่งขายที่มากับลิงก์จากรายการรอรับเงิน */
   salesOrderId?: string;
   onSubmit: (body: AdvanceReceiptInput) => void;
+  /** แจ้งหน้าแม่ว่าบันทึกได้หรือไม่ (เช่น ปิดปุ่มเมื่อยังรับได้อีก = 0) */
+  onCanSaveChange?: (canSave: boolean) => void;
 }) {
   const t = useT();
   const { message } = App.useApp();
@@ -54,15 +57,44 @@ export default function AdvanceReceiptForm({
   const [remark, setRemark] = useState(initial?.remark ?? "");
   const filledFor = useRef(initial?.salesOrderId);
   const orders = useAdvanceSalesOrderSearchQuery(keyword);
-  const suggestion = useAdvanceReceiptSuggestionQuery(salesOrderId);
+  const suggestion = useAdvanceReceiptSuggestionQuery(salesOrderId, initial?.id);
   const banks = useCompanyBankAccountsQuery(method !== "CASH");
   const suggested = suggestion.data?.data;
+
+  const remainingReceivable = Number(suggested?.remainingReceivableAmount ?? NaN);
+  const hasRoomInfo = Number.isFinite(remainingReceivable);
+  const overCeiling =
+    hasRoomInfo && total != null && total > remainingReceivable + 0.004;
+  const noRoomLeft = hasRoomInfo && remainingReceivable <= 0;
+  const canSave =
+    Boolean(salesOrderId) &&
+    total != null &&
+    total > 0 &&
+    !overCeiling &&
+    !noRoomLeft &&
+    (method === "CASH" || Boolean(bankId));
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave);
+  }, [canSave, onCanSaveChange]);
 
   useEffect(() => {
     if (!suggested || filledFor.current === suggested.salesOrderId) return;
     filledFor.current = suggested.salesOrderId;
-    if (suggested.suggestedTotal) setTotal(Number(suggested.suggestedTotal));
-  }, [suggested]);
+    const remaining = Number(suggested.remainingReceivableAmount ?? NaN);
+    if (suggested.suggestedTotal) {
+      const want = Number(suggested.suggestedTotal);
+      if (Number.isFinite(remaining)) {
+        setTotal(Math.min(want, Math.max(0, remaining)));
+      } else {
+        setTotal(want);
+      }
+      return;
+    }
+    if (Number.isFinite(remaining) && remaining > 0 && !initial) {
+      setTotal(remaining);
+    }
+  }, [suggested, initial]);
 
   const preset =
     initial?.salesOrderId
@@ -92,8 +124,20 @@ export default function AdvanceReceiptForm({
           message.warning(t("เลือกใบสั่งขาย"));
           return;
         }
-        if (!total || total <= 0) {
-          message.warning(t("ระบุยอดรวมที่รับ"));
+        if (total == null || !(total > 0)) {
+          message.warning(t("ยอดรับเงินต้องมากกว่า 0"));
+          return;
+        }
+        if (noRoomLeft) {
+          message.warning(t("ใบสั่งขายนี้รับเงินล่วงหน้าครบเพดานแล้ว"));
+          return;
+        }
+        if (overCeiling) {
+          message.warning(
+            t("ยอดรับเกินเพดาน — ยังรับได้อีก {amount}", {
+              amount: money(remainingReceivable),
+            }),
+          );
           return;
         }
         if (method !== "CASH" && !bankId) {
@@ -123,7 +167,10 @@ export default function AdvanceReceiptForm({
           value={salesOrderId}
           options={options}
           onSearch={setKeyword}
-          onChange={setSalesOrderId}
+          onChange={(value) => {
+            filledFor.current = undefined;
+            setSalesOrderId(value);
+          }}
           notFoundContent={keyword.trim().length < 2 ? t("พิมพ์อย่างน้อย 2 ตัวอักษร") : undefined}
         />
         {suggested ? (
@@ -137,6 +184,30 @@ export default function AdvanceReceiptForm({
           </p>
         ) : null}
       </div>
+      {suggested && hasRoomInfo ? (
+        <Alert
+          type={noRoomLeft || overCeiling ? "warning" : "info"}
+          showIcon
+          message={t("เพดานรับเงินล่วงหน้า {ceiling}", {
+            ceiling: money(suggested.ceilingAmount),
+          })}
+          description={
+            <div>
+              <div>
+                {t("รับแล้ว")} {money(suggested.receivedAmount)}
+                {" · "}
+                {t("ยังรับได้อีก")}{" "}
+                <strong>{money(suggested.remainingReceivableAmount)}</strong>
+              </div>
+              {noRoomLeft ? (
+                <div style={{ marginTop: 4 }}>
+                  {t("รับครบเพดานแล้ว — ไม่สามารถบันทึกเพิ่มได้ (ยกเลิกใบเดิมก่อนถ้าต้องการรับใหม่)")}
+                </div>
+              ) : null}
+            </div>
+          }
+        />
+      ) : null}
       <div>
         <label>{t("ประเภท")}</label>
         <Select
@@ -163,14 +234,30 @@ export default function AdvanceReceiptForm({
         <label>{t("ยอดรวมที่รับ")}</label>
         <InputNumber
           style={{ width: "100%" }}
-          min={0.01}
           precision={2}
+          max={hasRoomInfo ? remainingReceivable : undefined}
           value={total ?? undefined}
+          status={
+            (total != null && !(total > 0)) || overCeiling ? "error" : undefined
+          }
+          disabled={noRoomLeft}
           onChange={(value) => setTotal(typeof value === "number" ? value : null)}
         />
-        <p style={{ margin: "6px 0 0", color: "#595959" }}>
-          {t("VAT คำนวณจากอัตราของใบสั่งขายตอนบันทึก")}
-        </p>
+        {total != null && !(total > 0) ? (
+          <p style={{ margin: "6px 0 0", color: "#cf1322" }}>
+            {t("ยอดรับเงินต้องมากกว่า 0")}
+          </p>
+        ) : overCeiling ? (
+          <p style={{ margin: "6px 0 0", color: "#cf1322" }}>
+            {t("ยอดรับเกินเพดาน — ยังรับได้อีก {amount}", {
+              amount: money(remainingReceivable),
+            })}
+          </p>
+        ) : (
+          <p style={{ margin: "6px 0 0", color: "#595959" }}>
+            {t("VAT คำนวณจากอัตราของใบสั่งขายตอนบันทึก")}
+          </p>
+        )}
       </div>
       <div>
         <label>{t("วิธีรับเงิน")}</label>

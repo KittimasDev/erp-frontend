@@ -18,7 +18,9 @@ export default function SalesOrderFinanceCard({ salesOrderId }: { salesOrderId: 
   const d = query.data;
   if (!d) return null;
   const delivered = d.status === "DELIVERED" || d.status === "COMPLETED";
-  if (!delivered && d.financialStatus === "NOT_BILLED") return null;
+  const hasDeposit = Number(d.depositReceived ?? 0) > 0;
+  // แสดงเมื่อส่งครบ / มีตั้งหนี้ / หรือมีมัดจำแล้ว (ไม่ต้องรอส่งของ)
+  if (!delivered && d.financialStatus === "NOT_BILLED" && !hasDeposit) return null;
 
   return (
     <div

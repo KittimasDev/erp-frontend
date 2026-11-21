@@ -30,10 +30,27 @@ import type { SalesInvoiceQueryParams } from "@/types/sales-invoices";
 
 export const salesInvoicesQueryKey = ["sales-invoices"] as const;
 
-export function useAdvanceCandidatesQuery(salesOrderId?: string) {
+export function useAdvanceCandidatesQuery(
+  salesOrderId?: string,
+  deliveryOrderIds?: string[],
+  excludeInvoiceId?: string,
+) {
+  const deliveryKey = [...(deliveryOrderIds ?? [])].sort().join(",");
   return useQuery({
-    queryKey: [...salesInvoicesQueryKey, "advance-candidates", salesOrderId],
-    queryFn: () => getAdvanceCandidates(getAccessToken(), salesOrderId!),
+    queryKey: [
+      ...salesInvoicesQueryKey,
+      "advance-candidates",
+      salesOrderId,
+      deliveryKey,
+      excludeInvoiceId ?? "",
+    ],
+    queryFn: () =>
+      getAdvanceCandidates(
+        getAccessToken(),
+        salesOrderId!,
+        deliveryOrderIds,
+        excludeInvoiceId,
+      ),
     enabled: Boolean(salesOrderId),
   });
 }

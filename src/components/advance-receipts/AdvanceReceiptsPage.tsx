@@ -91,7 +91,12 @@ export default function AdvanceReceiptsPage() {
       title: t("คงเหลือ"),
       dataIndex: "remainingAmount",
       align: "right",
-      render: (value: string) => formatMoney(value),
+      render: (value: string, row) =>
+        row.status === "CANCELLED" ? (
+          <span style={{ color: "#8a9199" }}>{formatMoney("0")}</span>
+        ) : (
+          formatMoney(value)
+        ),
     },
     {
       title: t("สถานะ"),

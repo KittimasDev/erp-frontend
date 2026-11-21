@@ -162,6 +162,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
           </Form.Item>
           <AdvanceDeductionPicker
             salesOrderId={delivery.salesOrderId}
+            deliveryOrderIds={[deliveryOrderId]}
             value={deductions}
             onChange={setDeductions}
           />

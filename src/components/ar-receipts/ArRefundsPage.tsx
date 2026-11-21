@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { App, Button, DatePicker, Form, Input, InputNumber, Modal, Select, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -42,7 +43,10 @@ export default function ArRefundsPage() {
   const perms = useScreenActionPermissions(SCREEN_CODE);
   const { message } = App.useApp();
   const customers = useCustomersQuery({ isActive: true });
-  const [customerId, setCustomerId] = useState<string | undefined>();
+  const searchParams = useSearchParams();
+  const [customerId, setCustomerId] = useState<string | undefined>(
+    () => searchParams.get("customerId") ?? undefined,
+  );
   const [page, setPage] = useState(1);
   const refunds = useArRefundsQuery({ page, limit: PAGE_SIZE, customerId });
   const credit = useCustomerCreditQuery(customerId);

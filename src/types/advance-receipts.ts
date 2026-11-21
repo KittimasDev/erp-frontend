@@ -25,6 +25,8 @@ export type AdvanceReceipt = {
   remainingAmount: string;
   arReceiptId?: string;
   receiptNo?: string;
+  /** สถานะใบรับชำระที่ผูกไว้ (POSTED / CANCELLED) */
+  receiptStatus?: string;
   remark?: string;
   cancelReason?: string;
   createdAt: string;
@@ -46,6 +48,12 @@ export type AdvanceReceiptSuggestion = {
   subtotalAmount?: string;
   vatAmount?: string;
   totalAmount?: string;
+  /** เพดานรับเงินล่วงหน้าของ SO */
+  ceilingAmount?: string;
+  /** ยอด Advance ที่รับแล้ว (ไม่นับ CANCELLED / ไม่รวมใบที่กำลังแก้) */
+  receivedAmount?: string;
+  /** ยอดที่ยังรับได้อีก */
+  remainingReceivableAmount?: string;
 };
 
 export type AdvanceSalesOrderOption = {

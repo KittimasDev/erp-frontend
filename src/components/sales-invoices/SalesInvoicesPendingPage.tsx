@@ -377,6 +377,7 @@ export default function SalesInvoicesPendingPage() {
           </Form.Item>
           <AdvanceDeductionPicker
             salesOrderId={lockedSalesOrderId}
+            deliveryOrderIds={selected.map((r) => r.id)}
             value={deductions}
             onChange={setDeductions}
           />

@@ -150,6 +150,7 @@ import {
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import SalesOrderAdvanceCard from "@/components/ar-receipts/SalesOrderAdvanceCard";
 import SalesOrderDepositAlert from "@/components/ar-receipts/SalesOrderDepositAlert";
 import SalesOrderFinanceCard from "@/components/ar-receipts/SalesOrderFinanceCard";
 import { useT, tNow } from "@/lib/i18n/useT";
@@ -1822,6 +1823,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       ) : null}
 
       <SalesOrderDepositAlert salesOrderId={data.id} />
+      <SalesOrderAdvanceCard salesOrderId={data.id} />
       <SalesOrderFinanceCard salesOrderId={data.id} />
 
       <div className={styles.layout}>

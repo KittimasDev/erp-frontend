@@ -64,8 +64,17 @@ export function getSalesInvoices(
   );
 }
 
-export function getAdvanceCandidates(token: string, salesOrderId: string) {
+export function getAdvanceCandidates(
+  token: string,
+  salesOrderId: string,
+  deliveryOrderIds?: string[],
+  excludeInvoiceId?: string,
+) {
   const search = new URLSearchParams({ salesOrderId });
+  for (const id of deliveryOrderIds ?? []) {
+    search.append("deliveryOrderIds", id);
+  }
+  if (excludeInvoiceId) search.set("excludeInvoiceId", excludeInvoiceId);
   return apiFetch<AdvanceCandidateListApiResponse>(
     `/api/sales-invoices/advance-candidates?${search.toString()}`,
     { token },

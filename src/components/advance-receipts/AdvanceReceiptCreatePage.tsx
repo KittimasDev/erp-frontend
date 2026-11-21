@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "antd";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
@@ -18,6 +19,7 @@ export default function AdvanceReceiptCreatePage() {
   const salesOrderId = useSearchParams().get("salesOrderId") ?? undefined;
   const perms = useScreenActionPermissions("FINANCE_ADVANCE_RECEIPTS");
   const create = useCreateAdvanceReceiptMutation();
+  const [canSave, setCanSave] = useState(false);
 
   if (!perms.canAdd) {
     return <AccessDenied screenCodes={["FINANCE_ADVANCE_RECEIPTS"]} />;
@@ -39,6 +41,7 @@ export default function AdvanceReceiptCreatePage() {
               htmlType="submit"
               form="advance-receipt-create"
               loading={create.isPending}
+              disabled={!canSave || create.isPending}
             >
               {t("บันทึกร่าง")}
             </Button>
@@ -48,6 +51,7 @@ export default function AdvanceReceiptCreatePage() {
       <AdvanceReceiptForm
         formId="advance-receipt-create"
         salesOrderId={salesOrderId}
+        onCanSaveChange={setCanSave}
         onSubmit={(body) => {
           create.mutate(body, {
             onSuccess: (res) => {

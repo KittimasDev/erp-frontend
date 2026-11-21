@@ -454,10 +454,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               className={styles.primaryBtn}
               icon={<CheckOutlined />}
               loading={confirmMutation.isPending}
+              disabled={confirmMutation.isPending || deliverMutation.isPending}
               onClick={() =>
                 modal.confirm({
                   title: t("ยืนยันเตรียมส่ง?"),
                   onOk: async () => {
+                    if (confirmMutation.isPending) return;
                     if (editable) await save();
                     await confirmMutation.mutateAsync(id);
                   },
@@ -473,6 +475,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               className={styles.primaryBtn}
               icon={<SendOutlined />}
               loading={deliverMutation.isPending}
+              disabled={deliverMutation.isPending || confirmMutation.isPending}
               onClick={() => setResultModalOpen(true)}
             >
               Mark Delivered

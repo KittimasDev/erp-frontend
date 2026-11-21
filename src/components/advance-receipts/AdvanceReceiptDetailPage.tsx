@@ -34,8 +34,15 @@ import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-ac
 import { getAccessToken } from "@/lib/auth/token";
 import { useT } from "@/lib/i18n/useT";
 import { advanceReceiptRoutes, arReceiptRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
-import { AR_PAYMENT_METHOD_LABEL } from "@/types/ar-receipts";
-import { ADVANCE_STATUS_LABEL, ADVANCE_TYPE_LABEL } from "@/types/advance-receipts";
+import {
+  AR_PAYMENT_METHOD_LABEL,
+  AR_RECEIPT_STATUS_LABEL,
+} from "@/types/ar-receipts";
+import {
+  ADVANCE_STATUS_COLOR,
+  ADVANCE_STATUS_LABEL,
+  ADVANCE_TYPE_LABEL,
+} from "@/types/advance-receipts";
 import AdvanceReceiptForm from "./AdvanceReceiptForm";
 
 function formatDate(value?: string) {
@@ -65,6 +72,7 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
   const activeTax = useActiveAdvanceTaxInvoiceQuery(id, Boolean(doc) && received);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [canSaveDraft, setCanSaveDraft] = useState(true);
   const canPrint = !isMatrixPermissionMode() || hasPermission("FINANCE_ADVANCE_RECEIPTS.EXPORT");
 
   const printReceipt = async () => {
@@ -107,6 +115,7 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
                 htmlType="submit"
                 form="advance-receipt-edit"
                 loading={update.isPending}
+                disabled={!canSaveDraft || update.isPending}
               >
                 {t("บันทึกร่าง")}
               </Button>
@@ -175,6 +184,7 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
           <AdvanceReceiptForm
             formId="advance-receipt-edit"
             initial={doc}
+            onCanSaveChange={setCanSaveDraft}
             onSubmit={(body) => update.mutate(body)}
           />
         </>
@@ -207,7 +217,27 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
                 {
                   label: t("เลขที่ใบรับชำระ"),
                   value: doc.arReceiptId ? (
-                    <Link href={arReceiptRoutes.detail(doc.arReceiptId)}>{doc.receiptNo}</Link>
+                    <span>
+                      <Link href={arReceiptRoutes.detail(doc.arReceiptId)}>
+                        {doc.receiptNo}
+                      </Link>
+                      {doc.receiptStatus ? (
+                        <>
+                          {" · "}
+                          <Tag
+                            color={
+                              doc.receiptStatus === "CANCELLED" ? "red" : "green"
+                            }
+                            style={{ marginInlineEnd: 0 }}
+                          >
+                            {t(
+                              AR_RECEIPT_STATUS_LABEL[doc.receiptStatus] ??
+                                doc.receiptStatus,
+                            )}
+                          </Tag>
+                        </>
+                      ) : null}
+                    </span>
                   ) : (
                     "—"
                   ),
@@ -216,12 +246,15 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
             },
           ]}
         >
-          {doc.status === "CANCELLED" ? (
-            <Tag color="red" style={{ marginBottom: 12 }}>
-              {t("ยกเลิก")}
-              {doc.cancelReason ? ` — ${doc.cancelReason}` : ""}
-            </Tag>
-          ) : null}
+          <Tag
+            color={ADVANCE_STATUS_COLOR[doc.status] ?? "default"}
+            style={{ marginBottom: 12 }}
+          >
+            {t(ADVANCE_STATUS_LABEL[doc.status] ?? doc.status)}
+            {doc.status === "CANCELLED" && doc.cancelReason
+              ? ` — ${doc.cancelReason}`
+              : ""}
+          </Tag>
           <div style={{ marginLeft: "auto", maxWidth: 360 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span>{t("ยอดก่อน VAT")}</span>
@@ -240,7 +273,11 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
               <strong>{formatMoney(doc.appliedAmount)}</strong>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{t("คงเหลือ")}</span>
+              <span>
+                {doc.status === "CANCELLED"
+                  ? t("คงเหลือที่ใช้ได้")
+                  : t("คงเหลือ")}
+              </span>
               <strong>{formatMoney(doc.remainingAmount)}</strong>
             </div>
           </div>

@@ -113,10 +113,24 @@ export type AdvanceCandidate = {
   vatRate?: string;
 };
 
+export type AdvanceSuggestedAllocation = {
+  advanceReceiptId: string;
+  amount: string;
+};
+
 export type AdvanceCandidateList = {
   salesOrderId: string;
+  depositTotalAmount: string;
+  depositAppliedAmount: string;
   depositAvailableAmount: string;
   maxDeductibleAmount: string;
+  soBaseAmount?: string;
+  priorInvoicedBaseAmount?: string;
+  currentBaseAmount?: string;
+  currentInvoiceGrossAmount?: string;
+  suggestedCumulativeAmount?: string;
+  suggestedAmount?: string;
+  suggestedAllocations?: AdvanceSuggestedAllocation[];
   items: AdvanceCandidate[];
 };
 
@@ -243,6 +257,8 @@ export type UpdateSalesInvoiceBody = {
   invoiceDate?: string;
   dueDate?: string;
   remark?: string;
+  /** แทนที่ยอดหักมัดจำของใบร่าง (ส่ง [] เพื่อล้าง) */
+  advanceDeductions?: SalesInvoiceAdvanceDeductionInput[];
 };
 
 export type SalesInvoiceApiResponse = {
