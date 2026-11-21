@@ -60,7 +60,8 @@ export function useApproveSalesCreditNoteMutation(id: string) {
 export function useCancelSalesCreditNoteMutation(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => cancelSalesCreditNote(getAccessToken(), id),
+    mutationFn: (body?: { reason?: string }) =>
+    cancelSalesCreditNote(getAccessToken(), id, body),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: salesCreditNotesQueryKey });
     },

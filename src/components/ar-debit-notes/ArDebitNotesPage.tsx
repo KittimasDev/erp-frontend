@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Form, Input, InputNumber, Modal, Select, Table, Tag } from "antd";
+import { App, Button, Checkbox, DatePicker, Form, Input, InputNumber, Modal, Radio, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -15,7 +15,7 @@ import styles from "@/components/finance/shared/finance-list-page.module.css";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useArDebitNotesQuery, useCreateArDebitNoteMutation } from "@/hooks/ar-adjustments/useArAdjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { useSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import { useSalesInvoiceQuery, useSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useT } from "@/lib/i18n/useT";
 import { AR_DEBIT_BASE } from "@/lib/sales/ar-routes";
 import { AR_DEBIT_STATUS_COLOR, AR_DEBIT_STATUS_LABEL, type ArDebitNote } from "@/types/ar-adjustments";
@@ -26,6 +26,7 @@ const PAGE_SIZE = 20;
 /** ใบเพิ่มหนี้ลูกหนี้ — เพิ่มยอดของใบตั้งลูกหนี้ (AR) ที่ยืนยันแล้ว */
 export default function ArDebitNotesPage() {
   const t = useT();
+  const { message } = App.useApp();
   const router = useRouter();
   const perms = useScreenActionPermissions(SCREEN_CODE);
   const [page, setPage] = useState(1);
@@ -35,8 +36,35 @@ export default function ArDebitNotesPage() {
   const query = useArDebitNotesQuery({ page, limit: PAGE_SIZE, keyword, status });
   const createMutation = useCreateArDebitNoteMutation();
   const [open, setOpen] = useState(false);
-  const [form] = Form.useForm<{ salesInvoiceId: string; debitNoteDate: dayjs.Dayjs; reason: string; subtotalAmount: number; vatPercent?: number; remark?: string }>();
+  const [form] = Form.useForm<{
+    salesInvoiceId: string;
+    debitNoteDate: dayjs.Dayjs;
+    reason: string;
+    entryMode: "AMOUNT" | "LINES";
+    subtotalAmount?: number;
+    vatPercent?: number;
+    remark?: string;
+  }>();
   const invoices = useSalesInvoicesQuery(open ? { status: "POSTED", limit: 200 } : undefined);
+  const watchedInvoice = Form.useWatch("salesInvoiceId", form);
+  const entryMode = Form.useWatch("entryMode", form) ?? "AMOUNT";
+  const sourceInvoice = useSalesInvoiceQuery(open && entryMode === "LINES" ? watchedInvoice : undefined);
+  const [lineDrafts, setLineDrafts] = useState<
+    Array<{ id: string; itemCode: string; itemName: string; quantity: number; unitPrice: number; selected: boolean }>
+  >([]);
+  useEffect(() => {
+    const items = sourceInvoice.data?.data.items ?? [];
+    setLineDrafts(
+      items.map((item) => ({
+        id: item.id,
+        itemCode: item.itemCode ?? "",
+        itemName: item.itemName ?? "",
+        quantity: 0,
+        unitPrice: Number(item.unitPrice),
+        selected: false,
+      })),
+    );
+  }, [sourceInvoice.data]);
 
   if (!perms.canView) return <AccessDenied screenCodes={[SCREEN_CODE]} />;
 
@@ -64,7 +92,7 @@ export default function ArDebitNotesPage() {
         subtitle={t("เพิ่มยอดของใบตั้งลูกหนี้ที่ยืนยันแล้ว เช่น ปรับราคา/ค่าบริการเพิ่ม")}
         actions={
           perms.canAdd ? (
-            <Button type="primary" onClick={() => { form.resetFields(); form.setFieldsValue({ debitNoteDate: dayjs() }); setOpen(true); }}>
+            <Button type="primary" onClick={() => { form.resetFields(); form.setFieldsValue({ debitNoteDate: dayjs(), entryMode: "AMOUNT" }); setOpen(true); }}>
               {t("สร้างใบเพิ่มหนี้")}
             </Button>
           ) : null
@@ -117,11 +145,24 @@ export default function ArDebitNotesPage() {
           layout="vertical"
           onFinish={async (v) => {
             try {
+              const picked = lineDrafts.filter((line) => line.selected && line.quantity > 0);
+              if (v.entryMode === "LINES" && picked.length === 0) {
+                message.error(t("เลือกอย่างน้อย 1 รายการ"));
+                return;
+              }
               const res = await createMutation.mutateAsync({
                 salesInvoiceId: v.salesInvoiceId,
                 debitNoteDate: v.debitNoteDate.format("YYYY-MM-DD"),
                 reason: v.reason.trim(),
-                subtotalAmount: v.subtotalAmount,
+                subtotalAmount: v.entryMode === "LINES" ? undefined : v.subtotalAmount,
+                items:
+                  v.entryMode === "LINES"
+                    ? picked.map((line) => ({
+                        salesInvoiceItemId: line.id,
+                        quantity: line.quantity,
+                        unitPrice: line.unitPrice,
+                      }))
+                    : undefined,
                 vatPercent: v.vatPercent,
                 remark: v.remark?.trim() || undefined,
               });
@@ -147,9 +188,80 @@ export default function ArDebitNotesPage() {
           <Form.Item name="reason" label={t("เหตุผล")} rules={[{ required: true, message: t("ระบุเหตุผล") }]}>
             <Input maxLength={2000} />
           </Form.Item>
-          <Form.Item name="subtotalAmount" label={t("ยอดเพิ่ม (ก่อน VAT)")} rules={[{ required: true, message: t("ระบุจำนวนเงิน") }, { type: "number", min: 0.01, message: t("ต้องมากกว่า 0") }]}>
-            <InputNumber precision={2} min={0} style={{ width: "100%" }} />
+          <Form.Item name="entryMode" label={t("วิธีระบุยอด")} initialValue="AMOUNT">
+            <Radio.Group>
+              <Radio value="AMOUNT">{t("ระบุยอดรวม")}</Radio>
+              <Radio value="LINES">{t("รายการจากใบแจ้งหนี้")}</Radio>
+            </Radio.Group>
           </Form.Item>
+          {entryMode !== "LINES" ? (
+            <Form.Item name="subtotalAmount" label={t("ยอดเพิ่ม (ก่อน VAT)")} rules={[{ required: true, message: t("ระบุจำนวนเงิน") }, { type: "number", min: 0.01, message: t("ต้องมากกว่า 0") }]}>
+              <InputNumber precision={2} min={0} style={{ width: "100%" }} />
+            </Form.Item>
+          ) : (
+            <Table
+              size="small"
+              pagination={false}
+              rowKey="id"
+              dataSource={lineDrafts}
+              columns={[
+                {
+                  title: "",
+                  width: 48,
+                  render: (_, line, index) => (
+                    <Checkbox
+                      checked={line.selected}
+                      onChange={(event) =>
+                        setLineDrafts((current) =>
+                          current.map((row, rowIndex) =>
+                            rowIndex === index ? { ...row, selected: event.target.checked } : row,
+                          ),
+                        )
+                      }
+                    />
+                  ),
+                },
+                { title: t("รหัส"), dataIndex: "itemCode", width: 110 },
+                { title: t("สินค้า"), dataIndex: "itemName" },
+                {
+                  title: t("จำนวนที่เพิ่ม"),
+                  width: 130,
+                  render: (_, line, index) => (
+                    <InputNumber
+                      min={0}
+                      value={line.quantity}
+                      style={{ width: "100%" }}
+                      onChange={(value) =>
+                        setLineDrafts((current) =>
+                          current.map((row, rowIndex) =>
+                            rowIndex === index ? { ...row, quantity: Number(value ?? 0) } : row,
+                          ),
+                        )
+                      }
+                    />
+                  ),
+                },
+                {
+                  title: t("ราคาต่อหน่วยของยอดที่เพิ่ม"),
+                  width: 180,
+                  render: (_, line, index) => (
+                    <InputNumber
+                      min={0}
+                      value={line.unitPrice}
+                      style={{ width: "100%" }}
+                      onChange={(value) =>
+                        setLineDrafts((current) =>
+                          current.map((row, rowIndex) =>
+                            rowIndex === index ? { ...row, unitPrice: Number(value ?? 0) } : row,
+                          ),
+                        )
+                      }
+                    />
+                  ),
+                },
+              ]}
+            />
+          )}
           <Form.Item name="vatPercent" label={t("VAT % (เว้นว่าง = ตามใบสั่งขาย)")}>
             <InputNumber precision={2} min={0} max={100} style={{ width: "100%" }} />
           </Form.Item>

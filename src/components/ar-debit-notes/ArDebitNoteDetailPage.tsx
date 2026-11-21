@@ -5,7 +5,7 @@ import PageLoading from "@/components/common/PageLoading";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Breadcrumb, Button, DatePicker, Descriptions, Form, Input, InputNumber, Modal, Tag } from "antd";
+import { App, Breadcrumb, Button, DatePicker, Descriptions, Form, Input, InputNumber, Modal, Table, Tag } from "antd";
 import dayjs from "dayjs";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
@@ -150,6 +150,9 @@ function View({ note, canEdit, canApprove }: { note: ArDebitNote; canEdit: boole
             { key: "st", label: t("สถานะ"), children: <Tag color={AR_DEBIT_STATUS_COLOR[note.status] ?? "default"}>{t(AR_DEBIT_STATUS_LABEL[note.status] ?? note.status)}</Tag> },
             { key: "d", label: t("วันที่"), children: formatThaiDate(note.debitNoteDate) },
             { key: "inv", label: t("ใบตั้งลูกหนี้ที่เพิ่มยอด"), children: <Link href={arRoutes.detail(note.salesInvoiceId)}>{note.invoiceNo}</Link> },
+            { key: "invd", label: t("วันที่เอกสารต้นทาง"), children: note.invoiceDate ? formatThaiDate(note.invoiceDate) : "—" },
+            { key: "tax", label: t("ใบกำกับ"), children: note.taxInvoiceNo || "—" },
+            { key: "taxd", label: t("วันที่ใบกำกับ"), children: note.taxInvoiceDate ? formatThaiDate(note.taxInvoiceDate) : "—" },
             { key: "rs", label: t("เหตุผล"), children: note.reason },
             { key: "sub", label: t("ยอดเพิ่ม (ก่อน VAT)"), children: money.format(Number(note.subtotalAmount)) },
             { key: "vat", label: `VAT ${Number(note.vatPercent)}%`, children: money.format(Number(note.vatAmount)) },
@@ -158,6 +161,24 @@ function View({ note, canEdit, canApprove }: { note: ArDebitNote; canEdit: boole
             { key: "rm", label: t("หมายเหตุ"), children: note.remark || "—" },
           ]}
         />
+        {note.items?.length ? (
+          <Table
+            style={{ marginTop: 12 }}
+            size="small"
+            pagination={false}
+            rowKey="salesInvoiceItemId"
+            dataSource={note.items}
+            columns={[
+              { title: t("รหัส"), dataIndex: "itemCode" },
+              { title: t("สินค้า"), dataIndex: "itemName" },
+              { title: t("จำนวน"), dataIndex: "quantity", align: "right" },
+              { title: t("ราคาต่อหน่วย"), dataIndex: "unitPrice", align: "right", render: (v: string) => money.format(Number(v)) },
+              { title: t("มูลค่าก่อน VAT"), dataIndex: "amount", align: "right", render: (v: string) => money.format(Number(v)) },
+              { title: "VAT", dataIndex: "vatAmount", align: "right", render: (v: string) => money.format(Number(v)) },
+              { title: t("ยอดรวม"), dataIndex: "lineTotal", align: "right", render: (v: string) => money.format(Number(v)) },
+            ]}
+          />
+        ) : null}
       </div>
       </DocumentPaper>
       <ESignatureHistoryCard documentId={note.id} />

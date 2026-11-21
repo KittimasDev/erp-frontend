@@ -1,10 +1,14 @@
 import { apiFetch } from "./client";
 import type {
+  CreditNoteInvoiceCandidate,
+  CreditNoteInvoiceSource,
   SalesCreditNoteListResponse,
   SalesCreditNotePendingListResponse,
   SalesCreditNoteResponse,
   SaveSalesCreditNoteBody,
 } from "@/types/sales-credit-notes";
+
+type Envelope<T> = { statusCode: number; message: string; data: T };
 
 export function getPendingSalesCreditNotes(token: string) {
   return apiFetch<SalesCreditNotePendingListResponse>(
@@ -72,9 +76,37 @@ export function approveSalesCreditNote(token: string, id: string) {
   );
 }
 
-export function cancelSalesCreditNote(token: string, id: string) {
+export function cancelSalesCreditNote(
+  token: string,
+  id: string,
+  body?: { reason?: string },
+) {
   return apiFetch<SalesCreditNoteResponse>(
     `/api/sales-credit-notes/${id}/cancel`,
+    { method: "POST", token, body: body ?? {} },
+  );
+}
+
+export function getCreditNoteInvoiceCandidates(token: string, keyword?: string) {
+  const search = new URLSearchParams();
+  if (keyword?.trim()) search.set("keyword", keyword.trim());
+  const qs = search.toString();
+  return apiFetch<Envelope<CreditNoteInvoiceCandidate[]>>(
+    `/api/sales-credit-notes/invoice-candidates${qs ? `?${qs}` : ""}`,
+    { token },
+  );
+}
+
+export function getCreditNoteInvoiceSource(token: string, salesInvoiceId: string) {
+  return apiFetch<Envelope<CreditNoteInvoiceSource>>(
+    `/api/sales-credit-notes/invoice-source/${salesInvoiceId}`,
+    { token },
+  );
+}
+
+export function createReturnNoteFromCreditNote(token: string, creditNoteId: string) {
+  return apiFetch<Envelope<{ id: string }>>(
+    `/api/return-notes/from-credit-note/${creditNoteId}`,
     { method: "POST", token },
   );
 }

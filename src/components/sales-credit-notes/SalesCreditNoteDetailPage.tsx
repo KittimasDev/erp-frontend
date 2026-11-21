@@ -6,7 +6,7 @@ import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Card, DatePicker, Descriptions, Input, InputNumber, Space, Table, Typography, Upload } from "antd";
+import { App, Button, Card, DatePicker, Descriptions, Input, InputNumber, Select, Space, Table, Typography, Upload } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -21,6 +21,8 @@ import {
   useSalesCreditNoteAttachmentsQuery,
   useSalesCreditNoteQuery,
 } from "@/hooks/sales-credit-notes/useSalesCreditNotesQuery";
+import { createReturnNoteFromCreditNote } from "@/lib/api/sales-credit-notes";
+import { getAccessToken } from "@/lib/auth/token";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
@@ -28,6 +30,7 @@ import { formatMoney } from "@/lib/i18n/format";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 import {
+  SALES_CREDIT_NOTE_REASON_LABEL,
   salesCreditNoteStatusLabel,
   type SalesCreditNote,
 } from "@/types/sales-credit-notes";
@@ -41,7 +44,9 @@ function useMoney() {
 }
 
 type DraftLine = {
-  pendingId: string;
+  key: string;
+  pendingId?: string | null;
+  salesInvoiceItemId?: string | null;
   itemCode: string;
   itemName: string;
   unitName: string;
@@ -49,6 +54,7 @@ type DraftLine = {
   remainingQuantity: number;
   unitPrice: number;
   discountAmount: number;
+  adjustmentAmount: number;
 };
 
 function canEdit() {
@@ -71,8 +77,11 @@ function canApprove() {
 }
 
 function lineAmount(line: DraftLine, vatMode: string, vatRate: number) {
-  const gross = line.quantity * line.unitPrice;
-  const discount = Math.min(Math.max(0, line.discountAmount), Math.max(0, gross));
+  const valueOnly = line.quantity <= 0;
+  const gross = valueOnly ? Math.max(0, line.adjustmentAmount) : line.quantity * line.unitPrice;
+  const discount = valueOnly
+    ? 0
+    : Math.min(Math.max(0, line.discountAmount), Math.max(0, gross));
   const net = Math.max(0, gross - discount);
   if (vatMode === "NONE" || vatRate <= 0) {
     return { gross, discount, net, vat: 0, total: net };
@@ -152,11 +161,14 @@ function DraftEditor({
   const money = useMoney();
   const update = useUpdateSalesCreditNoteMutation(note.id);
   const [date, setDate] = useState<Dayjs>(dayjs(note.creditNoteDate));
+  const [reasonCode, setReasonCode] = useState(note.reasonCode ?? "PRICE_REDUCTION");
   const [reason, setReason] = useState(note.reason ?? "");
   const [remark, setRemark] = useState(note.remark ?? "");
   const [lines, setLines] = useState<DraftLine[]>(
     note.items.map((item) => ({
+      key: item.id,
       pendingId: item.pendingId,
+      salesInvoiceItemId: item.salesInvoiceItemId,
       itemCode: item.itemCode,
       itemName: item.itemName,
       unitName: item.unitName,
@@ -164,6 +176,7 @@ function DraftEditor({
       remainingQuantity: item.remainingQuantity,
       unitPrice: item.unitPrice,
       discountAmount: item.discountAmount,
+      adjustmentAmount: item.quantity <= 0 ? item.amount : 0,
     })),
   );
 
@@ -190,8 +203,8 @@ function DraftEditor({
       width: 140,
       render: (_, line, index) => (
         <InputNumber
-          min={0.001}
-          max={line.remainingQuantity}
+          min={0}
+          max={line.pendingId ? line.remainingQuantity : undefined}
           value={line.quantity}
           style={{ width: "100%" }}
           onChange={(value) =>
@@ -243,6 +256,25 @@ function DraftEditor({
       ),
     },
     {
+      title: t("ลดเฉพาะมูลค่า"),
+      width: 140,
+      render: (_, line, index) => (
+        <InputNumber
+          min={0}
+          disabled={line.quantity > 0}
+          value={line.adjustmentAmount}
+          style={{ width: "100%" }}
+          onChange={(value) =>
+            setLines((current) =>
+              current.map((row, rowIndex) =>
+                rowIndex === index ? { ...row, adjustmentAmount: Number(value ?? 0) } : row,
+              ),
+            )
+          }
+        />
+      ),
+    },
+    {
       title: t("มูลค่าก่อน VAT"),
       width: 140,
       align: "right",
@@ -264,15 +296,29 @@ function DraftEditor({
 
   async function save() {
     try {
+      if (!note.salesInvoiceId) {
+        message.error(t("ใบลดหนี้ใบนี้ยังไม่ผูกใบแจ้งหนี้"));
+        return;
+      }
+      if (reason.trim().length < 5) {
+        message.error(t("ระบุข้อความเหตุผลอย่างน้อย 5 ตัวอักษร"));
+        return;
+      }
       await update.mutateAsync({
+        salesInvoiceId: note.salesInvoiceId,
+        salesTaxInvoiceId: note.salesTaxInvoiceId ?? undefined,
         creditNoteDate: date.format("YYYY-MM-DD"),
-        reason,
+        reasonCode,
+        reason: reason.trim(),
+        isReturn: reasonCode === "GOODS_RETURN",
         remark,
         items: lines.map((line) => ({
-          pendingId: line.pendingId,
+          pendingId: line.pendingId ?? undefined,
+          salesInvoiceItemId: line.salesInvoiceItemId ?? undefined,
           quantity: line.quantity,
           unitPrice: line.unitPrice,
           discountAmount: line.discountAmount,
+          adjustmentAmount: line.quantity <= 0 ? line.adjustmentAmount : undefined,
         })),
       });
       onSaved();
@@ -298,10 +344,21 @@ function DraftEditor({
           <DatePicker value={date} format="DD/MM/BBBB" onChange={(value) => value && setDate(value)} />
           <Typography.Text>{t("ลูกค้า")} {note.customerName}</Typography.Text>
           <Typography.Text>SO {note.salesOrderNo}</Typography.Text>
-          <Typography.Text>{t("ใบส่ง")} {note.deliveryOrderNo}</Typography.Text>
+          <Typography.Text>{t("ใบส่ง")} {note.deliveryOrderNo || "—"}</Typography.Text>
+          <Typography.Text>{t("ใบแจ้งหนี้")} {note.invoiceNo || "—"}</Typography.Text>
+          <Typography.Text>{t("ใบกำกับ")} {note.taxInvoiceNo || "—"}</Typography.Text>
         </Space>
+        <Select
+          value={reasonCode}
+          style={{ minWidth: 220 }}
+          onChange={setReasonCode}
+          options={Object.entries(SALES_CREDIT_NOTE_REASON_LABEL).map(([value, label]) => ({
+            value,
+            label: t(label),
+          }))}
+        />
         <Input
-          placeholder={t("เหตุผล")}
+          placeholder={t("ข้อความเหตุผล")}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
         />
@@ -312,7 +369,7 @@ function DraftEditor({
           rows={2}
         />
         <Table
-          rowKey="pendingId"
+          rowKey="key"
           size="small"
           pagination={false}
           columns={columns}
@@ -352,8 +409,20 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         <Descriptions.Item label={t("วันที่")}>{dayjs(note.creditNoteDate).format("DD/MM/BBBB")}</Descriptions.Item>
         <Descriptions.Item label={t("ลูกค้า")}>{note.customerName}</Descriptions.Item>
         <Descriptions.Item label={t("ใบสั่งขาย")}>{note.salesOrderNo}</Descriptions.Item>
-        <Descriptions.Item label={t("ใบส่งสินค้า")}>{note.deliveryOrderNo}</Descriptions.Item>
+        <Descriptions.Item label={t("ใบส่งสินค้า")}>{note.deliveryOrderNo || "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("ใบแจ้งหนี้")}>{note.invoiceNo || "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("ใบกำกับ")}>{note.taxInvoiceNo || "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("วันที่เอกสารต้นทาง")}>
+          {note.invoiceDate ? dayjs(note.invoiceDate).format("DD/MM/BBBB") : "—"}
+        </Descriptions.Item>
+        <Descriptions.Item label={t("มูลค่าเดิม")}>{money.format(note.sourceTotalAmount ?? 0)}</Descriptions.Item>
+        <Descriptions.Item label={t("รหัสเหตุผล")}>
+          {t(SALES_CREDIT_NOTE_REASON_LABEL[note.reasonCode ?? ""] ?? note.reasonCode ?? "—")}
+        </Descriptions.Item>
         <Descriptions.Item label={t("เหตุผล")}>{note.reason || "—"}</Descriptions.Item>
+        {note.cancelReason ? (
+          <Descriptions.Item label={t("เหตุผลที่ยกเลิก")}>{note.cancelReason}</Descriptions.Item>
+        ) : null}
         <Descriptions.Item label={t("หมายเหตุ")}>{note.remark || "—"}</Descriptions.Item>
         <Descriptions.Item label={t("ผู้สร้าง")}>{note.createdByName || "—"}</Descriptions.Item>
         <Descriptions.Item label={t("ผู้อนุมัติ")}>
@@ -473,7 +542,7 @@ function ActionBar({
   onDone: (text: string) => void;
   confirm: (title: string, onOk: () => Promise<void>) => void;
 }) {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const t = useT();
   const confirmNote = useConfirmSalesCreditNoteMutation(note.id);
   const approveNote = useApproveSalesCreditNoteMutation(note.id);
@@ -500,7 +569,12 @@ function ActionBar({
       creditNoteDate: dayjs(note.creditNoteDate).format("DD/MM/BBBB"),
       customerName: note.customerName,
       salesOrderNo: note.salesOrderNo,
-      deliveryOrderNo: note.deliveryOrderNo,
+      deliveryOrderNo: note.deliveryOrderNo ?? "",
+      invoiceNo: note.invoiceNo ?? "",
+      invoiceDate: note.invoiceDate ? dayjs(note.invoiceDate).format("DD/MM/BBBB") : "",
+      taxInvoiceNo: note.taxInvoiceNo ?? "",
+      taxInvoiceDate: note.taxInvoiceDate ? dayjs(note.taxInvoiceDate).format("DD/MM/BBBB") : "",
+      sourceTotalAmount: note.sourceTotalAmount ?? 0,
       reason: note.reason ?? "",
       remark: note.remark ?? "",
       grossAmount: note.grossAmount,
@@ -544,13 +618,26 @@ function ActionBar({
             loading={cancelNote.isPending}
             onClick={() =>
               confirm(t("ยกเลิกใบลดหนี้ร่าง จำนวนจะกลับเข้าคิว"), () =>
-                run(() => cancelNote.mutateAsync(), t("ยกเลิกใบลดหนี้แล้ว")),
+                run(() => cancelNote.mutateAsync({}), t("ยกเลิกใบลดหนี้แล้ว")),
               )
             }
           >
             {t("ยกเลิก")}
           </Button>
         </>
+      ) : null}
+      {note.status === "PENDING_APPROVAL" && canEdit() ? (
+        <Button
+          danger
+          loading={cancelNote.isPending}
+          onClick={() =>
+            confirm(t("ยกเลิกใบลดหนี้ที่รออนุมัติ"), () =>
+              run(() => cancelNote.mutateAsync({}), t("ยกเลิกใบลดหนี้แล้ว")),
+            )
+          }
+        >
+          {t("ยกเลิก")}
+        </Button>
       ) : null}
       {note.status === "PENDING_APPROVAL" && canApprove() ? (
         <Button
@@ -566,11 +653,60 @@ function ActionBar({
         </Button>
       ) : null}
       {note.status === "COMPLETED" ? (
-        <Button onClick={() => printPdf().catch((error: unknown) =>
-          message.error(error instanceof Error ? error.message : t("พิมพ์ไม่สำเร็จ")),
-        )}>
-          {t("พิมพ์ PDF")}
-        </Button>
+        <>
+          <Button onClick={() => printPdf().catch((error: unknown) =>
+            message.error(error instanceof Error ? error.message : t("พิมพ์ไม่สำเร็จ")),
+          )}>
+            {t("พิมพ์ PDF")}
+          </Button>
+          {note.isReturn && note.deliveryOrderId ? (
+            <Button
+              onClick={() =>
+                confirm(t("สร้างใบรับคืนจากใบลดหนี้ใบนี้"), async () => {
+                  try {
+                    const res = await createReturnNoteFromCreditNote(getAccessToken(), note.id);
+                    onDone(t("สร้างใบรับคืนแล้ว"));
+                    window.location.assign(`/return-notes/${res.data.id}`);
+                  } catch (error) {
+                    message.error(error instanceof Error ? error.message : t("สร้างใบรับคืนไม่สำเร็จ"));
+                  }
+                })
+              }
+            >
+              {t("สร้างใบรับคืน")}
+            </Button>
+          ) : null}
+          {canEdit() ? (
+            <Button
+              danger
+              loading={cancelNote.isPending}
+              onClick={() => {
+                let reason = "";
+                modal.confirm({
+                  title: t("ยกเลิกใบลดหนี้ที่อนุมัติแล้ว"),
+                  content: (
+                    <Input.TextArea
+                      rows={3}
+                      placeholder={t("เหตุผลที่ยกเลิกอย่างน้อย 5 ตัวอักษร")}
+                      onChange={(event) => {
+                        reason = event.target.value;
+                      }}
+                    />
+                  ),
+                  okText: t("ยืนยัน"),
+                  cancelText: t("ปิด"),
+                  onOk: () =>
+                    run(
+                      () => cancelNote.mutateAsync({ reason: reason.trim() }),
+                      t("ยกเลิกใบลดหนี้แล้ว"),
+                    ),
+                });
+              }}
+            >
+              {t("ยกเลิก")}
+            </Button>
+          ) : null}
+        </>
       ) : null}
     </Space>
   );

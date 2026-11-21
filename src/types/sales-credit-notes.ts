@@ -43,9 +43,19 @@ export type SalesCreditNotePendingRow = {
   reason?: string;
 };
 
+export const SALES_CREDIT_NOTE_REASON_LABEL: Record<string, string> = {
+  PRICE_REDUCTION: "ลดราคา",
+  GOODS_RETURN: "คืนสินค้า",
+  WRONG_PRICE: "คิดราคาผิด",
+  WRONG_DISCOUNT: "คำนวณส่วนลดผิด",
+  DEFECTIVE: "สินค้าชำรุด",
+  OTHER: "อื่นๆ",
+};
+
 export type SalesCreditNoteItem = {
   id: string;
-  pendingId: string;
+  pendingId?: string | null;
+  salesInvoiceItemId?: string | null;
   itemCode: string;
   itemName: string;
   unitName: string;
@@ -67,8 +77,20 @@ export type SalesCreditNote = {
   customerName: string;
   salesOrderId: string;
   salesOrderNo: string;
-  deliveryOrderId: string;
-  deliveryOrderNo: string;
+  deliveryOrderId?: string | null;
+  deliveryOrderNo?: string;
+  salesInvoiceId?: string | null;
+  invoiceNo?: string;
+  invoiceDate?: string;
+  salesTaxInvoiceId?: string | null;
+  taxInvoiceNo?: string;
+  taxInvoiceDate?: string;
+  reasonCode?: string | null;
+  isReturn?: boolean;
+  sourceSubtotalAmount?: number;
+  sourceVatAmount?: number;
+  sourceTotalAmount?: number;
+  cancelReason?: string | null;
   reason?: string;
   remark?: string;
   vatMode: string;
@@ -85,17 +107,71 @@ export type SalesCreditNote = {
 };
 
 export type SalesCreditNoteLineInput = {
-  pendingId: string;
+  pendingId?: string;
+  salesInvoiceItemId?: string;
   quantity: number;
   unitPrice: number;
   discountAmount: number;
+  adjustmentAmount?: number;
 };
 
 export type SaveSalesCreditNoteBody = {
+  salesInvoiceId: string;
+  salesTaxInvoiceId?: string;
   creditNoteDate?: string;
-  reason?: string;
+  reasonCode: string;
+  reason: string;
+  isReturn?: boolean;
   remark?: string;
   items: SalesCreditNoteLineInput[];
+};
+
+export type CreditNoteInvoiceCandidate = {
+  id: string;
+  invoiceNo: string;
+  invoiceDate: string;
+  customerId: string;
+  customerName: string;
+  subtotalAmount: string;
+  vatAmount: string;
+  totalAmount: string;
+  salesTaxInvoiceId?: string | null;
+  taxInvoiceNo?: string | null;
+  taxInvoiceDate?: string | null;
+};
+
+export type CreditNoteInvoiceSourceLine = {
+  id: string;
+  itemCode: string;
+  itemName: string;
+  unitName: string;
+  quantity: number;
+  unitPrice: number;
+  discountAmount: number;
+  amount: number;
+  creditedQuantity: number;
+  creditedAmount: number;
+  remainingQuantity: number;
+  remainingAmount: number;
+};
+
+export type CreditNoteInvoiceSource = {
+  id: string;
+  invoiceNo: string;
+  invoiceDate: string;
+  customerId: string;
+  vatMode: string;
+  vatRate: number;
+  subtotalAmount: string;
+  vatAmount: string;
+  totalAmount: string;
+  lines: CreditNoteInvoiceSourceLine[];
+  taxInvoices: Array<{
+    id: string;
+    taxInvoiceNo: string;
+    taxInvoiceDate: string;
+    status: string;
+  }>;
 };
 
 type ApiEnvelope<T> = {

@@ -53,6 +53,12 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
           t("เข้าเครดิตลูกค้า")
         ),
     },
+    {
+      title: t("ที่มา"),
+      dataIndex: "origin",
+      width: 110,
+      render: (v?: string) => (v === "AUTO" ? t("อัตโนมัติ") : t("ตัดมือ")),
+    },
     { title: t("จำนวนเงิน"), dataIndex: "amount", align: "right", render: (v: string) => money.format(Number(v)) },
     {
       title: t("สถานะ"),

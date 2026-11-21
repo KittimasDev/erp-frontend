@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { App, DatePicker, Select, Table, Tag } from "antd";
+import { App, Checkbox, DatePicker, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -59,17 +59,22 @@ export default function ArAgingReportPage() {
   const [draftCustomerId, setDraftCustomerId] = useState<string | undefined>();
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [customerId, setCustomerId] = useState<string | undefined>();
+  const [draftAdjustments, setDraftAdjustments] = useState(false);
+  const [includeAdjustments, setIncludeAdjustments] = useState(false);
   const [page, setPage] = useState(1);
   const applyFilters = () => {
     setRange(draftRange);
     setCustomerId(draftCustomerId);
+    setIncludeAdjustments(draftAdjustments);
     setPage(1);
   };
   const clearFilters = () => {
     setDraftRange(null);
     setDraftCustomerId(undefined);
+    setDraftAdjustments(false);
     setRange(null);
     setCustomerId(undefined);
+    setIncludeAdjustments(false);
     setPage(1);
   };
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
@@ -85,10 +90,11 @@ export default function ArAgingReportPage() {
       dateFrom: range?.[0]?.format("YYYY-MM-DD"),
       dateTo: range?.[1]?.format("YYYY-MM-DD"),
       customerId,
+      includeAdjustments: includeAdjustments || undefined,
       page,
       limit: 20,
     }),
-    [range, customerId, page],
+    [range, customerId, includeAdjustments, page],
   );
 
   const reportQuery = useArAgingReportQuery(queryParams);
@@ -259,6 +265,11 @@ export default function ArAgingReportPage() {
             }))}
           />
         </FilterField>
+        <FilterField label={t("เอกสารปรับหนี้")}>
+          <Checkbox checked={draftAdjustments} onChange={(event) => setDraftAdjustments(event.target.checked)}>
+            {t("แสดงใบลดหนี้และใบเพิ่มหนี้ใต้ใบแจ้งหนี้")}
+          </Checkbox>
+        </FilterField>
       </FilterCard>
 
       <div className={masterStyles.tableCard}>
@@ -275,6 +286,38 @@ export default function ArAgingReportPage() {
           columns={columns}
           dataSource={data?.items ?? []}
           loading={reportQuery.isFetching}
+          expandable={
+            includeAdjustments
+              ? {
+                  rowExpandable: (row) => (row.adjustments?.length ?? 0) > 0,
+                  expandedRowRender: (row) => (
+                    <Table
+                      size="small"
+                      pagination={false}
+                      rowKey="docNo"
+                      dataSource={row.adjustments ?? []}
+                      columns={[
+                        {
+                          title: t("ประเภท"),
+                          dataIndex: "kind",
+                          render: (kind: string) =>
+                            kind === "DEBIT_NOTE" ? t("ใบเพิ่มหนี้") : t("ใบลดหนี้"),
+                        },
+                        { title: t("เลขที่"), dataIndex: "docNo" },
+                        { title: t("วันที่"), dataIndex: "docDate", render: (v: string) => formatDate(v) },
+                        { title: t("ใบกำกับ"), dataIndex: "taxInvoiceNo", render: (v?: string) => v || "—" },
+                        {
+                          title: t("ยอดเอกสาร"),
+                          dataIndex: "amount",
+                          align: "right",
+                          render: (v: string) => formatMoney(v, lang),
+                        },
+                      ]}
+                    />
+                  ),
+                }
+              : undefined
+          }
           pagination={{
             current: page,
             pageSize: 20,

@@ -168,6 +168,10 @@ export function buildArDebitNotePdfData(n: ArDebitNote): SalesCommercialPdfData 
         rows: [
           { label: "ลูกค้า", value: n.customerName ?? "" },
           { label: "อ้างอิงใบแจ้งหนี้", value: n.invoiceNo ?? "" },
+          { label: "วันที่เอกสารต้นทาง", value: n.invoiceDate ? thaiDate(n.invoiceDate) : "—" },
+          { label: "อ้างอิงใบกำกับ", value: n.taxInvoiceNo ?? "—" },
+          { label: "วันที่ใบกำกับ", value: n.taxInvoiceDate ? thaiDate(n.taxInvoiceDate) : "—" },
+          { label: "มูลค่าที่เพิ่ม", value: num(n.totalAmount).toFixed(2) },
           { label: "เหตุผล", value: n.reason, full: true },
         ],
       },
@@ -176,16 +180,26 @@ export function buildArDebitNotePdfData(n: ArDebitNote): SalesCommercialPdfData 
     itemGroups: [
       {
         heading: "รายการเพิ่มหนี้",
-        items: [
-          {
-            no: 1,
-            itemCode: n.invoiceNo ?? "—",
-            itemName: n.reason,
-            unit: "",
-            qty: 0,
-            amount: num(n.subtotalAmount),
-          },
-        ],
+        items: n.items?.length
+          ? n.items.map((item, index) => ({
+              no: index + 1,
+              itemCode: item.itemCode ?? "—",
+              itemName: item.itemName ?? n.reason,
+              unit: "",
+              qty: num(item.quantity),
+              unitPrice: num(item.unitPrice),
+              amount: num(item.amount),
+            }))
+          : [
+              {
+                no: 1,
+                itemCode: n.invoiceNo ?? "—",
+                itemName: n.reason,
+                unit: "",
+                qty: 0,
+                amount: num(n.subtotalAmount),
+              },
+            ],
       },
     ],
     columnLabels: { no: "ลำดับ", code: "อ้างอิงใบแจ้งหนี้", name: "รายละเอียด", amount: "จำนวนเงิน" },

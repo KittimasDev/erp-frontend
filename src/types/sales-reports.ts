@@ -10,6 +10,7 @@ export type QueryArAgingReportParams = {
   dateFrom?: string;
   dateTo?: string;
   customerId?: string;
+  includeAdjustments?: boolean;
   page?: number;
   limit?: number;
 };
@@ -28,6 +29,13 @@ export type ArAgingRow = {
   paymentStatus: string;
   agingBucket: string;
   daysOverdue: number;
+  adjustments?: Array<{
+    kind: "CREDIT_NOTE" | "DEBIT_NOTE";
+    docNo: string;
+    docDate: string;
+    amount: string;
+    taxInvoiceNo?: string;
+  }>;
 };
 
 export type ArAgingSummary = {

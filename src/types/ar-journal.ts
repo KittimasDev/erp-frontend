@@ -78,6 +78,11 @@ export type ArJournalEntry = {
   subtotalAmount?: number;
   vatAmount?: number;
   totalAmount?: number;
+  sourceInvoiceNo?: string;
+  sourceTaxInvoiceNo?: string;
+  originalAmount?: number;
+  adjustmentAmount?: number;
+  adjustedAmount?: number;
   paymentMethod?: string;
   bankLabel?: string;
   transactionRef?: string;

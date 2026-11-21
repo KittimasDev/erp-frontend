@@ -3,6 +3,7 @@ export type CreditNoteSettlement = {
   id: string;
   creditNoteId: string;
   settleType: "OFFSET" | "CREDIT" | string;
+  origin?: "AUTO" | "MANUAL" | string;
   salesInvoiceId?: string | null;
   invoiceNo?: string | null;
   amount: string;
@@ -58,6 +59,13 @@ export type ArDebitNote = {
   customerName?: string;
   salesInvoiceId: string;
   invoiceNo?: string;
+  invoiceDate?: string;
+  salesTaxInvoiceId?: string | null;
+  taxInvoiceNo?: string | null;
+  taxInvoiceDate?: string | null;
+  entryMode?: string;
+  postingMode?: string;
+  items?: ArDebitNoteItem[];
   reason: string;
   subtotalAmount: string;
   vatPercent: string;
@@ -69,11 +77,30 @@ export type ArDebitNote = {
   createdAt: string;
 };
 
+export type ArDebitNoteItem = {
+  salesInvoiceItemId: string;
+  itemCode?: string;
+  itemName?: string;
+  quantity: string;
+  unitPrice: string;
+  amount: string;
+  vatAmount: string;
+  lineTotal: string;
+};
+
+export type SaveArDebitNoteLine = {
+  salesInvoiceItemId: string;
+  quantity: number;
+  unitPrice: number;
+};
+
 export type SaveArDebitNoteBody = {
   salesInvoiceId: string;
+  salesTaxInvoiceId?: string;
   debitNoteDate: string;
   reason: string;
-  subtotalAmount: number;
+  subtotalAmount?: number;
+  items?: SaveArDebitNoteLine[];
   vatPercent?: number;
   remark?: string;
 };

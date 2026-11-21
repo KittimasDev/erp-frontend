@@ -18,6 +18,7 @@ import {
   type SalesCreditNote,
   type SalesCreditNotePendingRow,
 } from "@/types/sales-credit-notes";
+import CreateCreditNoteModal from "@/components/sales-credit-notes/CreateCreditNoteModal";
 import PageHeader from "@/components/common/PageHeader";
 import FilterCard, { FilterField } from "@/components/common/FilterCard";
 import { formatMoney } from "@/lib/i18n/format";
@@ -43,6 +44,8 @@ export default function SalesCreditNotesPage() {
     search: keyword,
   });
   const createNote = useCreateSalesCreditNoteMutation();
+  const [createPendingId, setCreatePendingId] = useState<string | null>(null);
+  const [createFromInvoice, setCreateFromInvoice] = useState(false);
 
   const groups = useMemo(() => {
     const map = new Map<
@@ -151,20 +154,14 @@ export default function SalesCreditNotesPage() {
     setKeyword("");
   };
 
-  async function createFromDelivery(deliveryOrderId: string) {
-    const group = groups.find((row) => row.deliveryOrderId === deliveryOrderId);
-    if (!group) return;
+  const pendingGroup = groups.find((row) => row.deliveryOrderId === createPendingId) ?? null;
+
+  async function submitCreate(body: Parameters<typeof createNote.mutateAsync>[0]) {
     try {
-      const res = await createNote.mutateAsync({
-        reason: group.lines.find((line) => line.reason)?.reason,
-        items: group.lines.map((line) => ({
-          pendingId: line.id,
-          quantity: line.remainingQuantity,
-          unitPrice: line.unitPrice,
-          discountAmount: 0,
-        })),
-      });
+      const res = await createNote.mutateAsync(body);
       message.success(t("สร้างใบลดหนี้ร่างแล้ว"));
+      setCreatePendingId(null);
+      setCreateFromInvoice(false);
       router.push(`/finance/receivables/credit-notes/${res.data.id}`);
     } catch (error) {
       message.error(error instanceof Error ? error.message : t("สร้างใบลดหนี้ไม่สำเร็จ"));
@@ -176,6 +173,11 @@ export default function SalesCreditNotesPage() {
       <PageHeader
         title={t("ใบลดหนี้")}
         subtitle={t("รอดำเนินการลดหนี้จากใบรับคืนสินค้า")}
+        actions={
+          <Button type="primary" onClick={() => setCreateFromInvoice(true)}>
+            {t("สร้างจากใบแจ้งหนี้")}
+          </Button>
+        }
       />
 
       <Card title={t("รอดำเนินการลดหนี้")}>
@@ -194,7 +196,7 @@ export default function SalesCreditNotesPage() {
                 <Button
                   type="primary"
                   loading={createNote.isPending}
-                  onClick={() => createFromDelivery(group.deliveryOrderId)}
+                  onClick={() => setCreatePendingId(group.deliveryOrderId)}
                 >
                   {t("สร้างใบลดหนี้")}
                 </Button>
@@ -261,6 +263,16 @@ export default function SalesCreditNotesPage() {
           })}
         />
       </Card>
+      <CreateCreditNoteModal
+        open={createFromInvoice || pendingGroup != null}
+        pending={pendingGroup}
+        saving={createNote.isPending}
+        onClose={() => {
+          setCreatePendingId(null);
+          setCreateFromInvoice(false);
+        }}
+        onSubmit={submitCreate}
+      />
     </Space>
   );
 }

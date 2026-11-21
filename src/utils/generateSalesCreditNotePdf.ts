@@ -11,6 +11,11 @@ export type SalesCreditNotePdfData = {
   customerName: string;
   salesOrderNo: string;
   deliveryOrderNo: string;
+  invoiceNo?: string;
+  invoiceDate?: string;
+  taxInvoiceNo?: string;
+  taxInvoiceDate?: string;
+  sourceTotalAmount?: number;
   reason: string;
   remark: string;
   grossAmount: number;
@@ -33,8 +38,15 @@ export async function generateSalesCreditNotePdf(data: SalesCreditNotePdfData) {
     docDate: data.creditNoteDate,
     infoRows: [
       { label: "ลูกค้า", value: data.customerName },
+      { label: "อ้างอิงใบแจ้งหนี้", value: data.invoiceNo || "—" },
+      { label: "วันที่เอกสารต้นทาง", value: data.invoiceDate || "—" },
+      { label: "อ้างอิงใบกำกับ", value: data.taxInvoiceNo || "—" },
+      { label: "วันที่ใบกำกับ", value: data.taxInvoiceDate || "—" },
+      { label: "มูลค่าเดิม", value: data.sourceTotalAmount != null ? data.sourceTotalAmount.toFixed(2) : "—" },
+      { label: "มูลค่าหลังปรับปรุง", value: ((data.sourceTotalAmount ?? 0) - data.totalAmount).toFixed(2) },
+      { label: "ส่วนต่าง", value: data.totalAmount.toFixed(2) },
       { label: "อ้างอิง SO", value: data.salesOrderNo },
-      { label: "อ้างอิงใบส่ง", value: data.deliveryOrderNo },
+      { label: "อ้างอิงใบส่ง", value: data.deliveryOrderNo || "—" },
       { label: "เหตุผล", value: data.reason || "—" },
     ],
     items: data.items,
