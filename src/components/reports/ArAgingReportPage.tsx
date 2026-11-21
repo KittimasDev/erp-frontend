@@ -81,7 +81,9 @@ export default function ArAgingReportPage() {
   const { message } = App.useApp();
   /** CSV เดิมไม่ผูกสิทธิ์ (backend เช็คแค่ VIEW) — Excel/PDF ที่เพิ่มใหม่ผูก EXPORT เหมือนรายงานตัวอื่น */
   const canExport =
-    !isMatrixPermissionMode() || hasPermission("REPORTS_AR_AGING.EXPORT");
+    !isMatrixPermissionMode() ||
+    hasPermission("REPORTS_AR_AGING.EXPORT") ||
+    hasPermission("FINANCE_REPORT_RECEIVABLES.EXPORT");
 
   const customersQuery = useCustomersQuery({ isActive: true });
 

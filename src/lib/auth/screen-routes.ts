@@ -433,14 +433,17 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["REPORTS_STOCK_MOVEMENTS"],
   },
   { prefix: "/reports/sales-by-item", screenCodes: ["REPORTS_SALES_BY_ITEM"] },
-  { prefix: "/reports/ar-aging", screenCodes: ["REPORTS_AR_AGING"] },
+  {
+    prefix: "/reports/ar-aging",
+    screenCodes: ["REPORTS_AR_AGING", "FINANCE_REPORT_RECEIVABLES"],
+  },
   {
     prefix: "/reports/journals/purchases",
     screenCodes: ["REPORTS_JOURNAL_PURCHASES"],
   },
   {
     prefix: "/reports/journals/sales",
-    screenCodes: ["REPORTS_JOURNAL_SALES"],
+    screenCodes: ["REPORTS_JOURNAL_SALES", "FINANCE_REPORT_SALES_TAX"],
   },
   {
     prefix: "/reports/journals/receipts",

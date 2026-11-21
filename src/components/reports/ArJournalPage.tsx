@@ -114,8 +114,20 @@ const moneyOrBlank = (value: number) => (value > 0 ? money.format(value) : "");
 /** ช่วงวันที่เริ่มต้น = เดือนปัจจุบัน */
 const defaultRange = (): [Dayjs, Dayjs] => [dayjs().startOf("month"), dayjs().endOf("month")];
 
-export default function ArJournalPage({ kind }: { kind: ArJournalKind }) {
-  const cfg = CONFIG[kind];
+type ArJournalPageProps = {
+  kind: ArJournalKind;
+  /** หน้า Finance รายงานภาษีขายใช้ screen/basePath แยกจากเมนู Reports */
+  screen?: string;
+  basePath?: string;
+};
+
+export default function ArJournalPage({ kind, screen, basePath }: ArJournalPageProps) {
+  const defaults = CONFIG[kind];
+  const cfg = {
+    ...defaults,
+    screen: screen ?? defaults.screen,
+    basePath: basePath ?? defaults.basePath,
+  };
   const t = useT();
   const lang = useLanguage();
   const { message, modal } = App.useApp();

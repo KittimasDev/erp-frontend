@@ -45,7 +45,7 @@ export default function ArDebitNotesPage() {
     vatPercent?: number;
     remark?: string;
   }>();
-  const invoices = useSalesInvoicesQuery(open ? { status: "POSTED", limit: 200 } : undefined);
+  const invoices = useSalesInvoicesQuery(open ? { status: "POSTED", limit: 100 } : undefined);
   const watchedInvoice = Form.useWatch("salesInvoiceId", form);
   const entryMode = Form.useWatch("entryMode", form) ?? "AMOUNT";
   const sourceInvoice = useSalesInvoiceQuery(open && entryMode === "LINES" ? watchedInvoice : undefined);

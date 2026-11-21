@@ -41,7 +41,11 @@ export default function ArJournalDetailPage({ kind, id }: { kind: ArJournalKind;
   const query = useArJournalEntryQuery(kind, key, Boolean(key));
   const entry = query.data?.entry;
 
-  const canPrint = Boolean(entry) && (!isMatrixPermissionMode() || hasPermission(`${cfg.screen}.PRINT`));
+  const canPrint =
+    Boolean(entry) &&
+    (!isMatrixPermissionMode() ||
+      hasPermission(`${cfg.screen}.PRINT`) ||
+      (kind === "SALES" && hasPermission("FINANCE_REPORT_SALES_TAX.PRINT")));
 
   const voucherInput = entry
     ? {
