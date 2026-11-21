@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button, DatePicker, Input, Select, Table, Tag, Typography } from "antd";
+import { Button, Checkbox, DatePicker, Input, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { SearchOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
@@ -12,6 +12,7 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import PageHeader from "@/components/common/PageHeader";
 import styles from "@/components/finance/shared/finance-list-page.module.css";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import pageStyles from "./ar-receipts-list.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useArAwaitingOrdersQuery,
@@ -21,6 +22,7 @@ import { useT } from "@/lib/i18n/useT";
 import { ArReceiptRelatedDocsInline } from "./ArReceiptRelatedDocs";
 import {
   awaitingOrderHref,
+  DELIVERY_LABEL,
   isAdvanceAwaiting,
 } from "@/components/ar-receipts/ArAwaitingOrdersPage";
 import { arReceiptRoutes } from "@/lib/sales/ar-routes";
@@ -36,6 +38,32 @@ import {
 
 const PAGE_SIZE = 20;
 
+function seqColumn<T>(page: number, label: string): ColumnsType<T>[number] {
+  return {
+    title: label,
+    key: "seq",
+    width: 76,
+    align: "center",
+    render: (_v, _r, index) => (
+      <span className={masterStyles.orderBadge}>{(page - 1) * PAGE_SIZE + index + 1}</span>
+    ),
+  };
+}
+
+function CustomerCell({ code, name }: { code?: string | null; name?: string | null }) {
+  return (
+    <div className={pageStyles.customer}>
+      <span className={pageStyles.customerName}>{name || "—"}</span>
+      {code ? <span className={pageStyles.customerCode}>{code}</span> : null}
+    </div>
+  );
+}
+
+function MoneyCell({ value, strong }: { value: string; strong?: boolean }) {
+  const text = money.format(Number(value));
+  return <span className={pageStyles.money}>{strong ? <strong>{text}</strong> : text}</span>;
+}
+
 /** ใบสั่งขายที่ยังมียอดค้าง — วางเหนือใบรับชำระที่บันทึกแล้ว */
 function AwaitingPaymentSection() {
   const t = useT();
@@ -45,51 +73,56 @@ function AwaitingPaymentSection() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [termGroup, setTermGroup] = useState<"PREPAY" | "ON_DELIVERY_OR_CREDIT" | undefined>();
   const [payStatus, setPayStatus] = useState<string | undefined>();
+  const [deliveryStatus, setDeliveryStatus] = useState<string | undefined>();
+  const [overdueOnly, setOverdueOnly] = useState(false);
 
   const query = useArAwaitingOrdersQuery({
     page,
     limit: PAGE_SIZE,
     keyword: keyword || undefined,
+    termGroup,
     payStatus,
+    deliveryStatus,
+    overdueOnly: overdueOnly || undefined,
   });
 
   const columns: ColumnsType<AwaitingOrder> = [
+    seqColumn<AwaitingOrder>(page, t("ลำดับ")),
     {
       title: t("เลขที่ SO"),
       dataIndex: "soNo",
-      width: 150,
+      width: 160,
       render: (v: string, r) => (
-        <Link href={`/sales-orders/${r.salesOrderId}`}>
+        <Link href={`/sales-orders/${r.salesOrderId}`} className={pageStyles.docNo}>
           <strong>{v}</strong>
         </Link>
       ),
     },
-    { title: t("วันที่ SO"), dataIndex: "soDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่ SO"), dataIndex: "soDate", width: 128, render: (v: string) => formatThaiDate(v) },
     {
       title: t("ลูกค้า"),
       key: "customer",
-      render: (_v, r) => (
-        <span>
-          <Typography.Text type="secondary">{r.customerCode}</Typography.Text> {r.customerName}
-        </span>
-      ),
+      width: 240,
+      render: (_v, r) => <CustomerCell code={r.customerCode} name={r.customerName} />,
     },
     {
       title: t("คงค้าง"),
       dataIndex: "outstandingAmount",
       align: "right",
-      width: 140,
-      render: (v: string) => <strong>{money.format(Number(v))}</strong>,
+      width: 150,
+      render: (v: string) => <MoneyCell value={v} strong />,
     },
     {
       title: t("ครบกำหนด"),
       dataIndex: "paymentDueDate",
-      width: 150,
+      width: 180,
       render: (v: string | undefined, r) =>
         v ? (
-          <span>
-            {formatThaiDate(v)} {r.isOverdue ? <Tag color="red">{t("เกินกำหนด")}</Tag> : null}
+          <span className={pageStyles.due}>
+            {formatThaiDate(v)}
+            {r.isOverdue ? <Tag color="red">{t("เกินกำหนด")}</Tag> : null}
           </span>
         ) : (
           "—"
@@ -106,7 +139,7 @@ function AwaitingPaymentSection() {
     {
       title: "",
       key: "action",
-      width: 150,
+      width: 168,
       render: (_v, r) => {
         const advance = isAdvanceAwaiting(r);
         const allowed = advance
@@ -145,7 +178,7 @@ function AwaitingPaymentSection() {
           {money.format(Number(query.data?.summary.outstandingTotal ?? 0))} {t("บาท")}
         </span>
       </div>
-      <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+      <section className={`${styles.filterCard} ${pageStyles.filterInset}`}>
         <div className={styles.filterRow}>
           <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
             <label>{t("ค้นหา")}</label>
@@ -155,6 +188,22 @@ function AwaitingPaymentSection() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onPressEnter={apply}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>{t("เงื่อนไขชำระ")}</label>
+            <Select
+              allowClear
+              placeholder={t("ทั้งหมด")}
+              value={termGroup}
+              onChange={(v) => {
+                setTermGroup(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "PREPAY", label: t("ชำระล่วงหน้า / มัดจำบางส่วน") },
+                { value: "ON_DELIVERY_OR_CREDIT", label: t("ชำระเมื่อรับสินค้า / เครดิต") },
+              ]}
             />
           </div>
           <div className={styles.filterItem}>
@@ -173,12 +222,43 @@ function AwaitingPaymentSection() {
               }))}
             />
           </div>
+          <div className={styles.filterItem}>
+            <label>{t("สถานะส่งของ")}</label>
+            <Select
+              allowClear
+              placeholder={t("ทั้งหมด")}
+              value={deliveryStatus}
+              onChange={(v) => {
+                setDeliveryStatus(v);
+                setPage(1);
+              }}
+              options={Object.entries(DELIVERY_LABEL).map(([value, label]) => ({
+                value,
+                label: t(label),
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>&nbsp;</label>
+            <Checkbox
+              checked={overdueOnly}
+              onChange={(e) => {
+                setOverdueOnly(e.target.checked);
+                setPage(1);
+              }}
+            >
+              {t("เฉพาะเกินกำหนด")}
+            </Checkbox>
+          </div>
           <div className={styles.filterActions}>
             <Button
               onClick={() => {
                 setSearch("");
                 setKeyword("");
+                setTermGroup(undefined);
                 setPayStatus(undefined);
+                setDeliveryStatus(undefined);
+                setOverdueOnly(false);
                 setPage(1);
               }}
             >
@@ -191,7 +271,7 @@ function AwaitingPaymentSection() {
         </div>
       </section>
       <Table
-        className={masterStyles.dataTable}
+        className={`${masterStyles.dataTable} ${pageStyles.table}`}
         size="middle"
         bordered={false}
         rowKey="salesOrderId"
@@ -206,7 +286,7 @@ function AwaitingPaymentSection() {
           showSizeChanger: false,
           showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
         }}
-        scroll={{ x: 960 }}
+        scroll={{ x: 1280 }}
         locale={{ emptyText: t("ไม่มีรายการรอรับชำระ") }}
       />
     </div>
@@ -241,74 +321,102 @@ export default function ArReceiptsListPage({ variant }: Props) {
   if (!perms.canView) return <AccessDenied screenCodes={[screen]} />;
 
   const receiptColumns: ColumnsType<ArReceipt> = [
+    seqColumn<ArReceipt>(page, t("ลำดับ")),
     {
       title: t("เลขที่ใบเสร็จ"),
       dataIndex: "receiptNo",
-      width: 160,
-      render: (v: string, r) => <Link href={arReceiptRoutes.detail(r.id)}><strong>{v}</strong></Link>,
+      width: 170,
+      render: (v: string, r) => (
+        <Link href={arReceiptRoutes.detail(r.id)} className={pageStyles.docNo}>
+          <strong>{v}</strong>
+        </Link>
+      ),
     },
     {
       title: t("ลูกค้า"),
       key: "customer",
-      render: (_v, r) => (
-        <span>
-          <Typography.Text type="secondary">{r.customerCode}</Typography.Text> {r.customerName}
-        </span>
-      ),
+      width: 240,
+      render: (_v, r) => <CustomerCell code={r.customerCode} name={r.customerName} />,
     },
-    { title: t("วันที่รับเงิน"), dataIndex: "receiptDate", width: 130, render: (v: string) => formatThaiDate(v) },
-    { title: t("ยอดเงิน"), dataIndex: "receivedAmount", align: "right", render: (v: string) => money.format(Number(v)) },
+    { title: t("วันที่รับเงิน"), dataIndex: "receiptDate", width: 140, render: (v: string) => formatThaiDate(v) },
+    {
+      title: t("ยอดเงิน"),
+      dataIndex: "receivedAmount",
+      align: "right",
+      width: 150,
+      render: (v: string) => <MoneyCell value={v} strong />,
+    },
     {
       title: t("สถานะ"),
       dataIndex: "status",
-      width: 110,
+      width: 120,
       render: (v: string) => <Tag color={AR_RECEIPT_STATUS_COLOR[v] ?? "default"}>{t(AR_RECEIPT_STATUS_LABEL[v] ?? v)}</Tag>,
     },
   ];
 
   const columns: ColumnsType<ArReceipt> = [
+    seqColumn<ArReceipt>(page, t("ลำดับ")),
     {
       title: t("เลขที่"),
       dataIndex: "receiptNo",
-      width: 150,
-      render: (v: string, r) => <Link href={arReceiptRoutes.detail(r.id)}><strong>{v}</strong></Link>,
+      width: 160,
+      render: (v: string, r) => (
+        <Link href={arReceiptRoutes.detail(r.id)} className={pageStyles.docNo}>
+          <strong>{v}</strong>
+        </Link>
+      ),
     },
-    { title: t("วันที่"), dataIndex: "receiptDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    { title: t("วันที่"), dataIndex: "receiptDate", width: 128, render: (v: string) => formatThaiDate(v) },
     {
       title: t("ลูกค้า"),
       key: "customer",
-      render: (_v, r) => (
-        <span>
-          <Typography.Text type="secondary">{r.customerCode}</Typography.Text> {r.customerName}
-        </span>
-      ),
+      width: 220,
+      render: (_v, r) => <CustomerCell code={r.customerCode} name={r.customerName} />,
     },
     {
       title: t("อ้างอิง SO / เอกสารที่เกี่ยวข้อง"),
       key: "related",
-      width: 220,
+      width: 280,
       render: (_v, r) => <ArReceiptRelatedDocsInline receipt={r} />,
     },
     {
       title: t("วิธีรับชำระ"),
       dataIndex: "paymentMethod",
-      width: 110,
+      width: 130,
       render: (v: string) => t(AR_PAYMENT_METHOD_LABEL[v] ?? v),
     },
-    { title: t("เลขอ้างอิง"), dataIndex: "transactionRef", render: (v?: string | null) => v ?? "—" },
-    { title: t("เงินที่รับ"), dataIndex: "receivedAmount", align: "right", render: (v: string) => money.format(Number(v)) },
-    { title: t("ภาษีที่ลูกค้าหัก"), dataIndex: "whtAmount", align: "right", render: (v: string) => money.format(Number(v)) },
-    { title: t("รับเกิน (เครดิต)"), dataIndex: "overpayAmount", align: "right", render: (v: string) => money.format(Number(v)) },
+    { title: t("เลขอ้างอิง"), dataIndex: "transactionRef", width: 160, render: (v?: string | null) => v ?? "—" },
+    {
+      title: t("เงินที่รับ"),
+      dataIndex: "receivedAmount",
+      align: "right",
+      width: 140,
+      render: (v: string) => <MoneyCell value={v} strong />,
+    },
+    {
+      title: t("ภาษีที่ลูกค้าหัก"),
+      dataIndex: "whtAmount",
+      align: "right",
+      width: 150,
+      render: (v: string) => <MoneyCell value={v} />,
+    },
+    {
+      title: t("รับเกิน (เครดิต)"),
+      dataIndex: "overpayAmount",
+      align: "right",
+      width: 150,
+      render: (v: string) => <MoneyCell value={v} />,
+    },
     {
       title: t("สถานะ"),
       dataIndex: "status",
-      width: 110,
+      width: 120,
       render: (v: string) => <Tag color={AR_RECEIPT_STATUS_COLOR[v] ?? "default"}>{t(AR_RECEIPT_STATUS_LABEL[v] ?? v)}</Tag>,
     },
     {
       title: "",
       key: "action",
-      width: 120,
+      width: 140,
       render: (_v, r) => (
         <Link href={arReceiptRoutes.detail(r.id)}>
           <Button size="small">{t("ดูรายละเอียด")}</Button>
@@ -323,7 +431,7 @@ export default function ArReceiptsListPage({ variant }: Props) {
   };
 
   return (
-    <section className={styles.page}>
+    <section className={`${styles.page} ${pageStyles.page}`}>
       <PageHeader
         eyebrow="FINANCE · RECEIVABLES"
         title={variant === "payment" ? t("รับชำระเงิน") : t("ใบเสร็จรับเงิน")}
@@ -350,7 +458,7 @@ export default function ArReceiptsListPage({ variant }: Props) {
             </div>
           </div>
         ) : null}
-        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+        <section className={`${styles.filterCard} ${pageStyles.filterInset}`}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
               <label>{t("ค้นหา")}</label>
@@ -387,7 +495,7 @@ export default function ArReceiptsListPage({ variant }: Props) {
           </div>
         </section>
         <Table
-          className={masterStyles.dataTable}
+          className={`${masterStyles.dataTable} ${pageStyles.table}`}
           size="middle"
           bordered={false}
           rowKey="id"
@@ -402,7 +510,7 @@ export default function ArReceiptsListPage({ variant }: Props) {
             showSizeChanger: false,
             showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
-          scroll={{ x: 1100 }}
+          scroll={{ x: variant === "receipt" ? 980 : 1900 }}
           locale={{ emptyText: variant === "receipt" ? t("ยังไม่มีใบเสร็จรับเงิน") : t("ยังไม่มีใบรับชำระ") }}
         />
       </div>

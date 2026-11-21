@@ -313,7 +313,7 @@ export default function ArAwaitingOrdersPage() {
   );
 }
 
-const DELIVERY_LABEL: Record<string, string> = {
+export const DELIVERY_LABEL: Record<string, string> = {
   NOT_STARTED: "ยังไม่ได้ส่งของ",
   PARTIALLY_DELIVERED: "ส่งบางส่วน",
   DELIVERED: "ส่งครบ",

@@ -52,7 +52,7 @@ export function ArReceiptRelatedDocsInline({ receipt }: { receipt: ArReceipt }) 
   const groups = buildGroups(receipt, t).filter((g) => g.key !== "qt" && g.refs.length > 0);
   if (groups.length === 0) return <>—</>;
   return (
-    <div style={{ display: "grid", gap: 2, fontSize: 13 }}>
+    <div style={{ display: "grid", gap: 6, fontSize: 13, lineHeight: 1.45 }}>
       {groups.map((g) => (
         <div key={g.key}>
           <Typography.Text type="secondary">{g.label.replace(/\s*\(.*\)$/, "")}: </Typography.Text>
