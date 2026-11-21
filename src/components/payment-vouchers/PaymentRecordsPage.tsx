@@ -32,7 +32,7 @@ import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { useT } from "@/lib/i18n/useT";
 import { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } from "./PaymentMethodFields";
-import { tFin, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel } from "./paymentVoucherUtils";
+import { tFin, PAYMENT_RECORDS_PATH, PV_BASE_PATH, fmtMoney, kindLabel } from "./paymentVoucherUtils";
 import PageHeader from "@/components/common/PageHeader";
 
 const PAYABLE_PAGE_SIZE = 5;
@@ -179,23 +179,24 @@ export default function PaymentRecordsPage() {
       title: "",
       key: "action",
       width: 150,
-      render: (_v, r) =>
-        perms.canAdd ? (
+      render: (_v, r) => {
+        if (r.sourcePoCancelled) {
+          return (
+            <Link href={`${PV_BASE_PATH}/${r.id}`}>
+              <Button size="small">{t("ดูรายละเอียด")}</Button>
+            </Link>
+          );
+        }
+        return perms.canAdd ? (
           <Button
             type="primary"
             size="small"
-            danger={r.sourcePoCancelled}
-            onClick={() => {
-              if (r.sourcePoCancelled) {
-                message.error(t("PO ถูกยกเลิกแล้ว ไม่สามารถบันทึกจ่ายเงินได้"));
-                return;
-              }
-              router.push(`${PAYMENT_RECORDS_PATH}/create?voucherId=${r.id}`);
-            }}
+            onClick={() => router.push(`${PAYMENT_RECORDS_PATH}/create?voucherId=${r.id}`)}
           >
             {tFin("บันทึกจ่ายเงิน")}
           </Button>
-        ) : null,
+        ) : null;
+      },
     },
   ];
 
