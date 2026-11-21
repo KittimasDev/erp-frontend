@@ -34,6 +34,7 @@ import { getArReceipt } from "@/lib/api/ar-receipts";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import { useT } from "@/lib/i18n/useT";
+import { resolveVatMode, VatMode } from "@/lib/money/vat-totals";
 import { advanceReceiptRoutes, arReceiptRoutes, arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
 import {
   AR_PAYMENT_METHOD_LABEL,
@@ -154,7 +155,14 @@ export default function AdvanceReceiptDetailPage({ id }: { id: string }) {
   ];
 
   const taxDoc = activeTax.data?.data;
-  const canIssueTax = received && !taxDoc && !activeTax.isLoading && taxPerms.canAdd;
+  // ไม่คิด VAT → ใช้ใบเสร็จ (ปุ่มพิมพ์ใบเสร็จด้านบน) ห้ามออกใบกำกับ
+  const chargesVat = doc ? resolveVatMode(doc.vatMode) !== VatMode.NONE : false;
+  const canIssueTax =
+    received &&
+    !taxDoc &&
+    !activeTax.isLoading &&
+    taxPerms.canAdd &&
+    chargesVat;
 
   return (
     <div>

@@ -360,7 +360,11 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               {t("ดูใบกำกับภาษี")}
             </Button>
           ) : null}
-          {data.status === "POSTED" && !activeTax && !activeTaxQuery.isLoading && taxPerms.canAdd ? (
+          {data.status === "POSTED" &&
+          !activeTax &&
+          !activeTaxQuery.isLoading &&
+          taxPerms.canAdd &&
+          resolveVatMode(data.vatMode) !== VatMode.NONE ? (
             <Button
               icon={<FileTextOutlined />}
               loading={issueTaxMutation.isPending}
