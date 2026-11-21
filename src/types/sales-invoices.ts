@@ -93,6 +93,8 @@ export type SalesInvoicePayment = {
   paidAt: string;
   transactionRef?: string;
   remark?: string;
+  arReceiptId?: string;
+  receiptNo?: string;
   createdById?: string;
   createdBy?: SalesInvoiceUserSummary;
   createdAt: string;
@@ -196,14 +198,6 @@ export type CreateSalesInvoiceFromDeliveryBody = {
 export type UpdateSalesInvoiceBody = {
   invoiceDate?: string;
   dueDate?: string;
-  remark?: string;
-};
-
-export type ReceiveSalesInvoicePaymentBody = {
-  paymentMethod: string;
-  amount?: number;
-  paidAt?: string;
-  transactionRef?: string;
   remark?: string;
 };
 

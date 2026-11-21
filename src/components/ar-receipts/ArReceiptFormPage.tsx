@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Button, Checkbox, DatePicker, Input, InputNumber, Select, Table, Typography } from "antd";
@@ -41,6 +41,7 @@ export default function ArReceiptFormPage() {
   const customers = useCustomersQuery({ isActive: true });
   // เติมล่วงหน้าจากหน้ารายการรับเงิน (/finance/receivables/customers): ?customerId=&salesOrderId=&deposit=1 — ผู้ใช้แก้ได้ทั้งหมด
   const searchParams = useSearchParams();
+  const invoiceId = searchParams.get("invoiceId") ?? undefined;
 
   const [customerId, setCustomerId] = useState<string | undefined>(searchParams.get("customerId") ?? undefined);
   const [receiptDate, setReceiptDate] = useState(dayjs());
@@ -62,6 +63,30 @@ export default function ArReceiptFormPage() {
   const outstanding = useOutstandingArInvoicesQuery(isDeposit ? undefined : customerId);
   const credit = useCustomerCreditQuery(customerId);
   const rows = useMemo(() => outstanding.data ?? [], [outstanding.data]);
+  const seededInvoiceId = useRef<string | null>(null);
+  const [invoiceUnavailable, setInvoiceUnavailable] = useState(false);
+
+  useEffect(() => {
+    if (!invoiceId || isDeposit || !customerId || outstanding.isLoading) return;
+    if (seededInvoiceId.current === invoiceId) return;
+    seededInvoiceId.current = invoiceId;
+    const row = rows.find((r) => r.id === invoiceId);
+    if (!row) {
+      setInvoiceUnavailable(true);
+      return;
+    }
+    const amount = Number(row.outstandingAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setInvoiceUnavailable(true);
+      return;
+    }
+    setInvoiceUnavailable(false);
+    setLines((prev) => ({
+      ...prev,
+      [row.id]: { amount, wht: prev[row.id]?.wht ?? 0 },
+    }));
+    setReceived((current) => (current === null ? amount : current));
+  }, [invoiceId, isDeposit, customerId, outstanding.isLoading, rows]);
 
   // ใบวางบิลของ AR ที่ค้างอยู่ — เลือกทั้งใบแล้วเติมทุก AR ในใบนั้นให้ (ตัดเต็มยอดค้าง)
   const [billingNoteNo, setBillingNoteNo] = useState<string | undefined>();
@@ -222,7 +247,15 @@ export default function ArReceiptFormPage() {
         eyebrow="FINANCE · RECEIVABLES"
         title={t("บันทึกรับชำระเงิน")}
         subtitle={t("รับเงินครั้งเดียวตัดได้หลายใบตั้งลูกหนี้ของลูกค้าเดียวกัน")}
-        actions={<Button onClick={() => router.push(arReceiptRoutes.list)}>{t("กลับรายการ")}</Button>}
+        actions={
+          <Button
+            onClick={() =>
+              router.push(invoiceId ? arRoutes.detail(invoiceId) : arReceiptRoutes.list)
+            }
+          >
+            {invoiceId ? t("กลับใบแจ้งหนี้") : t("กลับรายการ")}
+          </Button>
+        }
       />
 
       <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12, display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
@@ -324,6 +357,14 @@ export default function ArReceiptFormPage() {
 
       {customerId && !isDeposit ? (
         <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
+          {invoiceUnavailable ? (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={t("ใบนี้รับชำระจากหน้านี้ไม่ได้")}
+            />
+          ) : null}
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>{t("ใบตั้งลูกหนี้ที่ค้างชำระ")}</h3>
             <Typography.Text type="secondary">
@@ -399,7 +440,7 @@ export default function ArReceiptFormPage() {
           onChange={(e) => setRemark(e.target.value)}
         />
         <div>
-          <Button type="primary" disabled={!canSave} loading={createMutation.isPending} onClick={() => void submit()}>
+          <Button type="primary" disabled={!canSave || createMutation.isPending} loading={createMutation.isPending} onClick={() => void submit()}>
             {t("บันทึกรับชำระ")}
           </Button>
         </div>

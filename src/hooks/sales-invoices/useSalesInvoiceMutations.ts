@@ -13,7 +13,6 @@ import {
   createSalesInvoiceFromDeliveries,
   createSalesInvoiceFromDelivery,
   removeSalesInvoiceDelivery,
-  receiveSalesInvoicePayment,
   updateSalesInvoice,
 } from "@/lib/api/sales-invoices";
 import { getAccessToken } from "@/lib/auth/token";
@@ -24,7 +23,6 @@ import {
 import type {
   CreateSalesInvoiceFromDeliveriesBody,
   CreateSalesInvoiceFromDeliveryBody,
-  ReceiveSalesInvoicePaymentBody,
   UpdateSalesInvoiceBody,
 } from "@/types/sales-invoices";
 import { deliveryOrdersQueryKey } from "../delivery-orders/useDeliveryOrdersQuery";
@@ -185,31 +183,6 @@ export function useConfirmSalesInvoiceMutation() {
         error instanceof ApiError
           ? error.message
           : t("ยืนยันใบแจ้งหนี้ไม่สำเร็จ"),
-      );
-    },
-  });
-}
-
-export function useReceiveSalesInvoicePaymentMutation() {
-  const queryClient = useQueryClient();
-  const { message } = App.useApp();
-  const t = useT();
-
-  return useMutation({
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: ReceiveSalesInvoicePaymentBody;
-    }) => receiveSalesInvoicePayment(getAccessToken(), id, body),
-    onSuccess: async (res) => {
-      await invalidateSalesInvoiceFlow(queryClient);
-      message.success(res.message || t("รับชำระเงินสำเร็จ"));
-    },
-    onError: (error: Error) => {
-      message.error(
-        error instanceof ApiError ? error.message : t("รับชำระเงินไม่สำเร็จ"),
       );
     },
   });

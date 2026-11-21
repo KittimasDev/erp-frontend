@@ -53,6 +53,32 @@ export default function ArReceiptsListPage({ variant }: Props) {
 
   if (!perms.canView) return <AccessDenied screenCodes={[screen]} />;
 
+  const receiptColumns: ColumnsType<ArReceipt> = [
+    {
+      title: t("เลขที่ใบเสร็จ"),
+      dataIndex: "receiptNo",
+      width: 160,
+      render: (v: string, r) => <Link href={arReceiptRoutes.detail(r.id)}><strong>{v}</strong></Link>,
+    },
+    {
+      title: t("ลูกค้า"),
+      key: "customer",
+      render: (_v, r) => (
+        <span>
+          <Typography.Text type="secondary">{r.customerCode}</Typography.Text> {r.customerName}
+        </span>
+      ),
+    },
+    { title: t("วันที่รับเงิน"), dataIndex: "receiptDate", width: 130, render: (v: string) => formatThaiDate(v) },
+    { title: t("ยอดเงิน"), dataIndex: "receivedAmount", align: "right", render: (v: string) => money.format(Number(v)) },
+    {
+      title: t("สถานะ"),
+      dataIndex: "status",
+      width: 110,
+      render: (v: string) => <Tag color={AR_RECEIPT_STATUS_COLOR[v] ?? "default"}>{t(AR_RECEIPT_STATUS_LABEL[v] ?? v)}</Tag>,
+    },
+  ];
+
   const columns: ColumnsType<ArReceipt> = [
     {
       title: t("เลขที่"),
@@ -170,7 +196,7 @@ export default function ArReceiptsListPage({ variant }: Props) {
           bordered={false}
           rowKey="id"
           loading={query.isLoading}
-          columns={columns}
+          columns={variant === "receipt" ? receiptColumns : columns}
           dataSource={query.data?.items ?? []}
           pagination={{
             current: page,
@@ -181,7 +207,7 @@ export default function ArReceiptsListPage({ variant }: Props) {
             showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
           }}
           scroll={{ x: 1100 }}
-          locale={{ emptyText: t("ยังไม่มีใบรับชำระ") }}
+          locale={{ emptyText: variant === "receipt" ? t("ยังไม่มีใบเสร็จรับเงิน") : t("ยังไม่มีใบรับชำระ") }}
         />
       </div>
     </section>

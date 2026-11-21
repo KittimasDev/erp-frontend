@@ -3,7 +3,6 @@ import type {
   CreateSalesInvoiceFromDeliveriesBody,
   CreateSalesInvoiceFromDeliveryBody,
   PendingSalesInvoiceListApiResponse,
-  ReceiveSalesInvoicePaymentBody,
   SalesInvoiceApiResponse,
   SalesInvoiceByDeliveryApiResponse,
   SalesInvoiceListApiResponse,
@@ -140,17 +139,6 @@ export function confirmSalesInvoice(token: string, id: string) {
   return apiFetch<SalesInvoiceApiResponse>(
     `/api/sales-invoices/${id}/confirm`,
     { method: "POST", token },
-  );
-}
-
-export function receiveSalesInvoicePayment(
-  token: string,
-  id: string,
-  body: ReceiveSalesInvoicePaymentBody,
-) {
-  return apiFetch<SalesInvoiceApiResponse>(
-    `/api/sales-invoices/${id}/receive-payment`,
-    { method: "POST", token, body },
   );
 }
 

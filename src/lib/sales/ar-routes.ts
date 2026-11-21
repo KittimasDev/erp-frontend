@@ -37,6 +37,8 @@ export const AR_RECEIPT_BASE = "/finance/receivables/payment-receipts";
 export const arReceiptRoutes = {
   list: AR_RECEIPT_BASE,
   create: `${AR_RECEIPT_BASE}/create`,
+  createForInvoice: (customerId: string, invoiceId: string) =>
+    `${AR_RECEIPT_BASE}/create?customerId=${encodeURIComponent(customerId)}&invoiceId=${encodeURIComponent(invoiceId)}`,
   detail: (id: string) => `${AR_RECEIPT_BASE}/${id}`,
   /** หน้าใบเสร็จรับเงิน (มุมมองอ่านอย่างเดียว) และประวัติรับชำระ */
   receipts: "/finance/receivables/receipts",

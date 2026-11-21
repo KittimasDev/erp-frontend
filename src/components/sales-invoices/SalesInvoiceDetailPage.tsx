@@ -9,18 +9,11 @@ import { useRouter } from "next/navigation";
 import {
   App,
   Button,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
   Modal,
-  Select,
   Spin,
   Table,
-  Upload,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import type { UploadFile, UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -31,15 +24,12 @@ import {
   EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
-  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import {
   useCancelSalesInvoiceMutation,
   useConfirmSalesInvoiceMutation,
-  useReceiveSalesInvoicePaymentMutation,
-  useUploadSalesInvoicePaymentAttachmentMutation,
 } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import {
   useSalesInvoicePaymentAttachmentsQuery,
@@ -57,7 +47,7 @@ import {
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
+import { arReceiptRoutes, arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
 import type { SalesInvoice, SalesInvoiceItem } from "@/types/sales-invoices";
 import {
   salesInvoicePaymentMethodLabel,
@@ -73,14 +63,6 @@ import PageHeader from "@/components/common/PageHeader";
 import DocumentPaper from "@/components/common/DocumentPaper";
 
 type Props = { id: string };
-
-const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
-const ALLOWED_ATTACHMENT_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -146,28 +128,15 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
   const lang = useLanguage();
   const { modal, message } = App.useApp();
   const confirmMutation = useConfirmSalesInvoiceMutation();
-  const receiveMutation = useReceiveSalesInvoicePaymentMutation();
   const cancelMutation = useCancelSalesInvoiceMutation();
-  const uploadAttachmentMutation =
-    useUploadSalesInvoicePaymentAttachmentMutation();
   const attachmentsQuery = useSalesInvoicePaymentAttachmentsQuery(data.id);
   const paymentAttachments = attachmentsQuery.data?.data ?? [];
 
-  const [payOpen, setPayOpen] = useState(false);
-  const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
-  const [payForm] = Form.useForm<{
-    paymentMethod: string;
-    amount: number;
-    paidAt: dayjs.Dayjs;
-    transactionRef?: string;
-    remark?: string;
-  }>();
-
   useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -186,6 +155,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
   const { canEdit, canApprove } = useArInvoicePermissions();
   const canWrite = canEdit || canApprove;
   const taxPerms = useScreenActionPermissions("FINANCE_TAX_INVOICES");
+  const receiptPerms = useScreenActionPermissions("FINANCE_PAYMENT_RECEIPTS");
   const activeTaxQuery = useActiveSalesTaxInvoiceQuery(
     data.id,
     data.status === "POSTED",
@@ -193,11 +163,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
   const issueTaxMutation = useIssueSalesTaxInvoiceMutation();
   const activeTax = activeTaxQuery.data?.data;
 
-  const busy =
-    confirmMutation.isPending ||
-    receiveMutation.isPending ||
-    cancelMutation.isPending ||
-    uploadAttachmentMutation.isPending;
+  const busy = confirmMutation.isPending || cancelMutation.isPending;
 
   const printPdf = async () => {
     const { generateSalesInvoicePdf } = await import(
@@ -286,38 +252,6 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     } finally {
       setPreviewLoading(false);
     }
-  };
-
-  const uploadPaymentProof = async (file: File, description?: string) => {
-    const { optimizePaymentSlipFile } = await import(
-      "@/utils/optimizePaymentSlipFile"
-    );
-    const optimized = await optimizePaymentSlipFile(file);
-    await uploadAttachmentMutation.mutateAsync({
-      documentId: data.id,
-      file: optimized,
-      description,
-    });
-  };
-
-  const pendingUploadProps: UploadProps = {
-    multiple: true,
-    accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
-    fileList: pendingFiles,
-    beforeUpload: (file) => {
-      if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error(t("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP"));
-        return Upload.LIST_IGNORE;
-      }
-      if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error(t("ขนาดไฟล์ต้องไม่เกิน 20MB"));
-        return Upload.LIST_IGNORE;
-      }
-      return false;
-    },
-    onChange: ({ fileList }) => {
-      setPendingFiles(fileList);
-    },
   };
 
   const itemColumns: ColumnsType<SalesInvoiceItem> = [
@@ -476,23 +410,15 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               outstanding={outstandingAmount}
             />
           ) : null}
-          {canWrite &&
+          {receiptPerms.canAdd &&
           data.status === "POSTED" &&
-          (data.paymentStatus === "UNPAID" ||
-            data.paymentStatus === "PARTIALLY_PAID") ? (
+          outstandingAmount > 0.005 ? (
             <Button
               type="primary"
               icon={<DollarOutlined />}
-              loading={busy}
-              onClick={() => {
-                payForm.setFieldsValue({
-                  paymentMethod: "TRANSFER",
-                  amount: outstandingAmount,
-                  paidAt: dayjs(),
-                });
-                setPendingFiles([]);
-                setPayOpen(true);
-              }}
+              onClick={() =>
+                router.push(arReceiptRoutes.createForInvoice(data.customerId, data.id))
+              }
             >
               {t("รับชำระ")}
             </Button>
@@ -707,6 +633,18 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                     </div>
                   </div>
                   <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>{t("เลขที่ใบรับชำระ")}</span>
+                    <div className={styles.metaValue}>
+                      {p.arReceiptId && p.receiptNo ? (
+                        <Link href={arReceiptRoutes.detail(p.arReceiptId)}>
+                          {p.receiptNo}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>{t("อ้างอิง")}</span>
                     <div className={styles.metaValue}>
                       {p.transactionRef || "—"}
@@ -723,7 +661,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                   <Spin size="small" />
                 ) : paymentAttachments.length === 0 ? (
                   <p className={styles.attachmentEmpty}>
-                    {t("ยังไม่มีหลักฐาน — แนบได้ตอนรับชำระเงิน")}
+                    {t("ยังไม่มีหลักฐาน")}
                   </p>
                 ) : (
                   <ul className={styles.attachmentList}>
@@ -771,112 +709,6 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
       </div>
-
-      <Modal
-        title={t("รับชำระเงิน")}
-        open={payOpen}
-        onCancel={() => {
-          setPayOpen(false);
-          setPendingFiles([]);
-        }}
-        okText={t("บันทึกรับชำระ")}
-        confirmLoading={
-          receiveMutation.isPending || uploadAttachmentMutation.isPending
-        }
-        onOk={async () => {
-          const values = await payForm.validateFields();
-          await receiveMutation.mutateAsync({
-            id: data.id,
-            body: {
-              paymentMethod: values.paymentMethod,
-              amount: values.amount,
-              paidAt: values.paidAt.format("YYYY-MM-DD"),
-              transactionRef: values.transactionRef?.trim() || undefined,
-              remark: values.remark?.trim() || undefined,
-            },
-          });
-
-          const filesToUpload = pendingFiles
-            .map((f) => f.originFileObj)
-            .filter((f): f is NonNullable<typeof f> => Boolean(f));
-          for (const file of filesToUpload) {
-            await uploadPaymentProof(
-              file,
-              `ยืนยันชำระ ${formatMoney(String(values.amount))} บาท`,
-            );
-          }
-
-          setPendingFiles([]);
-          setPayOpen(false);
-        }}
-      >
-        <p>
-          {t("ยอดคงค้าง:")} <strong>{formatMoney(String(outstandingAmount))}</strong>{" "}
-          {t("บาท (จาก {total} บาท)", { total: formatMoney(data.totalAmount) })}
-        </p>
-        <Form form={payForm} layout="vertical">
-          <Form.Item
-            name="paymentMethod"
-            label={t("วิธีรับชำระ")}
-            rules={[{ required: true, message: t("เลือกวิธีรับชำระ") }]}
-          >
-            <Select
-              options={[
-                { value: "CASH", label: salesInvoicePaymentMethodLabel("CASH", lang) },
-                { value: "TRANSFER", label: salesInvoicePaymentMethodLabel("TRANSFER", lang) },
-                { value: "CHEQUE", label: salesInvoicePaymentMethodLabel("CHEQUE", lang) },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            name="amount"
-            label={t("จำนวนเงินที่รับชำระ")}
-            rules={[
-              { required: true, message: t("ระบุจำนวนเงิน") },
-              {
-                validator: (_rule, value) =>
-                  value > 0
-                    ? Promise.resolve()
-                    : Promise.reject(new Error(t("จำนวนเงินต้องมากกว่า 0"))),
-              },
-              {
-                validator: (_rule, value) =>
-                  value <= outstandingAmount + 0.005
-                    ? Promise.resolve()
-                    : Promise.reject(new Error(t("รับชำระเกินยอดคงค้างไม่ได้"))),
-              },
-            ]}
-          >
-            <InputNumber
-              min={0.01}
-              max={outstandingAmount}
-              precision={2}
-              style={{ width: "100%" }}
-            />
-          </Form.Item>
-          <Form.Item
-            name="paidAt"
-            label={t("วันที่รับชำระ")}
-            rules={[{ required: true, message: t("ระบุวันที่") }]}
-          >
-            <DatePicker format="DD/MM/BBBB" style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item name="transactionRef" label={t("เลขอ้างอิง")}>
-            <Input placeholder={t("เช่น เลขโอน")} />
-          </Form.Item>
-          <Form.Item name="remark" label={t("หมายเหตุ")}>
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <Form.Item
-            label={t("ไฟล์ยืนยันการชำระเงิน")}
-            extra={t("รองรับ PDF / JPG / PNG / WEBP ไม่เกิน 20MB — อัปโหลดหลังบันทึกรับชำระ")}
-          >
-            <Upload {...pendingUploadProps}>
-              <Button icon={<UploadOutlined />}>{t("เลือกไฟล์")}</Button>
-            </Upload>
-          </Form.Item>
-        </Form>
-      </Modal>
 
       <Modal
         title={previewTitle || t("ตัวอย่างไฟล์")}
