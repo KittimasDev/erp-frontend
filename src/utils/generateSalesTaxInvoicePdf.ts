@@ -1,6 +1,6 @@
 import { vatAmountLabel } from "@/lib/money/vat-totals";
 import type { SalesTaxInvoice } from "@/types/sales-tax-invoices";
-import { advanceDeductionTotalLines } from "@/utils/advance-deduction-totals";
+import { advanceDeductionTotalLines, taxBaseAfterAdvance } from "@/utils/advance-deduction-totals";
 
 import { generateSalesCommercialPdf, type SalesLinePdfItem } from "./pdf-common";
 
@@ -22,6 +22,12 @@ export async function generateSalesTaxInvoicePdf(doc: SalesTaxInvoice) {
     amount: money(item.amount),
   }));
   const afterDiscount = Math.max(0, money(doc.subtotalAmount) - money(doc.discountAmount));
+  const advanceLines = (doc.advanceDeductions ?? []).map((row) => ({
+    docNo: row.docNo,
+    baseAmount: money(row.baseAmount),
+    vatAmount: money(row.vatAmount),
+    amount: money(row.amount),
+  }));
 
   await generateSalesCommercialPdf({
     pageId: "sales-tax-invoice-pdf",
@@ -46,15 +52,15 @@ export async function generateSalesTaxInvoicePdf(doc: SalesTaxInvoice) {
     totalAmount: money(doc.totalAmount),
     totalsLines: [
       { label: "ยอดก่อน VAT", value: afterDiscount },
-      ...advanceDeductionTotalLines(
-        doc.vatMode,
-        (doc.advanceDeductions ?? []).map((row) => ({
-          docNo: row.docNo,
-          baseAmount: money(row.baseAmount),
-          vatAmount: money(row.vatAmount),
-          amount: money(row.amount),
-        })),
-      ),
+      ...advanceDeductionTotalLines(doc.vatMode, advanceLines),
+      ...(advanceLines.length > 0
+        ? [
+            {
+              label: "ฐานภาษีหลังหักมัดจำ",
+              value: taxBaseAfterAdvance(afterDiscount, advanceLines),
+            },
+          ]
+        : []),
       { label: vatAmountLabel(rate), value: money(doc.vatAmount) },
       { label: "ยอดรวม", value: money(doc.totalAmount), grand: true },
     ],

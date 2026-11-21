@@ -26,6 +26,7 @@ import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-ac
 import { useT } from "@/lib/i18n/useT";
 import { advanceReceiptRoutes, arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
 import type { SalesTaxInvoiceItem } from "@/types/sales-tax-invoices";
+import { taxBaseAfterAdvance } from "@/utils/advance-deduction-totals";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -192,6 +193,21 @@ export default function SalesTaxInvoiceDetailPage({ id }: { id: string }) {
               </strong>
             </div>
           ))}
+          {(doc.advanceDeductions ?? []).length > 0 ? (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span>{t("ฐานภาษีหลังหักมัดจำ")}</span>
+              <strong>
+                {formatMoney(
+                  taxBaseAfterAdvance(
+                    beforeVat,
+                    (doc.advanceDeductions ?? []).map((row) => ({
+                      baseAmount: Number(row.baseAmount) || 0,
+                    })),
+                  ),
+                )}
+              </strong>
+            </div>
+          ) : null}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <span>
               {rate && rate > 0

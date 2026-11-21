@@ -111,6 +111,10 @@ export type AdvanceCandidate = {
   remainingBaseAmount: string;
   remainingVatAmount: string;
   vatRate?: string;
+  /** (BE ใหม่) ยอดที่ใบแจ้งหนี้ร่างจองไว้ — ยังไม่ตัดจริง */
+  reservedAmount?: string;
+  /** (BE ใหม่) ยอดที่ใช้จริง (ใบแจ้งหนี้ที่ยืนยันแล้ว) */
+  usedAmount?: string;
 };
 
 export type AdvanceSuggestedAllocation = {
@@ -122,6 +126,10 @@ export type AdvanceCandidateList = {
   salesOrderId: string;
   depositTotalAmount: string;
   depositAppliedAmount: string;
+  /** (BE ใหม่) มัดจำที่ถูกใบร่างจองไว้ — ยังไม่ตัดจริง */
+  depositReservedAmount?: string;
+  /** (BE ใหม่) มัดจำที่ใช้จริงจากใบที่ยืนยันแล้ว (fallback = depositAppliedAmount) */
+  depositUsedAmount?: string;
   depositAvailableAmount: string;
   maxDeductibleAmount: string;
   soBaseAmount?: string;
@@ -185,6 +193,8 @@ export type SalesInvoice = {
   cancelledById?: string;
   cancelledBy?: SalesInvoiceUserSummary;
   cancelledAt?: string;
+  /** (BE ใหม่) เหตุผลที่ยกเลิก */
+  cancelReason?: string;
   items: SalesInvoiceItem[];
   payments: SalesInvoicePayment[];
   createdAt: string;

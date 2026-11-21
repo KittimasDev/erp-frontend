@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, DatePicker, Form, Input, Spin } from "antd";
@@ -9,7 +9,12 @@ import dayjs from "dayjs";
 
 import AdvanceDeductionPicker from "@/components/sales-invoices/AdvanceDeductionPicker";
 import { useUpdateSalesInvoiceMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
-import { useSalesInvoiceQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import {
+  useAdvanceCandidatesQuery,
+  useSalesInvoiceQuery,
+} from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import CustomerCreditNotice from "@/components/sales-invoices/CustomerCreditNotice";
+import { advanceDeductionErrors } from "@/utils/advance-deduction-validation";
 import { useT } from "@/lib/i18n/useT";
 import { arRoutes } from "@/lib/sales/ar-routes";
 import type { SalesInvoiceAdvanceDeductionInput } from "@/types/sales-invoices";
@@ -34,6 +39,22 @@ export default function SalesInvoiceEditPage({ id }: Props) {
   const data = query.data?.data;
   const [deductions, setDeductions] = useState<SalesInvoiceAdvanceDeductionInput[]>([]);
   const [deductionsReady, setDeductionsReady] = useState(false);
+  const deliveryOrderIds = useMemo(
+    () =>
+      data?.deliveryOrders?.length
+        ? data.deliveryOrders.map((d) => d.id)
+        : data?.deliveryOrderId
+          ? [data.deliveryOrderId]
+          : [],
+    [data?.deliveryOrders, data?.deliveryOrderId],
+  );
+  // queryKey เดียวกับ AdvanceDeductionPicker → ไม่ยิง API ซ้ำ
+  const candidatesQuery = useAdvanceCandidatesQuery(
+    data?.salesOrderId,
+    deliveryOrderIds,
+    data?.id,
+  );
+  const candidates = candidatesQuery.data?.data;
 
   useEffect(() => {
     if (!data) return;
@@ -74,17 +95,14 @@ export default function SalesInvoiceEditPage({ id }: Props) {
     );
   }
 
-  const deliveryOrderIds = (
-    data.deliveryOrders?.length
-      ? data.deliveryOrders.map((d) => d.id)
-      : data.deliveryOrderId
-        ? [data.deliveryOrderId]
-        : []
-  );
-
   const onFinish = async (values: FormValues) => {
-    if (deductions.some((row) => !(row.amount > 0))) {
-      message.warning(t("ระบุยอดหักของเอกสารที่เลือก"));
+    const deductionErrors = advanceDeductionErrors(
+      deductions,
+      candidates?.items,
+      candidates ? Number(candidates.maxDeductibleAmount) : undefined,
+    );
+    if (deductionErrors.length > 0) {
+      message.warning(t(deductionErrors[0].message));
       return;
     }
     await updateMutation.mutateAsync({
@@ -150,6 +168,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
               onChange={setDeductions}
             />
           ) : null}
+          <CustomerCreditNotice customerId={data.customerId} />
           <div className={styles.formActions}>
             <Button onClick={() => router.push(arRoutes.detail(id))}>
               {t("ยกเลิก")}

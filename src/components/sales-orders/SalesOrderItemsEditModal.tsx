@@ -222,6 +222,10 @@ export default function SalesOrderItemsEditModal(props: Props) {
                   </div>
 
                   <div className={styles.lineGrid}>
+                    {/* TASK 02: ผูก id บรรทัดเดิมไว้ในฟอร์ม — ไม่งั้น validateFields ทิ้ง id แล้ว BE ลบรายการเดิมทั้งหมด */}
+                    <Form.Item name={[field.name, "id"]} hidden>
+                      <Input type="hidden" />
+                    </Form.Item>
                     <Form.Item
                       name={[field.name, "itemId"]}
                       label={t("สินค้า")}

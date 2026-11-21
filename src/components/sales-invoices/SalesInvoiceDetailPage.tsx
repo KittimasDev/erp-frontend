@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import {
   App,
   Button,
+  Input,
   Modal,
   Spin,
   Table,
@@ -148,6 +149,8 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
   const { modal, message } = App.useApp();
   const confirmMutation = useConfirmSalesInvoiceMutation();
   const cancelMutation = useCancelSalesInvoiceMutation();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const attachmentsQuery = useSalesInvoicePaymentAttachmentsQuery(data.id);
   const paymentAttachments = attachmentsQuery.data?.data ?? [];
 
@@ -410,19 +413,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               danger
               icon={<CloseOutlined />}
               loading={busy}
-              onClick={() => {
-                modal.confirm({
-                  title: t("ยกเลิกใบแจ้งหนี้?"),
-                  content: t("ยกเลิกได้เฉพาะใบแจ้งหนี้ที่ยังไม่รับชำระ"),
-                  okText: t("ยกเลิกเอกสาร"),
-                  okButtonProps: { danger: true },
-                  cancelText: t("ปิด"),
-                  onOk: async () => {
-                    await cancelMutation.mutateAsync(data.id);
-                    router.push(arRoutes.list);
-                  },
-                });
-              }}
+              onClick={() => setCancelOpen(true)}
             >
               Cancel
             </Button>
@@ -561,6 +552,12 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 <span className={styles.metaLabel}>{t("หมายเหตุ")}</span>
                 <div className={styles.metaValue}>{data.remark || "—"}</div>
               </div>
+              {data.status === "CANCELLED" ? (
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>{t("เหตุผลที่ยกเลิก")}</span>
+                  <div className={styles.metaValue}>{data.cancelReason || "—"}</div>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -755,6 +752,43 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           <ESignatureHistoryCard documentId={data.id} style={{ marginTop: 16 }} />
         </section>
       </div>
+
+      <Modal
+        open={cancelOpen}
+        title={t("ยกเลิกใบแจ้งหนี้")}
+        okText={t("ยกเลิกเอกสาร")}
+        cancelText={t("ปิด")}
+        okButtonProps={{ danger: true, disabled: !cancelReason.trim() }}
+        confirmLoading={cancelMutation.isPending}
+        mask={{ closable: false }}
+        destroyOnHidden
+        onCancel={() => {
+          setCancelOpen(false);
+          setCancelReason("");
+        }}
+        onOk={async () => {
+          try {
+            await cancelMutation.mutateAsync({
+              id: data.id,
+              reason: cancelReason.trim(),
+            });
+          } catch {
+            return; // hook แจ้ง error แล้ว — ค้าง modal ไว้
+          }
+          setCancelOpen(false);
+          setCancelReason("");
+          router.push(arRoutes.list);
+        }}
+      >
+        <p>{t("ยกเลิกได้เฉพาะใบแจ้งหนี้ที่ยังไม่รับชำระ")}</p>
+        <Input.TextArea
+          value={cancelReason}
+          rows={3}
+          maxLength={500}
+          placeholder={t("เหตุผล")}
+          onChange={(event) => setCancelReason(event.target.value)}
+        />
+      </Modal>
 
       <Modal
         title={previewTitle || t("ตัวอย่างไฟล์")}

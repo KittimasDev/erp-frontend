@@ -25,7 +25,12 @@ import {
 import dayjs from "dayjs";
 
 import AdvanceDeductionPicker from "@/components/sales-invoices/AdvanceDeductionPicker";
-import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import CustomerCreditNotice from "@/components/sales-invoices/CustomerCreditNotice";
+import {
+  useAdvanceCandidatesQuery,
+  usePendingSalesInvoicesQuery,
+} from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import { advanceDeductionErrors } from "@/utils/advance-deduction-validation";
 import { useCreateSalesInvoiceFromDeliveriesMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
 import type {
@@ -76,6 +81,13 @@ export default function SalesInvoicesPendingPage() {
     (sum, row) => sum + (Number(row.billableAmount) || 0),
     0,
   );
+
+  // queryKey เดียวกับ AdvanceDeductionPicker ใน modal → ไม่ยิง API ซ้ำ
+  const candidatesQuery = useAdvanceCandidatesQuery(
+    modalOpen ? lockedSalesOrderId : undefined,
+    selected.map((r) => r.id),
+  );
+  const candidates = candidatesQuery.data?.data;
 
   const query = usePendingSalesInvoicesQuery({
     page,
@@ -341,8 +353,13 @@ export default function SalesInvoicesPendingPage() {
           layout="vertical"
           initialValues={{ invoiceDate: dayjs() }}
           onFinish={async (values) => {
-            if (deductions.some((row) => !(row.amount > 0))) {
-              message.warning(t("ระบุยอดหักของเอกสารที่เลือก"));
+            const deductionErrors = advanceDeductionErrors(
+              deductions,
+              candidates?.items,
+              candidates ? Number(candidates.maxDeductibleAmount) : undefined,
+            );
+            if (deductionErrors.length > 0) {
+              message.warning(t(deductionErrors[0].message));
               return;
             }
             try {
@@ -381,6 +398,7 @@ export default function SalesInvoicesPendingPage() {
             value={deductions}
             onChange={setDeductions}
           />
+          <CustomerCreditNotice customerId={selected[0]?.customerId} />
         </Form>
         <p style={{ color: "#8a9199", fontSize: 13, marginBottom: 0 }}>
           {t("ยอดคิดจากจำนวนที่ลูกค้ารับจริง (ของตีกลับไม่เก็บเงิน) ส่วนลด/VAT ตามสัดส่วนของใบสั่งขาย")}

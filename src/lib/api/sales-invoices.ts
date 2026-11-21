@@ -160,9 +160,9 @@ export function confirmSalesInvoice(token: string, id: string) {
   );
 }
 
-export function cancelSalesInvoice(token: string, id: string) {
+export function cancelSalesInvoice(token: string, id: string, reason: string) {
   return apiFetch<SalesInvoiceApiResponse>(
     `/api/sales-invoices/${id}/cancel`,
-    { method: "POST", token },
+    { method: "POST", token, body: { reason } },
   );
 }

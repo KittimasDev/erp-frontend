@@ -1,6 +1,19 @@
 export type AdvanceReceiptType = "DEPOSIT" | "PREPAYMENT";
 export type AdvanceReceiptStatus = "DRAFT" | "RECEIVED" | "FULLY_APPLIED" | "CANCELLED";
 
+/** ประวัติการนำใบรับเงินล่วงหน้าไปหักในใบแจ้งหนี้ (DRAFT = จองไว้ · POSTED = ใช้จริง) */
+export type AdvanceReceiptApplication = {
+  id: string;
+  salesInvoiceId: string;
+  invoiceNo: string;
+  invoiceDate?: string;
+  /** สถานะใบแจ้งหนี้: DRAFT | POSTED | CANCELLED */
+  status: string;
+  amount: string;
+  baseAmount: string;
+  vatAmount: string;
+};
+
 export type AdvanceReceipt = {
   id: string;
   docNo: string;
@@ -22,7 +35,13 @@ export type AdvanceReceipt = {
   vatMode: string;
   vatRate?: string;
   appliedAmount: string;
+  /** (BE ใหม่) ยอดที่ใบแจ้งหนี้ร่างจองไว้ (applications สถานะ DRAFT) */
+  reservedAmount?: string;
+  /** (BE ใหม่) ยอดที่ใช้จริง (applications สถานะ POSTED) */
+  usedAmount?: string;
   remainingAmount: string;
+  /** (BE ใหม่) ประวัติการนำไปหัก */
+  applications?: AdvanceReceiptApplication[];
   arReceiptId?: string;
   receiptNo?: string;
   /** สถานะใบรับชำระที่ผูกไว้ (POSTED / CANCELLED) */

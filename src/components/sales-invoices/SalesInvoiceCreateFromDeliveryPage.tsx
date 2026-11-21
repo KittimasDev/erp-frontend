@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, DatePicker, Form, Input, Spin } from "antd";
@@ -11,7 +11,12 @@ import { useT } from "@/lib/i18n/useT";
 import { arRoutes } from "@/lib/sales/ar-routes";
 
 import { useCreateSalesInvoiceFromDeliveryMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
-import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import {
+  useAdvanceCandidatesQuery,
+  useSalesInvoiceByDeliveryQuery,
+} from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import { advanceDeductionErrors } from "@/utils/advance-deduction-validation";
+import CustomerCreditNotice from "@/components/sales-invoices/CustomerCreditNotice";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import AccessDenied from "@/components/auth/AccessDenied";
 import AdvanceDeductionPicker from "@/components/sales-invoices/AdvanceDeductionPicker";
@@ -43,6 +48,10 @@ export default function SalesInvoiceCreateFromDeliveryPage({
 
   const delivery = deliveryQuery.data?.data;
   const existing = existingQuery.data?.data;
+  // queryKey เดียวกับที่ AdvanceDeductionPicker ใช้ → ไม่ยิง API ซ้ำ
+  const deliveryOrderIds = useMemo(() => [deliveryOrderId], [deliveryOrderId]);
+  const candidatesQuery = useAdvanceCandidatesQuery(delivery?.salesOrderId, deliveryOrderIds);
+  const candidates = candidatesQuery.data?.data;
 
   useEffect(() => {
     if (existing?.id) {
@@ -84,8 +93,13 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   }
 
   const onFinish = async (values: FormValues) => {
-    if (deductions.some((row) => !(row.amount > 0))) {
-      message.warning(t("ระบุยอดหักของเอกสารที่เลือก"));
+    const deductionErrors = advanceDeductionErrors(
+      deductions,
+      candidates?.items,
+      candidates ? Number(candidates.maxDeductibleAmount) : undefined,
+    );
+    if (deductionErrors.length > 0) {
+      message.warning(t(deductionErrors[0].message));
       return;
     }
     const response = await createMutation.mutateAsync({
@@ -162,10 +176,11 @@ export default function SalesInvoiceCreateFromDeliveryPage({
           </Form.Item>
           <AdvanceDeductionPicker
             salesOrderId={delivery.salesOrderId}
-            deliveryOrderIds={[deliveryOrderId]}
+            deliveryOrderIds={deliveryOrderIds}
             value={deductions}
             onChange={setDeductions}
           />
+          <CustomerCreditNotice customerId={delivery.customerId} />
           <div className={styles.formActions}>
             <Button onClick={() => router.push(arRoutes.pending)}>
               {t("ยกเลิก")}

@@ -74,7 +74,36 @@ function statusTag(status: string) {
 type DraftLine = {
   salesOrderItemId: string;
   quantity: number;
+  /** ส่วนลดของรอบนี้ (แสดงในฟอร์ม · BE จัดสรรเองถ้าไม่ส่ง) */
+  discountAmount: number;
 };
+
+/** พรีวิวส่วนลดตามสัดส่วนจำนวนคงเหลือ — ให้ตรงกับ BE allocateScheduleDiscountShare */
+function previewScheduleDiscount(input: {
+  agreedDiscount: number;
+  agreedQty: number;
+  thisQty: number;
+  otherQty: number;
+  otherDiscount: number;
+}): number {
+  const agreedDiscount = Math.max(0, input.agreedDiscount);
+  const agreedQty = Math.max(0, input.agreedQty);
+  const thisQty = Math.max(0, input.thisQty);
+  const otherQty = Math.max(0, input.otherQty);
+  const otherDiscount = Math.max(0, input.otherDiscount);
+  if (thisQty <= EPS || agreedDiscount <= 0.005 || agreedQty <= EPS) return 0;
+  const remainingQty = Math.max(0, agreedQty - otherQty);
+  const remainingDiscount = Math.max(
+    0,
+    Number((agreedDiscount - otherDiscount).toFixed(2)),
+  );
+  if (remainingQty <= EPS || remainingDiscount <= 0.005) return 0;
+  if (thisQty + EPS >= remainingQty) return remainingDiscount;
+  return Math.min(
+    Number(((remainingDiscount * thisQty) / remainingQty).toFixed(2)),
+    remainingDiscount,
+  );
+}
 
 /**
  * แผงจัดรอบจัดส่งของใบสั่งขาย
@@ -183,6 +212,21 @@ export default function DeliverySchedulesSection({
     return map;
   }, [activeSchedules, editing]);
 
+  /** ส่วนลดที่รอบอื่นถืออยู่แล้ว (ไม่นับรอบที่กำลังแก้) */
+  const scheduledDiscountByItem = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const schedule of activeSchedules) {
+      if (editing && schedule.id === editing.id) continue;
+      for (const line of schedule.items ?? []) {
+        map.set(
+          line.salesOrderItemId,
+          (map.get(line.salesOrderItemId) ?? 0) + toNum(line.discountAmount),
+        );
+      }
+    }
+    return map;
+  }, [activeSchedules, editing]);
+
   const unscheduled = useMemo(
     () =>
       salesOrderItems.map((item) => ({
@@ -267,6 +311,35 @@ export default function DeliverySchedulesSection({
     />
   ) : null;
 
+  function buildDraftLine(
+    item: SalesOrderItem,
+    quantity: number,
+    opts?: {
+      explicitDiscount?: number;
+      otherQty?: number;
+      otherDiscount?: number;
+    },
+  ): DraftLine {
+    const discountAmount =
+      opts?.explicitDiscount !== undefined
+        ? opts.explicitDiscount
+        : previewScheduleDiscount({
+            agreedDiscount: toNum(item.discountAmount),
+            agreedQty: toNum(item.quantity),
+            thisQty: quantity,
+            otherQty: opts?.otherQty ?? scheduledByItem.get(item.id) ?? 0,
+            otherDiscount:
+              opts?.otherDiscount ??
+              scheduledDiscountByItem.get(item.id) ??
+              0,
+          });
+    return {
+      salesOrderItemId: item.id,
+      quantity,
+      discountAmount,
+    };
+  }
+
   function openCreate() {
     setEditing(null);
     setOpenedVersion(salesOrderEditVersion);
@@ -275,13 +348,13 @@ export default function DeliverySchedulesSection({
     setRemark("");
     // ตั้งค่าตั้งต้นเป็น "ที่เหลือทั้งหมด" — เคสที่พบบ่อยสุดคือส่งรอบเดียวจบ
     setDraftLines(
-      salesOrderItems.map((item) => ({
-        salesOrderItemId: item.id,
-        quantity: Math.max(
+      salesOrderItems.map((item) => {
+        const qty = Math.max(
           toNum(item.quantity) - (scheduledByItem.get(item.id) ?? 0),
           0,
-        ),
-      })),
+        );
+        return buildDraftLine(item, qty);
+      }),
     );
     setModalOpen(true);
   }
@@ -292,15 +365,35 @@ export default function DeliverySchedulesSection({
     setStaleWarning(null);
     setDeliveryDate(dayjs(schedule.deliveryDate));
     setRemark(schedule.remark ?? "");
+    // คำนวณรอบอื่นจาก schedule ที่ส่งเข้ามา — อย่าพึ่ง state editing (ยังไม่อัปเดต)
+    const otherQtyByItem = new Map<string, number>();
+    const otherDiscountByItem = new Map<string, number>();
+    for (const row of activeSchedules) {
+      if (row.id === schedule.id) continue;
+      for (const line of row.items ?? []) {
+        otherQtyByItem.set(
+          line.salesOrderItemId,
+          (otherQtyByItem.get(line.salesOrderItemId) ?? 0) + toNum(line.quantity),
+        );
+        otherDiscountByItem.set(
+          line.salesOrderItemId,
+          (otherDiscountByItem.get(line.salesOrderItemId) ?? 0) +
+            toNum(line.discountAmount),
+        );
+      }
+    }
     setDraftLines(
       salesOrderItems.map((item) => {
         const line = (schedule.items ?? []).find(
           (row) => row.salesOrderItemId === item.id,
         );
-        return {
-          salesOrderItemId: item.id,
-          quantity: toNum(line?.quantity),
-        };
+        const qty = toNum(line?.quantity);
+        const saved = toNum(line?.discountAmount);
+        return buildDraftLine(item, qty, {
+          explicitDiscount: saved > 0.005 ? saved : undefined,
+          otherQty: otherQtyByItem.get(item.id) ?? 0,
+          otherDiscount: otherDiscountByItem.get(item.id) ?? 0,
+        });
       }),
     );
     setModalOpen(true);
@@ -722,6 +815,19 @@ export default function DeliverySchedulesSection({
                         `${line.originalQuantity ?? line.quantity} ${line.unitCode ?? ""}`,
                     },
                     {
+                      title: t("ส่วนลด"),
+                      dataIndex: "discountAmount",
+                      align: "right",
+                      width: 100,
+                      render: (v: string | undefined) =>
+                        toNum(v) > 0.005
+                          ? toNum(v).toLocaleString("th-TH", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : "—",
+                    },
+                    {
                       title: t("จองแล้ว"),
                       dataIndex: "reservedQuantity",
                       align: "right",
@@ -871,20 +977,36 @@ export default function DeliverySchedulesSection({
                   onChange={(value) =>
                     setDraftLines((prev) => {
                       const next = [...prev];
-                      next[index] = {
-                        ...next[index],
-                        quantity: Number(value ?? 0),
-                      };
+                      const qty = Number(value ?? 0);
+                      const item = salesOrderItems.find(
+                        (row) => row.id === line.salesOrderItemId,
+                      );
+                      next[index] = item
+                        ? buildDraftLine(item, qty)
+                        : { ...next[index], quantity: qty, discountAmount: 0 };
                       return next;
                     })
                   }
                 />
               ),
             },
+            {
+              title: t("ส่วนลด"),
+              key: "discountAmount",
+              align: "right",
+              width: 110,
+              render: (_v, line) =>
+                toNum(line.discountAmount) > 0.005
+                  ? toNum(line.discountAmount).toLocaleString("th-TH", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })
+                  : "—",
+            },
           ]}
         />
         <p style={{ marginTop: 8, color: "#6b7280" }}>
-          {t("ใส่ 0 ในรายการที่ไม่ต้องส่งในรอบนี้ · สินค้าเดียวกันอยู่ได้หลายรอบ แต่รวมกันต้องไม่เกินจำนวนที่ตกลงขาย")}
+          {t("ใส่ 0 ในรายการที่ไม่ต้องส่งในรอบนี้ · สินค้าเดียวกันอยู่ได้หลายรอบ แต่รวมกันต้องไม่เกินจำนวนที่ตกลงขาย · ส่วนลดจัดสรรตามสัดส่วนจำนวนอัตโนมัติ")}
         </p>
       </Modal>
 

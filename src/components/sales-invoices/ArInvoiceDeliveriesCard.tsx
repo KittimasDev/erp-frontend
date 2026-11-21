@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { App, Button, Modal, Select, Table } from "antd";
+import { Alert, App, Button, Modal, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -11,10 +11,14 @@ import {
   useAddSalesInvoiceDeliveriesMutation,
   useRemoveSalesInvoiceDeliveryMutation,
 } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
-import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import {
+  useAdvanceCandidatesQuery,
+  usePendingSalesInvoicesQuery,
+} from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useT } from "@/lib/i18n/useT";
 import type {
   SalesInvoice,
+  SalesInvoiceApiResponse,
   SalesInvoiceDeliveryOrderSummary,
 } from "@/types/sales-invoices";
 import styles from "./SalesInvoiceDetailPage.module.css";
@@ -28,7 +32,7 @@ type Props = {
 /** รายการ DN ที่รวมอยู่ใน AR — DRAFT เพิ่ม/เอาออกได้ (ต้องเหลืออย่างน้อย 1 ใบ) */
 export default function ArInvoiceDeliveriesCard({ invoice, canEdit }: Props) {
   const t = useT();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const removeMutation = useRemoveSalesInvoiceDeliveryMutation();
   const [addOpen, setAddOpen] = useState(false);
 
@@ -39,6 +43,37 @@ export default function ArInvoiceDeliveriesCard({ invoice, canEdit }: Props) {
         ? [invoice.deliveryOrder]
         : [];
   const editable = canEdit && invoice.status === "DRAFT";
+
+  // ยอดหักมัดจำ "ที่ user แก้เอง" = มียอดหักบนใบร่าง และไม่ตรงกับยอดแนะนำของชุด DN ปัจจุบัน
+  // (ไม่มีข้อมูลแนะนำ/โหลดไม่ได้ → ถือว่าแก้เอง เพื่อเตือนไว้ก่อน)
+  const hasDeductions = (invoice.advanceDeductions ?? []).length > 0;
+  const candidatesQuery = useAdvanceCandidatesQuery(
+    editable && hasDeductions ? invoice.salesOrderId : undefined,
+    deliveries.map((d) => d.id),
+    invoice.id,
+  );
+  const suggested = candidatesQuery.data?.data.suggestedAllocations;
+  const deductionsEdited =
+    hasDeductions &&
+    (!suggested ||
+      suggested.length !== (invoice.advanceDeductions ?? []).length ||
+      (invoice.advanceDeductions ?? []).some((row) => {
+        const hit = suggested.find((s) => s.advanceReceiptId === row.advanceReceiptId);
+        return !hit || Math.abs(Number(hit.amount) - Number(row.amount)) > 0.004;
+      }));
+  const deductionTotalBefore = sumAdvanceDeductions(invoice);
+  /** หลังเพิ่ม/เอา DN ออกสำเร็จ — ถ้ายอดหักมัดจำรวมเปลี่ยน ให้แจ้งยอดใหม่ */
+  const notifyDeductionChange = (res: SalesInvoiceApiResponse) => {
+    const after = sumAdvanceDeductions(res.data);
+    if (Math.abs(after - deductionTotalBefore) > 0.004) {
+      message.info(
+        t("ยอดหักมัดจำถูกปรับ: {before} → {after}", {
+          before: formatMoney(deductionTotalBefore),
+          after: formatMoney(after),
+        }),
+      );
+    }
+  };
 
   const columns: ColumnsType<SalesInvoiceDeliveryOrderSummary> = useMemo(
     () => [
@@ -79,16 +114,26 @@ export default function ArInvoiceDeliveriesCard({ invoice, canEdit }: Props) {
                       title: t("เอา {no} ออกจากใบแจ้งหนี้?", {
                         no: row.deliveryOrderNo,
                       }),
-                      content: t("รายการและยอดของ DN นี้จะถูกตัดออก แล้ว DN กลับไปรอตั้งหนี้"),
+                      content: (
+                        <div>
+                          <p style={{ marginTop: 0 }}>
+                            {t("รายการและยอดของ DN นี้จะถูกตัดออก แล้ว DN กลับไปรอตั้งหนี้")}
+                          </p>
+                          {deductionsEdited ? (
+                            <Alert type="warning" showIcon title={t(ADVANCE_RECALC_WARNING)} />
+                          ) : null}
+                        </div>
+                      ),
                       okText: t("เอาออก"),
                       cancelText: t("ยกเลิก"),
                       okButtonProps: { danger: true },
                       onOk: async () => {
                         try {
-                          await removeMutation.mutateAsync({
+                          const res = await removeMutation.mutateAsync({
                             id: invoice.id,
                             deliveryOrderId: row.id,
                           });
+                          notifyDeductionChange(res);
                         } catch {
                           // hook แจ้ง error แล้ว
                         }
@@ -104,7 +149,7 @@ export default function ArInvoiceDeliveriesCard({ invoice, canEdit }: Props) {
         : []),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deliveries.length, editable, invoice.id, removeMutation.isPending, t],
+    [deliveries.length, editable, invoice.id, removeMutation.isPending, t, deductionsEdited, deductionTotalBefore],
   );
 
   return (
@@ -131,21 +176,49 @@ export default function ArInvoiceDeliveriesCard({ invoice, canEdit }: Props) {
         pagination={false}
       />
       {addOpen ? (
-        <AddDeliveriesModal invoice={invoice} onClose={() => setAddOpen(false)} />
+        <AddDeliveriesModal
+          invoice={invoice}
+          deductionsEdited={deductionsEdited}
+          onAdded={notifyDeductionChange}
+          onClose={() => setAddOpen(false)}
+        />
       ) : null}
     </div>
   );
 }
 
+const ADVANCE_RECALC_WARNING =
+  "ยอดหักมัดจำที่คุณแก้ไขไว้ จะถูกคำนวณใหม่หรือปรับตามเพดานใหม่ของชุดใบส่งสินค้า — ตรวจสอบยอดหักอีกครั้งหลังบันทึก";
+
+function sumAdvanceDeductions(invoice?: Pick<SalesInvoice, "advanceDeductions">) {
+  return (invoice?.advanceDeductions ?? []).reduce(
+    (sum, row) => sum + (Number(row.amount) || 0),
+    0,
+  );
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /** เลือก DN รอตั้งหนี้ของใบสั่งขายเดียวกัน — mount เฉพาะตอนเปิด เพื่อไม่ยิง query โดยไม่จำเป็น */
 function AddDeliveriesModal({
   invoice,
+  deductionsEdited,
+  onAdded,
   onClose,
 }: {
   invoice: SalesInvoice;
+  /** ยอดหักมัดจำบนใบร่างถูกแก้เอง — เตือนก่อนเพิ่ม DN */
+  deductionsEdited: boolean;
+  onAdded: (res: SalesInvoiceApiResponse) => void;
   onClose: () => void;
 }) {
   const t = useT();
+  const { modal } = App.useApp();
   const addMutation = useAddSalesInvoiceDeliveriesMutation();
   const [picked, setPicked] = useState<string[]>([]);
   const pending = usePendingSalesInvoicesQuery({
@@ -174,11 +247,25 @@ function AddDeliveriesModal({
       mask={{ closable: false }}
       onCancel={onClose}
       onOk={async () => {
+        if (deductionsEdited) {
+          const proceed = await new Promise<boolean>((resolve) => {
+            modal.confirm({
+              title: t("เพิ่มใบส่งสินค้า?"),
+              content: t(ADVANCE_RECALC_WARNING),
+              okText: t("เพิ่มต่อ"),
+              cancelText: t("ยกเลิก"),
+              onOk: () => resolve(true),
+              onCancel: () => resolve(false),
+            });
+          });
+          if (!proceed) return;
+        }
         try {
-          await addMutation.mutateAsync({
+          const res = await addMutation.mutateAsync({
             id: invoice.id,
             deliveryOrderIds: picked,
           });
+          onAdded(res);
           onClose();
         } catch {
           // hook แจ้ง error แล้ว — ค้าง modal ไว้

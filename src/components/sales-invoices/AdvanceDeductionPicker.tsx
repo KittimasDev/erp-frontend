@@ -7,6 +7,10 @@ import dayjs from "dayjs";
 
 import { useAdvanceCandidatesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useT } from "@/lib/i18n/useT";
+import {
+  advanceDeductionErrors,
+  splitAdvanceDeduction,
+} from "@/utils/advance-deduction-validation";
 import type {
   AdvanceCandidate,
   SalesInvoiceAdvanceDeductionInput,
@@ -114,6 +118,11 @@ export default function AdvanceDeductionPicker({
     );
   }
 
+  const errors = advanceDeductionErrors(value, items, cap);
+  const rowErrorIds = new Set(
+    errors.flatMap((err) => (err.advanceReceiptId ? [err.advanceReceiptId] : [])),
+  );
+
   const columns: ColumnsType<AdvanceCandidate> = [
     { title: t("เลขที่"), dataIndex: "docNo" },
     {
@@ -125,17 +134,36 @@ export default function AdvanceDeductionPicker({
       title: t("คงเหลือ"),
       dataIndex: "remainingAmount",
       align: "right",
-      render: (v: string, row) => (
-        <span>
-          {formatMoney(v)}
-          <div style={{ color: "#8a9199", fontSize: 12 }}>
-            {t("ก่อน VAT {base} / VAT {vat}", {
-              base: formatMoney(row.remainingBaseAmount),
-              vat: formatMoney(row.remainingVatAmount),
-            })}
-          </div>
-        </span>
-      ),
+      render: (v: string, row) => {
+        const typed = selected.get(row.id);
+        const remainingLine = t("ก่อน VAT {base} / VAT {vat}", {
+          base: formatMoney(row.remainingBaseAmount),
+          vat: formatMoney(row.remainingVatAmount),
+        });
+        if (typeof typed === "number" && typed > 0) {
+          // TASK 06: แสดงฐาน/VAT ของ "ยอดหักที่กรอก" (แยกแบบ EXCLUSIVE ด้วย vatRate ของใบรับเงิน)
+          const { base, vat } = splitAdvanceDeduction(typed, row);
+          return (
+            <span>
+              <div>
+                {t("ยอดหักนี้ ก่อน VAT {base} / VAT {vat}", {
+                  base: formatMoney(base),
+                  vat: formatMoney(vat),
+                })}
+              </div>
+              <div style={{ color: "#8a9199", fontSize: 12 }}>
+                {t("คงเหลือรวม {amount}", { amount: formatMoney(v) })} · {remainingLine}
+              </div>
+            </span>
+          );
+        }
+        return (
+          <span>
+            {formatMoney(v)}
+            <div style={{ color: "#8a9199", fontSize: 12 }}>{remainingLine}</div>
+          </span>
+        );
+      },
     },
     {
       title: t("ยอดหัก"),
@@ -146,15 +174,14 @@ export default function AdvanceDeductionPicker({
         return (
           <InputNumber
             disabled={!checked}
-            min={0.01}
-            max={Number(row.remainingAmount)}
             step={0.01}
             precision={2}
             style={{ width: "100%" }}
+            status={rowErrorIds.has(row.id) ? "error" : undefined}
             value={checked ? selected.get(row.id) : undefined}
             onChange={(next) => {
+              // ไม่ clamp — เก็บตามที่กรอก (รวม 0 / ติดลบ / เกินคงเหลือ) แล้วให้ alert ด้านล่างแจ้ง
               const amount = typeof next === "number" ? roundMoney(next) : 0;
-              if (amount < 0) return;
               onChange(
                 value.map((line) =>
                   line.advanceReceiptId === row.id ? { ...line, amount } : line,
@@ -184,13 +211,21 @@ export default function AdvanceDeductionPicker({
             children: formatMoney(data?.depositTotalAmount),
           },
           {
+            key: "reserved",
+            label: t("จองโดยใบร่าง"),
+            children:
+              data?.depositReservedAmount != null
+                ? formatMoney(data.depositReservedAmount)
+                : "—",
+          },
+          {
             key: "used",
-            label: t("ใช้ไปแล้ว"),
-            children: formatMoney(data?.depositAppliedAmount),
+            label: t("ใช้จริง (ยืนยันแล้ว)"),
+            children: formatMoney(data?.depositUsedAmount ?? data?.depositAppliedAmount),
           },
           {
             key: "avail",
-            label: t("คงเหลือ"),
+            label: t("ใช้ได้"),
             children: formatMoney(data?.depositAvailableAmount),
           },
           {
@@ -308,22 +343,20 @@ export default function AdvanceDeductionPicker({
           </>
         ) : null}
       </div>
-      {value.length > 0 && sum > cap + 0.004 ? (
-        <Alert
-          type="error"
-          showIcon
-          style={{ marginTop: 8 }}
-          title={t("ยอดหักรวมเกินเงินล่วงหน้าที่ยังใช้ได้")}
-        />
-      ) : null}
-      {value.some((row) => !(row.amount > 0)) ? (
-        <Alert
-          type="error"
-          showIcon
-          style={{ marginTop: 8 }}
-          title={t("ยอดหักต้องมากกว่า 0")}
-        />
-      ) : null}
+      {errors.map((err) => {
+        const docNo = err.advanceReceiptId
+          ? items.find((row) => row.id === err.advanceReceiptId)?.docNo
+          : undefined;
+        return (
+          <Alert
+            key={`${err.advanceReceiptId ?? "sum"}:${err.message}`}
+            type="error"
+            showIcon
+            style={{ marginTop: 8 }}
+            title={docNo ? `${docNo}: ${t(err.message)}` : t(err.message)}
+          />
+        );
+      })}
     </div>
   );
 }

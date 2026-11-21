@@ -194,7 +194,8 @@ export function useCancelSalesInvoiceMutation() {
   const t = useT();
 
   return useMutation({
-    mutationFn: (id: string) => cancelSalesInvoice(getAccessToken(), id),
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      cancelSalesInvoice(getAccessToken(), id, reason),
     onSuccess: async (res) => {
       await invalidateSalesInvoiceFlow(queryClient);
       await queryClient.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
