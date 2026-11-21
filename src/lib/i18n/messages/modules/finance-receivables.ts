@@ -73,6 +73,8 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "ยอดรวม": "Total",
   "ยอดรวม {amount}": "Total {amount}",
   "รับชำระแล้ว": "Received",
+  "รอรับชำระ": "Awaiting payment",
+  "ไม่มีรายการรอรับชำระ": "No items awaiting payment",
   "เลือก {n} ใบ ยอดรวม {amount}": "{n} selected, total {amount}",
   "เลือกได้หลายใบเฉพาะ AR ของลูกค้าเดียวกัน — วางบิลเต็มยอดค้างชำระของแต่ละ AR (ไม่แบ่ง AR)":
     "Only AR invoices of the same customer can be combined — each is billed for its full outstanding amount (no splitting)",

@@ -60,11 +60,13 @@ export default function PaymentRecordsPage() {
   const [pSearch, setPSearch] = useState("");
   const [pKeyword, setPKeyword] = useState("");
   const [pKind, setPKind] = useState<string | undefined>();
+  const [pPoCancelled, setPPoCancelled] = useState<boolean | undefined>();
   const payable = usePayableVouchersQuery({
     page: pPage,
     limit: PAYABLE_PAGE_SIZE,
     search: pKeyword,
     paymentKind: pKind,
+    sourcePoCancelled: pPoCancelled,
   });
 
   // ── ส่วนที่ 2: บันทึกจ่ายแล้ว ──
@@ -166,7 +168,12 @@ export default function PaymentRecordsPage() {
       title: t("สถานะ"),
       dataIndex: "status",
       width: 150,
-      render: (v: string) => <Tag color={VOUCHER_STATUS_COLOR[v]}>{VOUCHER_STATUS_LABEL[v] ? tFin(VOUCHER_STATUS_LABEL[v]) : v}</Tag>,
+      render: (v: string, r) => (
+        <>
+          <Tag color={VOUCHER_STATUS_COLOR[v]}>{VOUCHER_STATUS_LABEL[v] ? tFin(VOUCHER_STATUS_LABEL[v]) : v}</Tag>
+          {r.sourcePoCancelled ? <Tag color="red">{t("PO ถูกยกเลิก")}</Tag> : null}
+        </>
+      ),
     },
     {
       title: "",
@@ -174,7 +181,18 @@ export default function PaymentRecordsPage() {
       width: 150,
       render: (_v, r) =>
         perms.canAdd ? (
-          <Button type="primary" size="small" onClick={() => router.push(`${PAYMENT_RECORDS_PATH}/create?voucherId=${r.id}`)}>
+          <Button
+            type="primary"
+            size="small"
+            danger={r.sourcePoCancelled}
+            onClick={() => {
+              if (r.sourcePoCancelled) {
+                message.error(t("PO ถูกยกเลิกแล้ว ไม่สามารถบันทึกจ่ายเงินได้"));
+                return;
+              }
+              router.push(`${PAYMENT_RECORDS_PATH}/create?voucherId=${r.id}`);
+            }}
+          >
             {tFin("บันทึกจ่ายเงิน")}
           </Button>
         ) : null,
@@ -227,6 +245,7 @@ export default function PaymentRecordsPage() {
     setPSearch("");
     setPKeyword("");
     setPKind(undefined);
+    setPPoCancelled(undefined);
     setPPage(1);
   };
   const applyRecords = () => {
@@ -292,6 +311,22 @@ export default function PaymentRecordsPage() {
             <div className={styles.filterItem}>
               <label>{t("ประเภทการจ่าย")}</label>
               <Select allowClear placeholder={t("ทั้งหมด")} value={pKind} onChange={setPKind} options={KIND_OPTIONS} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>{t("สถานะ PO")}</label>
+              <Select
+                allowClear
+                placeholder={t("ทั้งหมด")}
+                value={pPoCancelled === true ? "only" : pPoCancelled === false ? "hide" : undefined}
+                onChange={(value) => {
+                  setPPoCancelled(value === "only" ? true : value === "hide" ? false : undefined);
+                  setPPage(1);
+                }}
+                options={[
+                  { value: "hide", label: t("ซ่อน PO ที่ถูกยกเลิก") },
+                  { value: "only", label: t("เฉพาะ PO ที่ถูกยกเลิก") },
+                ]}
+              />
             </div>
             <div className={styles.filterActions}>
               <Button onClick={clearPayable}>{t("เคลียร์")}</Button>

@@ -13,18 +13,205 @@ import PageHeader from "@/components/common/PageHeader";
 import styles from "@/components/finance/shared/finance-list-page.module.css";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { useArReceiptsQuery } from "@/hooks/ar-receipts/useArReceipts";
+import {
+  useArAwaitingOrdersQuery,
+  useArReceiptsQuery,
+} from "@/hooks/ar-receipts/useArReceipts";
 import { useT } from "@/lib/i18n/useT";
 import { ArReceiptRelatedDocsInline } from "./ArReceiptRelatedDocs";
+import {
+  awaitingOrderHref,
+  isAdvanceAwaiting,
+} from "@/components/ar-receipts/ArAwaitingOrdersPage";
 import { arReceiptRoutes } from "@/lib/sales/ar-routes";
 import {
   AR_PAYMENT_METHOD_LABEL,
   AR_RECEIPT_STATUS_COLOR,
   AR_RECEIPT_STATUS_LABEL,
+  AWAITING_PAY_STATUS_COLOR,
+  AWAITING_PAY_STATUS_LABEL,
   type ArReceipt,
+  type AwaitingOrder,
 } from "@/types/ar-receipts";
 
 const PAGE_SIZE = 20;
+
+/** ใบสั่งขายที่ยังมียอดค้าง — วางเหนือใบรับชำระที่บันทึกแล้ว */
+function AwaitingPaymentSection() {
+  const t = useT();
+  const receiptPerms = useScreenActionPermissions("FINANCE_PAYMENT_RECEIPTS");
+  const advancePerms = useScreenActionPermissions("FINANCE_ADVANCE_RECEIPTS");
+  const arPerms = useScreenActionPermissions("FINANCE_AR_INVOICES");
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [payStatus, setPayStatus] = useState<string | undefined>();
+
+  const query = useArAwaitingOrdersQuery({
+    page,
+    limit: PAGE_SIZE,
+    keyword: keyword || undefined,
+    payStatus,
+  });
+
+  const columns: ColumnsType<AwaitingOrder> = [
+    {
+      title: t("เลขที่ SO"),
+      dataIndex: "soNo",
+      width: 150,
+      render: (v: string, r) => (
+        <Link href={`/sales-orders/${r.salesOrderId}`}>
+          <strong>{v}</strong>
+        </Link>
+      ),
+    },
+    { title: t("วันที่ SO"), dataIndex: "soDate", width: 110, render: (v: string) => formatThaiDate(v) },
+    {
+      title: t("ลูกค้า"),
+      key: "customer",
+      render: (_v, r) => (
+        <span>
+          <Typography.Text type="secondary">{r.customerCode}</Typography.Text> {r.customerName}
+        </span>
+      ),
+    },
+    {
+      title: t("คงค้าง"),
+      dataIndex: "outstandingAmount",
+      align: "right",
+      width: 140,
+      render: (v: string) => <strong>{money.format(Number(v))}</strong>,
+    },
+    {
+      title: t("ครบกำหนด"),
+      dataIndex: "paymentDueDate",
+      width: 150,
+      render: (v: string | undefined, r) =>
+        v ? (
+          <span>
+            {formatThaiDate(v)} {r.isOverdue ? <Tag color="red">{t("เกินกำหนด")}</Tag> : null}
+          </span>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      title: t("สถานะ"),
+      dataIndex: "payStatus",
+      width: 140,
+      render: (v: string) => (
+        <Tag color={AWAITING_PAY_STATUS_COLOR[v] ?? "default"}>{t(AWAITING_PAY_STATUS_LABEL[v] ?? v)}</Tag>
+      ),
+    },
+    {
+      title: "",
+      key: "action",
+      width: 150,
+      render: (_v, r) => {
+        const advance = isAdvanceAwaiting(r);
+        const allowed = advance
+          ? advancePerms.canAdd
+          : r.targetPage === "RECEIPT"
+            ? receiptPerms.canAdd
+            : arPerms.canView;
+        if (!allowed) return null;
+        return (
+          <Link href={awaitingOrderHref(r)}>
+            <Button size="small" type={r.targetPage === "RECEIPT" ? "primary" : "default"}>
+              {advance ? t("รับเงินล่วงหน้า") : r.targetPage === "RECEIPT" ? t("รับชำระเงิน") : t("ไปใบตั้งลูกหนี้")}
+            </Button>
+          </Link>
+        );
+      },
+    },
+  ];
+
+  const apply = () => {
+    setKeyword(search.trim());
+    setPage(1);
+  };
+
+  return (
+    <div className={masterStyles.tableCard}>
+      <div className={masterStyles.tableHeader}>
+        <div>
+          <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+          <h3>{t("รอรับชำระ")}</h3>
+          <p>{t("ใบสั่งขาย (SO) ที่ยังใช้งานและยอดยังไม่ครบ — รอรับเงินจากลูกค้า")}</p>
+        </div>
+        <span className={masterStyles.tableCount}>
+          {(query.data?.total ?? 0).toLocaleString("th-TH")} {t("รายการ")}
+          {" · "}
+          {money.format(Number(query.data?.summary.outstandingTotal ?? 0))} {t("บาท")}
+        </span>
+      </div>
+      <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+        <div className={styles.filterRow}>
+          <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+            <label>{t("ค้นหา")}</label>
+            <Input
+              allowClear
+              placeholder={t("เลขที่ SO / ลูกค้า")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onPressEnter={apply}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>{t("สถานะ")}</label>
+            <Select
+              allowClear
+              placeholder={t("ทั้งหมด")}
+              value={payStatus}
+              onChange={(v) => {
+                setPayStatus(v);
+                setPage(1);
+              }}
+              options={Object.entries(AWAITING_PAY_STATUS_LABEL).map(([value, label]) => ({
+                value,
+                label: t(label),
+              }))}
+            />
+          </div>
+          <div className={styles.filterActions}>
+            <Button
+              onClick={() => {
+                setSearch("");
+                setKeyword("");
+                setPayStatus(undefined);
+                setPage(1);
+              }}
+            >
+              {t("เคลียร์")}
+            </Button>
+            <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={apply}>
+              {t("ค้นหา")}
+            </Button>
+          </div>
+        </div>
+      </section>
+      <Table
+        className={masterStyles.dataTable}
+        size="middle"
+        bordered={false}
+        rowKey="salesOrderId"
+        loading={query.isLoading}
+        columns={columns}
+        dataSource={query.data?.items ?? []}
+        pagination={{
+          current: page,
+          pageSize: PAGE_SIZE,
+          total: query.data?.total ?? 0,
+          onChange: setPage,
+          showSizeChanger: false,
+          showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
+        }}
+        scroll={{ x: 960 }}
+        locale={{ emptyText: t("ไม่มีรายการรอรับชำระ") }}
+      />
+    </div>
+  );
+}
 
 type Props = {
   /** payment = หน้ารับชำระ (มีปุ่มบันทึกรับชำระ) · receipt = หน้าใบเสร็จรับเงิน (อ่านอย่างเดียว) */
@@ -153,7 +340,16 @@ export default function ArReceiptsListPage({ variant }: Props) {
           ) : null
         }
       />
+      {variant === "payment" ? <AwaitingPaymentSection /> : null}
       <div className={masterStyles.tableCard}>
+        {variant === "payment" ? (
+          <div className={masterStyles.tableHeader}>
+            <div>
+              <div className={masterStyles.tableEyebrow}>{t("รายการ")}</div>
+              <h3>{t("รับชำระแล้ว")}</h3>
+            </div>
+          </div>
+        ) : null}
         <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
           <div className={styles.filterRow}>
             <div className={`${styles.filterItem} ${styles.filterItemWide}`}>

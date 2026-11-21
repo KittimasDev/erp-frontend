@@ -193,4 +193,9 @@ export const EN_FINANCE_PAYABLES: Record<string, string> = {
 
   /* ---------- finance landing ---------- */
   "PO {no} ยกเลิกแล้ว — ยืนยันรายการ/สร้างใบสำคัญจ่ายไม่ได้ กรุณายกเลิกรายการนี้": "PO {no} is cancelled. This request cannot be confirmed or turned into a payment voucher; please cancel it.",
+  "PO ถูกยกเลิก": "PO cancelled",
+  "PO ถูกยกเลิกแล้ว": "The PO has been cancelled",
+  "PO ถูกยกเลิกแล้ว ไม่สามารถบันทึกจ่ายเงินได้": "The PO has been cancelled. This payment cannot be recorded.",
+  "ซ่อน PO ที่ถูกยกเลิก": "Hide cancelled POs",
+  "เฉพาะ PO ที่ถูกยกเลิก": "Cancelled POs only",
 };

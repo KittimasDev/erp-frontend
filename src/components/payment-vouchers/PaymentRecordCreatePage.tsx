@@ -81,6 +81,7 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
 
   const net = Number(v.netAmount ?? v.totalAmount);
   const activeMethod = method ?? v.paymentMethod;
+  const poCancelled = (d.purchaseOrders ?? []).some((po) => po.isCancelled);
 
   const submit = async () => {
     const vals = await form.validateFields();
@@ -122,6 +123,10 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+      {poCancelled ? (
+        <Alert type="error" showIcon title={t("PO ถูกยกเลิกแล้ว ไม่สามารถบันทึกจ่ายเงินได้")} />
+      ) : null}
+
       <PageHeader
         title={<>{t("บันทึกจ่ายเงิน")}</>}
         back={
@@ -161,6 +166,7 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
         <Form
           form={form}
           layout="vertical"
+          disabled={poCancelled}
           initialValues={{
             documentDate: dayjs(),
             paymentDate: dayjs(),
@@ -268,7 +274,7 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
         <Space wrap>
           <Button onClick={() => router.push(PAYMENT_RECORDS_PATH)}>{t("ยกเลิก")}</Button>
           {perms.canAdd ? (
-            <Button type="primary" loading={record.isPending} onClick={() => void submit()}>
+            <Button type="primary" loading={record.isPending} disabled={poCancelled} onClick={() => void submit()}>
               {t("ยืนยันการจ่ายเงิน")}
             </Button>
           ) : (

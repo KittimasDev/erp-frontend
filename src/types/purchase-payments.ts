@@ -117,6 +117,8 @@ export type SupplierPaymentVoucher = {
   paymentMethod: string;
   totalAmount: string;
   status: SupplierPaymentVoucherStatus;
+  /** PO ต้นทางถูกยกเลิกแล้ว — บันทึกจ่ายใบนี้ไม่ได้ */
+  sourcePoCancelled?: boolean;
   paidAt?: string;
   paidById?: string;
   paidBy?: SupplierPaymentUserSummary;

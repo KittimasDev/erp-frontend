@@ -246,7 +246,14 @@ export type UpdateVoucherFormBody = {
 };
 
 
-export type PayableVoucherQuery = { search?: string; paymentKind?: string; page?: number; limit?: number };
+export type PayableVoucherQuery = {
+  search?: string;
+  paymentKind?: string;
+  /** true = เฉพาะใบที่ PO ถูกยกเลิก, false = ซ่อนใบนั้น */
+  sourcePoCancelled?: boolean;
+  page?: number;
+  limit?: number;
+};
 
 // ─── หน้าบันทึกจ่ายเงิน: รายการที่บันทึกจ่ายแล้ว ─────────────────────────────
 
