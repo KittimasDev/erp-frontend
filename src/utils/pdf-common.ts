@@ -823,8 +823,13 @@ export type SalesCommercialPdfData = {
   /** ป้ายใต้เลขที่ เช่น ฉบับแก้ไข วันที่ … */
   revisionLabel?: string;
   draftBanner?: string;
-  /** โทนแถบหัวกระดาษ — warn (ค่าเริ่มต้น เหลือง) / success (เขียว เช่น จ่ายแล้ว) */
+  /** โทนแถบหัวกระดาษ — warn (ค่าเริ่มต้น เหลือง) / success (เขียว) */
   draftBannerTone?: "warn" | "success";
+  /**
+   * แสตมป์ทแยงมุมบนหน้า (เช่น "จ่ายแล้ว") — ไม่กินเลย์เอาต์
+   * ใช้แทนแถบ draftBanner เมื่อต้องการให้ดูเป็นตราประทับ
+   */
+  statusStamp?: string;
   infoRows: SalesCommercialPdfInfoRow[];
   infoSections?: Array<{
     title?: string;
@@ -1086,6 +1091,27 @@ function salesStyles() {
         background: #eaf7ee;
         color: #2f7d44;
         font-weight: 700;
+      }
+
+      /* ตราประทับสถานะ — ทับมุมขวาบน ไม่ดันเลย์เอาต์ */
+      .status-stamp {
+        position: absolute;
+        top: 118px;
+        right: 36px;
+        z-index: 6;
+        pointer-events: none;
+        border: 2.5px solid #c62828;
+        color: #c62828;
+        background: rgba(255, 255, 255, 0.88);
+        padding: 6px 18px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: 1.1;
+        border-radius: 4px;
+        transform: rotate(-18deg);
+        box-shadow: 0 0 0 1px rgba(198, 40, 40, 0.18);
+        white-space: nowrap;
       }
 
       .info-wrap {
@@ -2283,9 +2309,14 @@ function buildSalesPages(
 
   const pageCount = pages.length;
 
+  const stamp = data.statusStamp
+    ? `<div class="status-stamp" aria-hidden="true">${escapeHtml(data.statusStamp)}</div>`
+    : "";
+
   return pages.map((draft) => {
     const body = `
     <div id="${data.pageId}-${draft.index}" class="page">
+      ${stamp}
       ${parts.head}
       ${draft.index === 0 ? parts.first : parts.cont}
       ${draft.body.join("")}

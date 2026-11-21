@@ -1,9 +1,7 @@
 import dayjs from "dayjs";
 import {
   EXPRESS_STATUS_LABEL,
-  PV_KIND_LABEL,
   PV_SOURCE_LABEL,
-  VOUCHER_STATUS_LABEL,
   type PaymentVoucherDetail,
   type VoucherBankAccount,
 } from "@/types/payment-vouchers";
@@ -15,7 +13,6 @@ import {
 import {
   generateSalesCommercialPdf,
   type SalesCommercialPdfData,
-  type SalesCommercialPdfInfoRow,
   type SalesCommercialPdfTotalsLine,
 } from "./pdf-common";
 
@@ -43,12 +40,22 @@ function recordedMoney(value?: string | number | null): number | undefined {
 }
 
 function bankText(bank: SupplierPaymentBankAccount | VoucherBankAccount) {
-  return `${bank.bankName} ${bank.accountNumber} (${bank.accountName})`;
+  return `${bank.bankName} ${bank.accountNumber}`.trim();
+}
+
+/** วัตถุประสงค์ — ข้อความเดียวกับหน้ารายละเอียดใบสำคัญจ่าย */
+function purposeText(kind?: string | null) {
+  if (kind === "ADVANCE") return "จ่ายชำระล่วงหน้า";
+  if (kind === "DEPOSIT") return "ชำระมัดจำ";
+  if (kind === "AP_PAYMENT") return "ชำระค่าสินค้า";
+  return kind?.trim() || "—";
 }
 
 /**
  * ใบสำคัญจ่าย (Payment Voucher) — ใช้ template เอกสารกลุ่มเดียวกับใบตั้งหนี้/ใบสั่งซื้อ
  * ใบที่ยังไม่อนุมัติหรือยกเลิกจะพิมพ์ป้ายเตือนไว้หัวกระดาษ กันเอาใบร่างไปใช้เป็นใบจริง
+ * ใบที่จ่ายแล้วใช้แสตมป์แดง "จ่ายแล้ว" แทนแถบหัว
+ * กรอบข้อมูลแบ่งสองการ์ดเหมือนหน้ารายละเอียด: ข้อมูลเจ้าหนี้ / ข้อมูลการชำระเงิน
  * ตัวเลขมาจาก GET /api/payment-vouchers/:id เท่านั้น ไม่เติมแถวหรือยอดที่ต้นทางไม่มี
  */
 export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommercialPdfData {
@@ -67,57 +74,48 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
   const banks = paidBanks.length > 0 ? paidBanks : d.bankAccount ? [d.bankAccount] : [];
   const bankValue = banks
     .map(bankText)
-    .filter((text, index, all) => all.indexOf(text) === index)
+    .filter((text, index, all) => text && all.indexOf(text) === index)
     .join(" · ");
 
-  const infoRows: SalesCommercialPdfInfoRow[] = [
-    {
-      label: "เจ้าหนี้",
-      value: `${d.supplier.creditorCode ?? ""} ${d.supplier.nameTh}`.trim(),
-      emphasis: true,
-    },
-    { label: "เลขประจำตัวผู้เสียภาษี", value: d.supplier.taxId || "—" },
-    {
-      label: "เอกสารต้นทาง",
-      value: `${PV_SOURCE_LABEL[v.sourceType ?? "PURCHASE_ORDER"] ?? v.sourceType ?? "—"} ${v.sourceNo ?? ""}`.trim(),
-    },
-    { label: "ประเภทการจ่าย", value: PV_KIND_LABEL[v.paymentKind ?? ""] ?? v.paymentKind ?? "—" },
-    {
-      label: "วิธีชำระเงิน",
-      value:
-        (SUPPLIER_PAYMENT_METHOD_LABEL as Record<string, string>)[v.paymentMethod] ??
-        v.paymentMethod ??
-        "—",
-    },
-    { label: "สถานะ", value: VOUCHER_STATUS_LABEL[v.status] ?? v.status },
-    { label: "สถานะ Express", value: EXPRESS_STATUS_LABEL[d.expressStatus] ?? d.expressStatus ?? "—" },
-  ];
-  const desiredPayDate = thaiDate(d.desiredPayDate ?? v.desiredPayDate);
-  if (desiredPayDate) {
-    infoRows.push({ label: "วันที่ต้องการจ่าย", value: desiredPayDate });
-  }
-  if (bankValue) {
-    infoRows.push({ label: "บัญชีบริษัทที่จ่าย", value: bankValue, full: true });
-  }
+  const purchaseOrders =
+    d.purchaseOrders && d.purchaseOrders.length > 0
+      ? d.purchaseOrders.map((po) => po.poNo).filter(Boolean)
+      : v.purchaseOrder?.poNo
+        ? [v.purchaseOrder.poNo]
+        : [];
+  const poValue =
+    purchaseOrders.length > 0
+      ? purchaseOrders.join(", ")
+      : [
+          PV_SOURCE_LABEL[v.sourceType ?? "PURCHASE_ORDER"] ?? v.sourceType,
+          v.sourceNo,
+        ]
+          .filter(Boolean)
+          .join(" ") || "—";
+
   const payDates = activePayments
     .map((payment) => thaiDate(payment.paymentDate))
     .filter((value, index, all) => value && all.indexOf(value) === index);
-  if (payDates.length > 0) {
-    infoRows.push({ label: "วันที่จ่าย", value: payDates.join(", ") });
-  }
+  const payDate =
+    payDates.length > 0
+      ? payDates.join(", ")
+      : thaiDate(v.paidAt) || thaiDate(d.desiredPayDate ?? v.desiredPayDate) || "—";
+
   const refs = activePayments
     .map((payment) => payment.transactionRef?.trim() ?? "")
     .filter((value, index, all) => value && all.indexOf(value) === index);
-  if (refs.length > 0) {
-    infoRows.push({ label: "เลขอ้างอิงธุรกรรม", value: refs.join(", "), full: true });
-  }
 
-  // อนุมัติแล้วรอจ่าย = "ยังไม่ชำระเงิน" · จ่ายแล้ว = "จ่ายแล้ว" — กันเอาใบที่ยังไม่จ่ายไปใช้เป็นหลักฐานการจ่าย
-  const draftBanner =
-    v.status === "APPROVED"
+  const methodLabel =
+    (SUPPLIER_PAYMENT_METHOD_LABEL as Record<string, string>)[v.paymentMethod] ??
+    v.paymentMethod ??
+    "—";
+
+  // อนุมัติแล้วรอจ่าย = แถบเตือน · จ่ายแล้ว = แสตมป์แดง · อื่น ๆ = แถบสถานะ
+  const isPaid = v.status === "PAID";
+  const draftBanner = isPaid
+    ? undefined
+    : v.status === "APPROVED"
       ? "ยังไม่ชำระเงิน"
-      : v.status === "PAID"
-        ? "จ่ายแล้ว"
       : v.status === "CANCELLED"
         ? "ยกเลิกแล้ว"
         : v.status === "PENDING_APPROVAL"
@@ -126,28 +124,30 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
             ? "ไม่อนุมัติ"
             : "ร่าง — ยังไม่อนุมัติ";
 
-  const items = d.apDocuments.flatMap((ap) => {
-    const amount = recordedMoney(ap.allocatedAmount);
-    if (amount === undefined) return [];
-    const itemName = [
-      `ชำระใบตั้งหนี้ ${ap.docNo}`,
-      ap.invoiceNo ? `ใบแจ้งหนี้ ${ap.invoiceNo}` : null,
-      ap.poNo ? `PO ${ap.poNo}` : null,
-    ]
-      .filter((part): part is string => Boolean(part))
-      .join(" · ");
-    return [
-      {
-        no: 0,
-        itemCode: ap.docNo,
-        itemName,
-        unit: "รายการ",
-        qty: 1,
-        unitPrice: amount,
-        amount,
-      },
-    ];
-  }).map((item, index) => ({ ...item, no: index + 1 }));
+  const items = d.apDocuments
+    .flatMap((ap) => {
+      const amount = recordedMoney(ap.allocatedAmount);
+      if (amount === undefined) return [];
+      const itemName = [
+        `ชำระใบตั้งหนี้ ${ap.docNo}`,
+        ap.invoiceNo ? `ใบแจ้งหนี้ ${ap.invoiceNo}` : null,
+        ap.poNo ? `PO ${ap.poNo}` : null,
+      ]
+        .filter((part): part is string => Boolean(part))
+        .join(" · ");
+      return [
+        {
+          no: 0,
+          itemCode: ap.docNo,
+          itemName,
+          unit: "รายการ",
+          qty: 1,
+          unitPrice: amount,
+          amount,
+        },
+      ];
+    })
+    .map((item, index) => ({ ...item, no: index + 1 }));
 
   const detailedWht: SalesCommercialPdfTotalsLine[] =
     wht != null && multiRate
@@ -199,8 +199,41 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
     docNo: v.voucherNo,
     docDate: thaiDate(v.voucherDate) || "—",
     draftBanner,
-    draftBannerTone: v.status === "PAID" ? "success" : undefined,
-    infoRows,
+    statusStamp: isPaid ? "จ่ายแล้ว" : undefined,
+    infoRows: [],
+    infoSections: [
+      {
+        title: "ข้อมูลเจ้าหนี้",
+        rows: [
+          {
+            label: "เจ้าหนี้",
+            value: `${d.supplier.creditorCode ?? ""} ${d.supplier.nameTh}`.trim(),
+            emphasis: true,
+          },
+          { label: "เลขประจำตัวผู้เสียภาษี", value: d.supplier.taxId || "—" },
+          { label: "วัตถุประสงค์", value: purposeText(v.paymentKind) },
+          { label: "อ้างอิง PO", value: poValue },
+        ],
+      },
+      {
+        title: "ข้อมูลการชำระเงิน",
+        rows: [
+          { label: "วิธีการ", value: methodLabel },
+          { label: "วันที่จ่าย", value: payDate },
+          { label: "ธนาคาร / เลขบัญชีจ่าย", value: bankValue || "—" },
+          { label: "เลขอ้างอิงธุรกรรม", value: refs.join(", ") || "—" },
+          // Express ยังมีประโยชน์ตอนยังไม่จ่าย — โชว์ใต้การ์ดชำระเมื่อมีค่าที่ไม่ใช่ NOT_SENT
+          ...(d.expressStatus && d.expressStatus !== "NOT_SENT"
+            ? [
+                {
+                  label: "สถานะ Express",
+                  value: EXPRESS_STATUS_LABEL[d.expressStatus] ?? d.expressStatus,
+                },
+              ]
+            : []),
+        ],
+      },
+    ],
     items,
     columnLabels: {
       code: "เลขที่ AP",
