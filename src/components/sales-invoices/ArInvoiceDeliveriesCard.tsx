@@ -148,9 +148,12 @@ function AddDeliveriesModal({
   const t = useT();
   const addMutation = useAddSalesInvoiceDeliveriesMutation();
   const [picked, setPicked] = useState<string[]>([]);
-  const pending = usePendingSalesInvoicesQuery({ page: 1, limit: 100 });
+  const pending = usePendingSalesInvoicesQuery({
+    page: 1,
+    limit: 100,
+    salesOrderId: invoice.salesOrderId,
+  });
   const options = (pending.data?.data.items ?? [])
-    .filter((row) => row.salesOrderId === invoice.salesOrderId)
     .map((row) => ({
       value: row.id,
       label: `${row.deliveryOrderNo} · ${dayjs(row.deliveryDate).format("DD/MM/BBBB")}${

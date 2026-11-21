@@ -70,20 +70,13 @@ export default function SalesInvoicesPendingPage() {
     0,
   );
 
-  const query = usePendingSalesInvoicesQuery({ page, limit });
+  const query = usePendingSalesInvoicesQuery({
+    page,
+    limit,
+    keyword: appliedKeyword || undefined,
+  });
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
-
-  const filteredRows = useMemo(() => {
-    const q = appliedKeyword.toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (row) =>
-        row.deliveryOrderNo.toLowerCase().includes(q) ||
-        row.salesOrderNo?.toLowerCase().includes(q) ||
-        row.customerName?.toLowerCase().includes(q),
-    );
-  }, [appliedKeyword, rows]);
 
   const columns: ColumnsType<PendingSalesInvoiceDelivery> = useMemo(
     () => [
@@ -194,12 +187,16 @@ export default function SalesInvoicesPendingPage() {
               placeholder={t("DO / SO / ลูกค้า")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              onPressEnter={() => setAppliedKeyword(keyword.trim())}
+              onPressEnter={() => {
+                setPage(1);
+                setAppliedKeyword(keyword.trim());
+              }}
             />
           </div>
           <div className={styles.filterActions}>
             <Button
               onClick={() => {
+                setPage(1);
                 setKeyword("");
                 setAppliedKeyword("");
               }}
@@ -209,7 +206,10 @@ export default function SalesInvoicesPendingPage() {
             <Button
               type="primary"
               icon={<SearchOutlined />}
-              onClick={() => setAppliedKeyword(keyword.trim())}
+              onClick={() => {
+                setPage(1);
+                setAppliedKeyword(keyword.trim());
+              }}
             >
               {t("ค้นหา")}
             </Button>
@@ -246,7 +246,7 @@ export default function SalesInvoicesPendingPage() {
           rowKey="id"
           loading={query.isLoading}
           columns={columns}
-          dataSource={filteredRows}
+          dataSource={rows}
           pagination={false}
           rowSelection={
             canWrite
@@ -282,7 +282,7 @@ export default function SalesInvoicesPendingPage() {
         />
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            {t("พบ {total} รายการ · แสดงในหน้านี้ {shown}", { total, shown: filteredRows.length })}
+            {t("พบ {total} รายการ · แสดงในหน้านี้ {shown}", { total, shown: rows.length })}
           </div>
           <div className={styles.entriesBox}>
             <Select

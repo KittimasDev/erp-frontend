@@ -35,9 +35,16 @@ function buildQuery(params?: SalesInvoiceQueryParams) {
 
 export function getPendingSalesInvoices(
   token: string,
-  params?: { page?: number; limit?: number },
+  params?: {
+    page?: number;
+    limit?: number;
+    keyword?: string;
+    salesOrderId?: string;
+  },
 ) {
   const search = new URLSearchParams();
+  if (params?.keyword?.trim()) search.set("keyword", params.keyword.trim());
+  if (params?.salesOrderId) search.set("salesOrderId", params.salesOrderId);
   if (params?.page != null) search.set("page", String(params.page));
   if (params?.limit != null) search.set("limit", String(params.limit));
   const qs = search.toString();

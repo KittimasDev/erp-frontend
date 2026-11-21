@@ -32,6 +32,8 @@ export const salesInvoicesQueryKey = ["sales-invoices"] as const;
 export function usePendingSalesInvoicesQuery(params?: {
   page?: number;
   limit?: number;
+  keyword?: string;
+  salesOrderId?: string;
 }) {
   return useQuery({
     queryKey: [...salesInvoicesQueryKey, "pending", params ?? {}],
