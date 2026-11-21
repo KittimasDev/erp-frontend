@@ -95,13 +95,15 @@ export default function SalesInvoiceEditPage({ id }: Props) {
     );
   }
 
+  const deductionErrors = advanceDeductionErrors(
+    deductions,
+    candidates?.items,
+    candidates ? Number(candidates.maxDeductibleAmount) : undefined,
+  );
+  const canSubmitDeductions = deductionErrors.length === 0;
+
   const onFinish = async (values: FormValues) => {
-    const deductionErrors = advanceDeductionErrors(
-      deductions,
-      candidates?.items,
-      candidates ? Number(candidates.maxDeductibleAmount) : undefined,
-    );
-    if (deductionErrors.length > 0) {
+    if (!canSubmitDeductions) {
       message.warning(t(deductionErrors[0].message));
       return;
     }
@@ -177,6 +179,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
               type="primary"
               htmlType="submit"
               icon={<SaveOutlined />}
+              disabled={!canSubmitDeductions}
               loading={updateMutation.isPending}
             >
               {t("บันทึก")}

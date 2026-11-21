@@ -758,7 +758,10 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
         title={t("ยกเลิกใบแจ้งหนี้")}
         okText={t("ยกเลิกเอกสาร")}
         cancelText={t("ปิด")}
-        okButtonProps={{ danger: true, disabled: !cancelReason.trim() }}
+        okButtonProps={{
+          danger: true,
+          disabled: cancelReason.trim().length < 5,
+        }}
         confirmLoading={cancelMutation.isPending}
         mask={{ closable: false }}
         destroyOnHidden
@@ -767,10 +770,15 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           setCancelReason("");
         }}
         onOk={async () => {
+          const reason = cancelReason.trim();
+          if (reason.length < 5) {
+            message.warning(t("กรุณาระบุเหตุผลการยกเลิกอย่างน้อย 5 ตัวอักษร"));
+            return;
+          }
           try {
             await cancelMutation.mutateAsync({
               id: data.id,
-              reason: cancelReason.trim(),
+              reason,
             });
           } catch {
             return; // hook แจ้ง error แล้ว — ค้าง modal ไว้
@@ -785,8 +793,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           value={cancelReason}
           rows={3}
           maxLength={500}
-          placeholder={t("เหตุผล")}
+          placeholder={t("เหตุผลการยกเลิก (อย่างน้อย 5 ตัวอักษร)")}
           onChange={(event) => setCancelReason(event.target.value)}
+          status={
+            cancelReason.length > 0 && cancelReason.trim().length < 5
+              ? "error"
+              : undefined
+          }
         />
       </Modal>
 

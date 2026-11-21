@@ -360,6 +360,10 @@ export const EN_SALES_DOCS: Record<string, string> = {
   "สร้างใบรับคืน": "Create return note",
   "ยกเลิกใบลดหนี้ที่อนุมัติแล้ว": "Cancel this approved credit note",
   "เหตุผลที่ยกเลิกอย่างน้อย 5 ตัวอักษร": "Cancellation reason of at least 5 characters",
+  "กรุณาระบุเหตุผลการยกเลิกอย่างน้อย 5 ตัวอักษร":
+    "Please enter a cancellation reason of at least 5 characters",
+  "เหตุผลการยกเลิก (อย่างน้อย 5 ตัวอักษร)":
+    "Cancellation reason (at least 5 characters)",
   "อัตโนมัติ": "Automatic",
   "ตัดมือ": "Manual",
   "ที่มา": "Origin",

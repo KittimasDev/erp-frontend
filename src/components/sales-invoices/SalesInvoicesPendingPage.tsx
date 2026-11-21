@@ -88,6 +88,12 @@ export default function SalesInvoicesPendingPage() {
     selected.map((r) => r.id),
   );
   const candidates = candidatesQuery.data?.data;
+  const deductionErrors = advanceDeductionErrors(
+    deductions,
+    candidates?.items,
+    candidates ? Number(candidates.maxDeductibleAmount) : undefined,
+  );
+  const canSubmitDeductions = deductionErrors.length === 0;
 
   const query = usePendingSalesInvoicesQuery({
     page,
@@ -336,13 +342,20 @@ export default function SalesInvoicesPendingPage() {
         okText={t("สร้างใบตั้งลูกหนี้ (DRAFT)")}
         cancelText={t("ยกเลิก")}
         confirmLoading={createMutation.isPending}
+        okButtonProps={{ disabled: !canSubmitDeductions }}
         mask={{ closable: false }}
         destroyOnHidden
         onCancel={() => {
           setModalOpen(false);
           setDeductions([]);
         }}
-        onOk={() => form.submit()}
+        onOk={() => {
+          if (!canSubmitDeductions) {
+            message.warning(t(deductionErrors[0].message));
+            return;
+          }
+          form.submit();
+        }}
       >
         <p style={{ color: "#8a9199", marginTop: 0 }}>
           {selected.map((r) => r.deliveryOrderNo).join(", ")} · SO{" "}
@@ -353,12 +366,7 @@ export default function SalesInvoicesPendingPage() {
           layout="vertical"
           initialValues={{ invoiceDate: dayjs() }}
           onFinish={async (values) => {
-            const deductionErrors = advanceDeductionErrors(
-              deductions,
-              candidates?.items,
-              candidates ? Number(candidates.maxDeductibleAmount) : undefined,
-            );
-            if (deductionErrors.length > 0) {
+            if (!canSubmitDeductions) {
               message.warning(t(deductionErrors[0].message));
               return;
             }

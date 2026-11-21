@@ -52,6 +52,12 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   const deliveryOrderIds = useMemo(() => [deliveryOrderId], [deliveryOrderId]);
   const candidatesQuery = useAdvanceCandidatesQuery(delivery?.salesOrderId, deliveryOrderIds);
   const candidates = candidatesQuery.data?.data;
+  const deductionErrors = advanceDeductionErrors(
+    deductions,
+    candidates?.items,
+    candidates ? Number(candidates.maxDeductibleAmount) : undefined,
+  );
+  const canSubmitDeductions = deductionErrors.length === 0;
 
   useEffect(() => {
     if (existing?.id) {
@@ -93,12 +99,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   }
 
   const onFinish = async (values: FormValues) => {
-    const deductionErrors = advanceDeductionErrors(
-      deductions,
-      candidates?.items,
-      candidates ? Number(candidates.maxDeductibleAmount) : undefined,
-    );
-    if (deductionErrors.length > 0) {
+    if (!canSubmitDeductions) {
       message.warning(t(deductionErrors[0].message));
       return;
     }
@@ -188,6 +189,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
             <Button
               type="primary"
               htmlType="submit"
+              disabled={!canSubmitDeductions}
               loading={createMutation.isPending}
             >
               {t("สร้างใบแจ้งหนี้ (DRAFT)")}
