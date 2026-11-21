@@ -55,7 +55,26 @@ import {
   salesInvoiceStatusLabel,
 } from "@/types/sales-invoices";
 import { vatAmountLabelT } from "@/types/purchase-orders";
-import { resolveVatMode, VAT_MODE_LABEL } from "@/lib/money/vat-totals";
+import {
+  resolveVatMode,
+  STANDARD_VAT_PERCENT,
+  VAT_MODE_LABEL,
+  VatMode,
+} from "@/lib/money/vat-totals";
+
+/** B3: หัวเอกสารดูจากอัตราที่ผูก / ยอด VAT จริง / โหมด VAT — ว่างแล้วอย่าขึ้น «ไม่คิด VAT» ถ้ามียอด */
+function resolveInvoiceVatRate(data: {
+  taxRate?: { rate?: number | string } | null;
+  vatMode?: string | null;
+  vatAmount?: string | number | null;
+}): number | undefined {
+  const linked = data.taxRate != null ? Number(data.taxRate.rate) : NaN;
+  if (Number.isFinite(linked) && linked > 0) return linked;
+  if (resolveVatMode(data.vatMode) === VatMode.NONE) return undefined;
+  if (Number(data.vatAmount ?? 0) > 0.0001) return STANDARD_VAT_PERCENT;
+  if (resolveVatMode(data.vatMode) !== VatMode.NONE) return STANDARD_VAT_PERCENT;
+  return undefined;
+}
 import ApplyCreditButton from "@/components/ar-receipts/ApplyCreditButton";
 import ArInvoiceDeliveriesCard from "./ArInvoiceDeliveriesCard";
 import styles from "./SalesInvoiceDetailPage.module.css";
@@ -194,7 +213,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
         Number(data.subtotalAmount) - Number(data.discountAmount),
       ),
       vatAmount: Number(data.vatAmount) || 0,
-      vatRate: data.taxRate ? Number(data.taxRate.rate) : undefined,
+      vatRate: resolveInvoiceVatRate(data),
       vatMode: data.vatMode,
       totalAmount: Number(data.totalAmount) || 0,
       advanceDeductions: (data.advanceDeductions ?? []).map((row) => ({
@@ -528,9 +547,14 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>{t("อัตรา VAT")}</span>
                 <div className={styles.metaValue}>
-                  {data.taxRate
-                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : t("ไม่คิด VAT")}
+                  {(() => {
+                    const rate = resolveInvoiceVatRate(data);
+                    if (rate == null) return t("ไม่คิด VAT");
+                    if (data.taxRate) {
+                      return `${data.taxRate.name} (${rate}%)`;
+                    }
+                    return `VAT ${rate}%`;
+                  })()}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -594,9 +618,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               ))}
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>
-                  {vatAmountLabelT(
-                    data.taxRate ? Number(data.taxRate.rate) : undefined,
-                  )}
+                  {vatAmountLabelT(resolveInvoiceVatRate(data))}
                   {(data.advanceDeductions ?? []).length > 0
                     ? ` (${t("หลังหักเงินล่วงหน้า")})`
                     : ""}

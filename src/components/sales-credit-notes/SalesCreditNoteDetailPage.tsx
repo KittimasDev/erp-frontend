@@ -659,7 +659,10 @@ function ActionBar({
           )}>
             {t("พิมพ์ PDF")}
           </Button>
-          {note.isReturn && note.deliveryOrderId ? (
+          {note.canCreateReturnNote !== false &&
+          note.isReturn &&
+          note.deliveryOrderId &&
+          note.returnToStock !== false ? (
             <Button
               onClick={() =>
                 confirm(t("สร้างใบรับคืนจากใบลดหนี้ใบนี้"), async () => {

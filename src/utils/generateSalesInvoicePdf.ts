@@ -1,5 +1,10 @@
 import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
-import { vatAmountLabel } from "@/lib/money/vat-totals";
+import {
+  resolveVatMode,
+  STANDARD_VAT_PERCENT,
+  vatAmountLabel,
+  VatMode,
+} from "@/lib/money/vat-totals";
 import {
   advanceDeductionTotalLines,
   type AdvanceDeductionPdfLine,
@@ -39,6 +44,15 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
   const afterDiscount =
     data.afterDiscount ??
     Math.max(0, data.subtotalAmount - data.discountAmount);
+  // B3: ถ้าไม่มีอัตราแต่โหมดไม่ใช่ NONE / มียอด VAT → ใช้ 7% สำรอง (อย่าพิมพ์ป้ายว่าง)
+  const vatRate =
+    data.vatRate != null && data.vatRate > 0
+      ? data.vatRate
+      : resolveVatMode(data.vatMode) === VatMode.NONE
+        ? undefined
+        : data.vatAmount > 0.0001 || resolveVatMode(data.vatMode) !== VatMode.NONE
+          ? STANDARD_VAT_PERCENT
+          : undefined;
 
   await generateSalesCommercialPdf({
     pageId: "sales-invoice-pdf",
@@ -54,6 +68,10 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
       { label: "อ้างอิง DO", value: data.deliveryOrderNo },
       { label: "เงื่อนไขชำระ", value: data.paymentTerm },
       { label: "รูปแบบ VAT", value: data.vatModeLabel || "—" },
+      {
+        label: "อัตรา VAT",
+        value: vatRate != null ? `${vatRate}%` : "ไม่คิด VAT",
+      },
       { label: "ครบกำหนด", value: data.dueDate },
     ],
     items: data.items,
@@ -67,7 +85,7 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
       { label: "ส่วนลดท้ายบิล", value: data.discountAmount },
       { label: "ยอดหลังหักส่วนลด", value: afterDiscount },
       ...advanceDeductionTotalLines(data.vatMode, data.advanceDeductions ?? []),
-      { label: vatAmountLabel(data.vatRate), value: data.vatAmount },
+      { label: vatAmountLabel(vatRate), value: data.vatAmount },
       { label: "ยอดสุทธิ", value: data.totalAmount, grand: true },
     ],
     remark: data.remark,

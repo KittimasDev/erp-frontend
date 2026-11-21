@@ -114,6 +114,8 @@ export const EN_SALES_FULFILLMENT: Record<string, string> = {
     "A new delivery round will be created on the SO with the returned quantities, then picked/packed/delivered as usual",
   "ไม่ส่งใหม่ — จำนวนที่ตีกลับปิดการส่ง ไม่ค้างส่ง และไม่ลดยอดเงินใบสั่งขาย ระบบเปิดคิวใบลดหนี้ให้กรอกจำนวนกับราคาเอง":
     "No redelivery — the returned quantity closes the delivery, nothing stays pending and the sales order amount is not reduced. A credit note task is opened for you to enter the quantity and price manually",
+  "ไม่ส่งใหม่ — จำนวนที่ตีกลับปิดการส่ง ไม่ค้างส่ง · ใบแจ้งหนี้จะคิดเฉพาะของที่ลูกค้ารับ (ตรงใบกำกับ) จึงไม่ลดหนี้หน่วยที่ตีกลับ · คิวลดหนี้ถ้ามีจะถูกปิดเมื่อออกบิล":
+    "No redelivery — returned qty closes delivery and is not outstanding · the invoice bills only what the customer accepted (matches the tax invoice), so returned units cannot be credited · any credit-note queue is closed when the invoice is posted",
   "ระบบจะสร้างใบคืนสินค้า (รออนุมัติ) เฉพาะจำนวนที่ตีกลับ — อนุมัติแล้วสินค้าเข้าคลังตรวจสอบ":
     "A return note (pending approval) will be created for the returned quantity only — once approved the goods enter the inspection warehouse",
 

@@ -87,6 +87,10 @@ export type SalesCreditNote = {
   taxInvoiceDate?: string;
   reasonCode?: string | null;
   isReturn?: boolean;
+  /** จากใบส่ง — false = ตอนตีกลับไม่นำเข้าคลัง */
+  returnToStock?: boolean | null;
+  /** สร้างใบรับคืนได้เมื่อคืนสินค้า + นำเข้าคลัง */
+  canCreateReturnNote?: boolean;
   sourceSubtotalAmount?: number;
   sourceVatAmount?: number;
   sourceTotalAmount?: number;
