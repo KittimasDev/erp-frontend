@@ -231,6 +231,7 @@ export const EN_CORE: Record<string, string> = {
   "ใบเสนอราคา": "Quotations",
   "ใบเสร็จรับเงิน": "Receipts",
   "ใบแจ้งหนี้ขาย": "Sales invoices",
+  "ใบแจ้งหนี้/ตั้งลูกหนี้": "Invoice / AR invoice",
   "ใบแปรสภาพวัตถุดิบ": "Material conversion orders",
 
   /* ---------- ชื่อหน้า (AppTopHeader) ---------- */

@@ -49,10 +49,15 @@ import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
 import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import {
+  useActiveSalesTaxInvoiceQuery,
+  useIssueSalesTaxInvoiceMutation,
+} from "@/hooks/sales-tax-invoices/useSalesTaxInvoices";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { useLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
-import { arRoutes } from "@/lib/sales/ar-routes";
+import { arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
 import type { SalesInvoice, SalesInvoiceItem } from "@/types/sales-invoices";
 import {
   salesInvoicePaymentMethodLabel,
@@ -180,6 +185,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
   const { canEdit, canApprove } = useArInvoicePermissions();
   const canWrite = canEdit || canApprove;
+  const taxPerms = useScreenActionPermissions("FINANCE_TAX_INVOICES");
+  const activeTaxQuery = useActiveSalesTaxInvoiceQuery(
+    data.id,
+    data.status === "POSTED",
+  );
+  const issueTaxMutation = useIssueSalesTaxInvoiceMutation();
+  const activeTax = activeTaxQuery.data?.data;
 
   const busy =
     confirmMutation.isPending ||
@@ -377,6 +389,34 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           <Button icon={<FilePdfOutlined />} onClick={printPdf}>
             {t("พิมพ์ PDF")}
           </Button>
+          {data.status === "POSTED" && activeTax ? (
+            <Button
+              icon={<FileTextOutlined />}
+              onClick={() => router.push(taxInvoiceRoutes.detail(activeTax.id))}
+            >
+              {t("ดูใบกำกับภาษี")}
+            </Button>
+          ) : null}
+          {data.status === "POSTED" && !activeTax && !activeTaxQuery.isLoading && taxPerms.canAdd ? (
+            <Button
+              icon={<FileTextOutlined />}
+              loading={issueTaxMutation.isPending}
+              onClick={() => {
+                modal.confirm({
+                  title: t("ออกใบกำกับภาษี?"),
+                  content: t("วันที่ใบใช้วันส่งของ ถ้าจะยกเลิกใบแจ้งหนี้ต้องยกเลิกใบกำกับภาษีก่อน"),
+                  okText: t("ออกใบกำกับภาษี"),
+                  cancelText: t("ปิด"),
+                  onOk: async () => {
+                    const res = await issueTaxMutation.mutateAsync(data.id);
+                    if (res.data?.id) router.push(taxInvoiceRoutes.detail(res.data.id));
+                  },
+                });
+              }}
+            >
+              {t("ออกใบกำกับภาษี")}
+            </Button>
+          ) : null}
           {canWrite && data.status === "DRAFT" ? (
             <>
               <Button

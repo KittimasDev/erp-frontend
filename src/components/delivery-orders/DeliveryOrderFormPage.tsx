@@ -40,6 +40,8 @@ import {
   useUpdateDeliveryOrderMutation,
 } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
+import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
+import { arRoutes } from "@/lib/sales/ar-routes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type {
   DeliveryOrderItem,
@@ -91,6 +93,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const cancelMutation = useCancelDeliveryOrderMutation();
 
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const { canCreate: canCreateInvoice } = useArInvoicePermissions();
   const canWrite = deliveryActions.canEdit;
   const canConfirm = deliveryActions.canApprove;
   const returnNoteActions = useScreenActionPermissions("RETURN_NOTES");
@@ -277,6 +280,14 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const isReturnResult: boolean =
     data.deliveryResult === "FULL_RETURN" ||
     data.deliveryResult === "PARTIAL_RETURN";
+  const termCode = data.paymentTermCode?.trim().toUpperCase();
+  const canIssueInvoice =
+    canCreateInvoice &&
+    data.status === "DELIVERED" &&
+    data.deliveryResult !== "FULL_RETURN" &&
+    data.paymentTermType !== "ADVANCE" &&
+    termCode !== "ADVANCE" &&
+    termCode !== "PARTIAL";
   const canCreateReturnNote =
     mode === "view" &&
     data.status === "DELIVERED" &&
@@ -544,6 +555,18 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           type="success"
           showIcon
           title={t("ส่งมอบแล้ว — ไม่มีการตัดสต๊อกในขั้นตอนนี้")}
+          action={
+            canIssueInvoice ? (
+              <Button
+                type="primary"
+                size="small"
+                icon={<FileTextOutlined />}
+                onClick={() => router.push(arRoutes.createFromDelivery(id))}
+              >
+                {t("ออกใบแจ้งหนี้")}
+              </Button>
+            ) : undefined
+          }
         />
       ) : null}
 
@@ -637,6 +660,17 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               <div className={styles.fieldValue}>{data.returnReason || "—"}</div>
             </div>
           </div>
+          {canIssueInvoice ? (
+            <div style={{ marginTop: 12 }}>
+              <Button
+                type="primary"
+                icon={<FileTextOutlined />}
+                onClick={() => router.push(arRoutes.createFromDelivery(id))}
+              >
+                {t("ออกใบแจ้งหนี้")}
+              </Button>
+            </div>
+          ) : null}
         </section>
       ) : null}
 

@@ -1251,7 +1251,7 @@ const salesMenus: MenuItem[] = [
   {
     key: "sales-invoices",
     screenCode: "SALES_INVOICES",
-    label: "ใบแจ้งหนี้ขาย",
+    label: "ใบแจ้งหนี้/ตั้งลูกหนี้",
     href: "/finance/receivables/ar-invoices",
     icon: <IconPayment />,
     roles: [
@@ -1672,7 +1672,7 @@ const financeMenus: MenuItem[] = [
           {
             key: "finance-ar-invoices",
             screenCode: "FINANCE_AR_INVOICES",
-            label: "ใบตั้งลูกหนี้",
+            label: "ใบแจ้งหนี้/ตั้งลูกหนี้",
             href: "/finance/receivables/ar-invoices",
             icon: <IconPayment />,
             roles: FINANCE_MENU_ROLES,

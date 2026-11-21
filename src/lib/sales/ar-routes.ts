@@ -25,6 +25,13 @@ export const arBillingRoutes = {
   edit: (id: string) => `${AR_BILLING_BASE}/${id}/edit`,
 };
 
+export const TAX_INVOICE_BASE = "/finance/receivables/tax-invoices";
+
+export const taxInvoiceRoutes = {
+  list: TAX_INVOICE_BASE,
+  detail: (id: string) => `${TAX_INVOICE_BASE}/${id}`,
+};
+
 export const AR_RECEIPT_BASE = "/finance/receivables/payment-receipts";
 
 export const arReceiptRoutes = {

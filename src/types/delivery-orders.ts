@@ -95,6 +95,10 @@ export type DeliveryOrder = {
   pickingNo?: string;
   salesOrderId: string;
   salesOrderNo?: string;
+  /** รหัสเงื่อนไขชำระของใบสั่งขาย เช่น NET30, ADVANCE, PARTIAL */
+  paymentTermCode?: string;
+  /** ADVANCE | ON_RECEIPT | CREDIT */
+  paymentTermType?: string;
   customerId: string;
   customerName?: string;
   deliveryDate: string;

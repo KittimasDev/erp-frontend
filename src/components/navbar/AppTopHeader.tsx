@@ -149,7 +149,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/finance/receivables/adjustment-documents", title: "เอกสารปรับหนี้" },
   { href: "/finance/receivables/collections-and-receipts", title: "รับชำระและใบเสร็จ" },
   { href: "/finance/receivables/ar-invoices/pending", title: "รอตั้งลูกหนี้" },
-  { href: "/finance/receivables/ar-invoices", title: "ใบตั้งลูกหนี้" },
+  { href: "/finance/receivables/ar-invoices", title: "ใบแจ้งหนี้/ตั้งลูกหนี้" },
   { href: "/finance/receivables/billing-notes", title: "ใบวางบิล (ลูกหนี้)" },
   { href: "/finance/receivables/tax-invoices", title: "ใบกำกับภาษี" },
   { href: "/finance/receivables/debit-notes", title: "ใบเพิ่มหนี้" },

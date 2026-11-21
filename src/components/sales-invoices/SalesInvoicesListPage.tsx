@@ -234,7 +234,7 @@ export default function SalesInvoicesListPage() {
       <PageHeader
         eyebrow="Sales · Accounts Receivable"
         icon={<FileTextOutlined />}
-        title={t("ใบแจ้งหนี้ขาย")}
+        title={t("ใบแจ้งหนี้/ตั้งลูกหนี้")}
         subtitle={t("ออกบิลจากใบส่งสินค้าที่ส่งมอบแล้ว — ยืนยันโพสต์ และรับชำระเต็มจำนวน")}
         actions={
           <>
