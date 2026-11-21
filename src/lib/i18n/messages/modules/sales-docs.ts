@@ -163,6 +163,18 @@ export const EN_SALES_DOCS: Record<string, string> = {
   "สร้างใบแจ้งหนี้ (DRAFT)": "Create invoice (DRAFT)",
   "ยอดจะคำนวณจากจำนวนที่ส่ง × ราคาในใบสั่งขาย (ส่วนลด/VAT ตามสัดส่วน)":
     "Amounts are calculated from quantity delivered × price on the sales order (discount/VAT pro rata)",
+  "เลือกเอกสารรับเงินล่วงหน้าของใบสั่งขายนี้ แล้วใส่ยอดหักรวม VAT ได้ไม่เกินยอดคงเหลือ":
+    "Pick this sales order's advance receipts and enter a deduction up to the remaining balance (VAT included)",
+  "ไม่มีเงินล่วงหน้าคงเหลือของใบสั่งขายนี้": "This sales order has no advance balance left",
+  "โหลดเงินล่วงหน้าไม่สำเร็จ": "Could not load advance receipts",
+  "หักได้รวมไม่เกิน {amount}": "Total deduction cannot exceed {amount}",
+  "ยอดหักรวมเกินเงินล่วงหน้าที่ยังใช้ได้": "The deduction exceeds the unused advance",
+  "ระบุยอดหักของเอกสารที่เลือก": "Enter a deduction amount for each selected document",
+  "ก่อน VAT {base} / VAT {vat}": "Before VAT {base} / VAT {vat}",
+  "ก่อน VAT {base} / VAT {vat} / รวม {amount}":
+    "Before VAT {base} / VAT {vat} / total {amount}",
+  "หักเงินล่วงหน้า {docNo}": "Less advance {docNo}",
+  "หลังหักเงินล่วงหน้า": "after advance deduction",
   "อ้างอิง SO": "SO reference",
   "เลขที่ใบแจ้งหนี้": "Invoice No.",
   "อ้างอิง DO": "DO reference",

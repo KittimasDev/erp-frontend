@@ -7,9 +7,11 @@ import { ApiError } from "@/lib/api/client";
 import {
   cancelSalesTaxInvoice,
   getSalesTaxInvoice,
+  getSalesTaxInvoiceByAdvanceReceipt,
   getSalesTaxInvoiceBySalesInvoice,
   getSalesTaxInvoices,
   issueSalesTaxInvoice,
+  issueSalesTaxInvoiceFromAdvance,
   type SalesTaxInvoiceQuery,
 } from "@/lib/api/sales-tax-invoices";
 import { getAccessToken } from "@/lib/auth/token";
@@ -37,6 +39,33 @@ export function useActiveSalesTaxInvoiceQuery(salesInvoiceId?: string, enabled =
     queryKey: [...salesTaxInvoicesQueryKey, "by-invoice", salesInvoiceId],
     queryFn: () => getSalesTaxInvoiceBySalesInvoice(getAccessToken(), salesInvoiceId!),
     enabled: Boolean(salesInvoiceId) && enabled,
+  });
+}
+
+export function useActiveAdvanceTaxInvoiceQuery(advanceReceiptId?: string, enabled = true) {
+  return useQuery({
+    queryKey: [...salesTaxInvoicesQueryKey, "by-advance", advanceReceiptId],
+    queryFn: () => getSalesTaxInvoiceByAdvanceReceipt(getAccessToken(), advanceReceiptId!),
+    enabled: Boolean(advanceReceiptId) && enabled,
+  });
+}
+
+export function useIssueAdvanceTaxInvoiceMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+  const t = useT();
+  return useMutation({
+    mutationFn: (advanceReceiptId: string) =>
+      issueSalesTaxInvoiceFromAdvance(getAccessToken(), advanceReceiptId),
+    onSuccess: async (res) => {
+      await queryClient.invalidateQueries({ queryKey: salesTaxInvoicesQueryKey });
+      message.success(res.message || t("ออกใบกำกับภาษีสำเร็จ"));
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : t("ออกใบกำกับภาษีไม่สำเร็จ"),
+      );
+    },
   });
 }
 

@@ -24,7 +24,7 @@ import {
 } from "@/hooks/sales-tax-invoices/useSalesTaxInvoices";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { useT } from "@/lib/i18n/useT";
-import { arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
+import { advanceReceiptRoutes, arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
 import type { SalesTaxInvoiceItem } from "@/types/sales-tax-invoices";
 
 function formatDate(value?: string) {
@@ -145,8 +145,14 @@ export default function SalesTaxInvoiceDetailPage({ id }: { id: string }) {
               { label: t("เลขผู้เสียภาษี"), value: doc.buyerTaxId },
               { label: t("สาขา"), value: doc.buyerBranch },
               {
-                label: t("ใบแจ้งหนี้"),
-                value: <Link href={arRoutes.detail(doc.salesInvoiceId)}>{doc.invoiceNo}</Link>,
+                label: doc.sourceType === "ADVANCE_RECEIPT" ? t("รับเงินล่วงหน้า") : t("ใบแจ้งหนี้"),
+                value: doc.advanceReceiptId ? (
+                  <Link href={advanceReceiptRoutes.detail(doc.advanceReceiptId)}>{doc.invoiceNo}</Link>
+                ) : doc.salesInvoiceId ? (
+                  <Link href={arRoutes.detail(doc.salesInvoiceId)}>{doc.invoiceNo}</Link>
+                ) : (
+                  doc.invoiceNo
+                ),
               },
             ],
           },
@@ -170,6 +176,22 @@ export default function SalesTaxInvoiceDetailPage({ id }: { id: string }) {
             <span>{t("ยอดก่อน VAT")}</span>
             <strong>{formatMoney(beforeVat)}</strong>
           </div>
+          {(doc.advanceDeductions ?? []).map((row) => (
+            <div key={row.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span>
+                {t("หักเงินล่วงหน้า {docNo}", { docNo: row.docNo })}
+                {` (${t("ก่อน VAT {base} / VAT {vat}", {
+                  base: formatMoney(row.baseAmount),
+                  vat: formatMoney(row.vatAmount),
+                })})`}
+              </span>
+              <strong>
+                {doc.vatMode === "INCLUSIVE"
+                  ? formatMoney(row.amount)
+                  : formatMoney(row.baseAmount)}
+              </strong>
+            </div>
+          ))}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
             <span>
               {rate && rate > 0

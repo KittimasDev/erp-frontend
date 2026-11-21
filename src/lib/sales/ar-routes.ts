@@ -32,6 +32,14 @@ export const taxInvoiceRoutes = {
   detail: (id: string) => `${TAX_INVOICE_BASE}/${id}`,
 };
 
+export const ADVANCE_RECEIPT_BASE = "/finance/receivables/advance-receipts";
+
+export const advanceReceiptRoutes = {
+  list: ADVANCE_RECEIPT_BASE,
+  create: `${ADVANCE_RECEIPT_BASE}/create`,
+  detail: (id: string) => `${ADVANCE_RECEIPT_BASE}/${id}`,
+};
+
 export const AR_RECEIPT_BASE = "/finance/receivables/payment-receipts";
 
 export const arReceiptRoutes = {

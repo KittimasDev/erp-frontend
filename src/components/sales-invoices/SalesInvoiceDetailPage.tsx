@@ -195,7 +195,14 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       ),
       vatAmount: Number(data.vatAmount) || 0,
       vatRate: data.taxRate ? Number(data.taxRate.rate) : undefined,
+      vatMode: data.vatMode,
       totalAmount: Number(data.totalAmount) || 0,
+      advanceDeductions: (data.advanceDeductions ?? []).map((row) => ({
+        docNo: row.docNo,
+        baseAmount: Number(row.baseAmount) || 0,
+        vatAmount: Number(row.vatAmount) || 0,
+        amount: Number(row.amount) || 0,
+      })),
       items: (data.items ?? []).map((item, index) => ({
         no: index + 1,
         itemCode: item.itemCode ?? "—",
@@ -571,11 +578,28 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                   )}
                 </div>
               </div>
+              {(data.advanceDeductions ?? []).map((row) => (
+                <div className={styles.metaItem} key={row.id}>
+                  <span className={styles.metaLabel}>
+                    {t("หักเงินล่วงหน้า {docNo}", { docNo: row.docNo })}
+                  </span>
+                  <div className={styles.metaValue}>
+                    {t("ก่อน VAT {base} / VAT {vat} / รวม {amount}", {
+                      base: formatMoney(row.baseAmount),
+                      vat: formatMoney(row.vatAmount),
+                      amount: formatMoney(row.amount),
+                    })}
+                  </div>
+                </div>
+              ))}
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>
                   {vatAmountLabelT(
                     data.taxRate ? Number(data.taxRate.rate) : undefined,
                   )}
+                  {(data.advanceDeductions ?? []).length > 0
+                    ? ` (${t("หลังหักเงินล่วงหน้า")})`
+                    : ""}
                 </span>
                 <div className={styles.metaValue}>
                   {formatMoney(data.vatAmount)}

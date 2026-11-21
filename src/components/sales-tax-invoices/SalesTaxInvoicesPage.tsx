@@ -60,7 +60,7 @@ export default function SalesTaxInvoicesPage() {
       render: (value: string) => formatDate(value),
     },
     {
-      title: t("ใบแจ้งหนี้"),
+      title: t("เอกสารอ้างอิง"),
       dataIndex: "invoiceNo",
     },
     {

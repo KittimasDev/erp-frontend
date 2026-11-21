@@ -15,7 +15,7 @@ import pageStyles from "@/components/ar-receipts/ar-awaiting-orders-page.module.
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useArAwaitingOrdersQuery } from "@/hooks/ar-receipts/useArReceipts";
 import { useT } from "@/lib/i18n/useT";
-import { arReceiptRoutes, arRoutes } from "@/lib/sales/ar-routes";
+import { advanceReceiptRoutes, arReceiptRoutes, arRoutes } from "@/lib/sales/ar-routes";
 import {
   AWAITING_PAY_STATUS_COLOR,
   AWAITING_PAY_STATUS_LABEL,
@@ -25,12 +25,21 @@ import {
 const SCREEN = "FINANCE_RECEIVABLE_CUSTOMERS";
 const PAGE_SIZE = 20;
 
-/** ปุ่มต่อแถว: ล่วงหน้า/มัดจำบางส่วน → หน้ารับชำระเงิน · เมื่อรับสินค้า/เครดิต → หน้าใบตั้งลูกหนี้ */
+/** ยังไม่ตั้ง AR (รอมัดจำ / ยังไม่ตั้ง AR) = สร้างเอกสารรับเงินล่วงหน้า */
+export function isAdvanceAwaiting(row: AwaitingOrder): boolean {
+  return (
+    row.targetPage === "RECEIPT" &&
+    (row.payStatus === "AWAITING_DEPOSIT" || row.payStatus === "NOT_BILLED")
+  );
+}
+
+/** ปุ่มต่อแถว: รอมัดจำ/ยังไม่ตั้ง AR → สร้างรับเงินล่วงหน้า · ตั้ง AR แล้ว → หน้ารับชำระ · เมื่อรับสินค้า/เครดิต → ใบตั้งลูกหนี้ */
 export function awaitingOrderHref(row: AwaitingOrder): string {
+  if (isAdvanceAwaiting(row)) {
+    return `${advanceReceiptRoutes.create}?salesOrderId=${encodeURIComponent(row.salesOrderId)}`;
+  }
   if (row.targetPage === "RECEIPT") {
-    const params = new URLSearchParams({ customerId: row.customerId, salesOrderId: row.salesOrderId });
-    // ยังไม่ตั้ง AR (รอมัดจำ / ยังไม่ตั้ง AR) = รับเป็นเงินมัดจำล่วงหน้า · ตั้ง AR แล้ว = รับชำระตัดยอด AR
-    if (row.payStatus === "AWAITING_DEPOSIT" || row.payStatus === "NOT_BILLED") params.set("deposit", "1");
+    const params = new URLSearchParams({ customerId: row.customerId });
     return `${arReceiptRoutes.create}?${params.toString()}`;
   }
   return row.arTarget === "PENDING" ? arRoutes.pending : `${arRoutes.list}?keyword=${encodeURIComponent(row.soNo)}`;
@@ -40,6 +49,7 @@ export default function ArAwaitingOrdersPage() {
   const t = useT();
   const perms = useScreenActionPermissions(SCREEN);
   const receiptPerms = useScreenActionPermissions("FINANCE_PAYMENT_RECEIPTS");
+  const advancePerms = useScreenActionPermissions("FINANCE_ADVANCE_RECEIPTS");
   const arPerms = useScreenActionPermissions("FINANCE_AR_INVOICES");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -139,12 +149,17 @@ export default function ArAwaitingOrdersPage() {
       key: "action",
       width: 150,
       render: (_v, r) => {
-        const allowed = r.targetPage === "RECEIPT" ? receiptPerms.canAdd : arPerms.canView;
+        const advance = isAdvanceAwaiting(r);
+        const allowed = advance
+          ? advancePerms.canAdd
+          : r.targetPage === "RECEIPT"
+            ? receiptPerms.canAdd
+            : arPerms.canView;
         if (!allowed) return null;
         return (
           <Link href={awaitingOrderHref(r)}>
             <Button size="small" type={r.targetPage === "RECEIPT" ? "primary" : "default"}>
-              {r.targetPage === "RECEIPT" ? t("รับชำระเงิน") : t("ไปใบตั้งลูกหนี้")}
+              {advance ? t("รับเงินล่วงหน้า") : r.targetPage === "RECEIPT" ? t("รับชำระเงิน") : t("ไปใบตั้งลูกหนี้")}
             </Button>
           </Link>
         );

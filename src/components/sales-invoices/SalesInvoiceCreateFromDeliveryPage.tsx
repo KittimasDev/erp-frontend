@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Form, Input, Spin } from "antd";
+import { App, Button, DatePicker, Form, Input, Spin } from "antd";
 import { ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -14,6 +14,8 @@ import { useCreateSalesInvoiceFromDeliveryMutation } from "@/hooks/sales-invoice
 import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import AccessDenied from "@/components/auth/AccessDenied";
+import AdvanceDeductionPicker from "@/components/sales-invoices/AdvanceDeductionPicker";
+import type { SalesInvoiceAdvanceDeductionInput } from "@/types/sales-invoices";
 import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
 import styles from "./SalesInvoiceFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -30,8 +32,10 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   deliveryOrderId,
 }: Props) {
   const t = useT();
+  const { message } = App.useApp();
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
+  const [deductions, setDeductions] = useState<SalesInvoiceAdvanceDeductionInput[]>([]);
   const deliveryQuery = useDeliveryOrderQuery(deliveryOrderId);
   const existingQuery = useSalesInvoiceByDeliveryQuery(deliveryOrderId);
   const createMutation = useCreateSalesInvoiceFromDeliveryMutation();
@@ -80,12 +84,17 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   }
 
   const onFinish = async (values: FormValues) => {
+    if (deductions.some((row) => !(row.amount > 0))) {
+      message.warning(t("ระบุยอดหักของเอกสารที่เลือก"));
+      return;
+    }
     const response = await createMutation.mutateAsync({
       deliveryOrderId,
       body: {
         invoiceDate: values.invoiceDate.format("YYYY-MM-DD"),
         dueDate: values.dueDate?.format("YYYY-MM-DD"),
         remark: values.remark?.trim() || undefined,
+        advanceDeductions: deductions.length ? deductions : undefined,
       },
     });
     router.push(arRoutes.detail(response.data.id));
@@ -151,6 +160,11 @@ export default function SalesInvoiceCreateFromDeliveryPage({
           <Form.Item name="remark" label={t("หมายเหตุ")}>
             <Input.TextArea rows={3} placeholder={t("หมายเหตุ (ถ้ามี)")} />
           </Form.Item>
+          <AdvanceDeductionPicker
+            salesOrderId={delivery.salesOrderId}
+            value={deductions}
+            onChange={setDeductions}
+          />
           <div className={styles.formActions}>
             <Button onClick={() => router.push(arRoutes.pending)}>
               {t("ยกเลิก")}

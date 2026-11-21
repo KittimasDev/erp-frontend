@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Alert,
+  App,
   Button,
   DatePicker,
   Form,
@@ -23,10 +24,14 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AdvanceDeductionPicker from "@/components/sales-invoices/AdvanceDeductionPicker";
 import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useCreateSalesInvoiceFromDeliveriesMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useArInvoicePermissions } from "@/hooks/sales-invoices/useArInvoicePermissions";
-import type { PendingSalesInvoiceDelivery } from "@/types/sales-invoices";
+import type {
+  PendingSalesInvoiceDelivery,
+  SalesInvoiceAdvanceDeductionInput,
+} from "@/types/sales-invoices";
 import { useT } from "@/lib/i18n/useT";
 import { arRoutes } from "@/lib/sales/ar-routes";
 import styles from "./SalesInvoicesPendingPage.module.css";
@@ -48,6 +53,7 @@ function formatMoney(value?: string | number) {
 
 export default function SalesInvoicesPendingPage() {
   const t = useT();
+  const { message } = App.useApp();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -64,6 +70,7 @@ export default function SalesInvoicesPendingPage() {
   // DN ที่เลือกรวมเป็น AR ใบเดียว — เก็บทั้งแถว (ข้ามหน้าได้) เพื่อตรวจ "ใบสั่งขายเดียวกัน" และรวมยอด
   const [selected, setSelected] = useState<PendingSalesInvoiceDelivery[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [deductions, setDeductions] = useState<SalesInvoiceAdvanceDeductionInput[]>([]);
   const lockedSalesOrderId = selected[0]?.salesOrderId;
   const selectedBillable = selected.reduce(
     (sum, row) => sum + (Number(row.billableAmount) || 0),
@@ -319,7 +326,10 @@ export default function SalesInvoicesPendingPage() {
         confirmLoading={createMutation.isPending}
         mask={{ closable: false }}
         destroyOnHidden
-        onCancel={() => setModalOpen(false)}
+        onCancel={() => {
+          setModalOpen(false);
+          setDeductions([]);
+        }}
         onOk={() => form.submit()}
       >
         <p style={{ color: "#8a9199", marginTop: 0 }}>
@@ -331,15 +341,21 @@ export default function SalesInvoicesPendingPage() {
           layout="vertical"
           initialValues={{ invoiceDate: dayjs() }}
           onFinish={async (values) => {
+            if (deductions.some((row) => !(row.amount > 0))) {
+              message.warning(t("ระบุยอดหักของเอกสารที่เลือก"));
+              return;
+            }
             try {
               const res = await createMutation.mutateAsync({
                 deliveryOrderIds: selected.map((r) => r.id),
                 invoiceDate: values.invoiceDate.format("YYYY-MM-DD"),
                 dueDate: values.dueDate?.format("YYYY-MM-DD"),
                 remark: values.remark?.trim() || undefined,
+                advanceDeductions: deductions.length ? deductions : undefined,
               });
               setModalOpen(false);
               setSelected([]);
+              setDeductions([]);
               router.push(arRoutes.detail(res.data.id));
             } catch {
               // hook แจ้ง error แล้ว — เปิด modal ค้างไว้ (รายการที่เลือกอาจถูกคนอื่นใช้ไปแล้ว ให้รีเฟรช)
@@ -359,6 +375,11 @@ export default function SalesInvoicesPendingPage() {
           <Form.Item name="remark" label={t("หมายเหตุ")}>
             <Input.TextArea rows={3} />
           </Form.Item>
+          <AdvanceDeductionPicker
+            salesOrderId={lockedSalesOrderId}
+            value={deductions}
+            onChange={setDeductions}
+          />
         </Form>
         <p style={{ color: "#8a9199", fontSize: 13, marginBottom: 0 }}>
           {t("ยอดคิดจากจำนวนที่ลูกค้ารับจริง (ของตีกลับไม่เก็บเงิน) ส่วนลด/VAT ตามสัดส่วนของใบสั่งขาย")}

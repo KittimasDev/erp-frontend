@@ -133,6 +133,8 @@ export const CREDIT_ENTRY_LABEL: Record<string, string> = {
   DEPOSIT: "เงินมัดจำ/รับล่วงหน้า",
   CREDIT_APPLY: "ใช้เครดิตหัก AR",
   CREDIT_APPLY_CANCEL: "ยกเลิกการใช้เครดิต",
+  ADVANCE_APPLY: "หักเงินล่วงหน้าในใบแจ้งหนี้",
+  ADVANCE_APPLY_CANCEL: "ยกเลิกการหักเงินล่วงหน้า",
   REFUND: "คืนเงินลูกค้า",
   REFUND_CANCEL: "ยกเลิกใบคืนเงิน",
 };
@@ -147,7 +149,7 @@ export type DepositStatus = {
   appliedAmount?: string;
   /** มัดจำของ SO นี้ที่ยังไม่ได้หัก (รับแล้ว − หักแล้ว) */
   availableAmount?: string;
-  /** เครดิตที่ใช้หัก AR ของ SO นี้ได้จริง (ไม่รวมมัดจำที่จองไว้ให้ SO อื่น) */
+  /** เครดิตที่ใช้จากปุ่มใช้เครดิตได้จริง (ไม่รวมเงินล่วงหน้าที่จองทุกใบสั่งขาย) */
   usableCreditAmount?: string;
   status: "NOT_REQUIRED" | "PENDING" | "PARTIAL" | "COMPLETE" | string;
 };
@@ -258,7 +260,7 @@ export type AwaitingOrder = {
   termCode?: string;
   termName?: string;
   termType: string;
-  /** RECEIPT = ล่วงหน้า/มัดจำบางส่วน → หน้ารับชำระเงิน · AR = เมื่อรับสินค้า/เครดิต → ใบตั้งลูกหนี้ */
+  /** RECEIPT = ล่วงหน้า/มัดจำบางส่วน → รับเงินล่วงหน้าหรือรับชำระเมื่อตั้ง AR แล้ว · AR = เมื่อรับสินค้า/เครดิต → ใบตั้งลูกหนี้ */
   targetPage: "RECEIPT" | "AR";
   /** PENDING = มี DN ส่งแล้วที่ยังไม่ตั้ง AR (ไปหน้ารอตั้งลูกหนี้) · LIST = ไปรายการ AR */
   arTarget: "PENDING" | "LIST";

@@ -1,5 +1,9 @@
 import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
 import { vatAmountLabel } from "@/lib/money/vat-totals";
+import {
+  advanceDeductionTotalLines,
+  type AdvanceDeductionPdfLine,
+} from "@/utils/advance-deduction-totals";
 
 import {
   generateSalesCommercialPdf,
@@ -22,7 +26,9 @@ export type SalesInvoicePdfData = {
   afterDiscount?: number;
   vatAmount: number;
   vatRate?: number;
+  vatMode?: string;
   totalAmount: number;
+  advanceDeductions?: AdvanceDeductionPdfLine[];
   items: SalesLinePdfItem[];
   /** ผู้จัดทำเอกสาร — ถ้ามี id และคนนั้นอัปลายเซ็นไว้ จะเอารูปไปแสดงในช่องเซ็น */
   preparedBy?: { id?: string; name?: string };
@@ -60,6 +66,7 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
       { label: "ยอดรวมก่อนส่วนลด", value: data.subtotalAmount },
       { label: "ส่วนลดท้ายบิล", value: data.discountAmount },
       { label: "ยอดหลังหักส่วนลด", value: afterDiscount },
+      ...advanceDeductionTotalLines(data.vatMode, data.advanceDeductions ?? []),
       { label: vatAmountLabel(data.vatRate), value: data.vatAmount },
       { label: "ยอดสุทธิ", value: data.totalAmount, grand: true },
     ],

@@ -136,6 +136,7 @@ export const EN_CORE: Record<string, string> = {
   "รอตรวจสอบ": "Pending inspection",
   "รอออกใบแจ้งหนี้": "Pending invoicing",
   "รับชำระเงิน": "Payment collection",
+  "รับเงินล่วงหน้า": "Advance receipt",
   "รับชำระและใบเสร็จ": "Collections & receipts",
   "รับซื้อยาง": "Tire purchasing",
   "รับน้ำมันเข้าถัง": "Receive oil into tank",

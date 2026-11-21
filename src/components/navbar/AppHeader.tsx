@@ -1738,6 +1738,14 @@ const financeMenus: MenuItem[] = [
             roles: FINANCE_MENU_ROLES,
           },
           {
+            key: "finance-advance-receipts",
+            screenCode: "FINANCE_ADVANCE_RECEIPTS",
+            label: "รับเงินล่วงหน้า",
+            href: "/finance/receivables/advance-receipts",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
             key: "finance-receipts",
             screenCode: "FINANCE_RECEIPTS",
             label: "ใบเสร็จรับเงิน",

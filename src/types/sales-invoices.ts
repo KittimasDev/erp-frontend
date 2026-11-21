@@ -85,6 +85,41 @@ export type SalesInvoiceItem = {
   sortOrder: number;
 };
 
+export type SalesInvoiceAdvanceDeduction = {
+  id: string;
+  advanceReceiptId: string;
+  docNo: string;
+  baseAmount: string;
+  vatAmount: string;
+  amount: string;
+};
+
+export type SalesInvoiceAdvanceDeductionInput = {
+  advanceReceiptId: string;
+  amount: number;
+};
+
+export type AdvanceCandidate = {
+  id: string;
+  docNo: string;
+  receiptDate: string;
+  totalAmount: string;
+  appliedAmount: string;
+  remainingAmount: string;
+  subtotalAmount: string;
+  vatAmount: string;
+  remainingBaseAmount: string;
+  remainingVatAmount: string;
+  vatRate?: string;
+};
+
+export type AdvanceCandidateList = {
+  salesOrderId: string;
+  depositAvailableAmount: string;
+  maxDeductibleAmount: string;
+  items: AdvanceCandidate[];
+};
+
 export type SalesInvoicePayment = {
   id: string;
   salesInvoiceId: string;
@@ -120,6 +155,7 @@ export type SalesInvoice = {
   discountAmount: string;
   vatAmount: string;
   totalAmount: string;
+  advanceDeductions?: SalesInvoiceAdvanceDeduction[];
   status: SalesInvoiceStatus;
   paymentStatus?: SalesInvoicePaymentStatus;
   dueDate?: string;
@@ -161,6 +197,7 @@ export type CreateSalesInvoiceFromDeliveriesBody = {
   invoiceDate: string;
   dueDate?: string;
   remark?: string;
+  advanceDeductions?: SalesInvoiceAdvanceDeductionInput[];
 };
 
 export type SalesInvoiceListData = {
@@ -193,6 +230,13 @@ export type CreateSalesInvoiceFromDeliveryBody = {
   invoiceDate: string;
   dueDate?: string;
   remark?: string;
+  advanceDeductions?: SalesInvoiceAdvanceDeductionInput[];
+};
+
+export type AdvanceCandidateListApiResponse = {
+  statusCode: number;
+  message: string;
+  data: AdvanceCandidateList;
 };
 
 export type UpdateSalesInvoiceBody = {

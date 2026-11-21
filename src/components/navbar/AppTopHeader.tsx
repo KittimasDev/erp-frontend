@@ -155,6 +155,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/finance/receivables/debit-notes", title: "ใบเพิ่มหนี้" },
   { href: "/finance/receivables/credit-notes", title: "ใบลดหนี้" },
   { href: "/finance/receivables/payment-receipts", title: "รับชำระเงิน" },
+  { href: "/finance/receivables/advance-receipts", title: "รับเงินล่วงหน้า" },
   { href: "/finance/receivables/payment-history", title: "ประวัติการรับชำระ" },
   { href: "/finance/receivables/customers", title: "รายการรับเงิน" },
   { href: "/finance/receivables/receipts", title: "ใบเสร็จรับเงิน" },

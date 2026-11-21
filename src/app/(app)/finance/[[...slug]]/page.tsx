@@ -27,6 +27,7 @@ const FINANCE_PAGE_TITLES: Record<string, string> = {
   "receivables/debit-notes": "ใบเพิ่มหนี้",
   "receivables/collections-and-receipts": "รับชำระและใบเสร็จ",
   "receivables/payment-receipts": "รับชำระเงิน",
+  "receivables/advance-receipts": "รับเงินล่วงหน้า",
   "receivables/receipts": "ใบเสร็จรับเงิน",
   "receivables/refunds": "คืนเงิน",
   "receivables/payment-history": "ประวัติการรับชำระ",

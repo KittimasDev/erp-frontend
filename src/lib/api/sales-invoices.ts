@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  AdvanceCandidateListApiResponse,
   CreateSalesInvoiceFromDeliveriesBody,
   CreateSalesInvoiceFromDeliveryBody,
   PendingSalesInvoiceListApiResponse,
@@ -59,6 +60,14 @@ export function getSalesInvoices(
 ) {
   return apiFetch<SalesInvoiceListApiResponse>(
     `/api/sales-invoices${buildQuery(params)}`,
+    { token },
+  );
+}
+
+export function getAdvanceCandidates(token: string, salesOrderId: string) {
+  const search = new URLSearchParams({ salesOrderId });
+  return apiFetch<AdvanceCandidateListApiResponse>(
+    `/api/sales-invoices/advance-candidates?${search.toString()}`,
     { token },
   );
 }

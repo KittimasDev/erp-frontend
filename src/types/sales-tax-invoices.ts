@@ -1,5 +1,14 @@
 export type SalesTaxInvoiceStatus = "ISSUED" | "CANCELLED";
 
+export type SalesTaxInvoiceAdvanceDeduction = {
+  id: string;
+  advanceReceiptId: string;
+  docNo: string;
+  baseAmount: string;
+  vatAmount: string;
+  amount: string;
+};
+
 export type SalesTaxInvoiceItem = {
   id: string;
   itemCode?: string;
@@ -15,7 +24,9 @@ export type SalesTaxInvoiceItem = {
 export type SalesTaxInvoice = {
   id: string;
   taxInvoiceNo: string;
-  salesInvoiceId: string;
+  sourceType?: "SALES_INVOICE" | "ADVANCE_RECEIPT" | string;
+  salesInvoiceId?: string;
+  advanceReceiptId?: string;
   invoiceNo: string;
   taxInvoiceDate: string;
   status: SalesTaxInvoiceStatus | string;
@@ -36,6 +47,7 @@ export type SalesTaxInvoice = {
   cancelledAt?: string;
   createdAt: string;
   items?: SalesTaxInvoiceItem[];
+  advanceDeductions?: SalesTaxInvoiceAdvanceDeduction[];
 };
 
 export type SalesTaxInvoiceListResponse = {

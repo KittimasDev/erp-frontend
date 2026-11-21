@@ -392,6 +392,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/finance/receivables/payment-receipts",
     screenCodes: ["FINANCE_PAYMENT_RECEIPTS", "FINANCE_RECEIPTS"],
   },
+  {
+    prefix: "/finance/receivables/advance-receipts",
+    screenCodes: ["FINANCE_ADVANCE_RECEIPTS"],
+  },
   { prefix: "/finance/receivables/receipts", screenCodes: ["FINANCE_RECEIPTS"] },
   { prefix: "/finance/receivables/refunds", screenCodes: ["FINANCE_REFUNDS"] },
   {
@@ -743,6 +747,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   FINANCE_RECEIVABLE_CREDIT_NOTES: "/finance/receivables/credit-notes",
   FINANCE_COLLECTIONS: "/finance/receivables/collections-and-receipts",
   FINANCE_PAYMENT_RECEIPTS: "/finance/receivables/payment-receipts",
+  FINANCE_ADVANCE_RECEIPTS: "/finance/receivables/advance-receipts",
   FINANCE_RECEIPTS: "/finance/receivables/receipts",
   FINANCE_REFUNDS: "/finance/receivables/refunds",
   FINANCE_RECEIVABLE_PAYMENT_HISTORY: "/finance/receivables/payment-history",

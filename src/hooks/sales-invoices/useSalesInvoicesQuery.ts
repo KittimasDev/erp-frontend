@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { getDocumentAttachments } from "@/lib/api/document-attachments";
 import {
+  getAdvanceCandidates,
   getPendingSalesInvoices,
   getSalesInvoice,
   getSalesInvoiceByDelivery,
@@ -28,6 +29,14 @@ import {
 import type { SalesInvoiceQueryParams } from "@/types/sales-invoices";
 
 export const salesInvoicesQueryKey = ["sales-invoices"] as const;
+
+export function useAdvanceCandidatesQuery(salesOrderId?: string) {
+  return useQuery({
+    queryKey: [...salesInvoicesQueryKey, "advance-candidates", salesOrderId],
+    queryFn: () => getAdvanceCandidates(getAccessToken(), salesOrderId!),
+    enabled: Boolean(salesOrderId),
+  });
+}
 
 export function usePendingSalesInvoicesQuery(params?: {
   page?: number;

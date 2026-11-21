@@ -18,7 +18,6 @@ import {
 } from "@/hooks/ar-receipts/useArReceipts";
 import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyBankAccountsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useT } from "@/lib/i18n/useT";
 import { arReceiptRoutes, arRoutes } from "@/lib/sales/ar-routes";
 import { AR_PAYMENT_METHOD_LABEL, type OutstandingArInvoice } from "@/types/ar-receipts";
@@ -39,7 +38,7 @@ export default function ArReceiptFormPage() {
   const perms = useScreenActionPermissions(SCREEN_CODE);
   const createMutation = useCreateArReceiptMutation();
   const customers = useCustomersQuery({ isActive: true });
-  // เติมล่วงหน้าจากหน้ารายการรับเงิน (/finance/receivables/customers): ?customerId=&salesOrderId=&deposit=1 — ผู้ใช้แก้ได้ทั้งหมด
+  // เติมลูกค้า/ใบแจ้งหนี้จากหน้ารายการ: ?customerId=&invoiceId=
   const searchParams = useSearchParams();
   const invoiceId = searchParams.get("invoiceId") ?? undefined;
 
@@ -53,21 +52,15 @@ export default function ArReceiptFormPage() {
   const [received, setReceived] = useState<number | null>(null);
   const [lines, setLines] = useState<Record<string, Line>>({});
   const [overpayOk, setOverpayOk] = useState(false);
-  // เงินมัดจำ/รับล่วงหน้า — ไม่ตัด AR เก็บทั้งก้อนเป็นเครดิตลูกค้า (อ้าง SO ได้)
-  const [isDeposit, setIsDeposit] = useState(searchParams.get("deposit") === "1");
-  const [salesOrderId, setSalesOrderId] = useState<string | undefined>(
-    searchParams.get("deposit") === "1" ? (searchParams.get("salesOrderId") ?? undefined) : undefined,
-  );
 
-  const salesOrders = useSalesOrdersQuery(isDeposit && customerId ? { customerId } : undefined);
-  const outstanding = useOutstandingArInvoicesQuery(isDeposit ? undefined : customerId);
+  const outstanding = useOutstandingArInvoicesQuery(customerId);
   const credit = useCustomerCreditQuery(customerId);
   const rows = useMemo(() => outstanding.data ?? [], [outstanding.data]);
   const seededInvoiceId = useRef<string | null>(null);
   const [invoiceUnavailable, setInvoiceUnavailable] = useState(false);
 
   useEffect(() => {
-    if (!invoiceId || isDeposit || !customerId || outstanding.isLoading) return;
+    if (!invoiceId || !customerId || outstanding.isLoading) return;
     if (seededInvoiceId.current === invoiceId) return;
     seededInvoiceId.current = invoiceId;
     const row = rows.find((r) => r.id === invoiceId);
@@ -86,7 +79,7 @@ export default function ArReceiptFormPage() {
       [row.id]: { amount, wht: prev[row.id]?.wht ?? 0 },
     }));
     setReceived((current) => (current === null ? amount : current));
-  }, [invoiceId, isDeposit, customerId, outstanding.isLoading, rows]);
+  }, [invoiceId, customerId, outstanding.isLoading, rows]);
 
   // ใบวางบิลของ AR ที่ค้างอยู่ — เลือกทั้งใบแล้วเติมทุก AR ในใบนั้นให้ (ตัดเต็มยอดค้าง)
   const [billingNoteNo, setBillingNoteNo] = useState<string | undefined>();
@@ -99,12 +92,10 @@ export default function ArReceiptFormPage() {
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [rows]);
 
-  const picked = isDeposit
-    ? []
-    : rows.filter((r) => {
-        const l = lines[r.id];
-        return l && (l.amount > 0 || l.wht > 0);
-      });
+  const picked = rows.filter((r) => {
+    const l = lines[r.id];
+    return l && (l.amount > 0 || l.wht > 0);
+  });
   const cashTotal = picked.reduce((s, r) => s + satang(lines[r.id].amount), 0);
   const whtTotal = picked.reduce((s, r) => s + satang(lines[r.id].wht), 0);
   const receivedSatang = satang(received ?? 0);
@@ -148,11 +139,11 @@ export default function ArReceiptFormPage() {
 
   const canSave =
     Boolean(customerId) &&
-    (isDeposit || picked.length > 0) &&
+    picked.length > 0 &&
     receivedSatang > 0 &&
     rest >= 0 &&
     !overLine &&
-    (isDeposit || rest === 0 || overpayOk);
+    (rest === 0 || overpayOk);
 
   const columns: ColumnsType<OutstandingArInvoice> = [
     {
@@ -230,9 +221,7 @@ export default function ArReceiptFormPage() {
           amount: lines[r.id].amount,
           whtAmount: lines[r.id].wht || undefined,
         })),
-        overpayToCredit: !isDeposit && rest > 0 ? overpayOk : undefined,
-        isDeposit: isDeposit || undefined,
-        salesOrderId: isDeposit ? salesOrderId : undefined,
+        overpayToCredit: rest > 0 ? overpayOk : undefined,
         remark: remark.trim() || undefined,
       });
       router.push(arReceiptRoutes.detail(res.data.id));
@@ -328,34 +317,6 @@ export default function ArReceiptFormPage() {
       </div>
 
       {customerId ? (
-        <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12, display: "grid", gap: 8 }}>
-          <Checkbox
-            checked={isDeposit}
-            onChange={(e) => {
-              setIsDeposit(e.target.checked);
-              setLines({});
-              setOverpayOk(false);
-            }}
-          >
-            {t("รับเป็นเงินมัดจำ/รับล่วงหน้า (ไม่ตัดใบตั้งลูกหนี้ — เก็บเป็นเครดิตลูกค้า)")}
-          </Checkbox>
-          {isDeposit ? (
-            <Select
-              allowClear
-              showSearch
-              style={{ maxWidth: 420 }}
-              placeholder={t("ใบสั่งขายที่มัดจำ (ไม่บังคับ)")}
-              loading={salesOrders.isLoading}
-              value={salesOrderId}
-              optionFilterProp="label"
-              options={(salesOrders.data?.data ?? []).map((so) => ({ value: so.id, label: so.soNo }))}
-              onChange={setSalesOrderId}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      {customerId && !isDeposit ? (
         <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
           {invoiceUnavailable ? (
             <Alert
@@ -427,7 +388,7 @@ export default function ArReceiptFormPage() {
         {rest < 0 ? (
           <Alert type="error" showIcon message={t("เงินที่ตัด AR เกินเงินที่รับจริง")} />
         ) : null}
-        {rest > 0 && !isDeposit ? (
+        {rest > 0 ? (
           <Checkbox checked={overpayOk} onChange={(e) => setOverpayOk(e.target.checked)}>
             {t("เงินเหลือ {amount} เก็บเป็นเครดิตลูกค้า", { amount: money.format(rest / 100) })}
           </Checkbox>

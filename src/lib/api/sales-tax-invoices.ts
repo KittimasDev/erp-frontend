@@ -52,6 +52,24 @@ export function issueSalesTaxInvoice(token: string, salesInvoiceId: string) {
   });
 }
 
+export function getSalesTaxInvoiceByAdvanceReceipt(
+  token: string,
+  advanceReceiptId: string,
+) {
+  return apiFetch<SalesTaxInvoiceResponse>(
+    `/api/sales-tax-invoices/by-advance-receipt/${advanceReceiptId}`,
+    { token },
+  );
+}
+
+export function issueSalesTaxInvoiceFromAdvance(token: string, advanceReceiptId: string) {
+  return apiFetch<SalesTaxInvoiceResponse>("/api/sales-tax-invoices", {
+    method: "POST",
+    token,
+    body: { advanceReceiptId },
+  });
+}
+
 export function cancelSalesTaxInvoice(token: string, id: string, reason: string) {
   return apiFetch<SalesTaxInvoiceResponse>(`/api/sales-tax-invoices/${id}/cancel`, {
     method: "POST",

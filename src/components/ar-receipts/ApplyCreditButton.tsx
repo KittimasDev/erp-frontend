@@ -15,14 +15,14 @@ import { useT } from "@/lib/i18n/useT";
 type Props = {
   customerId: string;
   salesInvoiceId: string;
-  /** ใบสั่งขายของ AR — ใช้ดึงมัดจำของ SO นี้มาหัก และกันใช้มัดจำของ SO อื่น */
+  /** ใบสั่งขายของ AR — ใช้กันเงินล่วงหน้าที่ผูก SO ไม่ให้มากดซ้ำ */
   salesOrderId?: string;
   invoiceNo: string;
   /** ยอดค้างชำระของ AR */
   outstanding: number;
 };
 
-/** ปุ่ม "ใช้เครดิตลูกค้า" บนหน้ารายละเอียด AR — หักได้ไม่เกินเครดิตคงเหลือและยอดค้างของ AR */
+/** ปุ่ม "ใช้เครดิตลูกค้า" บนหน้ารายละเอียด AR — ใช้ได้เฉพาะเงินรับเกิน ไม่ดึงเงินล่วงหน้า */
 export default function ApplyCreditButton({ customerId, salesInvoiceId, salesOrderId, invoiceNo, outstanding }: Props) {
   const t = useT();
   const perms = useScreenActionPermissions("FINANCE_PAYMENT_RECEIPTS");
@@ -33,25 +33,20 @@ export default function ApplyCreditButton({ customerId, salesInvoiceId, salesOrd
 
   const deposit = useDepositStatusQuery(perms.canAdd ? salesOrderId : undefined);
   const balance = Number(credit.data?.balance ?? 0);
-  // ใช้ได้จริง = เครดิตคงเหลือ − มัดจำที่ยังไม่ใช้ของ SO อื่น (backend บังคับกติกานี้ด้วย) · ไม่มีข้อมูล SO = ใช้เครดิตทั้งหมดตามเดิม
+  // ใช้ได้จริง = เงินรับเกิน (backend กันเงินล่วงหน้าที่ผูก SO ไว้) · ไม่มีข้อมูล SO = ใช้เครดิตทั้งหมดตามเดิม
   const usable = deposit.data?.usableCreditAmount !== undefined ? Number(deposit.data.usableCreditAmount) : balance;
-  const depositAvailable = Number(deposit.data?.availableAmount ?? 0);
   const max = Math.min(balance, usable, outstanding);
   if (!perms.canAdd || max <= 0) return null;
-  // มัดจำของ SO นี้ที่ยังไม่ได้หัก → เสนอเป็นค่าเริ่มต้น
-  const suggested = Math.min(depositAvailable > 0 ? depositAvailable : max, max);
 
   return (
     <>
       <Button
         onClick={() => {
-          form.setFieldsValue({ amount: suggested });
+          form.setFieldsValue({ amount: max });
           setOpen(true);
         }}
       >
-        {depositAvailable > 0
-          ? t("หักมัดจำของ SO นี้ ({amount})", { amount: money.format(depositAvailable) })
-          : t("ใช้เครดิตลูกค้า ({amount})", { amount: money.format(max) })}
+        {t("ใช้เครดิตลูกค้า ({amount})", { amount: money.format(max) })}
       </Button>
       <Modal
         open={open}
@@ -70,14 +65,9 @@ export default function ApplyCreditButton({ customerId, salesInvoiceId, salesOrd
             due: money.format(outstanding),
           })}
         </p>
-        {depositAvailable > 0 ? (
-          <p style={{ marginTop: 0 }}>
-            {t("มัดจำของ SO นี้ที่ยังไม่ได้หัก {amount}", { amount: money.format(depositAvailable) })}
-          </p>
-        ) : null}
         {usable < balance ? (
           <p style={{ marginTop: 0, color: "#d46b08" }}>
-            {t("เครดิต {amount} เป็นมัดจำที่จองไว้กับใบสั่งขายอื่น — หักกับ AR นี้ไม่ได้", {
+            {t("เครดิต {amount} เป็นเงินล่วงหน้าที่หักในใบแจ้งหนี้ — ใช้เครดิตได้เฉพาะเงินรับเกิน", {
               amount: money.format(balance - usable),
             })}
           </p>
