@@ -198,4 +198,5 @@ export const EN_FINANCE_PAYABLES: Record<string, string> = {
   "PO ถูกยกเลิกแล้ว ไม่สามารถบันทึกจ่ายเงินได้": "The PO has been cancelled. This payment cannot be recorded.",
   "ซ่อน PO ที่ถูกยกเลิก": "Hide cancelled POs",
   "เฉพาะ PO ที่ถูกยกเลิก": "Cancelled POs only",
+  "พิมพ์บันทึกจ่ายเงินไม่สำเร็จ": "Could not print the payment record",
 };

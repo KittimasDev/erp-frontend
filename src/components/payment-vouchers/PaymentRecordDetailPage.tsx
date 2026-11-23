@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, App, Button, Card, Descriptions, Input, Modal, Space, Table, Tag, Timeline, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, DownloadOutlined, EyeOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, DownloadOutlined, EyeOutlined, FilePdfOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { formatThaiDate } from "@/components/ap-documents/apDocumentConfig";
@@ -133,6 +133,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
   const cancel = useCancelPaymentMutation();
   const [whtOpen, setWhtOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [reason, setReason] = useState("");
   const d = query.data?.data;
 
@@ -149,6 +150,18 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
       await openWhtCertificatePdf(certToPdfData(c, `${d.paymentNo ?? ""} · PV ${pv.voucherNo}`));
     } catch (e) {
       message.error(e instanceof Error && e.message ? e.message : t("สร้างเอกสารไม่สำเร็จ"));
+    }
+  };
+
+  const handlePrintPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const { generatePaymentRecordPdf } = await import("@/utils/generatePaymentRecordPdf");
+      await generatePaymentRecordPdf(d);
+    } catch (e) {
+      message.error(e instanceof Error && e.message ? e.message : t("พิมพ์บันทึกจ่ายเงินไม่สำเร็จ"));
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -172,6 +185,9 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
         }
         actions={
           <>
+            <Button icon={<FilePdfOutlined />} loading={pdfLoading} onClick={() => void handlePrintPdf()}>
+              {t("พิมพ์ PDF")}
+            </Button>
             {d.status === "PAID" && d.hasWht && !cert && perms.canAdd ? (
               <Button type="primary" onClick={() => setWhtOpen(true)}>
                 {t("ออกหนังสือรับรองหัก ณ ที่จ่าย")}
