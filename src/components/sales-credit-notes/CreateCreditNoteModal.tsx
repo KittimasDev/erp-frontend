@@ -67,7 +67,8 @@ export default function CreateCreditNoteModal({
   const [invoiceId, setInvoiceId] = useState<string>();
   const [source, setSource] = useState<CreditNoteInvoiceSource | null>(null);
   const [taxId, setTaxId] = useState<string>();
-  const [reasonCode, setReasonCode] = useState<string>(pending ? "GOODS_RETURN" : "PRICE_REDUCTION");
+  // ไม่ตั้งเหตุผลเริ่มต้น (ยกเว้นลดหนี้จากคิวตีกลับ) — ผู้ใช้ต้องเลือกเองก่อนบันทึก
+  const [reasonCode, setReasonCode] = useState<string | undefined>(pending ? "GOODS_RETURN" : undefined);
   const [reason, setReason] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([]);
 
@@ -77,9 +78,33 @@ export default function CreateCreditNoteModal({
     setInvoiceId(undefined);
     setSource(null);
     setLines([]);
-    setReasonCode(pending ? "GOODS_RETURN" : "PRICE_REDUCTION");
+    setReasonCode(pending ? "GOODS_RETURN" : undefined);
     setReason("");
   }, [open, pending]);
+
+  // เปลี่ยนเหตุผล: คืนสินค้า = กรอกจำนวน · เหตุผลอื่น = ลดเฉพาะมูลค่า (จำนวน 0)
+  useEffect(() => {
+    if (pending) return;
+    const isReturn = reasonCode === "GOODS_RETURN";
+    setLines((current) =>
+      current.map((row) => {
+        const usable = row.remainingAmount > 0.005 && !(isReturn && billedAcceptedOnly(row));
+        return {
+          ...row,
+          quantity: isReturn && usable ? row.remainingQuantity : 0,
+          adjustmentAmount: 0,
+          selected: isReturn && usable,
+        };
+      }),
+    );
+  }, [reasonCode, pending, source]);
+
+  const patchLine = (id: string, patch: Partial<LineDraft>) =>
+    setLines((current) =>
+      current.map((row) => (row.salesInvoiceItemId === id ? { ...row, ...patch } : row)),
+    );
+  // แสดงเฉพาะบรรทัดที่ยังลดหนี้ได้
+  const creditableLines = lines.filter((line) => line.remainingAmount > 0.005);
 
   useEffect(() => {
     if (!open) return;
@@ -107,13 +132,13 @@ export default function CreateCreditNoteModal({
             salesInvoiceItemId: line.id,
             itemCode: line.itemCode,
             itemName: line.itemName,
-            quantity: pending ? 0 : line.remainingQuantity,
+            quantity: 0,
             unitPrice: line.unitPrice,
             discountAmount: line.discountAmount,
             adjustmentAmount: 0,
             remainingQuantity: line.remainingQuantity,
             remainingAmount: line.remainingAmount,
-            selected: !pending && line.remainingAmount > 0,
+            selected: false,
             unitName: line.unitName,
             billedQuantity: line.quantity,
             acceptedQuantity: line.acceptedQuantity ?? 0,
@@ -145,6 +170,20 @@ export default function CreateCreditNoteModal({
       );
       return;
     }
+    if (!pending) {
+      const picked = lines.filter((line) => line.selected);
+      const bad = picked.find((line) =>
+        reasonCode === "GOODS_RETURN" ? !(line.quantity > 0) : !(line.adjustmentAmount > 0),
+      );
+      if (bad) {
+        message.error(
+          reasonCode === "GOODS_RETURN"
+            ? t("ระบุจำนวนที่คืนของบรรทัดที่เลือก")
+            : t("ระบุยอดที่ลดของบรรทัดที่เลือก"),
+        );
+        return;
+      }
+    }
     const body: SaveSalesCreditNoteBody = pending
       ? {
           salesInvoiceId: invoiceId,
@@ -169,10 +208,10 @@ export default function CreateCreditNoteModal({
             .filter((line) => line.selected)
             .map((line) => ({
               salesInvoiceItemId: line.salesInvoiceItemId,
-              quantity: line.quantity,
+              quantity: reasonCode === "GOODS_RETURN" ? line.quantity : 0,
               unitPrice: line.unitPrice,
               discountAmount: line.discountAmount,
-              adjustmentAmount: line.quantity <= 0 ? line.adjustmentAmount : undefined,
+              adjustmentAmount: reasonCode === "GOODS_RETURN" ? undefined : line.adjustmentAmount,
             })),
         };
     if (!body.items.length) {
@@ -195,6 +234,7 @@ export default function CreateCreditNoteModal({
       destroyOnHidden
       onCancel={onClose}
       onOk={() => void submit()}
+      okButtonProps={{ disabled: Boolean(source) && !pending && creditableLines.length === 0 }}
     >
       <div style={{ display: "grid", gap: 12 }}>
         {pending ? (
@@ -239,6 +279,7 @@ export default function CreateCreditNoteModal({
         ) : null}
         <Select
           value={reasonCode}
+          placeholder={t("เลือกเหตุผล")}
           onChange={setReasonCode}
           options={Object.entries(SALES_CREDIT_NOTE_REASON_LABEL).map(([value, label]) => ({
             value,
@@ -256,11 +297,19 @@ export default function CreateCreditNoteModal({
             {t("ราคาและส่วนลดจะถูกดึงจากรายการใบแจ้งหนี้ที่ตรงกับสินค้าที่ตีกลับ")}
           </Typography.Text>
         ) : (
+          <>
+          {source && creditableLines.length === 0 ? (
+            <Alert
+              type="warning"
+              showIcon
+              title={t("ใบแจ้งหนี้นี้ไม่มีบรรทัดที่ลดหนี้ได้แล้ว — ลดครบยอดที่ออกบิลแล้ว หรือมีใบลดหนี้ที่ยังไม่ยกเลิกใช้ยอดไปหมด")}
+            />
+          ) : null}
           <Table
             rowKey="salesInvoiceItemId"
             size="small"
             pagination={false}
-            dataSource={lines}
+            dataSource={creditableLines}
             expandable={{
               // แถบเตือนต่อบรรทัด: ใบส่งมีของตีกลับและบิลคิดเฉพาะของที่ลูกค้ารับ
               expandedRowKeys: lines.filter(billedAcceptedOnly).map((line) => line.salesInvoiceItemId),
@@ -290,63 +339,57 @@ export default function CreateCreditNoteModal({
               {
                 title: "",
                 width: 48,
-                render: (_, line, index) => (
+                render: (_, line) => (
                   <Checkbox
                     checked={line.selected}
-                    onChange={(event) =>
-                      setLines((current) =>
-                        current.map((row, rowIndex) =>
-                          rowIndex === index ? { ...row, selected: event.target.checked } : row,
-                        ),
-                      )
-                    }
+                    disabled={!reasonCode || (reasonCode === "GOODS_RETURN" && billedAcceptedOnly(line))}
+                    onChange={(event) => patchLine(line.salesInvoiceItemId, { selected: event.target.checked })}
                   />
                 ),
               },
               { title: t("รหัส"), dataIndex: "itemCode", width: 110 },
               { title: t("สินค้า"), dataIndex: "itemName" },
               {
+                title: t("ลดได้สูงสุด"),
+                width: 150,
+                align: "right" as const,
+                render: (_, line) =>
+                  `${line.remainingQuantity} ${line.unitName} / ${formatMoney(line.remainingAmount, lang)}`,
+              },
+              {
                 title: t("จำนวนที่ลด"),
                 width: 120,
-                render: (_, line, index) => (
+                render: (_, line) => (
                   <InputNumber
                     min={0}
                     max={line.remainingQuantity}
+                    disabled={reasonCode !== "GOODS_RETURN" || billedAcceptedOnly(line)}
                     value={line.quantity}
                     style={{ width: "100%" }}
-                    onChange={(value) =>
-                      setLines((current) =>
-                        current.map((row, rowIndex) =>
-                          rowIndex === index ? { ...row, quantity: Number(value ?? 0) } : row,
-                        ),
-                      )
-                    }
+                    onChange={(value) => patchLine(line.salesInvoiceItemId, { quantity: Number(value ?? 0) })}
                   />
                 ),
               },
               {
                 title: t("ลดเฉพาะมูลค่า"),
                 width: 140,
-                render: (_, line, index) => (
+                render: (_, line) => (
                   <InputNumber
                     min={0}
-                    disabled={line.quantity > 0}
+                    max={line.remainingAmount}
+                    disabled={!reasonCode || reasonCode === "GOODS_RETURN"}
                     value={line.adjustmentAmount}
                     style={{ width: "100%" }}
-                    onChange={(value) =>
-                      setLines((current) =>
-                        current.map((row, rowIndex) =>
-                          rowIndex === index
-                            ? { ...row, adjustmentAmount: Number(value ?? 0) }
-                            : row,
-                        ),
-                      )
-                    }
+                    onChange={(value) => {
+                      const amount = Number(value ?? 0);
+                      patchLine(line.salesInvoiceItemId, { adjustmentAmount: amount, selected: amount > 0 });
+                    }}
                   />
                 ),
               },
             ]}
           />
+          </>
         )}
       </div>
     </Modal>

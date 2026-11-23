@@ -412,4 +412,9 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "ใบส่งสินค้าต้นทางมีของตีกลับ — ตรวจว่าใบลดหนี้นี้ไม่ลดซ้ำกับของที่ตีกลับ": "The source delivery order has returned goods — check that this credit note does not double-credit them",
   "ดูคอลัมน์ «ใบส่ง: รับ / ตีกลับ» · ใบแจ้งหนี้ที่คิดเฉพาะของที่ลูกค้ารับ ไม่ต้องลดหนี้ของที่ตีกลับอีก": "See the \"Delivery: accepted / returned\" column · an invoice that bills only accepted goods needs no credit for returned goods",
   "ใบส่ง: รับ / ตีกลับ": "Delivery: accepted / returned",
+  "เลือกเหตุผล": "Select a reason",
+  "ลดได้สูงสุด": "Max creditable",
+  "ระบุจำนวนที่คืนของบรรทัดที่เลือก": "Enter the returned quantity for the selected lines",
+  "ระบุยอดที่ลดของบรรทัดที่เลือก": "Enter the credit amount for the selected lines",
+  "ใบแจ้งหนี้นี้ไม่มีบรรทัดที่ลดหนี้ได้แล้ว — ลดครบยอดที่ออกบิลแล้ว หรือมีใบลดหนี้ที่ยังไม่ยกเลิกใช้ยอดไปหมด": "This invoice has no creditable lines left — fully credited, or active credit notes have used the remaining amount",
 };

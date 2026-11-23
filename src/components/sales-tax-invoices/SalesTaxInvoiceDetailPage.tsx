@@ -26,7 +26,6 @@ import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-ac
 import { useT } from "@/lib/i18n/useT";
 import { advanceReceiptRoutes, arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-routes";
 import type { SalesTaxInvoiceItem } from "@/types/sales-tax-invoices";
-import { taxBaseAfterAdvance } from "@/utils/advance-deduction-totals";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -95,6 +94,11 @@ export default function SalesTaxInvoiceDetailPage({ id }: { id: string }) {
   }
 
   const beforeVat = Math.max(0, Number(doc.subtotalAmount) - Number(doc.discountAmount || 0));
+  // ฐานสุทธิที่เก็บตอนออกใบ (เอกสารเก่าไม่มี → ยอดรวม − VAT) — ไม่คำนวณเองจากยอดก่อน VAT
+  const taxBase =
+    doc.taxBaseAmount != null
+      ? Number(doc.taxBaseAmount)
+      : Math.round((Number(doc.totalAmount) - Number(doc.vatAmount)) * 100) / 100;
   const rate = doc.vatRate != null ? Number(doc.vatRate) : undefined;
 
   return (
@@ -197,14 +201,7 @@ export default function SalesTaxInvoiceDetailPage({ id }: { id: string }) {
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span>{t("ฐานภาษีหลังหักมัดจำ")}</span>
               <strong>
-                {formatMoney(
-                  taxBaseAfterAdvance(
-                    beforeVat,
-                    (doc.advanceDeductions ?? []).map((row) => ({
-                      baseAmount: Number(row.baseAmount) || 0,
-                    })),
-                  ),
-                )}
+                {formatMoney(taxBase)}
               </strong>
             </div>
           ) : null}

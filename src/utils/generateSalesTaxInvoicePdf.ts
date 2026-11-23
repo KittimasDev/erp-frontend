@@ -1,6 +1,6 @@
 import { vatAmountLabel } from "@/lib/money/vat-totals";
 import type { SalesTaxInvoice } from "@/types/sales-tax-invoices";
-import { advanceDeductionTotalLines, taxBaseAfterAdvance } from "@/utils/advance-deduction-totals";
+import { advanceDeductionTotalLines } from "@/utils/advance-deduction-totals";
 
 import { generateSalesCommercialPdf, type SalesLinePdfItem } from "./pdf-common";
 
@@ -57,7 +57,8 @@ export async function generateSalesTaxInvoicePdf(doc: SalesTaxInvoice) {
         ? [
             {
               label: "ฐานภาษีหลังหักมัดจำ",
-              value: taxBaseAfterAdvance(afterDiscount, advanceLines),
+              value:
+                money(doc.taxBaseAmount ?? money(doc.totalAmount) - money(doc.vatAmount)),
             },
           ]
         : []),

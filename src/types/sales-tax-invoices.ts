@@ -37,6 +37,8 @@ export type SalesTaxInvoice = {
   buyerTaxId: string;
   buyerBranch: string;
   subtotalAmount: string;
+  /** ฐานภาษีสุทธิหลังหักมัดจำ (ฐาน + VAT = ยอดรวม) */
+  taxBaseAmount?: string;
   discountAmount: string;
   vatAmount: string;
   totalAmount: string;
