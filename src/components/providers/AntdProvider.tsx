@@ -9,6 +9,7 @@ import "dayjs/locale/th";
 import { useEffect, type ReactNode } from "react";
 
 import "@/lib/datetime/buddhist-era";
+import NumericInputGuard from "@/components/providers/NumericInputGuard";
 import { useLanguage } from "@/lib/i18n/language";
 
 /**
@@ -70,6 +71,7 @@ export default function AntdProvider({ children }: { children: ReactNode }) {
         },
       }}
     >
+      <NumericInputGuard />
       {children}
     </ConfigProvider>
   );
