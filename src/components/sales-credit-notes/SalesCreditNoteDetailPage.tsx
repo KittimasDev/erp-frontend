@@ -681,7 +681,14 @@ function ActionBar({
           )}>
             {t("พิมพ์ PDF")}
           </Button>
-          {note.canCreateReturnNote !== false &&
+          {note.returnNoteId ? (
+            <Link href={`/return-notes/${note.returnNoteId}`}>
+              <Button>
+                {t("ดูใบรับคืน")}
+                {note.returnNoteNo ? ` ${note.returnNoteNo}` : ""}
+              </Button>
+            </Link>
+          ) : note.canCreateReturnNote !== false &&
           note.isReturn &&
           note.deliveryOrderId &&
           note.returnToStock !== false ? (

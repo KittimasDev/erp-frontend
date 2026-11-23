@@ -448,4 +448,5 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "สถานะใบส่ง": "Delivery status",
   "ยังไม่ส่งของ — ออกบิลก่อนส่ง คิดตามจำนวนที่ส่ง": "Not yet delivered — billed before delivery on the shipped quantity",
   "ยังไม่ส่งของ": "Not yet delivered",
+  "ดูใบรับคืน": "View return note",
 };

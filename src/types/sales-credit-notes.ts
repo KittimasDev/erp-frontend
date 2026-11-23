@@ -94,6 +94,9 @@ export type SalesCreditNote = {
   returnToStock?: boolean | null;
   /** สร้างใบรับคืนได้เมื่อคืนสินค้า + นำเข้าคลัง */
   canCreateReturnNote?: boolean;
+  /** ใบรับคืนที่สร้างจากใบลดหนี้นี้แล้ว — มีแล้วให้ดูแทนการสร้างซ้ำ */
+  returnNoteId?: string;
+  returnNoteNo?: string;
   sourceSubtotalAmount?: number;
   sourceVatAmount?: number;
   sourceTotalAmount?: number;
