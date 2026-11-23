@@ -101,11 +101,11 @@ export default function JournalAccountDetailPanel({
                       </div>
                       <div className={styles.lineAmounts}>
                         <div className={styles.lineDebit}>
-                          <span className={styles.amountLabel}>Dr</span>
+                          <span className={styles.amountLabel}>{t("เดบิต")}</span>
                           {moneyOrBlank(line.debit)}
                         </div>
                         <div className={styles.lineCredit}>
-                          <span className={styles.amountLabel}>Cr</span>
+                          <span className={styles.amountLabel}>{t("เครดิต")}</span>
                           {moneyOrBlank(line.credit)}
                         </div>
                       </div>
@@ -127,11 +127,11 @@ export default function JournalAccountDetailPanel({
 
           <div className={styles.totals}>
             <div className={styles.totalChip}>
-              <span className={styles.totalLabel}>{t("ยอดรวม Debit")}</span>
+              <span className={styles.totalLabel}>{t("ยอดรวมเดบิต")}</span>
               <span className={styles.totalValue}>{money.format(totalDebit)}</span>
             </div>
             <div className={styles.totalChip}>
-              <span className={styles.totalLabel}>{t("ยอดรวม Credit")}</span>
+              <span className={styles.totalLabel}>{t("ยอดรวมเครดิต")}</span>
               <span className={styles.totalValue}>{money.format(totalCredit)}</span>
             </div>
           </div>
