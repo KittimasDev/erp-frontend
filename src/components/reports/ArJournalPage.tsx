@@ -806,6 +806,17 @@ export default function ArJournalPage({ kind, screen, basePath }: ArJournalPageP
                       label: t("ก่อน VAT / VAT / รวม"),
                       value: `${money.format(selected.subtotalAmount ?? 0)} / ${money.format(selected.vatAmount ?? 0)} / ${money.format(selected.totalAmount ?? 0)}`,
                     },
+                    // เฉพาะใบที่มีการหักมัดจำ (หักมัดจำแสดงยอดรวม VAT)
+                    ...(selected.advanceDeductedAmount
+                      ? [
+                          { label: t("ยอดเต็ม"), value: money.format(selected.fullAmount ?? 0) },
+                          { label: t("หักมัดจำ"), value: money.format(selected.advanceDeductedAmount) },
+                          {
+                            label: t("ลูกหนี้สุทธิ"),
+                            value: <strong>{money.format(selected.netReceivableAmount ?? 0)}</strong>,
+                          },
+                        ]
+                      : []),
                   ]),
             ]}
             references={

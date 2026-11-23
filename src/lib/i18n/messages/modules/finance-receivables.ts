@@ -300,6 +300,9 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
 
   /* ---------- สมุดรายวันขาย/รับ ---------- */
   "ก่อน VAT / VAT / รวม": "Before VAT / VAT / Total",
+  "ยอดเต็ม": "Full amount",
+  "หักมัดจำ": "Deposit deducted",
+  "ลูกหนี้สุทธิ": "Net receivable",
   "ก่อน VAT {amount}": "Before VAT {amount}",
   "ก่อน VAT {sub} · VAT {vat} · รวม {total} บาท · เดบิต {debit} / เครดิต {credit}": "Before VAT {sub} · VAT {vat} · Total {total} THB · Debit {debit} / Credit {credit}",
   "ข้อมูลรายการบัญชี": "Journal entry details",

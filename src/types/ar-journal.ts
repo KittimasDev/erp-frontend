@@ -78,6 +78,10 @@ export type ArJournalEntry = {
   subtotalAmount?: number;
   vatAmount?: number;
   totalAmount?: number;
+  /** เฉพาะใบที่มีการหักมัดจำ (ยอดรวม VAT) */
+  fullAmount?: number;
+  advanceDeductedAmount?: number;
+  netReceivableAmount?: number;
   sourceInvoiceNo?: string;
   sourceTaxInvoiceNo?: string;
   originalAmount?: number;
