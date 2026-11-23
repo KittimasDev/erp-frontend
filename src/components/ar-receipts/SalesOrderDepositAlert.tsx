@@ -20,7 +20,7 @@ export default function SalesOrderDepositAlert({ salesOrderId }: { salesOrderId:
       type="warning"
       showIcon
       style={{ marginBottom: 12 }}
-      message={
+      title={
         d.status === "PENDING"
           ? t("ใบสั่งขายนี้ต้องรับมัดจำ {pct}% ({amount} บาท) — ยังไม่ได้รับมัดจำ", {
               pct: d.requiredPercent,

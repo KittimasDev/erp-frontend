@@ -14,6 +14,8 @@ import {
   Pagination,
   Select,
   Table,
+  Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -123,6 +125,20 @@ export default function SalesInvoicesPendingPage() {
         dataIndex: "deliveryDate",
         width: 110,
         render: (value: string) => formatDate(value),
+      },
+      {
+        // DN ที่ยังไม่ส่งของ (เฉพาะใบสั่งขายชำระตอนรับสินค้า) ออกบิลก่อนได้ คิดตามจำนวนที่ส่ง
+        title: t("สถานะใบส่ง"),
+        dataIndex: "status",
+        width: 150,
+        render: (value: string) =>
+          value === "DELIVERED" ? (
+            <Tag color="green">{t("ส่งแล้ว")}</Tag>
+          ) : (
+            <Tooltip title={t("ยังไม่ส่งของ — ออกบิลก่อนส่ง คิดตามจำนวนที่ส่ง")}>
+              <Tag color="blue">{t("ยังไม่ส่งของ")}</Tag>
+            </Tooltip>
+          ),
       },
       {
         title: t("ใบสั่งขาย"),
@@ -249,7 +265,7 @@ export default function SalesInvoicesPendingPage() {
               type="info"
               showIcon
               style={{ flex: 1, minWidth: 260 }}
-              message={t("ติ๊กเลือกหลายใบส่งสินค้า (ใบสั่งขายเดียวกัน) เพื่อรวมเป็นใบตั้งลูกหนี้ใบเดียว")}
+              title={t("ติ๊กเลือกหลายใบส่งสินค้า (ใบสั่งขายเดียวกัน) เพื่อรวมเป็นใบตั้งลูกหนี้ใบเดียว")}
             />
             <span style={{ color: "#8a9199" }}>
               {t("เลือกแล้ว {n} ใบ · ยอดเรียกเก็บ {amount}", {

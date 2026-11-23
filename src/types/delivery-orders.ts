@@ -137,6 +137,14 @@ export type DeliveryOrder = {
   /** ใบส่งซ้ำที่ระบบสร้างจากใบนี้ — มีเฉพาะ GET /:id และผลของ deliver */
   redeliveryDeliveryOrderId?: string;
   redeliveryDeliveryOrderNo?: string;
+  /** ใบแจ้งหนี้ (AR) ที่ใช้งานอยู่ของใบส่งนี้ — มีแล้วแก้/ยกเลิกใบส่งไม่ได้ */
+  salesInvoiceId?: string;
+  salesInvoiceNo?: string;
+  salesInvoiceStatus?: string;
+  /** ฐานจำนวนที่ใบแจ้งหนี้คิดเงิน: SHIPPED จำนวนส่ง / ACCEPTED จำนวนรับ */
+  salesInvoiceQuantityBasis?: "SHIPPED" | "ACCEPTED";
+  /** ใบสั่งขายชำระตอนรับสินค้า — ออกใบแจ้งหนี้ก่อนส่งของได้ */
+  canInvoiceBeforeDelivery?: boolean;
   deliveredByName?: string;
   /** ใบบรรจุทั้งหมดที่ใบนี้รวมมา (packingId/pickingId บนหัว = ใบแรก) */
   packings?: DeliveryOrderPackingRef[];

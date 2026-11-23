@@ -40,11 +40,16 @@ type LineDraft = {
   billedQuantity: number;
   acceptedQuantity: number;
   returnedQuantity: number;
+  /** ฐานจำนวนที่ใบแจ้งหนี้คิดเงิน (SHIPPED = ออกก่อนส่งของ ของตีกลับอยู่ในบิล) */
+  quantityBasis?: string;
 };
 
 /** ใบแจ้งหนี้คิดเฉพาะของที่ลูกค้ารับ (บิล = ของที่รับ) และใบส่งมีของตีกลับ → ของตีกลับไม่เคยออกบิล */
+// ใบแจ้งหนี้ที่คิดจากจำนวนส่ง (SHIPPED — ออกก่อนส่งของ) ของตีกลับอยู่ในบิลแล้ว จึงไม่เตือน/ไม่บล็อก
 const billedAcceptedOnly = (line: LineDraft) =>
-  line.returnedQuantity > 0.0005 && Math.abs(line.billedQuantity - line.acceptedQuantity) <= 0.0005;
+  line.quantityBasis !== "SHIPPED" &&
+  line.returnedQuantity > 0.0005 &&
+  Math.abs(line.billedQuantity - line.acceptedQuantity) <= 0.0005;
 
 export default function CreateCreditNoteModal({
   open,
@@ -143,6 +148,7 @@ export default function CreateCreditNoteModal({
             billedQuantity: line.quantity,
             acceptedQuantity: line.acceptedQuantity ?? 0,
             returnedQuantity: line.returnedQuantity ?? 0,
+            quantityBasis: res.data.quantityBasis,
           })),
         );
       })

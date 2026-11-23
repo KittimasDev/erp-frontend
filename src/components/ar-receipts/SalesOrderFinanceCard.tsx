@@ -52,7 +52,7 @@ export default function SalesOrderFinanceCard({ salesOrderId }: { salesOrderId: 
         <Alert
           type="info"
           showIcon
-          message={t("ยังปิดใบสั่งขายไม่ได้ เพราะ:")}
+          title={t("ยังปิดใบสั่งขายไม่ได้ เพราะ:")}
           description={
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               {d.blockers.map((b) => (

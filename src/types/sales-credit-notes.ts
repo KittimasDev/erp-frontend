@@ -171,6 +171,8 @@ export type CreditNoteInvoiceSource = {
   invoiceDate: string;
   customerId: string;
   vatMode: string;
+  /** ฐานจำนวนที่ใบแจ้งหนี้คิดเงิน — SHIPPED = ของตีกลับอยู่ในบิล ลดหนี้คืนสินค้าได้ */
+  quantityBasis?: "ACCEPTED" | "SHIPPED";
   vatRate: number;
   subtotalAmount: string;
   vatAmount: string;

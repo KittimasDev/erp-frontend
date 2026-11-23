@@ -245,7 +245,7 @@ export default function LabSampleDetailPage({ id }: Props) {
           type="warning"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t(
+          title={t(
             "ยังอนุมัติไม่ได้ — ยังไม่มีผลตรวจของพารามิเตอร์ที่บังคับ: {names}",
             { names: missingNames },
           )}

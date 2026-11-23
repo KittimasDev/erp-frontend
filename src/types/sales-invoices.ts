@@ -175,6 +175,8 @@ export type SalesInvoice = {
   paymentTermId?: string;
   paymentTerm?: SalesInvoicePaymentTermSummary;
   vatMode?: string;
+  /** ฐานจำนวนที่คิดเงิน: ACCEPTED จำนวนที่ลูกค้ารับ · SHIPPED จำนวนที่ส่ง (ออกก่อนส่งของ) */
+  quantityBasis?: "ACCEPTED" | "SHIPPED";
   taxRate?: SalesInvoiceTaxRateSummary;
   subtotalAmount: string;
   discountAmount: string;

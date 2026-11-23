@@ -85,7 +85,7 @@ type Props = { id: string; mode: "view" | "edit" };
 export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const t = useT();
   const router = useRouter();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const query = useDeliveryOrderQuery(id);
   const updateMutation = useUpdateDeliveryOrderMutation();
   const confirmMutation = useConfirmDeliveryOrderMutation();
@@ -100,9 +100,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const [resultModalOpen, setResultModalOpen] = useState(false);
 
   const data = query.data?.data;
+  // มีใบแจ้งหนี้ใช้งานอยู่ = แก้/ยกเลิกใบส่งไม่ได้ จนกว่าจะยกเลิกใบแจ้งหนี้ก่อน
+  const hasInvoice = Boolean(data?.salesInvoiceId);
   const editable =
     mode === "edit" &&
     canWrite &&
+    !hasInvoice &&
     (data?.status === "DRAFT" || data?.status === "CONFIRMED");
 
   const [form, setForm] = useState({
@@ -288,6 +291,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     data.paymentTermType !== "ADVANCE" &&
     termCode !== "ADVANCE" &&
     termCode !== "PARTIAL";
+  // ชำระตอนรับสินค้า: ออกใบแจ้งหนี้ได้ตั้งแต่ DN ยืนยันแล้ว (คิดตามจำนวนที่ส่ง)
+  const canIssueInvoiceBeforeDelivery =
+    canCreateInvoice &&
+    data.status === "CONFIRMED" &&
+    data.canInvoiceBeforeDelivery === true &&
+    !hasInvoice;
   const canCreateReturnNote =
     mode === "view" &&
     data.status === "DELIVERED" &&
@@ -328,6 +337,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const showEditButton =
     mode === "view" &&
     canWrite &&
+    !hasInvoice &&
     data.status !== "DELIVERED" &&
     data.status !== "CANCELLED";
 
@@ -469,6 +479,15 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               {t("ยืนยันเตรียมส่ง")}
             </Button>
           ) : null}
+          {canIssueInvoiceBeforeDelivery ? (
+            <Button
+              className={styles.secondaryBtn}
+              icon={<FileTextOutlined />}
+              onClick={() => router.push(arRoutes.createFromDelivery(id))}
+            >
+              {t("ออกใบแจ้งหนี้")}
+            </Button>
+          ) : null}
           {data.status === "CONFIRMED" && canConfirm ? (
             <Button
               type="primary"
@@ -494,6 +513,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           ) : null}
           {(data.status === "DRAFT" || data.status === "CONFIRMED") &&
           !data.sourceDeliveryOrderId &&
+          !hasInvoice &&
           canConfirm ? (
             <Button
               danger
@@ -539,9 +559,43 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             return;
           }
           setResultModalOpen(false);
+          // ใบนี้มีใบแจ้งหนี้ (บิลตามจำนวนที่ส่ง) แล้วมีของตีกลับ → ต้องทำใบลดหนี้ (ระบบเข้าคิวลดหนี้ให้แล้ว)
+          if (data.salesInvoiceId && body.result !== "SUCCESS") {
+            message.warning(
+              t("มีของตีกลับและใบแจ้งหนี้ {no} บิลตามจำนวนที่ส่งไปแล้ว — ต้องออกใบลดหนี้คืนสินค้า (เข้าคิวรอลดหนี้แล้ว)", {
+                no: data.salesInvoiceNo ?? "",
+              }),
+              8,
+            );
+          }
           router.push(`/delivery-orders/${id}`);
         }}
       />
+
+      {data.salesInvoiceId ? (
+        <Alert
+          type={data.salesInvoiceQuantityBasis === "SHIPPED" ? "info" : "success"}
+          showIcon
+          title={
+            <>
+              {t("ใบแจ้งหนี้")}{" "}
+              <Link href={arRoutes.detail(data.salesInvoiceId)}>
+                {data.salesInvoiceNo ?? data.salesInvoiceId}
+              </Link>{" "}
+              {data.salesInvoiceQuantityBasis === "SHIPPED" ? (
+                <Tag color="blue">{t("บิลตามจำนวนที่ส่ง")}</Tag>
+              ) : (
+                <Tag color="green">{t("บิลตามจำนวนที่ลูกค้ารับ")}</Tag>
+              )}
+            </>
+          }
+          description={
+            data.status === "DELIVERED"
+              ? undefined
+              : t("ใบส่งสินค้านี้มีใบแจ้งหนี้แล้ว — แก้จำนวนหรือยกเลิกไม่ได้ จนกว่าจะยกเลิกใบแจ้งหนี้ก่อน")
+          }
+        />
+      ) : null}
 
       {data.sourceDeliveryOrderId &&
       (data.status === "DRAFT" || data.status === "CONFIRMED") ? (

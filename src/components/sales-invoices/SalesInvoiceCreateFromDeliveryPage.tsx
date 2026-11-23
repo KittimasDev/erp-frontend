@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, DatePicker, Form, Input, Spin } from "antd";
+import { Alert, App, Button, DatePicker, Form, Input, Spin } from "antd";
 import { ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -87,10 +87,15 @@ export default function SalesInvoiceCreateFromDeliveryPage({
     );
   }
 
-  if (delivery.status !== "DELIVERED") {
+  // DELIVERED ออกได้ทุกเงื่อนไข · CONFIRMED (ยังไม่ส่งของ) ออกได้เฉพาะชำระตอนรับสินค้า (คิดตามจำนวนที่ส่ง)
+  const billBeforeDelivery =
+    delivery.status === "CONFIRMED" && delivery.canInvoiceBeforeDelivery === true;
+  if (delivery.status !== "DELIVERED" && !billBeforeDelivery) {
     return (
       <div className={styles.page}>
-        {t("สร้างใบแจ้งหนี้ได้เฉพาะ Delivery สถานะ DELIVERED")}
+        {delivery.status === "CONFIRMED"
+          ? t("ออกใบแจ้งหนี้ก่อนส่งของได้เฉพาะใบสั่งขายที่ชำระตอนรับสินค้า — เงื่อนไขนี้ต้องรอส่งของ (DELIVERED) ก่อน")
+          : t("สร้างใบแจ้งหนี้ได้เฉพาะ Delivery สถานะ DELIVERED")}
         <div style={{ marginTop: 12 }}>
           <Link href={`/delivery-orders/${delivery.id}`}>{t("กลับใบส่งสินค้า")}</Link>
         </div>
@@ -136,6 +141,21 @@ export default function SalesInvoiceCreateFromDeliveryPage({
       />
 
       <section className={styles.formCard}>
+        <Alert
+          style={{ marginBottom: 16 }}
+          type={billBeforeDelivery ? "warning" : "info"}
+          showIcon
+          title={
+            billBeforeDelivery
+              ? t("บิลตามจำนวนที่ส่ง — ยังไม่ส่งของ")
+              : t("บิลตามจำนวนที่ลูกค้ารับ")
+          }
+          description={
+            billBeforeDelivery
+              ? t("ออกใบแจ้งหนี้ก่อนส่งของ (ชำระตอนรับสินค้า) คิดเงินตามจำนวนที่ส่ง ถ้ามีของตีกลับภายหลังต้องออกใบลดหนี้คืนสินค้า (ถ้าออกใบกำกับภาษีแล้ว ใบลดหนี้มี VAT)")
+              : t("คิดเงินตามจำนวนที่ลูกค้ารับจริง ของที่ตีกลับไม่อยู่ในบิล")
+          }
+        />
         <div className={styles.metaGrid}>
           <div className={styles.metaItem}>
             <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>

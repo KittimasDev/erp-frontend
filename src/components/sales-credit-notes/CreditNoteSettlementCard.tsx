@@ -113,7 +113,7 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
           type="warning"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t("ใบลดหนี้นี้อนุมัติแล้วแต่ยังตัดยอดไม่ครบ — ยอด AR ของลูกค้ายังไม่ลดจนกว่าจะตัดยอด")}
+          title={t("ใบลดหนี้นี้อนุมัติแล้วแต่ยังตัดยอดไม่ครบ — ยอด AR ของลูกค้ายังไม่ลดจนกว่าจะตัดยอด")}
           description={
             data.openInvoices.some((i) => i.sameDelivery)
               ? t("พบ AR ที่ตั้งจากใบส่งสินค้าใบเดียวกัน — กด \"ตัดยอด\" เพื่อหักกับใบนั้น")
@@ -143,7 +143,7 @@ export default function CreditNoteSettlementCard({ creditNoteId }: { creditNoteI
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t("ถ้า AR ถูกตั้งหลังตีกลับ ยอดนั้นไม่รวมของที่ตีกลับอยู่แล้ว ไม่ต้องตัดซ้ำ — ตัดเฉพาะ AR ที่ตั้งก่อนมีการตีกลับ")}
+          title={t("ถ้า AR ถูกตั้งหลังตีกลับ ยอดนั้นไม่รวมของที่ตีกลับอยู่แล้ว ไม่ต้องตัดซ้ำ — ตัดเฉพาะ AR ที่ตั้งก่อนมีการตีกลับ")}
         />
         <Radio.Group value={type} onChange={(e) => { setType(e.target.value); form.setFieldValue("salesInvoiceId", undefined); }} style={{ marginBottom: 12 }}>
           <Radio value="OFFSET">{t("หักยอดใบตั้งลูกหนี้ (AR)")}</Radio>

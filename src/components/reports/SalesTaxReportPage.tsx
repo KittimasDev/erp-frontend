@@ -180,7 +180,7 @@ export default function SalesTaxReportPage() {
           type="warning"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t("แสดงเฉพาะ 5,000 รายการแรก — ยอดสรุปด้านบนคิดจากทุกรายการ ให้ย่อช่วงวันที่เพื่อดูครบ")}
+          title={t("แสดงเฉพาะ 5,000 รายการแรก — ยอดสรุปด้านบนคิดจากทุกรายการ ให้ย่อช่วงวันที่เพื่อดูครบ")}
         />
       ) : null}
 

@@ -332,7 +332,7 @@ export default function ArReceiptFormPage() {
               type="warning"
               showIcon
               style={{ marginBottom: 12 }}
-              message={t("ใบนี้รับชำระจากหน้านี้ไม่ได้")}
+              title={t("ใบนี้รับชำระจากหน้านี้ไม่ได้")}
             />
           ) : null}
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
@@ -392,17 +392,17 @@ export default function ArReceiptFormPage() {
           <span>{t("เงินเหลือ (รับเกิน)")}: <strong style={rest < 0 ? { color: "#cf1322" } : undefined}>{money.format(rest / 100)}</strong></span>
         </div>
         {overLine ? (
-          <Alert type="error" showIcon message={t("{no}: เงินสด + WHT เกินยอดค้างชำระ", { no: overLine.invoiceNo })} />
+          <Alert type="error" showIcon title={t("{no}: เงินสด + WHT เกินยอดค้างชำระ", { no: overLine.invoiceNo })} />
         ) : null}
         {rest < 0 ? (
-          <Alert type="error" showIcon message={t("เงินที่ตัด AR เกินเงินที่รับจริง")} />
+          <Alert type="error" showIcon title={t("เงินที่ตัด AR เกินเงินที่รับจริง")} />
         ) : null}
         {rest > 0 ? (
           <Alert
             type="warning"
             showIcon
             style={{ marginBottom: 4 }}
-            message={t("มีเงินรับเกิน {amount} — เลือกวิธีจัดการก่อนบันทึก", {
+            title={t("มีเงินรับเกิน {amount} — เลือกวิธีจัดการก่อนบันทึก", {
               amount: money.format(rest / 100),
             })}
             description={
