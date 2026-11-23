@@ -4,13 +4,15 @@ import Link from "next/link";
 import { Descriptions, Typography } from "antd";
 
 import { useT } from "@/lib/i18n/useT";
-import { arBillingRoutes, arRoutes } from "@/lib/sales/ar-routes";
+import { AR_DEBIT_BASE, arBillingRoutes, arRoutes } from "@/lib/sales/ar-routes";
 import type { ArReceipt, ArReceiptRef } from "@/types/ar-receipts";
 
 /** เส้นทางหน้ารายละเอียดของเอกสารต้นทางฝั่งขาย */
 const soHref = (id: string) => `/sales-orders/${id}`;
 const dnHref = (id: string) => `/delivery-orders/${id}`;
 const quotationHref = (id: string) => `/quotations/${id}`;
+const creditNoteHref = (id: string) => `/finance/receivables/credit-notes/${id}`;
+const debitNoteHref = (id: string) => `${AR_DEBIT_BASE}/${id}`;
 
 type DocGroup = {
   key: string;
@@ -27,6 +29,8 @@ function buildGroups(r: ArReceipt, t: (k: string) => string): DocGroup[] {
     { key: "dn", label: t("ใบส่งสินค้า (DN)"), refs: r.deliveryOrders ?? [], href: dnHref },
     { key: "ar", label: t("ใบตั้งลูกหนี้ (AR)"), refs: r.invoices ?? [], href: arRoutes.detail },
     { key: "bl", label: t("ใบวางบิล"), refs: r.billingNotes ?? [], href: arBillingRoutes.detail },
+    { key: "cn", label: t("ใบลดหนี้"), refs: r.creditNotes ?? [], href: creditNoteHref },
+    { key: "dn2", label: t("ใบเพิ่มหนี้"), refs: r.debitNotes ?? [], href: debitNoteHref },
   ];
 }
 
@@ -66,7 +70,10 @@ export function ArReceiptRelatedDocsInline({ receipt }: { receipt: ArReceipt }) 
 /** หน้ารายละเอียด: การ์ดเอกสารที่เกี่ยวข้องทั้งหมด พร้อมลิงก์ไปหน้าเอกสารนั้น */
 export function ArReceiptRelatedDocsCard({ receipt }: { receipt: ArReceipt }) {
   const t = useT();
-  const groups = buildGroups(receipt, t);
+  // ใบลดหนี้/ใบเพิ่มหนี้ แสดงเมื่อมีเท่านั้น
+  const groups = buildGroups(receipt, t).filter(
+    (g) => (g.key !== "cn" && g.key !== "dn2") || g.refs.length > 0,
+  );
   return (
     <div style={{ background: "var(--ant-color-bg-container, #fff)", padding: 16, borderRadius: 12 }}>
       <h3 style={{ marginTop: 0 }}>{t("เอกสารที่เกี่ยวข้อง")}</h3>

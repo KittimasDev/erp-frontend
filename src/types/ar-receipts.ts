@@ -61,6 +61,9 @@ export type ArReceipt = {
   deliveryOrders: ArReceiptRef[];
   invoices: ArReceiptRef[];
   billingNotes: ArReceiptRef[];
+  /** ใบลดหนี้ที่อนุมัติแล้ว / ใบเพิ่มหนี้ที่ยืนยันแล้ว ของ AR ที่ตัดยอด */
+  creditNotes?: ArReceiptRef[];
+  debitNotes?: ArReceiptRef[];
 };
 
 export type OutstandingArInvoice = {

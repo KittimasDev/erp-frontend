@@ -133,6 +133,8 @@ export function buildArReceiptPdfData(r: ArReceipt): SalesCommercialPdfData {
               ["อ้างอิงใบสั่งขาย (SO)", r.salesOrders],
               ["อ้างอิงใบส่งสินค้า (DN)", r.deliveryOrders],
               ["อ้างอิงใบวางบิล", r.billingNotes],
+              ["อ้างอิงใบลดหนี้", r.creditNotes],
+              ["อ้างอิงใบเพิ่มหนี้", r.debitNotes],
             ] as const
           )
             .filter(([, refs]) => (refs ?? []).length > 0)
