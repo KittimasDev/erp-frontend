@@ -166,6 +166,8 @@ export type CreditNoteInvoiceSourceLine = {
   /** ใบส่งสินค้าของบรรทัดนี้: ลูกค้ารับ / ตีกลับ (ตีกลับ > 0 = เตือนไม่ให้ลดหนี้ซ้ำ) */
   acceptedQuantity?: number;
   returnedQuantity?: number;
+  /** SI บิลตามจำนวนส่ง: ลดหนี้คืนสินค้าได้สูงสุดเท่านี้ (ตีกลับไม่ส่งใหม่ − ที่ลดไปแล้ว) · null = ใช้เพดานจำนวนบิล */
+  returnableQuantity?: number | null;
 };
 
 export type CreditNoteInvoiceSource = {

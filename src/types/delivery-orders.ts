@@ -140,6 +140,8 @@ export type DeliveryOrder = {
   /** ใบแจ้งหนี้ (AR) ที่ใช้งานอยู่ของใบส่งนี้ — มีแล้วแก้/ยกเลิกใบส่งไม่ได้ */
   salesInvoiceId?: string;
   salesInvoiceNo?: string;
+  /** true = รอบส่งซ้ำที่ผูกกับใบแจ้งหนี้เดิม (จำนวนอยู่ในใบแจ้งหนี้เดิมแล้ว) */
+  salesInvoiceViaRedelivery?: boolean;
   salesInvoiceStatus?: string;
   /** ฐานจำนวนที่ใบแจ้งหนี้คิดเงิน: SHIPPED จำนวนส่ง / ACCEPTED จำนวนรับ */
   salesInvoiceQuantityBasis?: "SHIPPED" | "ACCEPTED";

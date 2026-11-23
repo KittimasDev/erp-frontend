@@ -449,4 +449,8 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "ยังไม่ส่งของ — ออกบิลก่อนส่ง คิดตามจำนวนที่ส่ง": "Not yet delivered — billed before delivery on the shipped quantity",
   "ยังไม่ส่งของ": "Not yet delivered",
   "ดูใบรับคืน": "View return note",
+  "ดูใบคืนสินค้า": "View return note",
+  "รอบส่งซ้ำของใบส่งที่บิลไปแล้ว — จำนวนอยู่ในใบแจ้งหนี้เดิมแล้ว ห้ามออกใบแจ้งหนี้ใหม่": "Redelivery of an already billed delivery — the quantity is in the original invoice; do not issue a new invoice",
+  "{no} เป็นรอบส่งซ้ำของใบส่งที่บิลไปแล้ว — ห้ามออกใบแจ้งหนี้ใหม่": "{no} is a redelivery of an already billed delivery — a new invoice cannot be issued",
+  "จำนวนที่ส่งซ้ำอยู่ในใบแจ้งหนี้เดิมแล้ว": "The redelivered quantity is already in the original invoice",
 };

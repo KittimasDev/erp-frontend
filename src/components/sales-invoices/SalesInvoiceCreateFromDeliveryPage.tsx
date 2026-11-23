@@ -59,11 +59,13 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   );
   const canSubmitDeductions = deductionErrors.length === 0;
 
+  // รอบส่งซ้ำที่ผูก SI เดิม: ไม่ redirect เงียบ ๆ — แสดงข้อความว่าห้ามออก SI ใหม่ พร้อมลิงก์ SI เดิม
+  const viaRedelivery = delivery?.salesInvoiceViaRedelivery === true;
   useEffect(() => {
-    if (existing?.id) {
+    if (existing?.id && !viaRedelivery && delivery) {
       router.replace(arRoutes.detail(existing.id));
     }
-  }, [existing, router]);
+  }, [existing, viaRedelivery, delivery, router]);
 
   if (!canAdd) {
     return <AccessDenied screenCodes={["FINANCE_AR_INVOICES", "SALES_INVOICES"]} />;
@@ -82,6 +84,29 @@ export default function SalesInvoiceCreateFromDeliveryPage({
         {t("ไม่พบใบส่งสินค้า")}
         <div style={{ marginTop: 12 }}>
           <Link href={arRoutes.pending}>{t("กลับ")}</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (viaRedelivery) {
+    return (
+      <div className={styles.page}>
+        <Alert
+          type="warning"
+          showIcon
+          title={t("{no} เป็นรอบส่งซ้ำของใบส่งที่บิลไปแล้ว — ห้ามออกใบแจ้งหนี้ใหม่", { no: delivery.deliveryOrderNo })}
+          description={
+            <>
+              {t("จำนวนที่ส่งซ้ำอยู่ในใบแจ้งหนี้เดิมแล้ว")}{" "}
+              <Link href={arRoutes.detail(delivery.salesInvoiceId ?? existing?.id ?? "")}>
+                {delivery.salesInvoiceNo ?? existing?.invoiceNo}
+              </Link>
+            </>
+          }
+        />
+        <div style={{ marginTop: 12 }}>
+          <Link href={`/delivery-orders/${delivery.id}`}>{t("กลับใบส่งสินค้า")}</Link>
         </div>
       </div>
     );

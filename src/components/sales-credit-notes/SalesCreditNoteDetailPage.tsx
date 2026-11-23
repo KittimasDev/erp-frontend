@@ -684,7 +684,7 @@ function ActionBar({
           {note.returnNoteId ? (
             <Link href={`/return-notes/${note.returnNoteId}`}>
               <Button>
-                {t("ดูใบรับคืน")}
+                {t("ดูใบคืนสินค้า")}
                 {note.returnNoteNo ? ` ${note.returnNoteNo}` : ""}
               </Button>
             </Link>

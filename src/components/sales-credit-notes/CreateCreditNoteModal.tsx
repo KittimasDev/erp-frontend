@@ -42,7 +42,15 @@ type LineDraft = {
   returnedQuantity: number;
   /** ฐานจำนวนที่ใบแจ้งหนี้คิดเงิน (SHIPPED = ออกก่อนส่งของ ของตีกลับอยู่ในบิล) */
   quantityBasis?: string;
+  /** SI บิลตามจำนวนส่ง: เพดานคืนสินค้า = ตีกลับไม่ส่งใหม่ − ที่ลดแล้ว */
+  returnableQuantity?: number | null;
 };
+
+/** จำนวนสูงสุดที่ลดได้ของบรรทัด: เหตุผลคืนสินค้าบน SI ฐานจำนวนส่งใช้เพดานตีกลับ · อื่น ๆ ใช้จำนวนคงเหลือของบิล */
+const maxQuantity = (line: LineDraft, isReturn: boolean) =>
+  isReturn && line.returnableQuantity != null
+    ? Math.min(line.remainingQuantity, line.returnableQuantity)
+    : line.remainingQuantity;
 
 /** ใบแจ้งหนี้คิดเฉพาะของที่ลูกค้ารับ (บิล = ของที่รับ) และใบส่งมีของตีกลับ → ของตีกลับไม่เคยออกบิล */
 // ใบแจ้งหนี้ที่คิดจากจำนวนส่ง (SHIPPED — ออกก่อนส่งของ) ของตีกลับอยู่ในบิลแล้ว จึงไม่เตือน/ไม่บล็อก
@@ -93,10 +101,13 @@ export default function CreateCreditNoteModal({
     const isReturn = reasonCode === "GOODS_RETURN";
     setLines((current) =>
       current.map((row) => {
-        const usable = row.remainingAmount > 0.005 && !(isReturn && billedAcceptedOnly(row));
+        const usable =
+          row.remainingAmount > 0.005 &&
+          !(isReturn && billedAcceptedOnly(row)) &&
+          !(isReturn && maxQuantity(row, true) <= 0.0005);
         return {
           ...row,
-          quantity: isReturn && usable ? row.remainingQuantity : 0,
+          quantity: isReturn && usable ? maxQuantity(row, true) : 0,
           adjustmentAmount: 0,
           selected: isReturn && usable,
         };
@@ -149,6 +160,7 @@ export default function CreateCreditNoteModal({
             acceptedQuantity: line.acceptedQuantity ?? 0,
             returnedQuantity: line.returnedQuantity ?? 0,
             quantityBasis: res.data.quantityBasis,
+            returnableQuantity: line.returnableQuantity ?? null,
           })),
         );
       })
@@ -348,7 +360,11 @@ export default function CreateCreditNoteModal({
                 render: (_, line) => (
                   <Checkbox
                     checked={line.selected}
-                    disabled={!reasonCode || (reasonCode === "GOODS_RETURN" && billedAcceptedOnly(line))}
+                    disabled={
+                      !reasonCode ||
+                      (reasonCode === "GOODS_RETURN" &&
+                        (billedAcceptedOnly(line) || maxQuantity(line, true) <= 0.0005))
+                    }
                     onChange={(event) => patchLine(line.salesInvoiceItemId, { selected: event.target.checked })}
                   />
                 ),
@@ -359,8 +375,16 @@ export default function CreateCreditNoteModal({
                 title: t("ลดได้สูงสุด"),
                 width: 150,
                 align: "right" as const,
-                render: (_, line) =>
-                  `${line.remainingQuantity} ${line.unitName} / ${formatMoney(line.remainingAmount, lang)}`,
+                render: (_, line) => {
+                  const isReturn = reasonCode === "GOODS_RETURN";
+                  const qty = maxQuantity(line, isReturn);
+                  // คืนสินค้าบน SI ฐานจำนวนส่ง: มูลค่าสูงสุด = จำนวนที่ลดได้ × ราคา (ไม่เกินมูลค่าคงเหลือ)
+                  const amount =
+                    isReturn && line.returnableQuantity != null
+                      ? Math.min(line.remainingAmount, qty * line.unitPrice)
+                      : line.remainingAmount;
+                  return `${qty} ${line.unitName} / ${formatMoney(amount, lang)}`;
+                },
               },
               {
                 title: t("จำนวนที่ลด"),
@@ -368,7 +392,7 @@ export default function CreateCreditNoteModal({
                 render: (_, line) => (
                   <InputNumber
                     min={0}
-                    max={line.remainingQuantity}
+                    max={maxQuantity(line, reasonCode === "GOODS_RETURN")}
                     disabled={reasonCode !== "GOODS_RETURN" || billedAcceptedOnly(line)}
                     value={line.quantity}
                     style={{ width: "100%" }}

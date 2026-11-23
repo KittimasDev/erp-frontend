@@ -284,8 +284,10 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     data.deliveryResult === "FULL_RETURN" ||
     data.deliveryResult === "PARTIAL_RETURN";
   const termCode = data.paymentTermCode?.trim().toUpperCase();
+  // รอบส่งซ้ำที่ผูก SI เดิม (จำนวนอยู่ใน SI เดิมแล้ว) / DN ที่มี SI แล้ว → ห้ามออก SI ใหม่
   const canIssueInvoice =
     canCreateInvoice &&
+    !data.salesInvoiceId &&
     data.status === "DELIVERED" &&
     data.deliveryResult !== "FULL_RETURN" &&
     data.paymentTermType !== "ADVANCE" &&
@@ -590,9 +592,11 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             </>
           }
           description={
-            data.status === "DELIVERED"
-              ? undefined
-              : t("ใบส่งสินค้านี้มีใบแจ้งหนี้แล้ว — แก้จำนวนหรือยกเลิกไม่ได้ จนกว่าจะยกเลิกใบแจ้งหนี้ก่อน")
+            data.salesInvoiceViaRedelivery
+              ? t("รอบส่งซ้ำของใบส่งที่บิลไปแล้ว — จำนวนอยู่ในใบแจ้งหนี้เดิมแล้ว ห้ามออกใบแจ้งหนี้ใหม่")
+              : data.status === "DELIVERED"
+                ? undefined
+                : t("ใบส่งสินค้านี้มีใบแจ้งหนี้แล้ว — แก้จำนวนหรือยกเลิกไม่ได้ จนกว่าจะยกเลิกใบแจ้งหนี้ก่อน")
           }
         />
       ) : null}
