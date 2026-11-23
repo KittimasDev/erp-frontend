@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { vatAmountLabel } from "@/lib/money/vat-totals";
 import type { ApDocument, ApDocumentItem } from "@/types/ap-documents";
+import type { PurchaseJournalByDocument } from "@/types/purchase-journal";
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 
 import { numberToThaiBahtText } from "./numberToThaiBahtText";
@@ -46,6 +47,8 @@ function pushRow(
 }
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
+const money = (value: number) =>
+  value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
  * จับคู่บรรทัดใบลดหนี้กับบรรทัดของใบตั้งหนี้ที่อ้างถึง เพื่อหามูลค่าเดิม
@@ -212,12 +215,15 @@ export function buildApDocumentPdfData(
   doc: ApDocument,
   /** ใบตั้งหนี้ที่ใบลดหนี้อ้างถึง — ใช้หามูลค่าเดิมของใบลดหนี้เท่านั้น */
   referenceInvoice?: ApDocument | null,
+  /** ใบสำคัญบัญชีของใบตั้งหนี้ (สมุดรายวันซื้อ) — ใบตั้งหนี้ที่ส่งมาจะพิมพ์เป็นตารางบัญชี */
+  journal?: PurchaseJournalByDocument | null,
 ): SalesCommercialPdfData {
   // ใบลดหนี้ใช้เนื้อหาตามแบบฟอร์มของบริษัท — ใบตั้งหนี้ยังใช้ชุดเดิมด้านล่าง
   if (doc.docType === "CREDIT_NOTE") {
     return buildCreditNotePdfData(doc, referenceInvoice);
   }
   const isInvoice = doc.docType === "AP_INVOICE";
+  const journalLayout = isInvoice && journal != null;
   const infoRows: SalesCommercialPdfInfoRow[] = [
     {
       label: "เจ้าหนี้",
@@ -253,6 +259,92 @@ export function buildApDocumentPdfData(
   }
 
   const draftBanner = draftBannerOf(doc);
+
+  // ใบตั้งหนี้: ตารางบัญชี (เลขที่บัญชี | แผนก | รายละเอียด | เดบิต | เครดิต) ตามแบบที่ลูกค้าใช้
+  // บรรทัดมาจากสมุดรายวันซื้อ · ยอดสำคัญย้ายไปอยู่ในแถวของการ์ดข้อมูล
+  if (journalLayout && journal) {
+    const { entry } = journal;
+    const lineRows = entry.lines.flatMap((line, index) => {
+      const mapped = Boolean(line.accountCode);
+      const detail = line.detail ? ` — ${line.detail}` : "";
+      const rows = [
+        {
+          no: index + 1,
+          itemCode: "",
+          itemName: `${mapped ? (line.accountName ?? line.description) : line.description}${detail}`,
+          unit: "",
+          qty: 0,
+          accountCode: mapped ? (line.accountCode ?? "") : "ยังไม่ผูกบัญชี",
+          department: "",
+          debit: line.debit,
+          credit: line.credit,
+        },
+      ];
+      return rows;
+    });
+    // บรรทัดอ้างอิงใบกำกับภาษีใต้ภาษีซื้อ: ภาษีซื้อ# เลขที่ วันที่ ฐาน VAT (ตามแบบที่ลูกค้าใช้)
+    const taxNo = entry.taxInvoiceNo || doc.supplierDocNo || "";
+    const taxDate = entry.taxInvoiceDate || doc.supplierDocDate || "";
+    const vatIndex = entry.lines.reduce(
+      (last, line, index) => (line.taxGroup === "VAT" && line.debit > 0 ? index : last),
+      -1,
+    );
+    const rowsWithTax =
+      vatIndex >= 0 && doc.vatAmount > 0
+        ? [
+            ...lineRows.slice(0, vatIndex + 1),
+            {
+              no: 0,
+              itemCode: "",
+              itemName: `ภาษีซื้อ# ${[taxNo, taxDate ? thaiDate(taxDate) : ""].filter(Boolean).join("  ")}  ฐาน ${money(doc.subtotalAmount)}  VAT ${money(doc.vatAmount)}`,
+              unit: "",
+              qty: 0,
+              accountCode: "",
+              department: "",
+              debit: 0,
+              credit: 0,
+            },
+            ...lineRows.slice(vatIndex + 1),
+          ]
+        : lineRows;
+    const amountRows: SalesCommercialPdfInfoRow[] = [
+      { label: "มูลค่าก่อน VAT", value: money(doc.subtotalAmount) },
+      { label: "ภาษีมูลค่าเพิ่ม", value: money(doc.vatAmount) },
+      { label: "ยอดตั้งหนี้", value: money(doc.totalAmount), emphasis: true },
+    ];
+    return {
+      pageId: "ap-invoice-pdf",
+      titleTh: "ใบตั้งหนี้",
+      titleEn: "ACCOUNTS PAYABLE INVOICE",
+      docNo: doc.docNo,
+      docDate: thaiDate(doc.docDate),
+      draftBanner,
+      infoRows: [...infoRows, ...amountRows],
+      items: [],
+      itemGroups: [
+        {
+          heading: journal.preview
+            ? "รายการบัญชี (ตัวอย่าง — ยังไม่อนุมัติ)"
+            : "รายการบัญชีตามสมุดรายวันซื้อ",
+          items: rowsWithTax.map((row, index) => ({ ...row, no: index + 1 })),
+        },
+      ],
+      withPrices: false,
+      journalColumns: true,
+      journalTotals: {
+        debit: entry.totalDebit,
+        credit: entry.totalCredit,
+        amountText: `(${numberToThaiBahtText(entry.totalDebit)})`,
+      },
+      totalAmount: entry.totalDebit,
+      remark: doc.remark ?? "",
+      signatures: [
+        { title: "ผู้บันทึก", name: doc.createdByName ?? undefined },
+        { title: "ผู้อนุมัติ", name: doc.approvedByName ?? undefined },
+        "ผู้ตรวจสอบ",
+      ],
+    };
+  }
 
   return {
     pageId: isInvoice ? "ap-invoice-pdf" : "ap-debit-note-pdf",
@@ -311,11 +403,12 @@ export function buildApDocumentPdfData(
 export async function generateApDocumentPdf(
   doc: ApDocument,
   referenceInvoice?: ApDocument | null,
+  journal?: PurchaseJournalByDocument | null,
 ) {
   if (doc.docType === "DEBIT_NOTE") {
     const { generateApDebitNotePdf } = await import("./generateApDebitNotePdf");
     await generateApDebitNotePdf(doc);
     return;
   }
-  await generateSalesCommercialPdf(buildApDocumentPdfData(doc, referenceInvoice));
+  await generateSalesCommercialPdf(buildApDocumentPdfData(doc, referenceInvoice, journal));
 }

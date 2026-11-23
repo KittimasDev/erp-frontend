@@ -183,6 +183,17 @@ export type VoucherSourceInfo = {
   bankAccounts: VoucherBankAccount[];
 };
 
+/** รายการบัญชีของใบสำคัญจ่าย — POSTED = บรรทัดจริงในสมุดรายวันจ่าย · PROJECTED = คำนวณล่วงหน้า (ยังไม่จ่าย) */
+export type PaymentVoucherJournal = {
+  mode: "POSTED" | "PROJECTED";
+  lines: import("@/types/purchase-journal").JournalLine[];
+  totalDebit: number;
+  totalCredit: number;
+  balanced: boolean;
+  /** บัญชีที่ยังไม่ผูกใน Master */
+  unmapped: string[];
+};
+
 export type QueueContext = VoucherSourceInfo & { queueItem: PaymentVoucherQueueItem };
 
 export type PaymentVoucherDetail = VoucherSourceInfo & {

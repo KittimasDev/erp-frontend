@@ -14,6 +14,8 @@ import { ArrowLeftOutlined, FilePdfOutlined, MoreOutlined } from "@ant-design/ic
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
+import { getApInvoiceJournal } from "@/lib/api/ap-documents";
+import { getAccessToken } from "@/lib/auth/token";
 import { getStoredLanguage } from "@/lib/i18n/language";
 import { useT } from "@/lib/i18n/useT";
 
@@ -118,7 +120,13 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
   };
   const handlePrint = async () => {
     const { generateApDocumentPdf } = await import("@/utils/generateApDocumentPdf");
-    void generateApDocumentPdf(d);
+    try {
+      // ใบสำคัญบัญชีตามสมุดรายวันซื้อ (ใบที่ยังไม่อนุมัติเป็นตัวอย่างที่คำนวณล่วงหน้า)
+      const journal = await getApInvoiceJournal(getAccessToken(), d.id);
+      await generateApDocumentPdf(d, null, journal.data);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : t("พิมพ์ใบตั้งหนี้ไม่สำเร็จ"));
+    }
   };
 
   const editable = (status === "DRAFT" || status === "REJECTED") && perms.canEdit;

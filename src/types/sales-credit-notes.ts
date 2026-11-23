@@ -94,6 +94,8 @@ export type SalesCreditNote = {
   returnToStock?: boolean | null;
   /** สร้างใบรับคืนได้เมื่อคืนสินค้า + นำเข้าคลัง */
   canCreateReturnNote?: boolean;
+  /** เหตุผลภาษาไทยที่สร้างใบรับคืนไม่ได้ (ไม่มีค่าเมื่อไม่ต้องแสดง) */
+  returnNoteBlockedReason?: string;
   /** ใบรับคืนที่สร้างจากใบลดหนี้นี้แล้ว — มีแล้วให้ดูแทนการสร้างซ้ำ */
   returnNoteId?: string;
   returnNoteNo?: string;

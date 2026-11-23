@@ -3,6 +3,7 @@ import {
   EXPRESS_STATUS_LABEL,
   PV_SOURCE_LABEL,
   type PaymentVoucherDetail,
+  type PaymentVoucherJournal,
   type VoucherBankAccount,
 } from "@/types/payment-vouchers";
 import {
@@ -10,10 +11,10 @@ import {
   type SupplierPaymentBankAccount,
 } from "@/types/purchase-payments";
 
+import { numberToThaiBahtText } from "./numberToThaiBahtText";
 import {
   generateSalesCommercialPdf,
   type SalesCommercialPdfData,
-  type SalesCommercialPdfTotalsLine,
 } from "./pdf-common";
 
 function thaiDate(value?: string | null) {
@@ -39,6 +40,10 @@ function recordedMoney(value?: string | number | null): number | undefined {
   return n;
 }
 
+function moneyText(value: number) {
+  return value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function bankText(bank: SupplierPaymentBankAccount | VoucherBankAccount) {
   return `${bank.bankName} ${bank.accountNumber}`.trim();
 }
@@ -57,8 +62,15 @@ function purposeText(kind?: string | null) {
  * ใบที่จ่ายแล้วใช้แสตมป์แดง "จ่ายแล้ว" แทนแถบหัว
  * กรอบข้อมูลแบ่งสองการ์ดเหมือนหน้ารายละเอียด: ข้อมูลเจ้าหนี้ / ข้อมูลการชำระเงิน
  * ตัวเลขมาจาก GET /api/payment-vouchers/:id เท่านั้น ไม่เติมแถวหรือยอดที่ต้นทางไม่มี
+ *
+ * ตารางรายการเป็นตารางบัญชี (เลขที่บัญชี | แผนก | รายละเอียด | เดบิต | เครดิต) ตามแบบที่ลูกค้าใช้
+ * บรรทัดมาจาก GET /api/payment-vouchers/:id/journal = บรรทัดเดียวกับสมุดรายวันจ่าย
+ * (ใบที่ยังไม่จ่ายเป็นรายการคำนวณล่วงหน้า) · ยอดสำคัญของใบย้ายไปอยู่ในการ์ดข้อมูล
  */
-export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommercialPdfData {
+export function buildPaymentVoucherPdfData(
+  d: PaymentVoucherDetail,
+  journal: PaymentVoucherJournal,
+): SalesCommercialPdfData {
   const v = d.voucher;
   const payable = recordedMoney(v.totalAmount);
   const net = recordedMoney(v.netAmount);
@@ -66,7 +78,6 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
   const wht = positiveMoney(v.whtAmount);
   const deposit = positiveMoney(d.depositDeductAmount);
   const activePayments = (v.payments ?? []).filter((payment) => payment.status !== "CANCELLED");
-  const multiRate = (d.whtLines?.length ?? 0) > 1;
 
   const paidBanks = activePayments
     .map((payment) => payment.bankAccount)
@@ -124,73 +135,41 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
             ? "ไม่อนุมัติ"
             : "ร่าง — ยังไม่อนุมัติ";
 
-  const items = d.apDocuments
-    .flatMap((ap) => {
-      const amount = recordedMoney(ap.allocatedAmount);
-      if (amount === undefined) return [];
-      const itemName = [
-        `ชำระใบตั้งหนี้ ${ap.docNo}`,
-        ap.invoiceNo ? `ใบแจ้งหนี้ ${ap.invoiceNo}` : null,
-        ap.poNo ? `PO ${ap.poNo}` : null,
-      ]
-        .filter((part): part is string => Boolean(part))
-        .join(" · ");
-      return [
-        {
-          no: 0,
-          itemCode: ap.docNo,
-          itemName,
-          unit: "รายการ",
-          qty: 1,
-          unitPrice: amount,
-          amount,
-        },
-      ];
-    })
-    .map((item, index) => ({ ...item, no: index + 1 }));
+  // ตารางบัญชี: เลขที่บัญชี | แผนก (ระบบยังไม่มีข้อมูลแผนก เว้นว่าง) | รายละเอียด | เดบิต | เครดิต
+  const items = journal.lines.map((line, index) => {
+    const mapped = Boolean(line.accountCode);
+    const detail = line.detail ? ` — ${line.detail}` : "";
+    return {
+      no: index + 1,
+      itemCode: "",
+      itemName: mapped
+        ? `${line.accountName ?? line.description}${detail}`
+        : `${line.description}${detail}`,
+      unit: "",
+      qty: 0,
+      accountCode: mapped ? (line.accountCode ?? "") : "ยังไม่ผูกบัญชี",
+      department: "",
+      debit: line.debit,
+      credit: line.credit,
+    };
+  });
 
-  const detailedWht: SalesCommercialPdfTotalsLine[] =
-    wht != null && multiRate
-      ? (d.whtLines ?? []).flatMap((line) => {
-          const value = positiveMoney(line.whtAmount);
-          if (value == null) return [];
-          const rate = Number(line.rate);
-          const base = recordedMoney(line.baseAmount);
-          const rateText = Number.isFinite(rate) && rate > 0 ? ` ${rate}%` : "";
-          const baseText =
-            base != null
-              ? ` (ฐาน ${base.toLocaleString("th-TH", { minimumFractionDigits: 2 })})`
-              : "";
-          return [
-            {
-              label: `ภาษีหัก ณ ที่จ่าย${line.incomeType ? ` ${line.incomeType}` : ""}${rateText}${baseText}`,
-              value,
-            },
-          ];
-        })
-      : [];
-  const whtLines: SalesCommercialPdfTotalsLine[] =
-    detailedWht.length > 0
-      ? detailedWht
-      : wht != null
-        ? [
-            {
-              label:
-                Number(d.whtRate) > 0
-                  ? `ภาษีหัก ณ ที่จ่าย ${Number(d.whtRate)}%`
-                  : "ภาษีหัก ณ ที่จ่าย",
-              value: wht,
-            },
-          ]
-        : [];
-
-  const totalsLines: SalesCommercialPdfTotalsLine[] = [
-    ...(payable != null ? [{ label: "ยอดเจ้าหนี้", value: payable }] : []),
-    ...(vat != null ? [{ label: "ภาษีมูลค่าเพิ่ม (รวมในยอดแล้ว)", value: vat }] : []),
-    ...whtLines,
-    ...(deposit != null ? [{ label: "ยอดหักมัดจำ", value: deposit }] : []),
-    ...(net != null ? [{ label: "ยอดจ่ายสุทธิ", value: net, grand: true }] : []),
-  ];
+  const apRefs = d.apDocuments.map((ap) => ap.docNo).filter(Boolean);
+  const amountRows = (
+    [
+      ["ยอดเจ้าหนี้", payable],
+      ["ภาษีมูลค่าเพิ่ม (รวมในยอดแล้ว)", vat],
+      ["ภาษีหัก ณ ที่จ่าย", wht],
+      ["ยอดหักมัดจำ", deposit],
+      ["ยอดจ่ายสุทธิ", net],
+    ] as const
+  )
+    .filter(([, value]) => value !== undefined)
+    .map(([label, value]) => ({
+      label,
+      value: moneyText(value as number),
+      emphasis: label === "ยอดจ่ายสุทธิ",
+    }));
 
   return {
     pageId: "payment-voucher-pdf",
@@ -213,6 +192,7 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
           { label: "เลขประจำตัวผู้เสียภาษี", value: d.supplier.taxId || "—" },
           { label: "วัตถุประสงค์", value: purposeText(v.paymentKind) },
           { label: "อ้างอิง PO", value: poValue },
+          ...(apRefs.length > 0 ? [{ label: "อ้างอิงใบตั้งหนี้", value: apRefs.join(", ") }] : []),
         ],
       },
       {
@@ -231,21 +211,28 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
                 },
               ]
             : []),
+          ...amountRows,
         ],
       },
     ],
-    items,
-    columnLabels: {
-      code: "เลขที่ AP",
-      name: "รายการ",
-      unit: "หน่วย",
-      qty: "จำนวน",
-      price: "ยอดจ่าย",
-      amount: "จำนวนเงิน",
+    items: [],
+    itemGroups: [
+      {
+        heading:
+          journal.mode === "POSTED"
+            ? "รายการบัญชีตามสมุดรายวันจ่าย"
+            : "รายการบัญชี (ล่วงหน้า — ยังไม่ชำระเงิน)",
+        items,
+      },
+    ],
+    withPrices: false,
+    journalColumns: true,
+    journalTotals: {
+      debit: journal.totalDebit,
+      credit: journal.totalCredit,
+      amountText: `(${numberToThaiBahtText(journal.totalDebit)})`,
     },
-    withPrices: true,
-    totalAmount: net ?? payable ?? 0,
-    totalsLines,
+    totalAmount: journal.totalDebit,
     remark: v.remark ?? "",
     signatures: [
       { title: "ผู้จัดทำ", name: d.createdByAction?.name },
@@ -255,6 +242,9 @@ export function buildPaymentVoucherPdfData(d: PaymentVoucherDetail): SalesCommer
   };
 }
 
-export async function generatePaymentVoucherPdf(d: PaymentVoucherDetail) {
-  await generateSalesCommercialPdf(buildPaymentVoucherPdfData(d));
+export async function generatePaymentVoucherPdf(
+  d: PaymentVoucherDetail,
+  journal: PaymentVoucherJournal,
+) {
+  await generateSalesCommercialPdf(buildPaymentVoucherPdfData(d, journal));
 }

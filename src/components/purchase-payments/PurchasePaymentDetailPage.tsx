@@ -241,10 +241,15 @@ function PurchasePaymentDetailView({
   const handlePrintPdf = async () => {
     setIsPrinting(true);
     try {
-      const { getPaymentVoucherDetail } = await import("@/lib/api/payment-vouchers");
+      const { getPaymentVoucherDetail, getPaymentVoucherJournal } = await import("@/lib/api/payment-vouchers");
       const { generatePaymentVoucherPdf } = await import("@/utils/generatePaymentVoucherPdf");
-      const res = await getPaymentVoucherDetail(getAccessToken(), data.id);
-      await generatePaymentVoucherPdf(res.data);
+      const token = getAccessToken();
+      // รายการบัญชีตามสมุดรายวันจ่าย (ใบที่ยังไม่จ่ายเป็นรายการคำนวณล่วงหน้า)
+      const [res, journal] = await Promise.all([
+        getPaymentVoucherDetail(token, data.id),
+        getPaymentVoucherJournal(token, data.id),
+      ]);
+      await generatePaymentVoucherPdf(res.data, journal.data);
     } catch (error) {
       message.error(
         error instanceof Error ? error.message : t("พิมพ์ใบสำคัญจ่ายไม่สำเร็จ"),

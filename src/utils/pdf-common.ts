@@ -757,6 +757,11 @@ export type SalesLinePdfItem = {
   /** โหมด valueColumns — มูลค่าเดิม / ที่ถูกต้อง (null = ไม่มีข้อมูล พิมพ์ "—") */
   originalAmount?: number | null;
   correctAmount?: number | null;
+  /** โหมด journalColumns — เลขที่บัญชี / แผนก (ว่างได้) / เดบิต / เครดิต (0 หรือไม่ใส่ = ไม่พิมพ์) · รายละเอียด = itemName */
+  accountCode?: string;
+  department?: string;
+  debit?: number;
+  credit?: number;
 };
 
 /**
@@ -864,6 +869,12 @@ export type SalesCommercialPdfData = {
    * ใช้คู่กับ withPrices เพื่อให้ยอดรวมยังแสดง · ไม่มีคอลัมน์รหัส/จำนวน/หน่วย/ราคา
    */
   valueColumns?: boolean;
+  /**
+   * ตารางบัญชีแบบใบสำคัญ: เลขที่บัญชี | แผนก | รายละเอียด | เดบิต | เครดิต (ใช้ accountCode/department/debit/credit ของ item)
+   * แถวท้ายตารางใช้ journalTotals — ตัวอักษรจำนวนเงิน / รวม / ยอดเดบิต / ยอดเครดิต · ไม่ใช้กล่อง totalsLines
+   */
+  journalColumns?: boolean;
+  journalTotals?: { debit: number; credit: number; amountText: string };
 };
 
 /* ---------- เอกสารกลุ่มขาย — ใช้ design เดียวกับใบสั่งซื้อ ---------- */
@@ -1223,6 +1234,49 @@ function salesStyles() {
 
       .tr.c5v {
         grid-template-columns: 34px 1fr 84px 92px 84px;
+      }
+
+      /* ตารางบัญชีของใบสำคัญ — เส้นแบ่งคอลัมน์ตามแบบที่ลูกค้าใช้ */
+      .tr.c5j {
+        grid-template-columns: 92px 44px 1fr 84px 84px;
+        align-items: stretch;
+      }
+
+      .tr.c5j .cell + .cell {
+        border-left: 1px solid #d5dce1;
+      }
+
+      .tr.c5j .cell.num {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .journal-total {
+        display: grid;
+        grid-template-columns: 1fr 84px 84px;
+        margin-top: 6px;
+        border: 1px solid #d5dce1;
+        border-radius: 5px;
+        font-size: 8px;
+        font-weight: 700;
+        color: #263039;
+        flex-shrink: 0;
+      }
+
+      .journal-total > div {
+        padding: 8px 7px;
+      }
+
+      .journal-total > div + div {
+        border-left: 1px solid #d5dce1;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .journal-total .jt-text {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
       }
 
       .info-card.wide {
@@ -1685,6 +1739,7 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
     reduced: data.columnLabels?.reduced ?? "มูลค่าที่ลดลง",
   };
   const valueCols = Boolean(data.valueColumns) && priceCols;
+  const journalCols = Boolean(data.journalColumns);
 
   const groups: SalesCommercialPdfItemGroup[] =
     data.itemGroups && data.itemGroups.length > 0
@@ -1695,7 +1750,9 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   );
   const codeWithName =
     Boolean(data.codeWithName) && !priceCols && !lineAmount && !hasExtra;
-  const colClass = valueCols
+  const colClass = journalCols
+    ? "c5j"
+    : valueCols
     ? "c5v"
     : priceCols
     ? "c8"
@@ -1707,7 +1764,16 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
           ? "c4"
           : "c5";
 
-  const thead = valueCols
+  const thead = journalCols
+    ? `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">เลขที่บัญชี</div>
+          <div class="cell center">แผนก</div>
+          <div class="cell center">รายละเอียด</div>
+          <div class="cell num">เดบิต</div>
+          <div class="cell num">เครดิต</div>
+        </div>`
+    : valueCols
     ? `
         <div class="tr thead ${colClass}">
           <div class="cell center">${escapeHtml(labels.no)}</div>
@@ -1765,8 +1831,19 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
 
   const moneyOrDash = (value?: number | null) =>
     value == null ? "—" : formatMoney(value);
+  const moneyOrBlank = (value?: number) =>
+    value != null && value > 0 ? formatMoney(value) : "";
   const rowHtml = (item: SalesLinePdfItem) =>
-    valueCols
+    journalCols
+      ? `
+        <div class="tr tbody ${colClass}">
+          <div class="cell">${escapeHtml(item.accountCode ?? "")}</div>
+          <div class="cell">${escapeHtml(item.department ?? "")}</div>
+          <div class="cell cell-name">${salesNameHtml(item.itemName)}</div>
+          <div class="cell num">${moneyOrBlank(item.debit)}</div>
+          <div class="cell num">${moneyOrBlank(item.credit)}</div>
+        </div>`
+      : valueCols
       ? `
         <div class="tr tbody ${colClass}">
           <div class="cell center">${item.no}</div>
@@ -1924,7 +2001,14 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
     { label: "ยอดสุทธิ", value: data.totalAmount ?? 0, grand: true },
   ];
   const totalsLines = data.totalsLines ?? defaultTotals;
-  const totals = priceCols || lineAmount
+  const totals = journalCols && data.journalTotals
+    ? `
+      <div class="journal-total">
+        <div class="jt-text"><span>${escapeHtml(data.journalTotals.amountText)}</span><span>รวม</span></div>
+        <div>${formatMoney(data.journalTotals.debit)}</div>
+        <div>${formatMoney(data.journalTotals.credit)}</div>
+      </div>`
+    : priceCols || lineAmount
     ? `
       <div class="totals">
         ${totalsLines

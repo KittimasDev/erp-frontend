@@ -9,6 +9,7 @@ import type {
   PaymentRecordList,
   PaymentRecordQuery,
   PaymentVoucherDetail,
+  PaymentVoucherJournal,
   PaymentVoucherQueueList,
   PaymentVoucherQueueQuery,
   QueueContext,
@@ -41,6 +42,9 @@ export const createVoucherFromQueue = (token: string, queueItemId: string, body:
   apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/queue/${queueItemId}/vouchers`, { method: "POST", token, body });
 export const getPaymentVoucherDetail = (token: string, id: string) =>
   apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/${id}`, { token });
+/** รายการบัญชีเดบิต/เครดิตของใบสำคัญจ่าย (ตามสมุดรายวันจ่าย) — ใช้พิมพ์ PDF · สิทธิ์เดียวกับการดูใบสำคัญจ่าย */
+export const getPaymentVoucherJournal = (token: string, id: string) =>
+  apiFetch<Res<PaymentVoucherJournal>>(`${BASE}/${id}/journal`, { token });
 export const updatePaymentVoucher = (token: string, id: string, body: UpdateVoucherFormBody) =>
   apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/${id}`, { method: "PATCH", token, body });
 export const submitPaymentVoucher = (token: string, id: string) =>

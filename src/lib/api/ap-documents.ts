@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import type { PurchaseJournalByDocument } from "@/types/purchase-journal";
 import type {
   ApDocumentKind,
   CreatedAp,
@@ -184,6 +185,14 @@ export function getGrnCreateInfo(token: string, grnId: string, excludeApId?: str
 }
 
 /** รายละเอียดใบตั้งหนี้ครบทุก section */
+/** ใบสำคัญบัญชีของใบตั้งหนี้ (บรรทัดเดียวกับสมุดรายวันซื้อ) สำหรับพิมพ์ PDF · สิทธิ์เดียวกับการดูใบตั้งหนี้ */
+export function getApInvoiceJournal(token: string, id: string) {
+  return apiFetch<{ statusCode: number; message: string; data: PurchaseJournalByDocument }>(
+    `/api/ap-invoices/${id}/journal`,
+    { token },
+  );
+}
+
 export function getApInvoiceDetail(token: string, id: string) {
   return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}`, { token });
 }

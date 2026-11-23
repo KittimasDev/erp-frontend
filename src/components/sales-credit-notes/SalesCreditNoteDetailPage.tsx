@@ -432,6 +432,15 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
             : ""}
         </Descriptions.Item>
       </Descriptions>
+      {note.returnNoteBlockedReason && !note.returnNoteId ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t("สร้างใบรับคืนจากใบลดหนี้นี้ไม่ได้")}
+          description={note.returnNoteBlockedReason}
+        />
+      ) : null}
       {note.items.some((item) => (item.deliveryReturnedQuantity ?? 0) > 0) ? (
         <Alert
           type="warning"
@@ -690,7 +699,6 @@ function ActionBar({
             </Link>
           ) : note.canCreateReturnNote !== false &&
           note.isReturn &&
-          note.deliveryOrderId &&
           note.returnToStock !== false ? (
             <Button
               onClick={() =>

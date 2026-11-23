@@ -36,7 +36,7 @@ import {
   useSubmitApDocumentMutation,
 } from "@/hooks/ap-documents/useApDocuments";
 import { useCompanyBankAccountsQuery } from "@/hooks/company-profile/useCompanyBankAccountsQuery";
-import { getApInvoiceDetail } from "@/lib/api/ap-documents";
+import { getApInvoiceDetail, getApInvoiceJournal } from "@/lib/api/ap-documents";
 import { getAccessToken } from "@/lib/auth/token";
 import {
   AP_DOCUMENT_STATUS_COLOR,
@@ -203,7 +203,17 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
         referenceInvoice = null;
       }
     }
-    void generateApDocumentPdf(doc, referenceInvoice);
+    // ใบตั้งหนี้พิมพ์เป็นตารางบัญชีตามสมุดรายวันซื้อ · ใบเพิ่มหนี้/ลดหนี้ใช้แบบฟอร์มเดิม
+    let journal: Awaited<ReturnType<typeof getApInvoiceJournal>>["data"] | null = null;
+    if (doc.docType === "AP_INVOICE") {
+      try {
+        journal = (await getApInvoiceJournal(getAccessToken(), doc.id)).data;
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : t("พิมพ์ใบตั้งหนี้ไม่สำเร็จ"));
+        return;
+      }
+    }
+    void generateApDocumentPdf(doc, referenceInvoice, journal);
   };
 
   const handleRefund = async (values: RefundForm) => {

@@ -450,7 +450,9 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "ยังไม่ส่งของ": "Not yet delivered",
   "ดูใบรับคืน": "View return note",
   "ดูใบคืนสินค้า": "View return note",
+  "สร้างใบรับคืนจากใบลดหนี้นี้ไม่ได้": "Cannot create a return note from this credit note",
   "รอบส่งซ้ำของใบส่งที่บิลไปแล้ว — จำนวนอยู่ในใบแจ้งหนี้เดิมแล้ว ห้ามออกใบแจ้งหนี้ใหม่": "Redelivery of an already billed delivery — the quantity is in the original invoice; do not issue a new invoice",
   "{no} เป็นรอบส่งซ้ำของใบส่งที่บิลไปแล้ว — ห้ามออกใบแจ้งหนี้ใหม่": "{no} is a redelivery of an already billed delivery — a new invoice cannot be issued",
   "จำนวนที่ส่งซ้ำอยู่ในใบแจ้งหนี้เดิมแล้ว": "The redelivered quantity is already in the original invoice",
+  "พิมพ์ใบตั้งหนี้ไม่สำเร็จ": "Could not print the AP invoice",
 };
