@@ -6,10 +6,11 @@ import {
   standardStatusLabel,
 } from "@/lib/status/standard-status";
 
-export type PickingStatus = "DRAFT" | "CONFIRMED" | "CANCELLED";
+export type PickingStatus = "DRAFT" | "PENDING_APPROVAL" | "CONFIRMED" | "CANCELLED";
 
 export const PICKING_STATUS_LABEL: Record<PickingStatus, string> = {
   DRAFT: STANDARD_STATUS.DRAFT.th,
+  PENDING_APPROVAL: STANDARD_STATUS.PENDING_APPROVAL.th,
   CONFIRMED: "ยืนยันแล้ว",
   CANCELLED: STANDARD_STATUS.CANCELLED.th,
 };
@@ -19,6 +20,7 @@ export function pickingStatusLabel(status: string, lang?: Language): string {
   const l = lang ?? getStoredLanguage();
   if (status === "DRAFT") return standardStatusLabel("DRAFT", l);
   if (status === "CANCELLED") return standardStatusLabel("CANCELLED", l);
+  if (status === "PENDING_APPROVAL") return standardStatusLabel("PENDING_APPROVAL", l);
   return translate(l, PICKING_STATUS_LABEL[status as PickingStatus] ?? status);
 }
 
@@ -26,6 +28,7 @@ export function pickingStatusLabel(status: string, lang?: Language): string {
 export function pickingStatusColor(status: string): string {
   if (status === "DRAFT") return standardStatusColor("DRAFT");
   if (status === "CANCELLED") return standardStatusColor("CANCELLED");
+  if (status === "PENDING_APPROVAL") return standardStatusColor("PENDING_APPROVAL");
   return status === "CONFIRMED" ? "success" : "default";
 }
 

@@ -1,11 +1,11 @@
 "use client";
 
-import ArJournalPage from "@/components/reports/ArJournalPage";
+import SalesTaxReportPage from "@/components/reports/SalesTaxReportPage";
 
 /**
- * เมนูการเงิน › รายงานภาษีขาย — ใช้สมุดรายวันขายชุดเดียวกับ /reports/journals/sales
- * รายละเอียดรายการยังอยู่ที่ /reports/journals/sales/[id] (basePath ค่าเริ่มต้น)
+ * เมนูการเงิน › รายงานภาษีขาย — ดึงจากใบกำกับภาษีจริง (ไม่ใช่สมุดรายวันขาย)
+ * สิทธิ์: FINANCE_REPORT_SALES_TAX
  */
 export default function Page() {
-  return <ArJournalPage kind="SALES" screen="FINANCE_REPORT_SALES_TAX" />;
+  return <SalesTaxReportPage />;
 }

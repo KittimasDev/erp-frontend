@@ -8,6 +8,8 @@ import {
   confirmPicking,
   createPickingFromDeliverySchedule,
   createPickingFromSalesOrder,
+  rejectPicking,
+  submitPicking,
   updatePicking,
 } from "@/lib/api/pickings";
 import { ApiError } from "@/lib/api/client";
@@ -93,6 +95,36 @@ export function useUpdatePickingMutation() {
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : t("บันทึกไม่สำเร็จ")),
+  });
+}
+
+export function useSubmitPickingMutation() {
+  const t = useT();
+  const { message } = App.useApp();
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: string) => submitPicking(getAccessToken(), id),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || t("ส่งอนุมัติสำเร็จ"));
+    },
+    onError: (e: Error) =>
+      message.error(e instanceof ApiError ? e.message : t("ส่งอนุมัติไม่สำเร็จ")),
+  });
+}
+
+export function useRejectPickingMutation() {
+  const t = useT();
+  const { message } = App.useApp();
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (v: { id: string; reason: string }) => rejectPicking(getAccessToken(), v.id, v.reason),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || t("ส่งกลับแก้ไขแล้ว"));
+    },
+    onError: (e: Error) =>
+      message.error(e instanceof ApiError ? e.message : t("ส่งกลับไม่สำเร็จ")),
   });
 }
 

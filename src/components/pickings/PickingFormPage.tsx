@@ -10,6 +10,7 @@ import {
   Button,
   DatePicker,
   Input,
+  Modal,
   Select,
   Spin,
   Table,
@@ -26,7 +27,9 @@ import {
   InboxOutlined,
   InfoCircleOutlined,
   QuestionCircleOutlined,
+  RollbackOutlined,
   SaveOutlined,
+  SendOutlined,
   ShoppingCartOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
@@ -35,6 +38,8 @@ import dayjs from "dayjs";
 import {
   useCancelPickingMutation,
   useConfirmPickingMutation,
+  useRejectPickingMutation,
+  useSubmitPickingMutation,
   useUpdatePickingMutation,
 } from "@/hooks/pickings/usePickingMutations";
 import { usePickingQuery } from "@/hooks/pickings/usePickingsQuery";
@@ -91,6 +96,10 @@ export default function PickingFormPage({ id, mode }: Props) {
   const query = usePickingQuery(id);
   const updateMutation = useUpdatePickingMutation();
   const confirmMutation = useConfirmPickingMutation();
+  const submitMutation = useSubmitPickingMutation();
+  const rejectMutation = useRejectPickingMutation();
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const cancelMutation = useCancelPickingMutation();
 
   const data = query.data?.data;
@@ -104,6 +113,7 @@ export default function PickingFormPage({ id, mode }: Props) {
   const canWrite = canEdit || canConfirm;
 
   const isDraft = data?.status === "DRAFT";
+  const isPending = data?.status === "PENDING_APPROVAL";
   const editable = mode === "edit" && isDraft && canEdit;
 
   const [pickingDate, setPickingDate] = useState<dayjs.Dayjs | null>(null);
@@ -490,29 +500,25 @@ export default function PickingFormPage({ id, mode }: Props) {
               >
                 {t("บันทึก DRAFT")}
               </Button>
-              {canConfirm ? (
-                <Button
-                  type="primary"
-                  className={styles.primaryBtn}
-                  icon={<CheckOutlined />}
-                  loading={confirmMutation.isPending}
-                  onClick={() =>
-                    modal.confirm({
-                      title: t("ยืนยันตัดสต๊อกตามใบเบิกนี้?"),
-                      content: reservationReady
-                        ? t("ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบเบิกนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง")
-                        : t("ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบเบิกนี้ และสร้าง stock movement"),
-                      onOk: async () => {
-                        if (!(await handleSave())) return;
-                        await confirmMutation.mutateAsync(id);
-                        router.push(`/pickings/${id}`);
-                      },
-                    })
-                  }
-                >
-                  {t("ยืนยันตัดสต๊อก")}
-                </Button>
-              ) : null}
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<SendOutlined />}
+                loading={submitMutation.isPending}
+                onClick={() =>
+                  modal.confirm({
+                    title: t("ส่งใบเบิกนี้ขออนุมัติ?"),
+                    content: t("ส่งแล้วแก้ไขไม่ได้จนกว่าผู้อนุมัติจะอนุมัติตัดสต๊อกหรือส่งกลับ — สต๊อกยังไม่ถูกตัดจนกว่าจะอนุมัติ"),
+                    onOk: async () => {
+                      if (!(await handleSave())) return;
+                      await submitMutation.mutateAsync(id);
+                      router.push(`/pickings/${id}`);
+                    },
+                  })
+                }
+              >
+                {t("ส่งอนุมัติ")}
+              </Button>
               <Button
                 danger
                 className={styles.secondaryBtn}
@@ -532,15 +538,44 @@ export default function PickingFormPage({ id, mode }: Props) {
               </Button>
             </>
           ) : null}
-          {!editable && data.status === "DRAFT" && canWrite ? (
+          {!editable && data.status === "DRAFT" && canEdit ? (
             <Button
               type="primary"
               className={styles.primaryBtn}
-              icon={<CheckOutlined />}
+              icon={<SendOutlined />}
               onClick={() => router.push(`/pickings/${id}/edit`)}
             >
-              {t("แก้ไขและยืนยันตัดสต๊อก")}
+              {t("แก้ไขและส่งอนุมัติ")}
             </Button>
+          ) : null}
+          {isPending && canConfirm ? (
+            <>
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<CheckOutlined />}
+                loading={confirmMutation.isPending}
+                onClick={() =>
+                  modal.confirm({
+                    title: t("อนุมัติและตัดสต๊อกตามใบเบิกนี้?"),
+                    content: t("ระบบจะตัดจากของที่จองไว้สำหรับใบเบิกนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง"),
+                    onOk: async () => {
+                      await confirmMutation.mutateAsync(id);
+                    },
+                  })
+                }
+              >
+                {t("อนุมัติตัดสต๊อก")}
+              </Button>
+              <Button
+                danger
+                className={styles.secondaryBtn}
+                icon={<RollbackOutlined />}
+                onClick={() => setRejectOpen(true)}
+              >
+                {t("ส่งกลับแก้ไข")}
+              </Button>
+            </>
           ) : null}
           {!editable && data.status === "CONFIRMED" ? (
             packingHref ? (
@@ -582,11 +617,24 @@ export default function PickingFormPage({ id, mode }: Props) {
           showIcon
           title={t("ใบเบิกอยู่สถานะแบบร่างเอกสาร")}
           description={
-            canWrite
+            canEdit
               ? reservationReady
-                ? t("ของจองครบแล้ว — กด «แก้ไขและยืนยันตัดสต๊อก» แล้วกดยืนยันได้ทันที ไม่ต้องเลือกคลัง/Lot ใหม่")
-                : t("กด «แก้ไขและยืนยันตัดสต๊อก» — ของถูกจองไว้แล้ว ระบบจะจัดคลัง/Lot ตามที่จองให้อัตโนมัติ")
-              : t("รอเจ้าหน้าที่คลังยืนยันตัดสต๊อกจริงจากของที่จองไว้")
+                ? t("ของจองครบแล้ว — กด «แก้ไขและส่งอนุมัติ» แล้วกดส่งอนุมัติได้ทันที ไม่ต้องเลือกคลัง/Lot ใหม่")
+                : t("กด «แก้ไขและส่งอนุมัติ» — ของถูกจองไว้แล้ว ระบบจะจัดคลัง/Lot ตามที่จองให้อัตโนมัติ")
+              : t("รอเจ้าหน้าที่คลังตรวจรายการแล้วส่งอนุมัติ")
+          }
+        />
+      ) : null}
+
+      {isPending ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={t("ส่งอนุมัติแล้ว — รอผู้อนุมัติตัดสต๊อก")}
+          description={
+            canConfirm
+              ? t("ตรวจรายการและ Lot ด้านล่าง แล้วกด «อนุมัติตัดสต๊อก» หรือ «ส่งกลับแก้ไข» พร้อมเหตุผล")
+              : t("แก้ไขไม่ได้ระหว่างรออนุมัติ — ผู้อนุมัติจะอนุมัติตัดสต๊อกหรือส่งกลับให้แก้ไข")
           }
         />
       ) : null}
@@ -595,7 +643,7 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Alert
           type="success"
           showIcon
-          title={t("ของจองครบแล้ว — กดยืนยันตัดสต๊อกได้ทันที")}
+          title={t("ของจองครบแล้ว — กดส่งอนุมัติได้ทันที")}
           description={t("แถวด้านล่างมาจากของที่จองไว้สำหรับใบสั่งขายนี้ ไม่ต้องกดแนะนำ FIFO อีกครั้ง")}
         />
       ) : null}
@@ -696,14 +744,48 @@ export default function PickingFormPage({ id, mode }: Props) {
         />
       </section>
 
+      <Modal
+        open={rejectOpen}
+        title={t("ส่งใบเบิกกลับแก้ไข")}
+        okText={t("ส่งกลับ")}
+        cancelText={t("ปิด")}
+        okButtonProps={{ danger: true, disabled: rejectReason.trim().length < 3 }}
+        confirmLoading={rejectMutation.isPending}
+        maskClosable={false}
+        destroyOnHidden
+        afterOpenChange={(v) => {
+          if (!v) setRejectReason("");
+        }}
+        onCancel={() => setRejectOpen(false)}
+        onOk={async () => {
+          try {
+            await rejectMutation.mutateAsync({ id, reason: rejectReason.trim() });
+            setRejectOpen(false);
+          } catch {
+            // hook แจ้ง error แล้ว
+          }
+        }}
+      >
+        <Input.TextArea
+          rows={4}
+          maxLength={2000}
+          showCount
+          placeholder={t("เหตุผลที่ส่งกลับ (บังคับ)")}
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+        />
+      </Modal>
+
       {!editable ? (
         <section className={styles.actionFooter}>
           <div className={styles.actionFooterText}>
             {data.status === "CONFIRMED"
               ? t("ดำเนินการต่อ — สร้างหรือเปิดใบบรรจุสินค้า")
-              : data.status === "DRAFT" && canWrite
-                ? t("แก้ไขใบเบิกแล้วยืนยันตัดสต๊อกจริงเพื่อไปขั้นบรรจุ")
-                : t("กลับไปรายการหรือใบสั่งขาย")}
+              : data.status === "DRAFT" && canEdit
+                ? t("แก้ไขใบเบิกแล้วส่งอนุมัติ — ผู้อนุมัติตัดสต๊อกจริงเพื่อไปขั้นบรรจุ")
+                : isPending
+                  ? t("รอผู้อนุมัติตัดสต๊อก")
+                  : t("กลับไปรายการหรือใบสั่งขาย")}
           </div>
           <div className={styles.actionFooterButtons}>
             <Button
@@ -722,14 +804,14 @@ export default function PickingFormPage({ id, mode }: Props) {
                 {t("กลับใบสั่งขาย")}
               </Button>
             ) : null}
-            {data.status === "DRAFT" && canWrite ? (
+            {data.status === "DRAFT" && canEdit ? (
               <Button
                 type="primary"
                 className={styles.primaryBtn}
-                icon={<CheckOutlined />}
+                icon={<SendOutlined />}
                 onClick={() => router.push(`/pickings/${id}/edit`)}
               >
-                {t("แก้ไขและยืนยันตัดสต๊อก")}
+                {t("แก้ไขและส่งอนุมัติ")}
               </Button>
             ) : null}
             {data.status === "CONFIRMED" ? (

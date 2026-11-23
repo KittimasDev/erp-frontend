@@ -81,6 +81,21 @@ export function updatePicking(
   });
 }
 
+export function submitPicking(token: string, id: string) {
+  return apiFetch<PickingApiResponse>(`/api/pickings/${id}/submit`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function rejectPicking(token: string, id: string, reason: string) {
+  return apiFetch<PickingApiResponse>(`/api/pickings/${id}/reject`, {
+    method: "POST",
+    token,
+    body: { reason },
+  });
+}
+
 export function confirmPicking(token: string, id: string) {
   return apiFetch<PickingApiResponse>(`/api/pickings/${id}/confirm`, {
     method: "POST",
