@@ -22,6 +22,7 @@ import { useT } from "@/lib/i18n/useT";
 import { arRoutes } from "@/lib/sales/ar-routes";
 import type { SalesInvoice } from "@/types/sales-invoices";
 import {
+  salesInvoicePaymentStatusDisplay,
   salesInvoicePaymentStatusLabel,
   salesInvoiceStatusLabel,
 } from "@/types/sales-invoices";
@@ -198,10 +199,10 @@ export default function SalesInvoicesListPage() {
         title: t("ชำระ"),
         dataIndex: "paymentStatus",
         width: 110,
-        render: (value?: string) =>
+        render: (value: string | undefined, row: SalesInvoice) =>
           value ? (
             <span className={styles.methodCell}>
-              {salesInvoicePaymentStatusLabel(value, lang)}
+              {salesInvoicePaymentStatusDisplay(value, row.creditNoteAmount, row.cashPaidAmount, lang)}
             </span>
           ) : (
             "—"

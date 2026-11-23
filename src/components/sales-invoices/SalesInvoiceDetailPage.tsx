@@ -52,7 +52,7 @@ import { arReceiptRoutes, arRoutes, taxInvoiceRoutes } from "@/lib/sales/ar-rout
 import type { SalesInvoice, SalesInvoiceItem } from "@/types/sales-invoices";
 import {
   salesInvoicePaymentMethodLabel,
-  salesInvoicePaymentStatusLabel,
+  salesInvoicePaymentStatusDisplay,
   salesInvoiceStatusLabel,
 } from "@/types/sales-invoices";
 import { vatAmountLabelT } from "@/types/purchase-orders";
@@ -165,13 +165,20 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     };
   }, [previewUrl]);
 
+  // ชำระแล้ว = เงินจริง (ไม่ใช่ CREDIT_NOTE) · หักกับใบลดหนี้แยกอีกช่อง · คงค้างหักทั้งสองอย่าง
   const paidAmount = (data.payments ?? []).reduce(
-    (sum, p) => sum + (Number(p.amount) || 0),
+    (sum, p) =>
+      p.paymentMethod === "CREDIT_NOTE" ? sum : sum + (Number(p.amount) || 0),
+    0,
+  );
+  const creditNoteAmount = (data.payments ?? []).reduce(
+    (sum, p) =>
+      p.paymentMethod === "CREDIT_NOTE" ? sum + (Number(p.amount) || 0) : sum,
     0,
   );
   const outstandingAmount = Math.max(
     0,
-    (Number(data.totalAmount) || 0) - paidAmount,
+    (Number(data.totalAmount) || 0) - paidAmount - creditNoteAmount,
   );
 
   const { canEdit, canApprove } = useArInvoicePermissions();
@@ -467,7 +474,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               >
                 {salesInvoiceStatusLabel(data.status, lang)}
                 {data.paymentStatus
-                  ? ` · ${salesInvoicePaymentStatusLabel(data.paymentStatus, lang)}`
+                  ? ` · ${salesInvoicePaymentStatusDisplay(data.paymentStatus, creditNoteAmount, paidAmount, lang)}`
                   : ""}
               </span>
             </div>
@@ -642,6 +649,14 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                       {formatMoney(String(paidAmount))}
                     </div>
                   </div>
+                  {creditNoteAmount > 0.004 ? (
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>{t("หักกับใบลดหนี้")}</span>
+                      <div className={styles.metaValue}>
+                        {formatMoney(String(creditNoteAmount))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>{t("คงค้าง")}</span>
                     <div className={styles.metaValue}>
@@ -694,7 +709,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>{t("อ้างอิง")}</span>
                     <div className={styles.metaValue}>
-                      {p.transactionRef || "—"}
+                      {p.paymentMethod === "CREDIT_NOTE" && p.creditNoteId && p.creditNoteNo ? (
+                        <Link href={`/finance/receivables/credit-notes/${p.creditNoteId}`}>
+                          {p.creditNoteNo}
+                        </Link>
+                      ) : (
+                        p.transactionRef || "—"
+                      )}
                     </div>
                   </div>
                 </div>

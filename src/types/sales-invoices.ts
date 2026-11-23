@@ -152,6 +152,9 @@ export type SalesInvoicePayment = {
   remark?: string;
   arReceiptId?: string;
   receiptNo?: string;
+  /** เฉพาะ paymentMethod = CREDIT_NOTE: ใบลดหนี้ที่หักยอด */
+  creditNoteId?: string;
+  creditNoteNo?: string;
   createdById?: string;
   createdBy?: SalesInvoiceUserSummary;
   createdAt: string;
@@ -180,6 +183,9 @@ export type SalesInvoice = {
   advanceDeductions?: SalesInvoiceAdvanceDeduction[];
   status: SalesInvoiceStatus;
   paymentStatus?: SalesInvoicePaymentStatus;
+  /** ยอดหักด้วยใบลดหนี้ (ไม่ใช่เงินจริง) · เงินชำระจริง = ทุกรายการที่ไม่ใช่ CREDIT_NOTE */
+  creditNoteAmount?: string;
+  cashPaidAmount?: string;
   dueDate?: string;
   remark?: string;
   createdById?: string;
@@ -312,6 +318,30 @@ export function salesInvoicePaymentStatusLabel(status: string, lang: "th" | "en"
     return en[status] ?? status;
   }
   return SALES_INVOICE_PAYMENT_STATUS_LABEL[status] ?? status;
+}
+
+/**
+ * ป้ายสถานะชำระ — ถ้า "ยังไม่มีเงินจริงเข้าเลย" แต่มียอดหักใบลดหนี้ ให้บอกว่าเป็นการหักกับใบลดหนี้
+ * (ไม่ใช่ชำระ) · มีเงินจริงเข้าแล้ว/ไม่มียอดหักลดหนี้ ใช้ป้ายเดิม
+ * ยอดหักใบลดหนี้ = payment ที่ paymentMethod = CREDIT_NOTE · เงินจริง = ทุกรายการที่ไม่ใช่ CREDIT_NOTE
+ */
+export function salesInvoicePaymentStatusDisplay(
+  status: string,
+  creditNoteAmount: number | string | undefined,
+  cashPaidAmount: number | string | undefined,
+  lang: "th" | "en",
+): string {
+  const cn = Number(creditNoteAmount ?? 0) || 0;
+  const cash = Number(cashPaidAmount ?? 0) || 0;
+  if (cn > 0.004 && cash <= 0.004) {
+    if (status === "PARTIALLY_PAID") {
+      return lang === "en" ? "Partially offset by credit note" : "หักกับใบลดหนี้บางส่วน";
+    }
+    if (status === "PAID") {
+      return lang === "en" ? "Fully offset by credit note" : "หักกับใบลดหนี้ครบแล้ว";
+    }
+  }
+  return salesInvoicePaymentStatusLabel(status, lang);
 }
 
 export function salesInvoicePaymentMethodLabel(method: string, lang: "th" | "en"): string {

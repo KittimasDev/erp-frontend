@@ -403,4 +403,7 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "ยอดรวมที่รับ": "Amount received",
   "ระบุยอดรวมที่รับ": "Enter the amount received",
   "วิธีรับเงิน": "Payment method",
+  "หักกับใบลดหนี้": "Offset by credit note",
+  "หักกับใบลดหนี้บางส่วน": "Partially offset by credit note",
+  "หักกับใบลดหนี้ครบแล้ว": "Fully offset by credit note",
 };
