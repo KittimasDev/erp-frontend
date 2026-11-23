@@ -6,7 +6,7 @@ import { useState } from "react";
 import ESignatureHistoryCard from "@/components/esign/ESignatureHistoryCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Card, DatePicker, Descriptions, Input, InputNumber, Select, Space, Table, Typography, Upload } from "antd";
+import { Alert, App, Button, Card, DatePicker, Descriptions, Input, InputNumber, Select, Space, Table, Typography, Upload } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -432,6 +432,15 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
             : ""}
         </Descriptions.Item>
       </Descriptions>
+      {note.items.some((item) => (item.deliveryReturnedQuantity ?? 0) > 0) ? (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title={t("ใบส่งสินค้าต้นทางมีของตีกลับ — ตรวจว่าใบลดหนี้นี้ไม่ลดซ้ำกับของที่ตีกลับ")}
+          description={t("ดูคอลัมน์ «ใบส่ง: รับ / ตีกลับ» · ใบแจ้งหนี้ที่คิดเฉพาะของที่ลูกค้ารับ ไม่ต้องลดหนี้ของที่ตีกลับอีก")}
+        />
+      ) : null}
       <Table
         rowKey="id"
         size="small"
@@ -442,6 +451,19 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
           { title: t("สินค้า"), dataIndex: "itemName" },
           { title: t("จำนวน"), dataIndex: "quantity", align: "right" },
           { title: t("หน่วย"), dataIndex: "unitName" },
+          ...(note.items.some((item) => (item.deliveryReturnedQuantity ?? 0) > 0)
+            ? [
+                {
+                  title: t("ใบส่ง: รับ / ตีกลับ"),
+                  key: "deliveryQty",
+                  align: "right" as const,
+                  render: (_: unknown, item: (typeof note.items)[number]) =>
+                    item.deliveryAcceptedQuantity === undefined
+                      ? "—"
+                      : `${item.deliveryAcceptedQuantity} / ${item.deliveryReturnedQuantity ?? 0}`,
+                },
+              ]
+            : []),
           {
             title: t("ราคาต่อหน่วย"),
             dataIndex: "unitPrice",

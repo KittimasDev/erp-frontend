@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { App, Checkbox, Input, InputNumber, Modal, Select, Table, Typography } from "antd";
+import { Alert, App, Checkbox, Input, InputNumber, Modal, Select, Table, Typography } from "antd";
 
 import {
   getCreditNoteInvoiceCandidates,
@@ -36,7 +36,15 @@ type LineDraft = {
   remainingQuantity: number;
   remainingAmount: number;
   selected: boolean;
+  unitName: string;
+  billedQuantity: number;
+  acceptedQuantity: number;
+  returnedQuantity: number;
 };
+
+/** ใบแจ้งหนี้คิดเฉพาะของที่ลูกค้ารับ (บิล = ของที่รับ) และใบส่งมีของตีกลับ → ของตีกลับไม่เคยออกบิล */
+const billedAcceptedOnly = (line: LineDraft) =>
+  line.returnedQuantity > 0.0005 && Math.abs(line.billedQuantity - line.acceptedQuantity) <= 0.0005;
 
 export default function CreateCreditNoteModal({
   open,
@@ -106,6 +114,10 @@ export default function CreateCreditNoteModal({
             remainingQuantity: line.remainingQuantity,
             remainingAmount: line.remainingAmount,
             selected: !pending && line.remainingAmount > 0,
+            unitName: line.unitName,
+            billedQuantity: line.quantity,
+            acceptedQuantity: line.acceptedQuantity ?? 0,
+            returnedQuantity: line.returnedQuantity ?? 0,
           })),
         );
       })
@@ -121,6 +133,16 @@ export default function CreateCreditNoteModal({
     }
     if (!reasonCode || reason.trim().length < 5) {
       message.error(t("ระบุรหัสเหตุผลและข้อความเหตุผลอย่างน้อย 5 ตัวอักษร"));
+      return;
+    }
+    if (
+      !pending &&
+      reasonCode === "GOODS_RETURN" &&
+      lines.some((line) => line.selected && billedAcceptedOnly(line))
+    ) {
+      message.error(
+        t("ใบแจ้งหนี้นี้คิดเฉพาะจำนวนที่ลูกค้ารับ — ลดหนี้ด้วยเหตุผลคืนสินค้าไม่ได้ (ของตีกลับไม่ได้ออกบิล) เลือกเหตุผลอื่นถ้าเป็นความเสียหาย/ลดราคาของที่ลูกค้ารับไปแล้ว"),
+      );
       return;
     }
     const body: SaveSalesCreditNoteBody = pending
@@ -239,6 +261,31 @@ export default function CreateCreditNoteModal({
             size="small"
             pagination={false}
             dataSource={lines}
+            expandable={{
+              // แถบเตือนต่อบรรทัด: ใบส่งมีของตีกลับและบิลคิดเฉพาะของที่ลูกค้ารับ
+              expandedRowKeys: lines.filter(billedAcceptedOnly).map((line) => line.salesInvoiceItemId),
+              rowExpandable: billedAcceptedOnly,
+              showExpandColumn: false,
+              expandedRowRender: (line) => (
+                <Alert
+                  type={reasonCode === "GOODS_RETURN" ? "error" : "warning"}
+                  showIcon
+                  title={t(
+                    "ใบแจ้งหนี้นี้คิดเฉพาะจำนวนที่ลูกค้ารับ {accepted} {unit} (ตีกลับ {returned} {unit} ไม่ได้ออกบิล) — ลดหนี้ได้เฉพาะของที่ลูกค้ารับไป",
+                    {
+                      accepted: line.acceptedQuantity,
+                      returned: line.returnedQuantity,
+                      unit: line.unitName,
+                    },
+                  )}
+                  description={
+                    reasonCode === "GOODS_RETURN"
+                      ? t("เหตุผล «คืนสินค้า» ใช้ไม่ได้กับบรรทัดนี้ — เลือกเหตุผลอื่น เช่น สินค้าชำรุด หรือลดราคา")
+                      : undefined
+                  }
+                />
+              ),
+            }}
             columns={[
               {
                 title: "",

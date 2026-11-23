@@ -406,4 +406,10 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "หักกับใบลดหนี้": "Offset by credit note",
   "หักกับใบลดหนี้บางส่วน": "Partially offset by credit note",
   "หักกับใบลดหนี้ครบแล้ว": "Fully offset by credit note",
+  "ใบแจ้งหนี้นี้คิดเฉพาะจำนวนที่ลูกค้ารับ — ลดหนี้ด้วยเหตุผลคืนสินค้าไม่ได้ (ของตีกลับไม่ได้ออกบิล) เลือกเหตุผลอื่นถ้าเป็นความเสียหาย/ลดราคาของที่ลูกค้ารับไปแล้ว": "This invoice bills only what the customer accepted — a credit note with the reason \"goods return\" is not allowed (returned goods were never billed). Choose another reason for damage/price reduction on accepted goods",
+  "ใบแจ้งหนี้นี้คิดเฉพาะจำนวนที่ลูกค้ารับ {accepted} {unit} (ตีกลับ {returned} {unit} ไม่ได้ออกบิล) — ลดหนี้ได้เฉพาะของที่ลูกค้ารับไป": "This invoice bills only the {accepted} {unit} the customer accepted ({returned} {unit} returned was not billed) — credit only applies to goods the customer accepted",
+  "เหตุผล «คืนสินค้า» ใช้ไม่ได้กับบรรทัดนี้ — เลือกเหตุผลอื่น เช่น สินค้าชำรุด หรือลดราคา": "The reason \"goods return\" cannot be used for this line — choose another reason such as defective goods or price reduction",
+  "ใบส่งสินค้าต้นทางมีของตีกลับ — ตรวจว่าใบลดหนี้นี้ไม่ลดซ้ำกับของที่ตีกลับ": "The source delivery order has returned goods — check that this credit note does not double-credit them",
+  "ดูคอลัมน์ «ใบส่ง: รับ / ตีกลับ» · ใบแจ้งหนี้ที่คิดเฉพาะของที่ลูกค้ารับ ไม่ต้องลดหนี้ของที่ตีกลับอีก": "See the \"Delivery: accepted / returned\" column · an invoice that bills only accepted goods needs no credit for returned goods",
+  "ใบส่ง: รับ / ตีกลับ": "Delivery: accepted / returned",
 };

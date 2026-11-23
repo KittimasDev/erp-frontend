@@ -66,6 +66,9 @@ export type SalesCreditNoteItem = {
   amount: number;
   vatAmount: number;
   lineTotal: number;
+  /** ใบส่งสินค้าต้นทางของบรรทัดนี้: จำนวนที่ลูกค้ารับ / ตีกลับ */
+  deliveryAcceptedQuantity?: number;
+  deliveryReturnedQuantity?: number;
 };
 
 export type SalesCreditNote = {
@@ -157,6 +160,9 @@ export type CreditNoteInvoiceSourceLine = {
   creditedAmount: number;
   remainingQuantity: number;
   remainingAmount: number;
+  /** ใบส่งสินค้าของบรรทัดนี้: ลูกค้ารับ / ตีกลับ (ตีกลับ > 0 = เตือนไม่ให้ลดหนี้ซ้ำ) */
+  acceptedQuantity?: number;
+  returnedQuantity?: number;
 };
 
 export type CreditNoteInvoiceSource = {
