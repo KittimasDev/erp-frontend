@@ -682,10 +682,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                       {salesInvoicePaymentMethodLabel(p.paymentMethod, lang)}
                     </div>
                   </div>
-                  <div className={styles.metaItem}>
+                  <div className={styles.metaItem} style={{ textAlign: "center" }}>
                     <span className={styles.metaLabel}>{t("จำนวนเงิน")}</span>
                     <div className={styles.metaValue}>
-                      {formatMoney(p.amount)}
+                      {/* ใบเพิ่มหนี้บันทึกเป็นแถวติดลบ (เพิ่มยอดค้าง) — แสดงเป็นจำนวนบวก */}
+                      {formatMoney(
+                        p.paymentMethod === "DEBIT_NOTE" ? String(Math.abs(Number(p.amount))) : p.amount,
+                      )}
                     </div>
                   </div>
                   <div className={styles.metaItem}>
