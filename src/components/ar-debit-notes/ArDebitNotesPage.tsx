@@ -69,14 +69,15 @@ export default function ArDebitNotesPage() {
   if (!perms.canView) return <AccessDenied screenCodes={[SCREEN_CODE]} />;
 
   const columns: ColumnsType<ArDebitNote> = [
-    { title: t("เลขที่"), dataIndex: "debitNoteNo", width: 150, render: (v: string, r) => <Link href={`${AR_DEBIT_BASE}/${r.id}`}><strong>{v}</strong></Link> },
-    { title: t("วันที่"), dataIndex: "debitNoteDate", width: 110, render: (v: string) => formatThaiDate(v) },
-    { title: t("ลูกค้า"), dataIndex: "customerName", render: (v?: string) => v ?? "—" },
-    { title: t("เลขที่ AR"), dataIndex: "invoiceNo", render: (v?: string) => v ?? "—" },
+    { title: t("ลำดับ"), key: "seq", width: 72, align: "center", render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1 },
+    { title: t("เลขที่"), dataIndex: "debitNoteNo", width: 160, render: (v: string, r) => <Link href={`${AR_DEBIT_BASE}/${r.id}`}><strong>{v}</strong></Link> },
+    { title: t("วันที่"), dataIndex: "debitNoteDate", width: 120, align: "center", render: (v: string) => formatThaiDate(v) },
+    { title: t("ลูกค้า"), dataIndex: "customerName", width: 180, ellipsis: true, render: (v?: string) => v ?? "—" },
+    { title: t("เลขที่ AR"), dataIndex: "invoiceNo", width: 170, render: (v?: string) => v ?? "—" },
     { title: t("เหตุผล"), dataIndex: "reason", ellipsis: true },
-    { title: t("ยอดรวม"), dataIndex: "totalAmount", align: "right", render: (v: string) => money.format(Number(v)) },
-    { title: t("สถานะ"), dataIndex: "status", width: 110, render: (v: string) => <Tag color={AR_DEBIT_STATUS_COLOR[v] ?? "default"}>{t(AR_DEBIT_STATUS_LABEL[v] ?? v)}</Tag> },
-    { title: "", key: "action", width: 120, render: (_v, r) => <Link href={`${AR_DEBIT_BASE}/${r.id}`}><Button size="small">{t("ดูรายละเอียด")}</Button></Link> },
+    { title: t("ยอดรวม"), dataIndex: "totalAmount", width: 140, align: "right", render: (v: string) => money.format(Number(v)) },
+    { title: t("สถานะ"), dataIndex: "status", width: 130, align: "center", render: (v: string) => <Tag style={{ marginInlineEnd: 0 }} color={AR_DEBIT_STATUS_COLOR[v] ?? "default"}>{t(AR_DEBIT_STATUS_LABEL[v] ?? v)}</Tag> },
+    { title: "", key: "action", width: 130, align: "center", render: (_v, r) => <Link href={`${AR_DEBIT_BASE}/${r.id}`}><Button size="small">{t("ดูรายละเอียด")}</Button></Link> },
   ];
 
   const apply = () => {
@@ -124,7 +125,7 @@ export default function ArDebitNotesPage() {
           columns={columns}
           dataSource={query.data?.items ?? []}
           pagination={{ current: page, pageSize: PAGE_SIZE, total: query.data?.total ?? 0, onChange: setPage, showSizeChanger: false, showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }) }}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1100 }}
           locale={{ emptyText: t("ยังไม่มีใบเพิ่มหนี้") }}
         />
       </div>

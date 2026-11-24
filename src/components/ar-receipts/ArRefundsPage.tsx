@@ -64,6 +64,7 @@ export default function ArRefundsPage() {
   const balance = Number(credit.data?.balance ?? 0);
 
   const refundColumns: ColumnsType<ArRefund> = [
+    { title: t("ลำดับ"), key: "seq", width: 72, align: "center" as const, render: (_v: unknown, _r: unknown, index: number) => (page - 1) * PAGE_SIZE + index + 1 },
     { title: t("เลขที่"), dataIndex: "refundNo", width: 150, render: (v: string) => <strong>{v}</strong> },
     { title: t("วันที่"), dataIndex: "refundDate", width: 110, render: (v: string) => formatThaiDate(v) },
     { title: t("ลูกค้า"), dataIndex: "customerName", render: (v?: string) => v ?? "—" },

@@ -52,6 +52,7 @@ export default function AdvanceReceiptsPage() {
   const rows = query.data?.data.items ?? [];
 
   const columns: ColumnsType<AdvanceReceipt> = [
+    { title: t("ลำดับ"), key: "seq", width: 72, align: "center" as const, render: (_v: unknown, _r: unknown, index: number) => (page - 1) * limit + index + 1 },
     {
       title: t("เลขที่เอกสาร"),
       dataIndex: "docNo",

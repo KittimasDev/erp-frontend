@@ -30,6 +30,7 @@ const defaultRange = (): [Dayjs, Dayjs] => [dayjs().startOf("month"), dayjs().en
 export default function SalesTaxReportPage() {
   const t = useT();
   const lang = useLanguage();
+  const [page, setPage] = useState(1);
   const [draftRange, setDraftRange] = useState<[Dayjs, Dayjs] | null>(defaultRange);
   const [draftType, setDraftType] = useState<string | undefined>();
   const [draftKeyword, setDraftKeyword] = useState("");
@@ -55,6 +56,7 @@ export default function SalesTaxReportPage() {
   const signed = (r: SalesTaxReportRow, n: number) => money(r.sign * n);
 
   const columns: ColumnsType<SalesTaxReportRow> = [
+    { title: t("ลำดับ"), key: "seq", width: 72, align: "center" as const, render: (_v: unknown, _r: unknown, index: number) => (page - 1) * 50 + index + 1 },
     {
       title: t("วันที่"),
       dataIndex: "docDate",
@@ -133,7 +135,10 @@ export default function SalesTaxReportPage() {
 
       <FilterCard
         loading={query.isFetching}
-        onSearch={() => setApplied({ range: draftRange, docType: draftType, keyword: draftKeyword })}
+        onSearch={() => {
+          setPage(1);
+          setApplied({ range: draftRange, docType: draftType, keyword: draftKeyword });
+        }}
         onClear={() => {
           const fresh = defaultRange();
           setDraftRange(fresh);
@@ -202,7 +207,7 @@ export default function SalesTaxReportPage() {
           columns={columns}
           dataSource={data?.items ?? []}
           scroll={{ x: 1100 }}
-          pagination={{ pageSize: 50, showSizeChanger: false, showTotal: (n) => t("ทั้งหมด {n} รายการ", { n }) }}
+          pagination={{ current: page, onChange: setPage, pageSize: 50, showSizeChanger: false, showTotal: (n) => t("ทั้งหมด {n} รายการ", { n }) }}
           summary={() =>
             summary ? (
               <Table.Summary.Row>

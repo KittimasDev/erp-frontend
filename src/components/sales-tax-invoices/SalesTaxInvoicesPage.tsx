@@ -48,6 +48,7 @@ export default function SalesTaxInvoicesPage() {
   const total = query.data?.data.total ?? 0;
 
   const columns: ColumnsType<SalesTaxInvoice> = [
+    { title: t("ลำดับ"), key: "seq", width: 72, align: "center" as const, render: (_v: unknown, _r: unknown, index: number) => (page - 1) * limit + index + 1 },
     {
       title: t("เลขที่ใบกำกับภาษี"),
       dataIndex: "taxInvoiceNo",

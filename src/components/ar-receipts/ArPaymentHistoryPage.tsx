@@ -45,6 +45,7 @@ export default function ArPaymentHistoryPage() {
   if (!perms.canView) return <AccessDenied screenCodes={[SCREEN_CODE]} />;
 
   const columns: ColumnsType<PaymentHistoryRow> = [
+    { title: t("ลำดับ"), key: "seq", width: 72, align: "center" as const, render: (_v: unknown, _r: unknown, index: number) => (page - 1) * PAGE_SIZE + index + 1 },
     { title: t("วันที่"), dataIndex: "receiptDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
       title: t("ใบรับชำระ"),
