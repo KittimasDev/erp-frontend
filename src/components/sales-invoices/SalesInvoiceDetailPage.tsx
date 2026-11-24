@@ -165,20 +165,19 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     };
   }, [previewUrl]);
 
-  // ชำระแล้ว = เงินจริง (ไม่ใช่ CREDIT_NOTE) · หักกับใบลดหนี้แยกอีกช่อง · คงค้างหักทั้งสองอย่าง
-  const paidAmount = (data.payments ?? []).reduce(
-    (sum, p) =>
-      p.paymentMethod === "CREDIT_NOTE" ? sum : sum + (Number(p.amount) || 0),
-    0,
-  );
-  const creditNoteAmount = (data.payments ?? []).reduce(
-    (sum, p) =>
-      p.paymentMethod === "CREDIT_NOTE" ? sum + (Number(p.amount) || 0) : sum,
-    0,
-  );
+  // ชำระแล้ว = เงินจริงเท่านั้น (ไม่รวม CREDIT_NOTE / DEBIT_NOTE) · ใบลดหนี้/ใบเพิ่มหนี้แยกช่องของตัวเอง
+  // ใบเพิ่มหนี้เก็บเป็นแถวติดลบ → คงค้าง = รวม − จ่ายจริง − ลดหนี้ − (ติดลบ) = รวม + เพิ่มหนี้
+  const sumByMethod = (match: (method?: string) => boolean) =>
+    (data.payments ?? []).reduce(
+      (sum, p) => (match(p.paymentMethod) ? sum + (Number(p.amount) || 0) : sum),
+      0,
+    );
+  const paidAmount = sumByMethod((m) => m !== "CREDIT_NOTE" && m !== "DEBIT_NOTE");
+  const creditNoteAmount = sumByMethod((m) => m === "CREDIT_NOTE");
+  const debitNoteAmount = Math.abs(sumByMethod((m) => m === "DEBIT_NOTE"));
   const outstandingAmount = Math.max(
     0,
-    (Number(data.totalAmount) || 0) - paidAmount - creditNoteAmount,
+    (Number(data.totalAmount) || 0) - paidAmount - creditNoteAmount + debitNoteAmount,
   );
 
   const { canEdit, canApprove } = useArInvoicePermissions();
@@ -654,6 +653,14 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                       <span className={styles.metaLabel}>{t("หักกับใบลดหนี้")}</span>
                       <div className={styles.metaValue}>
                         {formatMoney(String(creditNoteAmount))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {debitNoteAmount > 0.004 ? (
+                    <div className={styles.metaItem}>
+                      <span className={styles.metaLabel}>{t("เพิ่มหนี้")}</span>
+                      <div className={styles.metaValue}>
+                        +{formatMoney(String(debitNoteAmount))}
                       </div>
                     </div>
                   ) : null}

@@ -404,6 +404,7 @@ export const EN_FINANCE_RECEIVABLES: Record<string, string> = {
   "ระบุยอดรวมที่รับ": "Enter the amount received",
   "วิธีรับเงิน": "Payment method",
   "หักกับใบลดหนี้": "Offset by credit note",
+  "เพิ่มหนี้": "Debit note added",
   "หักกับใบลดหนี้บางส่วน": "Partially offset by credit note",
   "หักกับใบลดหนี้ครบแล้ว": "Fully offset by credit note",
   "ใบแจ้งหนี้นี้คิดเฉพาะจำนวนที่ลูกค้ารับ — ลดหนี้ด้วยเหตุผลคืนสินค้าไม่ได้ (ของตีกลับไม่ได้ออกบิล) เลือกเหตุผลอื่นถ้าเป็นความเสียหาย/ลดราคาของที่ลูกค้ารับไปแล้ว": "This invoice bills only what the customer accepted — a credit note with the reason \"goods return\" is not allowed (returned goods were never billed). Choose another reason for damage/price reduction on accepted goods",
