@@ -124,7 +124,7 @@ export function buildPaymentRecordPdfData(d: PaymentRecordDetail): SalesCommerci
 
   return {
     pageId: "payment-record-pdf",
-    titleTh: "บันทึกจ่ายเงิน",
+    titleTh: "ใบจ่ายเงิน",
     titleEn: "PAYMENT RECORD",
     docNo: d.paymentNo ?? v.voucherNo,
     docDate: thaiDate(d.documentDate) || "—",
