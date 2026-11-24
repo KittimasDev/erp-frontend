@@ -56,41 +56,49 @@ export default function AdvanceReceiptsPage() {
     {
       title: t("เลขที่เอกสาร"),
       dataIndex: "docNo",
+      width: 150,
       render: (value: string) => <strong>{value}</strong>,
     },
     {
       title: t("ประเภท"),
       dataIndex: "docType",
-      width: 120,
+      width: 110,
+      align: "center",
       render: (value: string) => t(ADVANCE_TYPE_LABEL[value] ?? value),
     },
     {
       title: t("ลูกค้า"),
       dataIndex: "customerName",
+      width: 200,
+      ellipsis: true,
       render: (value: string | undefined, row) =>
         value ? `${row.customerCode ? `${row.customerCode} ` : ""}${value}` : "—",
     },
-    { title: t("ใบสั่งขาย"), dataIndex: "soNo", render: (value?: string) => value || "—" },
+    { title: t("ใบสั่งขาย"), dataIndex: "soNo", width: 140, render: (value?: string) => value || "—" },
     {
       title: t("วันรับเงิน"),
       dataIndex: "receiptDate",
       width: 120,
+      align: "center",
       render: (value: string) => formatDate(value),
     },
     {
       title: t("วิธีรับเงิน"),
       dataIndex: "paymentMethod",
+      width: 110,
       render: (value: string) => t(AR_PAYMENT_METHOD_LABEL[value] ?? value),
     },
     {
       title: t("ยอดรวม"),
       dataIndex: "totalAmount",
+      width: 130,
       align: "right",
       render: (value: string) => formatMoney(value),
     },
     {
       title: t("คงเหลือ"),
       dataIndex: "remainingAmount",
+      width: 130,
       align: "right",
       render: (value: string, row) =>
         row.status === "CANCELLED" ? (
@@ -103,8 +111,9 @@ export default function AdvanceReceiptsPage() {
       title: t("สถานะ"),
       dataIndex: "status",
       width: 120,
+      align: "center",
       render: (value: string) => (
-        <Tag color={ADVANCE_STATUS_COLOR[value] ?? "default"}>
+        <Tag style={{ marginInlineEnd: 0 }} color={ADVANCE_STATUS_COLOR[value] ?? "default"}>
           {t(ADVANCE_STATUS_LABEL[value] ?? value)}
         </Tag>
       ),
@@ -177,7 +186,7 @@ export default function AdvanceReceiptsPage() {
         loading={query.isLoading}
         columns={columns}
         dataSource={rows}
-        scroll={{ x: "max-content" }}
+        scroll={{ x: 1150 }}
         pagination={{
           current: page,
           pageSize: limit,
